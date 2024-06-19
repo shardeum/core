@@ -471,7 +471,7 @@ class TransactionQueue {
               isSenderValid = this.validateCorrespondingTellSender(queueEntry, state.accountId, senderNodeId)
             }
 
-            if (this.stateManager.testFailChance(configContext.debug.ignoreDataTellChance, 
+            if (this.stateManager.testFailChance(configContext.debug.ignoreDataTellChance,
             'ignoreDataTellChance', queueEntry.logID, '', logFlags.verbose ) === true ) {
               isSenderValid = false
             }
@@ -5372,7 +5372,7 @@ class TransactionQueue {
     delete queueEntry.recievedAppliedReceipt2
     delete queueEntry.appliedReceiptForRepair2
 
-    queueEntry.signedReceipt = 
+    queueEntry.signedReceipt =
       queueEntry.signedReceipt ??
       queueEntry.receivedSignedReceipt ??
       queueEntry.signedReceiptForRepair ??
@@ -5380,7 +5380,7 @@ class TransactionQueue {
     queueEntry.receivedSignedReceipt = null
     queueEntry.signedReceiptForRepair = null
     queueEntry.signedReceiptFinal = queueEntry.signedReceipt
-    
+
     delete queueEntry.receivedSignedReceipt
     delete queueEntry.signedReceiptForRepair
 
@@ -5983,7 +5983,8 @@ class TransactionQueue {
                 ' commit the tx')
               continue
             }
-          } else if (txAge > timeM3 + configContext.stateManager.voteSeenExpirationTime && hasSeenVote && !hasSeenConfirmation) {
+          }
+          if (txAge > timeM3 + configContext.stateManager.voteSeenExpirationTime && hasSeenVote && !hasSeenConfirmation) {
             if (configContext.stateManager.disableTxExpiration === false) {
               nestedCountersInstance.countEvent('txExpired', `> timeM3 + voteSeenExpirationTime`)
               this.mainLogger.error(`${queueEntry.logID} txAge > timeM3 + voteSeenExpirationTime general case has vote but fail to generate receipt`)
@@ -5992,7 +5993,8 @@ class TransactionQueue {
                 ' commit the tx')
               continue
             }
-          } else if (txAge > timeM3 + configContext.stateManager.noVoteSeenExpirationTime && !hasSeenVote) {
+          }
+          if (txAge > timeM3 + configContext.stateManager.noVoteSeenExpirationTime && !hasSeenVote) {
             // seen no vote but past timeM3 + noVoteSeenExpirationTime
             // nestedCountersInstance.countEvent('txExpired', `> timeM3 + noVoteSeenExpirationTime`)
             // this.mainLogger.error(`${queueEntry.logID} txAge > timeM3 + noVoteSeenExpirationTime general case. no vote seen`)
@@ -7798,7 +7800,7 @@ class TransactionQueue {
       }
       if (successCount === accountIds.length && validAppReceiptData === true) {
         success = true
-        
+
         //setting this for completeness. if our node is awaiting final data it will utilize what was looked up here
         queueEntry.hasValidFinalData = true
         return { wrappedResponses: queueEntry.collectedFinalData, appReceiptData: response.appReceiptData }
