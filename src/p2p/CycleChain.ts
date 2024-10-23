@@ -73,8 +73,19 @@ export function validate(
   prev: P2P.CycleCreatorTypes.CycleRecord,
   next: P2P.CycleCreatorTypes.CycleRecord
 ): boolean {
+  console.log('CycleChain.validate: inside')
   const prevMarker = computeCycleMarker(prev)
-  if (next.previous !== prevMarker) return false
+
+  console.log('CycleChain.validate: prevMarker', prevMarker)
+  console.log('CycleChain.validate: next.previous', next.previous)
+
+  console.log('CycleChain.validate: prev.standbylist', prev.standbyNodeListHash)
+  console.log('CycleChain.validate: next.standbylist', next.standbyNodeListHash)
+
+  if (next.previous !== prevMarker) {
+    console.log('CycleChain.validate: ERROR: next.previous !== prevMarker')
+    return false
+  }
   // [TODO] More validation
   return true
 }

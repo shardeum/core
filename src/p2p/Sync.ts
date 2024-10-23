@@ -259,6 +259,7 @@ type SyncNode = Partial<
 >
 
 export async function syncNewCycles(activeNodes: SyncNode[]) {
+  info('syncNewCycles: inside')
   let newestCycle = await getNewestCycle(activeNodes)
   info(`syncNewCycles: myNewest=${CycleChain.newest.counter} netNewest=${newestCycle.counter}`)
 
@@ -268,13 +269,19 @@ export async function syncNewCycles(activeNodes: SyncNode[]) {
   let attempt = 0
 
   while (CycleChain.newest.counter < newestCycle.counter) {
+    info('syncNewCycles: attempt ', attempt)
+    info('syncNewCycles: progress ', progress)
     const nextCycles = await getCycles(
       activeNodes,
       CycleChain.newest.counter + 1 // [DONE] maybe we should +1 so that we don't get the record we already have
     )
 
+    info(`syncNewCycles: `, nextCycles)
+
     const oldCounter = CycleChain.newest.counter
+    info(`syncNewCycles: oldCounter=${oldCounter}`)
     for (const nextCycle of nextCycles) {
+      info(`syncNewCycles: nextCycle=${nextCycle.counter}`)
       //      CycleChain.validate(CycleChain.newest, newestCycle)
 
 
@@ -289,13 +296,16 @@ export async function syncNewCycles(activeNodes: SyncNode[]) {
       // }
 
       if (CycleChain.validate(CycleChain.newest, nextCycle)) {
+        info(`syncNewCycles: before digesting nextCycle=${nextCycle.counter}`)
+        info(`syncNewCycles: before nextCycle.standbyNodeListHash: ${nextCycle.standbyNodeListHash}`)
         await digestCycle(nextCycle, 'syncNewCycles')
+        info(`syncNewCycles: after nextCycle.standbyNodeListHash: ${nextCycle.standbyNodeListHash}`)
         info(`syncNewCycles: digested nextCycle=${nextCycle.counter}`)
       } else {
         /* prettier-ignore */ error(
-          `syncNewCycles: next record does not fit with prev record.\nnext: ${Utils.safeStringify(
+          `syncNewCycles: next record does not fit with prev record.\nprev: ${Utils.safeStringify(
             CycleChain.newest
-          )}\nprev: ${Utils.safeStringify(newestCycle)}`
+          )}\nnext: ${Utils.safeStringify(newestCycle)}`
         )
 
         //20230730: comment below is from 3 years ago, is it something that needs to be handled.
@@ -309,10 +319,15 @@ export async function syncNewCycles(activeNodes: SyncNode[]) {
     }
     const newCounter = CycleChain.newest.counter
 
+    // There seems to be a bug in the below logic. it will return early on the first
+    // attempt if there is no progress, but the log says we tried progressHistory
+    // number of times. we'd need to add a condtion that checks if attempt is >=
+    // than progressHistory before returning.
+
     // Check progress history and number of attempts to stop tight loops
     progress[attempt % progressHistory] = newCounter - oldCounter
     if (progress.reduce((prev, curr) => prev + curr, 0) <= 0) {
-      warn(`syncNewCycles: no progress in the last ${progressHistory} attempts`)
+      warn(`syncNewCycles: no progress in the last ${progressHistory} attempts, in reality, on attempt ${attempt}`)
       return
     }
     if (attempt >= maxAttempts - 1) {
@@ -322,24 +337,38 @@ export async function syncNewCycles(activeNodes: SyncNode[]) {
 
     attempt++
     newestCycle = await getNewestCycle(activeNodes)
+    info(`syncNewCycles: new counter of newestCycle=${newestCycle.counter}`)
   }
 }
 
 export function digestCycle(cycle: P2P.CycleCreatorTypes.CycleRecord, source: string) {
+  info(`digestCycle: c${CycleCreator.currentCycle}q${currentQuarter} marker of cycle${cycle.counter} from ${source} before digest is ${CycleChain.computeCycleMarker(cycle)}`)
   // get the node list hashes *before* applying node changes
   if (config.p2p.useSyncProtocolV2 || config.p2p.writeSyncProtocolV2) {
-    cycle.nodeListHash = NodeList.computeNewNodeListHash()
-    cycle.archiverListHash = Archivers.computeNewArchiverListHash()
+    // would this cause issues if called from syncV2?
+    // suppose a node syncs the latest cycle from the network which will already have the ndoelist hashes filled in,
+    // but now we re-calculate them. what if the nodelists that we synced(and are calculating hashes based off of) is different
+    // than the nodelists were when the active nodes originally calculated the hashes and put it in the cycle record that we 
+    // already synced. we would end up with a different hash than the other nodes. this seems to be handled in the case of the
+    // standby list, but not with the validator and archivers lists
+
+    const newNodeListHash = NodeList.computeNewNodeListHash()
+    if (source === 'syncV2' && newNodeListHash !== cycle.nodeListHash) warn(`sync:digestCycle source: ${source} cycle: ${cycle.counter} patching nodelisthash ${cycle.nodeListHash} -> ${newNodeListHash}`)
+    cycle.nodeListHash = newNodeListHash
+
+    const newArchiverListHash = Archivers.computeNewArchiverListHash()
+    if (source === 'syncV2' && newArchiverListHash !== cycle.archiverListHash) warn(`sync:digestCycle source: ${source} cycle: ${cycle.counter} patching archiverlisthash ${cycle.archiverListHash} -> ${newArchiverListHash}`)
+    cycle.archiverListHash = newArchiverListHash
 
     // for join v2, also get the standby node list hash
     if (config.p2p.useJoinProtocolV2) {
       const standbyNodeListHash = JoinV2.computeNewStandbyListHash()
-      /* prettier-ignore */ if (logFlags.important_as_error) info( `sync:digestCycle cycle: ${cycle.counter} standbyNodeListHash: ${standbyNodeListHash} cycle.standbyNodeListHash: ${cycle.standbyNodeListHash}` )
+      /* prettier-ignore */ if (logFlags.important_as_error) info( `sync:digestCycle source: ${source} cycle: ${cycle.counter} standbyNodeListHash: ${standbyNodeListHash} cycle.standbyNodeListHash: ${cycle.standbyNodeListHash}` )
       
       // [TODO] We can remove `source !== 'syncV2'` once we shut down ITN2
       if (source !== 'syncV2'){
         if( standbyNodeListHash !== cycle.standbyNodeListHash){
-          /* prettier-ignore */ if (logFlags.important_as_error) info( `sync:digestCycle cycle: patching standbylisthash ${cycle.counter} standbyNodeListHash: ${standbyNodeListHash} -> cycle.standbyNodeListHash: ${cycle.standbyNodeListHash}` )
+          /* prettier-ignore */ if (logFlags.important_as_error) info( `sync:digestCycle source:${source} cycle: ${cycle.counter} patching standbylisthash ${cycle.counter} standbyNodeListHash: ${standbyNodeListHash} -> cycle.standbyNodeListHash: ${cycle.standbyNodeListHash}` )
           cycle.standbyNodeListHash = standbyNodeListHash
         }
       }
@@ -404,6 +433,7 @@ export function digestCycle(cycle: P2P.CycleCreatorTypes.CycleRecord, source: st
   }
 
   CycleChain.append(cycle)
+  info(`digestCycle: marker of cycle${cycle.counter} from ${source} after digest is ${CycleChain.computeCycleMarker(cycle)}`)
 
   // TODO: This seems like a possible location to inetvene if our node
   // is getting far behind on what it thinks the current cycle is
