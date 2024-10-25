@@ -342,7 +342,7 @@ export async function syncNewCycles(activeNodes: SyncNode[]) {
 }
 
 export function digestCycle(cycle: P2P.CycleCreatorTypes.CycleRecord, source: string) {
-  info(`digestCycle: c${CycleCreator.currentCycle}q${currentQuarter} marker of cycle${cycle.counter} from ${source} before digest is ${CycleChain.computeCycleMarker(cycle)}`)
+  info(`digestCycle: c${CycleCreator.currentCycle}q${CycleCreator.currentQuarter} marker of cycle${cycle.counter} from ${source} before digest is ${CycleChain.computeCycleMarker(cycle)}`)
   // get the node list hashes *before* applying node changes
   if (config.p2p.useSyncProtocolV2 || config.p2p.writeSyncProtocolV2) {
     // would this cause issues if called from syncV2?

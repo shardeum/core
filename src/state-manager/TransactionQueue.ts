@@ -52,7 +52,7 @@ import {
 import { isInternalTxAllowed, networkMode } from '../p2p/Modes'
 import { Node } from '@shardus/types/build/src/p2p/NodeListTypes'
 import { Logger as L4jsLogger } from 'log4js'
-import { ipInfo, shardusGetTime } from '../network'
+import { getNetworkTimeOffset, ipInfo, shardusGetTime } from '../network'
 import { InternalBinaryHandler } from '../types/Handler'
 import {
   BroadcastStateReq,
@@ -1096,7 +1096,29 @@ class TransactionQueue {
           nestedCountersInstance.countEvent('processing', 'processNonceQueue foundMatchingNonce')
           if (logFlags.debug) this.mainLogger.debug(`Found matching nonce in queue or ${account.accountId} with nonce ${item.nonce}`, item)
           item.appData.requestNewTimestamp = true
+
+          // start of timestamp logging
+          if (logFlags.important_as_error) {
+            const txTimestamp = this.app.getTimestampFromTransaction(item.tx, item.appData);
+            const nowNodeTimestamp = shardusGetTime()
+            const delta = nowNodeTimestamp - txTimestamp
+            const ntpOffset = getNetworkTimeOffset()        
+            /* prettier-ignore */ console.log(`TxnTS: pre _timestampAndQueueTransaction txTimestamp=${txTimestamp}, nowNodeTimestamp=${nowNodeTimestamp}, delta=${delta}, ntpOffset=${ntpOffset}, txID=${item.txId}`) 
+          }
+          // end of timestamp logging.
+
           await this.stateManager.shardus._timestampAndQueueTransaction(item.tx, item.appData, item.global, item.noConsensus)
+
+          // start of timestamp logging
+          if (logFlags.important_as_error) {
+            const txTimestamp = this.app.getTimestampFromTransaction(item.tx, item.appData);
+            const nowNodeTimestamp = shardusGetTime()
+            const delta = nowNodeTimestamp - txTimestamp
+            const ntpOffset = getNetworkTimeOffset()        
+            /* prettier-ignore */ console.log(`TxnTS: post _timestampAndQueueTransaction txTimestamp=${txTimestamp}, nowNodeTimestamp=${nowNodeTimestamp}, delta=${delta}, ntpOffset=${ntpOffset}, txID=${item.txId}`) 
+          }
+          // end of timestamp logging.
+
           // remove the item from the queue
           const index = queue.indexOf(item)
           queue.splice(index, 1)

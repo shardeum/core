@@ -1615,6 +1615,16 @@ class Shardus extends EventEmitter {
       } else {
         // tx nonce is equal to account nonce
         let result = await this._timestampAndQueueTransaction(tx, appData, global, noConsensus)
+
+        // start of timestamp logging
+        if (logFlags.important_as_error) {
+          const txTimestamp = this.app.getTimestampFromTransaction(tx, appData);
+          const nowNodeTimestamp = shardusGetTime()    
+          const ntpOffset = getNetworkTimeOffset()        
+          /* prettier-ignore */ console.log(`TxnTS: shardus.put() txTimestamp=${txTimestamp}, nowNodeTimestamp=${nowNodeTimestamp}, ntpOffset=${ntpOffset}, txID=${txId}`) 
+        }
+        // end of timestamp logging.
+
         return result
       }
       // Pass received txs to any subscribed 'DATA' receivers
