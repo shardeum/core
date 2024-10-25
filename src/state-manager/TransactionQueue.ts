@@ -1061,7 +1061,8 @@ class TransactionQueue {
         if (logFlags.debug) this.mainLogger.debug(`adding new nonce tx: ${nonceQueueEntry.txId} ${nonceQueueEntry.accountId} with nonce ${nonceQueueEntry.nonce}`)
       } else if (queue && queue.length > 0) {
         const index = utils.binarySearch(queue, nonceQueueEntry, (a, b) => Number(a.nonce) - Number(b.nonce))
-        if (index != -1) {
+
+        if (index >= 0) {
           // there is existing item with the same nonce. replace it with the new one
           queue[index] = nonceQueueEntry
           this.nonceQueue.set(nonceQueueEntry.accountId, queue)
@@ -1070,7 +1071,7 @@ class TransactionQueue {
           return { success: true, reason: 'Replace existing pending nonce tx', alreadyAdded: true }
         }
         // add new item to the queue
-        utils.insertSorted(queue, nonceQueueEntry, (a, b) => Number(a.nonce) - Number(b.nonce));
+        utils.insertSorted(queue, nonceQueueEntry, (a, b) => Number(a.nonce) - Number(b.nonce))
         this.nonceQueue.set(nonceQueueEntry.accountId, queue)
       }
       /* prettier-ignore */ if (logFlags.seqdiagram) this.seqLogger.info(`0x53455106 ${shardusGetTime()} tx:${nonceQueueEntry.txId} Note over ${NodeList.activeIdToPartition.get(Self.id)}: pause_nonceQ`)
