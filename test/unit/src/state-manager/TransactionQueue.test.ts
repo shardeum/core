@@ -121,5 +121,42 @@ describe.only('TransactionQueue', () => {
       expect(transactionQueue.nonceQueue.get('account1')?.[0].txId).toEqual(existingEntry.txId)
       expect(transactionQueue.nonceQueue.get('account1')?.[1].txId).toEqual(newEntry.txId)
     });
+
+    it('should add txs with decreasing nonce order without issue', () => {
+      const firstEntry: NonceQueueItem = {
+        accountId: 'account1',
+        txId: 'tx1',
+        nonce: 3n,
+        tx: {} as any,
+        appData: {},
+        global: false,
+        noConsensus: false
+      }
+      const secondEntry: NonceQueueItem = {
+        ...firstEntry,
+        nonce: 2n,
+        txId: 'tx2',
+      }
+      const thirdEntry: NonceQueueItem = {
+        ...firstEntry,
+        nonce: 1n,
+        txId: 'tx3',
+      }
+
+      const result1 = transactionQueue.addTransactionToNonceQueue(firstEntry)
+      const result2 = transactionQueue.addTransactionToNonceQueue(secondEntry)
+      const result3 = transactionQueue.addTransactionToNonceQueue(thirdEntry)
+
+      expect(result1.success).toBe(true)
+      expect(result2.success).toBe(true)
+      expect(result3.success).toBe(true)
+      expect(result1.alreadyAdded).toBe(false)
+      expect(result2.alreadyAdded).toBe(false)
+      expect(result3.alreadyAdded).toBe(false)
+      expect(transactionQueue.nonceQueue.get('account1')).toHaveLength(3)
+      expect(transactionQueue.nonceQueue.get('account1')?.[0].txId).toEqual(thirdEntry.txId)
+      expect(transactionQueue.nonceQueue.get('account1')?.[1].txId).toEqual(secondEntry.txId)
+      expect(transactionQueue.nonceQueue.get('account1')?.[2].txId).toEqual(firstEntry.txId)
+    });
   });
 });

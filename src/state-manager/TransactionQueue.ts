@@ -1062,7 +1062,7 @@ class TransactionQueue {
       } else if (queue && queue.length > 0) {
         const index = utils.binarySearch(queue, nonceQueueEntry, (a, b) => Number(a.nonce) - Number(b.nonce))
 
-        if (index >= -1) {
+        if (index >= 0) {
           // there is existing item with the same nonce. replace it with the new one
           queue[index] = nonceQueueEntry
           this.nonceQueue.set(nonceQueueEntry.accountId, queue)
