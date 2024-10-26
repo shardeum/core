@@ -592,16 +592,15 @@ export async function processNetworkTransactions(record: P2P.CycleCreatorTypes.C
   const processedSubQueueKeys = new Set<string>()
   let length = Math.min(txList.length, config.p2p.networkTransactionsToProcessPerCycle)
   for (let i = 0; i < length && currentQuarter === 3; i++) {
+    // eslint-disable-next-line security/detect-object-injection
+    if (!txList[i]) {
+      warn(`txList[${i}] is undefined`)
+      continue
+    }
+
+    // eslint-disable-next-line security/detect-object-injection
+    const record = txList[i].tx
     try {
-      // eslint-disable-next-line security/detect-object-injection
-      if (!txList[i]) {
-        warn(`txList[${i}] is undefined`)
-        continue
-      }
-
-      // eslint-disable-next-line security/detect-object-injection
-      const record = txList[i].tx
-
       if (record.subQueueKey != null && processedSubQueueKeys.has(record.subQueueKey)) {
         if (length < txList.length) {
           length += 1
@@ -634,6 +633,10 @@ export async function processNetworkTransactions(record: P2P.CycleCreatorTypes.C
         }
       }
     } catch (e) {
+      countTry(txList[i].hash)
+      if (record.subQueueKey != null) {
+        processedSubQueueKeys.add(record.subQueueKey)
+      }
       // eslint-disable-next-line security/detect-object-injection
       error(`Failed to process network transaction ${txList[i]?.hash}: ${e instanceof Error ? e.stack : e}`)
     }
