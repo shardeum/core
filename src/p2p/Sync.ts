@@ -344,8 +344,20 @@ export function digestCycle(cycle: P2P.CycleCreatorTypes.CycleRecord, source: st
   info(`digestCycle: c${CycleCreator.currentCycle}q${currentQuarter} marker of cycle${cycle.counter} from ${source} before digest is ${CycleChain.computeCycleMarker(cycle)}`)
   // get the node list hashes *before* applying node changes
   if (config.p2p.useSyncProtocolV2 || config.p2p.writeSyncProtocolV2) {
-    cycle.nodeListHash = NodeList.computeNewNodeListHash()
-    cycle.archiverListHash = Archivers.computeNewArchiverListHash()
+    // would this cause issues if called from syncV2?
+    // suppose a node syncs the latest cycle from the network which will already have the ndoelist hashes filled in,
+    // but now we re-calculate them. what if the nodelists that we synced(and are calculating hashes based off of) is different
+    // than the nodelists were when the active nodes originally calculated the hashes and put it in the cycle record that we 
+    // already synced. we would end up with a different hash than the other nodes. this seems to be handled in the case of the
+    // standby list, but not with the validator and archivers lists
+
+    const newNodeListHash = NodeList.computeNewNodeListHash()
+    if (source === 'syncV2' && newNodeListHash !== cycle.nodeListHash) warn(`sync:digestCycle source: ${source} cycle: ${cycle.counter} patching nodelisthash ${cycle.nodeListHash} -> ${newNodeListHash}`)
+    cycle.nodeListHash = newNodeListHash
+
+    const newArchiverListHash = Archivers.computeNewArchiverListHash()
+    if (source === 'syncV2' && newArchiverListHash !== cycle.archiverListHash) warn(`sync:digestCycle source: ${source} cycle: ${cycle.counter} patching archiverlisthash ${cycle.archiverListHash} -> ${newArchiverListHash}`)
+    cycle.archiverListHash = newArchiverListHash
 
     // for join v2, also get the standby node list hash
     if (config.p2p.useJoinProtocolV2) {
@@ -353,9 +365,9 @@ export function digestCycle(cycle: P2P.CycleCreatorTypes.CycleRecord, source: st
       /* prettier-ignore */ if (logFlags.important_as_error) info( `sync:digestCycle source: ${source} cycle: ${cycle.counter} standbyNodeListHash: ${standbyNodeListHash} cycle.standbyNodeListHash: ${cycle.standbyNodeListHash}` )
       
       // [TODO] We can remove `source !== 'syncV2'` once we shut down ITN2
-      if (source !== ''){
+      if (source !== 'syncV2'){
         if( standbyNodeListHash !== cycle.standbyNodeListHash){
-          /* prettier-ignore */ if (logFlags.important_as_error) info( `sync:digestCycle cycle: patching standbylisthash ${cycle.counter} standbyNodeListHash: ${standbyNodeListHash} -> cycle.standbyNodeListHash: ${cycle.standbyNodeListHash}` )
+          /* prettier-ignore */ if (logFlags.important_as_error) info( `sync:digestCycle source:${source} cycle: ${cycle.counter} patching standbylisthash ${cycle.counter} standbyNodeListHash: ${standbyNodeListHash} -> cycle.standbyNodeListHash: ${cycle.standbyNodeListHash}` )
           cycle.standbyNodeListHash = standbyNodeListHash
         }
       }

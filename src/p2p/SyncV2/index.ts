@@ -90,6 +90,7 @@ export function syncV2(activeNodes: P2P.SyncTypes.ActiveNode[]): ResultAsync<voi
             // add latest cycle
             CycleChain.reset()
 
+            console.log('syncV2: cycle.counter ', cycle.counter)
             console.log('syncV2: cycle.marker ', makeCycleMarker(cycle))
             console.log('syncV2: nodelist hash ', cycle.nodeListHash)
             console.log('syncV2: archiverList hash ', cycle.archiverListHash)
@@ -98,6 +99,7 @@ export function syncV2(activeNodes: P2P.SyncTypes.ActiveNode[]): ResultAsync<voi
 
             digestCycle(cycle, 'syncV2')
 
+            console.log('syncV2: CycleChain.newest.counter ', CycleChain.newest.counter)  
             console.log('syncV2: CycleChain.newest.marker ', makeCycleMarker(CycleChain.newest))
             console.log('syncV2: nodelist hash ', CycleChain.newest.nodeListHash)
             console.log('syncV2: archiverList hash ', CycleChain.newest.archiverListHash)
