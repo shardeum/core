@@ -552,73 +552,73 @@ class TransactionConsenus {
     //   }
     // )
 
-    const GetAppliedVoteBinaryHandler: Route<InternalBinaryHandler<Buffer>> = {
-      name: InternalRouteEnum.binary_get_applied_vote,
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      handler: async (payload, respond, header, sign) => {
-        const route = InternalRouteEnum.binary_get_applied_vote
-        nestedCountersInstance.countEvent('internal', route)
-        this.profiler.scopedProfileSectionStart(route, false, payload.length)
-        const errorHandler = (
-          errorType: RequestErrorEnum,
-          opts?: { customErrorLog?: string; customCounterSuffix?: string }
-        ): void => requestErrorHandler(route, errorType, header, opts)
+    // const GetAppliedVoteBinaryHandler: Route<InternalBinaryHandler<Buffer>> = {
+    //   name: InternalRouteEnum.binary_get_applied_vote,
+    //   // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    //   handler: async (payload, respond, header, sign) => {
+    //     const route = InternalRouteEnum.binary_get_applied_vote
+    //     nestedCountersInstance.countEvent('internal', route)
+    //     this.profiler.scopedProfileSectionStart(route, false, payload.length)
+    //     const errorHandler = (
+    //       errorType: RequestErrorEnum,
+    //       opts?: { customErrorLog?: string; customCounterSuffix?: string }
+    //     ): void => requestErrorHandler(route, errorType, header, opts)
 
-        try {
-          const requestStream = getStreamWithTypeCheck(payload, TypeIdentifierEnum.cGetAppliedVoteReq)
-          if (!requestStream) {
-            errorHandler(RequestErrorEnum.InvalidRequestType)
-            return respond(BadRequest('invalid request stream'), serializeResponseError)
-          }
+    //     try {
+    //       const requestStream = getStreamWithTypeCheck(payload, TypeIdentifierEnum.cGetAppliedVoteReq)
+    //       if (!requestStream) {
+    //         errorHandler(RequestErrorEnum.InvalidRequestType)
+    //         return respond(BadRequest('invalid request stream'), serializeResponseError)
+    //       }
 
-          // verification data checks
-          if (header.verification_data == null) {
-            errorHandler(RequestErrorEnum.MissingVerificationData)
-            return respond(BadRequest('missing verification data'), serializeResponseError)
-          }
+    //       // verification data checks
+    //       if (header.verification_data == null) {
+    //         errorHandler(RequestErrorEnum.MissingVerificationData)
+    //         return respond(BadRequest('missing verification data'), serializeResponseError)
+    //       }
 
-          const txId = header.verification_data
-          let queueEntry = this.stateManager.transactionQueue.getQueueEntrySafe(txId)
-          if (queueEntry == null) {
-            // check the archived queue entries
-            queueEntry = this.stateManager.transactionQueue.getQueueEntryArchived(txId, route)
-          }
+    //       const txId = header.verification_data
+    //       let queueEntry = this.stateManager.transactionQueue.getQueueEntrySafe(txId)
+    //       if (queueEntry == null) {
+    //         // check the archived queue entries
+    //         queueEntry = this.stateManager.transactionQueue.getQueueEntryArchived(txId, route)
+    //       }
 
-          if (queueEntry == null) {
-            /* prettier-ignore */ if (logFlags.error) this.mainLogger.error(`${route} no queue entry for ${txId} dbg:${this.stateManager.debugTXHistory[utils.stringifyReduce(txId)]}`)
-            errorHandler(RequestErrorEnum.InvalidRequest)
-            return respond(NotFound('queue entry not found'), serializeResponseError)
-          }
+    //       if (queueEntry == null) {
+    //         /* prettier-ignore */ if (logFlags.error) this.mainLogger.error(`${route} no queue entry for ${txId} dbg:${this.stateManager.debugTXHistory[utils.stringifyReduce(txId)]}`)
+    //         errorHandler(RequestErrorEnum.InvalidRequest)
+    //         return respond(NotFound('queue entry not found'), serializeResponseError)
+    //       }
 
-          const req = deserializeGetAppliedVoteReq(requestStream)
-          if (req.txId !== txId) {
-            errorHandler(RequestErrorEnum.InvalidPayload, { customErrorLog: 'txId mismatch' })
-            return respond(BadRequest('txId mismatch'), serializeResponseError)
-          }
+    //       const req = deserializeGetAppliedVoteReq(requestStream)
+    //       if (req.txId !== txId) {
+    //         errorHandler(RequestErrorEnum.InvalidPayload, { customErrorLog: 'txId mismatch' })
+    //         return respond(BadRequest('txId mismatch'), serializeResponseError)
+    //       }
 
-          if (queueEntry.receivedBestVote == null) {
-            /* prettier-ignore */ if (logFlags.error) this.mainLogger.error(`${route} no receivedBestVote for ${req.txId} dbg:${this.stateManager.debugTXHistory[utils.stringifyReduce(req.txId)]}`)
-            return respond(NotFound('receivedBestVote not found'), serializeResponseError)
-          }
-          const appliedVote: GetAppliedVoteResp = {
-            txId,
-            appliedVote: queueEntry.receivedBestVote,
-            appliedVoteHash: queueEntry.receivedBestVoteHash
-              ? queueEntry.receivedBestVoteHash
-              : this.calculateVoteHash(queueEntry.receivedBestVote),
-          }
-          respond(appliedVote, serializeGetAppliedVoteResp)
-        } catch (e) {
-          nestedCountersInstance.countEvent('internal', `${route}-exception`)
-          this.mainLogger.error(`${route}: Exception executing request: ${utils.errorToStringFull(e)}`)
-          return respond(InternalError('exception executing request'), serializeResponseError)
-        } finally {
-          this.profiler.scopedProfileSectionEnd(route)
-        }
-      },
-    }
+    //       if (queueEntry.receivedBestVote == null) {
+    //         /* prettier-ignore */ if (logFlags.error) this.mainLogger.error(`${route} no receivedBestVote for ${req.txId} dbg:${this.stateManager.debugTXHistory[utils.stringifyReduce(req.txId)]}`)
+    //         return respond(NotFound('receivedBestVote not found'), serializeResponseError)
+    //       }
+    //       const appliedVote: GetAppliedVoteResp = {
+    //         txId,
+    //         appliedVote: queueEntry.receivedBestVote,
+    //         appliedVoteHash: queueEntry.receivedBestVoteHash
+    //           ? queueEntry.receivedBestVoteHash
+    //           : this.calculateVoteHash(queueEntry.receivedBestVote),
+    //       }
+    //       respond(appliedVote, serializeGetAppliedVoteResp)
+    //     } catch (e) {
+    //       nestedCountersInstance.countEvent('internal', `${route}-exception`)
+    //       this.mainLogger.error(`${route}: Exception executing request: ${utils.errorToStringFull(e)}`)
+    //       return respond(InternalError('exception executing request'), serializeResponseError)
+    //     } finally {
+    //       this.profiler.scopedProfileSectionEnd(route)
+    //     }
+    //   },
+    // }
 
-    Comms.registerInternalBinary(GetAppliedVoteBinaryHandler.name, GetAppliedVoteBinaryHandler.handler)
+    // Comms.registerInternalBinary(GetAppliedVoteBinaryHandler.name, GetAppliedVoteBinaryHandler.handler)
 
     Comms.registerGossipHandler(
       'gossip-applied-vote',
@@ -1609,7 +1609,15 @@ class TransactionConsenus {
             '',
             true
           )
-          this.stateManager.transactionQueue.factTellCorrespondingNodesFinalData(queueEntry)
+
+          // Only forward data if we have a valid matching preApply
+          if (queueEntry.ourVoteHash === readableReq.proposalHash) {
+            // We are a winning node
+            nestedCountersInstance.countEvent('poqo', 'poqo-send-receipt: forwarding data')
+            this.stateManager.transactionQueue.factTellCorrespondingNodesFinalData(queueEntry)
+          } else {
+            nestedCountersInstance.countEvent('poqo', 'poqo-send-receipt: no matching data. Can\'t forward')
+          }
         } catch (e) {
           console.error(`Error processing poqoSendReceiptBinary handler: ${e}`)
           nestedCountersInstance.countEvent('internal', `${route}-exception`)
@@ -3619,7 +3627,6 @@ class TransactionConsenus {
 
       // save our vote to our queueEntry
       this.crypto.sign(ourVote)
-      this.crypto.sign(proposal)
       queueEntry.ourVote = ourVote
       queueEntry.ourProposal = proposal
       if (queueEntry.firstVoteReceivedTimestamp === 0) {
@@ -3751,60 +3758,60 @@ class TransactionConsenus {
     }
   }
 
-  calculateVoteHash(vote: AppliedVote | Proposal, removeSign = true): string {
-    if (this.stateManager.transactionQueue.usePOQo && (vote as Proposal).applied !== undefined) {
-      const proposal = vote as Proposal
-      const applyStatus = {
-        applied: proposal.applied,
-        cantApply: proposal.cant_preApply,
-      }
-      const accountsHash = this.crypto.hash(
-        this.crypto.hash(proposal.accountIDs) +
-        this.crypto.hash(proposal.beforeStateHashes) + 
-        this.crypto.hash(proposal.afterStateHashes)
-      )
-      const proposalHash = this.crypto.hash(
-        this.crypto.hash(applyStatus) + accountsHash + proposal.appReceiptDataHash
-      )
-      return proposalHash
-    } else if (this.stateManager.transactionQueue.usePOQo) {
-      const appliedVote = vote as AppliedVote
-      const appliedHash = {
-        applied: appliedVote.transaction_result,
-        cantApply: appliedVote.cant_apply
-      }
-      const stateHash = {
-        account_id: appliedVote.account_id,
-        account_state_hash_after: appliedVote.account_state_hash_after,
-        account_state_hash_before: appliedVote.account_state_hash_before,
-      }
-      const appDataHash = {
-        app_data_hash: appliedVote.app_data_hash,
-      }
-      const voteToHash = {
-        appliedHash: this.crypto.hash(appliedHash),
-        stateHash: this.crypto.hash(stateHash),
-        appDataHash: this.crypto.hash(appDataHash),
-      }
-      return this.crypto.hash(voteToHash)
-    } else if (this.stateManager.transactionQueue.useNewPOQ) {
-      const appliedVote = vote as AppliedVote
-      const voteToHash = {
-        txId: appliedVote.txid,
-        transaction_result: appliedVote.transaction_result,
-        account_id: appliedVote.account_id,
-        account_state_hash_after: appliedVote.account_state_hash_after,
-        account_state_hash_before: appliedVote.account_state_hash_before,
-        cant_apply: appliedVote.cant_apply,
-      }
-      return this.crypto.hash(voteToHash)
-    } else {
-      const appliedVote = vote as AppliedVote
-      const voteToHash = Object.assign({}, appliedVote)
-      if (voteToHash.node_id != null) voteToHash.node_id = ''
-      if (voteToHash.sign != null) delete voteToHash.sign
-      return this.crypto.hash(voteToHash)
+  calculateVoteHash(vote: Proposal): string {
+    // if (this.stateManager.transactionQueue.usePOQo && (vote as Proposal).applied !== undefined) {
+    const proposal = vote
+    const applyStatus = {
+      applied: proposal.applied,
+      cantApply: proposal.cant_preApply,
     }
+    const accountsHash = this.crypto.hash(
+      this.crypto.hash(proposal.accountIDs) +
+      this.crypto.hash(proposal.beforeStateHashes) + 
+      this.crypto.hash(proposal.afterStateHashes)
+    )
+    const proposalHash = this.crypto.hash(
+      this.crypto.hash(applyStatus) + accountsHash + proposal.appReceiptDataHash
+    )
+    return proposalHash
+    // } else if (this.stateManager.transactionQueue.usePOQo) {
+    //   const appliedVote = vote as AppliedVote
+    //   const appliedHash = {
+    //     applied: appliedVote.transaction_result,
+    //     cantApply: appliedVote.cant_apply
+    //   }
+    //   const stateHash = {
+    //     account_id: appliedVote.account_id,
+    //     account_state_hash_after: appliedVote.account_state_hash_after,
+    //     account_state_hash_before: appliedVote.account_state_hash_before,
+    //   }
+    //   const appDataHash = {
+    //     app_data_hash: appliedVote.app_data_hash,
+    //   }
+    //   const voteToHash = {
+    //     appliedHash: this.crypto.hash(appliedHash),
+    //     stateHash: this.crypto.hash(stateHash),
+    //     appDataHash: this.crypto.hash(appDataHash),
+    //   }
+    //   return this.crypto.hash(voteToHash)
+    // } else if (this.stateManager.transactionQueue.useNewPOQ) {
+    //   const appliedVote = vote as AppliedVote
+    //   const voteToHash = {
+    //     txId: appliedVote.txid,
+    //     transaction_result: appliedVote.transaction_result,
+    //     account_id: appliedVote.account_id,
+    //     account_state_hash_after: appliedVote.account_state_hash_after,
+    //     account_state_hash_before: appliedVote.account_state_hash_before,
+    //     cant_apply: appliedVote.cant_apply,
+    //   }
+    //   return this.crypto.hash(voteToHash)
+    // } else {
+    //   const appliedVote = vote as AppliedVote
+    //   const voteToHash = Object.assign({}, appliedVote)
+    //   if (voteToHash.node_id != null) voteToHash.node_id = ''
+    //   if (voteToHash.sign != null) delete voteToHash.sign
+    //   return this.crypto.hash(voteToHash)
+    // }
   }
   addPendingConfirmOrChallenge(queueEntry: QueueEntry, confirmOrChallenge: ConfirmOrChallengeMessage): void {
     if (queueEntry.pendingConfirmOrChallenge.has(confirmOrChallenge.nodeId) === false) {
@@ -4067,6 +4074,7 @@ class TransactionConsenus {
       queueEntry.collectedVotes.push(vote)
       queueEntry.newVotes = true
       if (queueEntry.firstVoteReceivedTimestamp === 0) queueEntry.firstVoteReceivedTimestamp = shardusGetTime()
+      queueEntry.lastVoteReceivedTimestamp = shardusGetTime()
       if (this.stateManager.consensusLog)
         this.mainLogger.debug(`First vote appended for tx ${queueEntry.logID}}`)
       return true
