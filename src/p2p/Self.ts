@@ -105,6 +105,7 @@ export function init(): void {
   GlobalAccounts.init()
   NodeList.init()
   Sync.init()
+  CycleChain.init()
 
   // initialize SyncV2 if enabled
   if (Context.config.p2p.useSyncProtocolV2) {
