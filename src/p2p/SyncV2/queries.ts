@@ -29,8 +29,10 @@ type CycleRecord = P2P.CycleCreatorTypes.CycleRecord
 const MAX_RETRIES = 3
 
 let mainLogger: Logger
+export let p2pLogger: Logger
 export function initLogger(): void {
   mainLogger = logger.getLogger('main')
+  p2pLogger = logger.getLogger('p2p')
 }
 
 /**

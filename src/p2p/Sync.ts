@@ -276,7 +276,7 @@ export async function syncNewCycles(activeNodes: SyncNode[]) {
       CycleChain.newest.counter + 1 // [DONE] maybe we should +1 so that we don't get the record we already have
     )
 
-    info(`syncNewCycles: `, nextCycles)
+    info(`syncNewCycles: nextCycles `, Utils.safeStringify(nextCycles))
 
     const oldCounter = CycleChain.newest.counter
     info(`syncNewCycles: oldCounter=${oldCounter}`)

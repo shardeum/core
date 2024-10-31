@@ -73,17 +73,16 @@ export function validate(
   prev: P2P.CycleCreatorTypes.CycleRecord,
   next: P2P.CycleCreatorTypes.CycleRecord
 ): boolean {
-  console.log('CycleChain.validate: inside')
   const prevMarker = computeCycleMarker(prev)
 
-  console.log('CycleChain.validate: prevMarker', prevMarker)
-  console.log('CycleChain.validate: next.previous', next.previous)
+  info('validate: prevMarker', prevMarker)
+  info('validate: next.previous', next.previous)
 
-  console.log('CycleChain.validate: prev.standbylist', prev.standbyNodeListHash)
-  console.log('CycleChain.validate: next.standbylist', next.standbyNodeListHash)
+  info('validate: prev.standbylist', prev.standbyNodeListHash)
+  info('validate: next.standbylist', next.standbyNodeListHash)
 
   if (next.previous !== prevMarker) {
-    console.log('CycleChain.validate: ERROR: next.previous !== prevMarker')
+    info('validate: ERROR: next.previous !== prevMarker')
     return false
   }
   // [TODO] More validation
@@ -316,4 +315,9 @@ export function getNewestCycleInfoLogStr(msg: string): string {
   let cycleNumber = newest ? newest.counter : -1
   const res = `Cycle: ${cycleNumber} Time:${shardusGetTime()} ${msg}`
   return res
+}
+
+function info(...msg) {
+  const entry = `CycleChain: ${msg.join(' ')}`
+  p2pLogger.info(entry)
 }

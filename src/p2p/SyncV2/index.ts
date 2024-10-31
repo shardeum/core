@@ -4,7 +4,7 @@
  */
 
 import { errAsync, okAsync, ResultAsync } from 'neverthrow'
-import { hexstring, P2P } from '@shardus/types'
+import { hexstring, P2P, Utils } from '@shardus/types'
 import {
   getCycleDataFromNode,
   initLogger,
@@ -29,6 +29,7 @@ import { JoinRequest } from '@shardus/types/build/src/p2p/JoinTypes'
 import { addStandbyJoinRequests } from '../Join/v2'
 import { logFlags } from '../../logger'
 import { makeCycleMarker } from '../CycleCreator'
+import { p2pLogger } from './queries'
 
 /** Initializes logging and endpoints for Sync V2. */
 export function init(): void {
@@ -90,21 +91,21 @@ export function syncV2(activeNodes: P2P.SyncTypes.ActiveNode[]): ResultAsync<voi
             // add latest cycle
             CycleChain.reset()
 
-            console.log('syncV2: cycle.counter ', cycle.counter)
-            console.log('syncV2: cycle.marker ', makeCycleMarker(cycle))
-            console.log('syncV2: nodelist hash ', cycle.nodeListHash)
-            console.log('syncV2: archiverList hash ', cycle.archiverListHash)
-            console.log('syncV2: standbyNodeList hash ', cycle.standbyNodeListHash)
-            console.log('syncV2: cycle ', cycle)
+            info('syncV2: cycle.counter ', cycle.counter)
+            info('syncV2: cycle.marker ', makeCycleMarker(cycle))
+            info('syncV2: nodelist hash ', cycle.nodeListHash)
+            info('syncV2: archiverList hash ', cycle.archiverListHash)
+            info('syncV2: standbyNodeList hash ', cycle.standbyNodeListHash)
+            info('syncV2: cycle ', Utils.safeStringify(cycle))
 
             digestCycle(cycle, 'syncV2')
 
-            console.log('syncV2: CycleChain.newest.counter ', CycleChain.newest.counter)  
-            console.log('syncV2: CycleChain.newest.marker ', makeCycleMarker(CycleChain.newest))
-            console.log('syncV2: nodelist hash ', CycleChain.newest.nodeListHash)
-            console.log('syncV2: archiverList hash ', CycleChain.newest.archiverListHash)
-            console.log('syncV2: standbyNodeList hash ', CycleChain.newest.standbyNodeListHash)
-            console.log('syncV2: CycleChain.newest ', CycleChain.newest)
+            info('syncV2: CycleChain.newest.counter ', CycleChain.newest.counter)  
+            info('syncV2: CycleChain.newest.marker ', makeCycleMarker(CycleChain.newest))
+            info('syncV2: nodelist hash ', CycleChain.newest.nodeListHash)
+            info('syncV2: archiverList hash ', CycleChain.newest.archiverListHash)
+            info('syncV2: standbyNodeList hash ', CycleChain.newest.standbyNodeListHash)
+            info('syncV2: CycleChain.newest ', Utils.safeStringify(CycleChain.newest))
 
             return okAsync(void 0)
           })
@@ -226,4 +227,9 @@ function syncLatestCycleRecord(
       verifyCycleRecord(cycle, value.currentCycleHash).map(() => cycle)
     )
   )
+}
+
+function info(...msg) {
+  const entry = `SyncV2: ${msg.join(' ')}`
+  p2pLogger.info(entry)
 }
