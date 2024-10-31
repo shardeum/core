@@ -123,7 +123,7 @@ export async function sync(activeNodes: P2P.SyncTypes.ActiveNode[]) {
     const start = end - cyclesToGet
     info(`Getting cycles ${start} - ${end}...`)
     nestedCountersInstance.countEvent('p2p', `sync-getting-cycles ${start} - ${end}`)
-    const prevCycles = await getCycles(activeNodes, start, end)
+    const { cycles: prevCycles } = await getCycles(activeNodes, start, end)
     info(`Got cycles ${Utils.safeStringify(prevCycles.map((cycle) => cycle.counter))}`)
     info(`  ${Utils.safeStringify(prevCycles)}`)
 
@@ -271,7 +271,7 @@ export async function syncNewCycles(activeNodes: SyncNode[]) {
   while (CycleChain.newest.counter < newestCycle.counter) {
     info('syncNewCycles: attempt ', attempt)
     info('syncNewCycles: progress ', progress)
-    const nextCycles = await getCycles(
+    const { cycles: nextCycles, responders } = await getCycles(
       activeNodes,
       CycleChain.newest.counter + 1 // [DONE] maybe we should +1 so that we don't get the record we already have
     )
@@ -295,7 +295,7 @@ export async function syncNewCycles(activeNodes: SyncNode[]) {
       //   }
       // }
 
-      if (CycleChain.validate(CycleChain.newest, nextCycle)) {
+      if (CycleChain.validate(CycleChain.newest, nextCycle) && (Self.isRestartNetwork || Self.isFirst)) {
         info(`syncNewCycles: before digesting nextCycle=${nextCycle.counter}`)
         info(`syncNewCycles: before nextCycle.standbyNodeListHash: ${nextCycle.standbyNodeListHash}`)
         await digestCycle(nextCycle, 'syncNewCycles')
@@ -307,6 +307,19 @@ export async function syncNewCycles(activeNodes: SyncNode[]) {
             CycleChain.newest
           )}\nnext: ${Utils.safeStringify(newestCycle)}`
         )
+
+        // Suggestion from Shawn:
+        // get previous cycle(what they have that corresponds to our CycleChain.newest) from winning nodes and log them here
+        for (const responder of responders) {
+          const ip = responder.ip ? responder.ip : responder.externalIp
+          const port = responder.port ? responder.port : responder.externalPort
+          const data = {
+            start: CycleChain.newest.counter,
+            end: CycleChain.newest.counter
+          }
+          const resp = await http.post(`${ip}:${port}/sync-cycles`, data)
+          info(`syncNewCycles: responder ${ip}:${port} cycle ${CycleChain.newest.counter} ${Utils.safeStringify(resp[0])}`)
+        }
 
         //20230730: comment below is from 3 years ago, is it something that needs to be handled.
         //          was not getting to this spot even when our node failed to stay up to date with cycles
@@ -521,7 +534,7 @@ async function getCycles(
   activeNodes: SyncNode[],
   start: number,
   end?: number
-): Promise<P2P.CycleCreatorTypes.CycleRecord[]> {
+): Promise<{ cycles: P2P.CycleCreatorTypes.CycleRecord[], responders: Partial<Pick<P2P.SyncTypes.ActiveNode, "ip" | "port"> & Pick<P2P.NodeListTypes.Node, "externalIp" | "externalPort">>[]}> {
   if (start < 0) start = 0
   if (end !== undefined) {
     if (start > end) start = end
@@ -555,7 +568,7 @@ async function getCycles(
   const cycles = response as P2P.CycleCreatorTypes.CycleRecord[]
 
   const valid = validateCycles(cycles)
-  if (valid) return cycles
+  if (valid) return  { cycles, responders: _responders }
 }
 
 export function activeNodeCount(cycle: P2P.CycleCreatorTypes.CycleRecord) {
