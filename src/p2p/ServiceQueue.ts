@@ -651,7 +651,9 @@ export async function syncTxListFromArchiver(): Promise<void> {
 
   const txListResult: Result<P2P.ServiceQueueTypes.NetworkTxEntry[], Error> = await getFromArchiver(
     archiver,
-    'network-txs-list'
+    'network-txs-list',
+    undefined,
+    10000
   )
 
   if (txListResult.isErr()) {
