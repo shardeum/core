@@ -633,10 +633,11 @@ export async function processNetworkTransactions(record: P2P.CycleCreatorTypes.C
         }
       }
     } catch (e) {
-      countTry(txList[i].hash)
-      if (record.subQueueKey != null) {
-        processedSubQueueKeys.add(record.subQueueKey)
+      const removeTx = { txHash: txList[i].hash, cycle: currentCycle }
+      if (await _removeNetworkTx(removeTx)) {
+        makeRemoveNetworkTxProposals(removeTx)
       }
+
       // eslint-disable-next-line security/detect-object-injection
       error(`Failed to process network transaction ${txList[i]?.hash}: ${e instanceof Error ? e.stack : e}`)
     }
