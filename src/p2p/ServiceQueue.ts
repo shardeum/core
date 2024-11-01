@@ -575,10 +575,10 @@ export async function _removeNetworkTx(removeTx: P2P.ServiceQueueTypes.RemoveNet
       return false
     }
   } catch (e) {
-    error(`Failed remove network tx verification of type ${listEntry.tx.type} \n
+    error(`Error in applyVerifier.  Remove tx ${listEntry.tx.type} \n
                    tx: ${stringifyReduce(listEntry.tx.txData)}\n 
                    error: ${e instanceof Error ? e.stack : e}`)
-    return false
+    return true
   }
 
   return true
