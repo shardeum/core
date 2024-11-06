@@ -295,7 +295,7 @@ export async function syncNewCycles(activeNodes: SyncNode[]) {
       //   }
       // }
 
-      if (CycleChain.validate(CycleChain.newest, nextCycle) && (Self.isRestartNetwork || Self.isFirst)) {
+      if (CycleChain.validate(CycleChain.newest, nextCycle)) {
         info(`syncNewCycles: before digesting nextCycle=${nextCycle.counter}`)
         info(`syncNewCycles: before nextCycle.standbyNodeListHash: ${nextCycle.standbyNodeListHash}`)
         await digestCycle(nextCycle, 'syncNewCycles')
