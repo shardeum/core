@@ -1761,7 +1761,7 @@ class TransactionConsenus {
       }
     }
 
-    const totalNodes = executionGroupNodes.size
+    const totalNodes = Math.max(executionGroupNodes.size, this.config.sharding.minNodesPerConsensusGroup)
     const requiredMajority = Math.ceil(totalNodes * this.config.p2p.requiredVotesPercentage)
     return validSignatures >= requiredMajority
   }

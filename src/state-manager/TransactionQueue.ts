@@ -2207,6 +2207,14 @@ class TransactionQueue {
           //set the nodes that are in the executionGroup.
           //This is needed so that consensus will expect less nodes to be voting
           const unRankedExecutionGroup = homeShardData.homeNodes[0].consensusNodeForOurNodeFull.slice()
+
+          if (txQueueEntry.executionGroup.length < this.config.sharding.minNodesPerConsensusGroup) {
+            nestedCountersInstance.countEvent(
+              'executionGroup',
+              'length is lower than minimumConsensusGroup size'
+            )
+            /* prettier-ignore */ if (logFlags.verbose) if (logFlags.error) this.mainLogger.error(`executionGroup length is lower than minimumConsensusGroup size`)
+          }
           if (this.usePOQo) {
             txQueueEntry.executionGroup = this.orderNodesByRank(unRankedExecutionGroup, txQueueEntry)
           } else if (this.useNewPOQ) {
@@ -2227,10 +2235,11 @@ class TransactionQueue {
 
           const minNodesToVote = 3
           const voterPercentage = configContext.stateManager.voterPercentage
-          const numberOfVoters = Math.max(
-            minNodesToVote,
-            Math.floor(txQueueEntry.executionGroup.length * voterPercentage)
+          const nodesToConsider = Math.max(
+            this.config.sharding.minNodesPerConsensusGroup,
+            txQueueEntry.executionGroup.length
           )
+          const numberOfVoters = Math.max(minNodesToVote, Math.floor(nodesToConsider * voterPercentage))
           // voters are highest ranked nodes
           txQueueEntry.eligibleNodeIdsToVote = new Set(
             txQueueEntry.executionGroup.slice(0, numberOfVoters).map((node) => node.id)
@@ -2238,9 +2247,7 @@ class TransactionQueue {
 
           // confirm nodes are lowest ranked nodes
           txQueueEntry.eligibleNodeIdsToConfirm = new Set(
-            txQueueEntry.executionGroup
-              .slice(txQueueEntry.executionGroup.length - numberOfVoters)
-              .map((node) => node.id)
+            txQueueEntry.executionGroup.slice(nodesToConsider - numberOfVoters).map((node) => node.id)
           )
 
           // calculate globalOffset for FACT
@@ -2248,7 +2255,7 @@ class TransactionQueue {
           txQueueEntry.correspondingGlobalOffset = parseInt(txId.slice(-4), 16)
 
           const ourID = cycleShardData.ourNode.id
-          for (let idx = 0; idx < txQueueEntry.executionGroup.length; idx++) {
+          for (let idx = 0; idx < nodesToConsider; idx++) {
             // eslint-disable-next-line security/detect-object-injection
             const node = txQueueEntry.executionGroup[idx]
             txQueueEntry.executionGroupMap.set(node.id, node)
@@ -2265,7 +2272,7 @@ class TransactionQueue {
           }
           /* prettier-ignore */ if (logFlags.seqdiagram) this.seqLogger.info(`0x53455105 ${shardusGetTime()} tx:${txId} Note over ${NodeList.activeIdToPartition.get(Self.id)}: groupsize voters ${txQueueEntry.eligibleNodeIdsToConfirm.size}`)
           /* prettier-ignore */ if (logFlags.seqdiagram) this.seqLogger.info(`0x53455105 ${shardusGetTime()} tx:${txId} Note over ${NodeList.activeIdToPartition.get(Self.id)}: groupsize confirmators ${txQueueEntry.eligibleNodeIdsToConfirm.size}`)
-          /* prettier-ignore */ if (logFlags.seqdiagram) this.seqLogger.info(`0x53455105 ${shardusGetTime()} tx:${txId} Note over ${NodeList.activeIdToPartition.get(Self.id)}: groupsize execution ${txQueueEntry.executionGroup.length}`)
+          /* prettier-ignore */ if (logFlags.seqdiagram) this.seqLogger.info(`0x53455105 ${shardusGetTime()} tx:${txId} Note over ${NodeList.activeIdToPartition.get(Self.id)}: groupsize execution ${nodesToConsider}`)
 
           //if we are not in the execution group then set isInExecutionHome to false
           if (txQueueEntry.executionGroupMap.has(cycleShardData.ourNode.id) === false) {
@@ -3171,7 +3178,6 @@ class TransactionQueue {
     queueEntry.receiptEverRequested = true
 
     /* prettier-ignore */ if (logFlags.playback) this.logger.playbackLogNote('shrd_queueEntryRequestMissingReceipt_start', `${queueEntry.acceptedTx.txId}`, `qId: ${queueEntry.entryID}`)
-
     const consensusGroup = this.queueEntryGetConsensusGroup(queueEntry)
 
     this.stateManager.debugNodeGroup(
