@@ -827,15 +827,19 @@ export function queueRequest(): void {
 }
 
 export async function queueStartedSyncingRequest(): Promise<void> {
-  if (Self.isFirst === false && config.debug.startedSyncingDelay > 0)
+  if (Self.isFirst === false && config.debug.startedSyncingDelay > 0) {
+    nestedCountersInstance.countEvent('p2p', `join:queueStartedSyncingRequest: delaying started syncing by ${config.debug.startedSyncingDelay} seconds`)
     await utils.sleep(config.debug.startedSyncingDelay * 1000)
+  }
   queuedStartedSyncingId = Self.id
 }
 
 export async function queueFinishedSyncingRequest(): Promise<void> {
   if (neverGoActive) return
-  if (Self.isFirst === false && config.debug.finishedSyncingDelay > 0)
+  if (Self.isFirst === false && config.debug.finishedSyncingDelay > 0) {
+    nestedCountersInstance.countEvent('p2p', `join:queueFinishedSyncingRequest: delaying finished syncing by ${config.debug.finishedSyncingDelay} seconds`)
     await utils.sleep(config.debug.finishedSyncingDelay * 1000)
+  }
 
   queuedFinishedSyncingId = Self.id
   finishedSyncingCycle = CycleCreator.currentCycle
