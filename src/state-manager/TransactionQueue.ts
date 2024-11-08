@@ -7540,8 +7540,9 @@ class TransactionQueue {
     let signedReceipt = null as SignedReceipt | P2PTypes.GlobalAccountsTypes.GlobalTxReceipt
     let executionShardKey: string 
     if (globalModification) {
-      signedReceipt = getGlobalTxReceipt(queueEntry.acceptedTx.txId) as P2PTypes.GlobalAccountsTypes.GlobalTxReceipt
-      executionShardKey = signedReceipt.tx.source
+      signedReceipt = getGlobalTxReceipt(
+        queueEntry.acceptedTx.txId
+      ) as P2PTypes.GlobalAccountsTypes.GlobalTxReceipt
     } else {
       signedReceipt = this.stateManager.getSignedReceipt(queueEntry) as SignedReceipt
       executionShardKey = queueEntry.executionShardKey
@@ -7557,6 +7558,7 @@ class TransactionQueue {
 
     if (globalModification) {
       signedReceipt = signedReceipt as P2PTypes.GlobalAccountsTypes.GlobalTxReceipt
+      executionShardKey = signedReceipt.tx.source
       if (signedReceipt.tx && signedReceipt.tx.addressHash != '' && !beforeAccountsToAdd[signedReceipt.tx.address]) {
         console.log(queueEntry.collectedData[signedReceipt.tx.address].stateId, signedReceipt.tx.addressHash)
         if (queueEntry.collectedData[signedReceipt.tx.address].stateId === signedReceipt.tx.addressHash) {
