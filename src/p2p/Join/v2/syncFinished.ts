@@ -124,19 +124,23 @@ export function isNodeSelectedReadyList(nodeId: string): boolean {
 
 export function selectNodesFromReadyList(mode: string): P2P.NodeListTypes.Node[] {
   if (mode === 'processing') {
-    if (config.debug.readyNodeDelay > 0)
+    if (config.debug.readyNodeDelay > 0) {
+      nestedCountersInstance.countEvent('p2p', `selectNodesFromReadyList: only returning nodes from the ready list that were added at least ${config.debug.readyNodeDelay} seconds ago`)
       return NodeList.readyByTimeAndIdOrder
         .slice(0, config.p2p.allowActivePerCycle)
         .filter((node) => CycleChain.newest.start >= node.readyTimestamp + config.debug.readyNodeDelay)
+    }
 
     return NodeList.readyByTimeAndIdOrder.slice(0, config.p2p.allowActivePerCycle)
   } else {
     if (mode === 'forming' && isFirst && NodeList.activeByIdOrder.length === 0) return NodeList.readyByTimeAndIdOrder
     
-    if (config.debug.readyNodeDelay > 0)
+    if (config.debug.readyNodeDelay > 0) {
+      nestedCountersInstance.countEvent('p2p', `selectNodesFromReadyList: only returning nodes from the ready list that were added at least ${config.debug.readyNodeDelay} seconds ago`)
       return NodeList.readyByTimeAndIdOrder.filter(
         (node) => CycleChain.newest.start >= node.readyTimestamp + config.debug.readyNodeDelay
       )
+    }
 
     return NodeList.readyByTimeAndIdOrder
   }
