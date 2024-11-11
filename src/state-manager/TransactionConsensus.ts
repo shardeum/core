@@ -367,28 +367,13 @@ class TransactionConsenus {
               nestedCountersInstance.countEvent('consensus', 'get_tx_timestamp seen txId but found no timestamp')
             return respond(BadRequest('get_tx_timestamp seen txId but found no timestamp'), serializeResponseError)
           }
-          this.seenTimestampRequests.add(readableReq.txId) 
-
-          if (
-            this.txTimestampCache.has(readableReq.cycleCounter) &&
-            this.txTimestampCache.get(readableReq.cycleCounter).has(readableReq.txId)
-          ) {
-            tsReceipt = this.txTimestampCache.get(readableReq.cycleCounter).get(readableReq.txId)
-            /* prettier-ignore */ this.mainLogger.debug(`get_tx_timestamp handler: Found timestamp cache for txId: ${readableReq.txId}, timestamp: ${Utils.safeStringify(tsReceipt)}`)
-            return respond(tsReceipt, serializeGetTxTimestampResp)
-          } else if(Context.config.p2p.timestampCacheFix && this.txTimestampCacheByTxId.has(readableReq.txId)) {
-            tsReceipt = this.txTimestampCacheByTxId.get(readableReq.txId)
-            /* prettier-ignore */ this.mainLogger.debug(`get_tx_timestamp handler: Found timestamp cache for txId in cacheById: ${readableReq.txId}, timestamp: ${Utils.safeStringify(tsReceipt)}`)
-            nestedCountersInstance.countEvent('consensus', 'get_tx_timestamp found tx timestamp in cacheById')
-            return respond(tsReceipt, serializeGetTxTimestampResp)
-          } else {
-            const tsReceipt: Shardus.TimestampReceipt = this.generateTimestampReceipt(
-              readableReq.txId,
-              readableReq.cycleMarker,
-              readableReq.cycleCounter
-            )
-            return respond(tsReceipt, serializeGetTxTimestampResp)
-          }
+          this.seenTimestampRequests.add(readableReq.txId)
+          tsReceipt = this.getOrGenerateTimestampReceiptFromCache(
+            readableReq.txId,
+            readableReq.cycleMarker,
+            readableReq.cycleCounter
+          )
+          return respond(tsReceipt, serializeGetTxTimestampResp)
         } catch (e) {
           nestedCountersInstance.countEvent('internal', `${route}-exception`)
           /* prettier-ignore */ if (logFlags.error) this.mainLogger.error(`${route}: Exception executing request: ${utils.errorToStringFull(e)}`)
@@ -1801,11 +1786,25 @@ class TransactionConsenus {
     }
   }
 
-  generateTimestampReceipt(
+  getOrGenerateTimestampReceiptFromCache(
     txId: string,
     cycleMarker: string,
     cycleCounter: CycleRecord['counter']
   ): TimestampReceipt {
+    if (
+      this.txTimestampCache.has(cycleCounter) &&
+      this.txTimestampCache.get(cycleCounter).has(txId)
+    ) {
+      const tsReceipt = this.txTimestampCache.get(cycleCounter).get(txId)
+      /* prettier-ignore */ this.mainLogger.debug(`get_tx_timestamp handler: Found timestamp cache for txId: ${txId}, timestamp: ${Utils.safeStringify(tsReceipt)}`)
+      return tsReceipt
+    } else if(Context.config.p2p.timestampCacheFix && this.txTimestampCacheByTxId.has(txId)) {
+      const tsReceipt = this.txTimestampCacheByTxId.get(txId)
+      /* prettier-ignore */ this.mainLogger.debug(`get_tx_timestamp handler: Found timestamp cache for txId in cacheById: ${txId}, timestamp: ${Utils.safeStringify(tsReceipt)}`)
+      nestedCountersInstance.countEvent('consensus', 'get_tx_timestamp found tx timestamp in cacheById')
+      return tsReceipt
+    }
+
     const tsReceipt: TimestampReceipt = {
       txId,
       cycleMarker,
@@ -1867,7 +1866,7 @@ class TransactionConsenus {
 
     if (homeNode.node.id === Self.id) {
       // we generate the tx timestamp by ourselves
-      return this.generateTimestampReceipt(txId, cycleMarker, cycleCounter)
+      return this.getOrGenerateTimestampReceiptFromCache(txId, cycleMarker, cycleCounter)
     } else {
       let timestampReceipt
       try {
