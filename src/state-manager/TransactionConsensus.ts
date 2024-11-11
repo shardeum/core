@@ -367,28 +367,13 @@ class TransactionConsenus {
               nestedCountersInstance.countEvent('consensus', 'get_tx_timestamp seen txId but found no timestamp')
             return respond(BadRequest('get_tx_timestamp seen txId but found no timestamp'), serializeResponseError)
           }
-          this.seenTimestampRequests.add(readableReq.txId) 
-
-          if (
-            this.txTimestampCache.has(readableReq.cycleCounter) &&
-            this.txTimestampCache.get(readableReq.cycleCounter).has(readableReq.txId)
-          ) {
-            tsReceipt = this.txTimestampCache.get(readableReq.cycleCounter).get(readableReq.txId)
-            /* prettier-ignore */ this.mainLogger.debug(`get_tx_timestamp handler: Found timestamp cache for txId: ${readableReq.txId}, timestamp: ${Utils.safeStringify(tsReceipt)}`)
-            return respond(tsReceipt, serializeGetTxTimestampResp)
-          } else if(Context.config.p2p.timestampCacheFix && this.txTimestampCacheByTxId.has(readableReq.txId)) {
-            tsReceipt = this.txTimestampCacheByTxId.get(readableReq.txId)
-            /* prettier-ignore */ this.mainLogger.debug(`get_tx_timestamp handler: Found timestamp cache for txId in cacheById: ${readableReq.txId}, timestamp: ${Utils.safeStringify(tsReceipt)}`)
-            nestedCountersInstance.countEvent('consensus', 'get_tx_timestamp found tx timestamp in cacheById')
-            return respond(tsReceipt, serializeGetTxTimestampResp)
-          } else {
-            const tsReceipt: Shardus.TimestampReceipt = this.generateTimestampReceipt(
-              readableReq.txId,
-              readableReq.cycleMarker,
-              readableReq.cycleCounter
-            )
-            return respond(tsReceipt, serializeGetTxTimestampResp)
-          }
+          this.seenTimestampRequests.add(readableReq.txId)
+          tsReceipt = this.getOrGenerateTimestampReceiptFromCache(
+            readableReq.txId,
+            readableReq.cycleMarker,
+            readableReq.cycleCounter
+          )
+          return respond(tsReceipt, serializeGetTxTimestampResp)
         } catch (e) {
           nestedCountersInstance.countEvent('internal', `${route}-exception`)
           /* prettier-ignore */ if (logFlags.error) this.mainLogger.error(`${route}: Exception executing request: ${utils.errorToStringFull(e)}`)
@@ -1788,12 +1773,12 @@ class TransactionConsenus {
       }
       // Need to sign again with the new voteTime
       const newHash = this.crypto.sign(updatedVoteHash)
-      
+
       // Send vote to the selected aggregator in the priority list
       Comms.tellBinary<AppliedVoteHash>(
-        voteReceivers, 
-        InternalRouteEnum.binary_poqo_send_vote, 
-        newHash, 
+        voteReceivers,
+        InternalRouteEnum.binary_poqo_send_vote,
+        newHash,
         serializePoqoSendVoteReq,
         {}
       )
@@ -1801,11 +1786,25 @@ class TransactionConsenus {
     }
   }
 
-  generateTimestampReceipt(
+  getOrGenerateTimestampReceiptFromCache(
     txId: string,
     cycleMarker: string,
     cycleCounter: CycleRecord['counter']
   ): TimestampReceipt {
+    if (
+      this.txTimestampCache.has(cycleCounter) &&
+      this.txTimestampCache.get(cycleCounter).has(txId)
+    ) {
+      const tsReceipt = this.txTimestampCache.get(cycleCounter).get(txId)
+      /* prettier-ignore */ this.mainLogger.debug(`get_tx_timestamp handler: Found timestamp cache for txId: ${txId}, timestamp: ${Utils.safeStringify(tsReceipt)}`)
+      return tsReceipt
+    } else if(Context.config.p2p.timestampCacheFix && this.txTimestampCacheByTxId.has(txId)) {
+      const tsReceipt = this.txTimestampCacheByTxId.get(txId)
+      /* prettier-ignore */ this.mainLogger.debug(`get_tx_timestamp handler: Found timestamp cache for txId in cacheById: ${txId}, timestamp: ${Utils.safeStringify(tsReceipt)}`)
+      nestedCountersInstance.countEvent('consensus', 'get_tx_timestamp found tx timestamp in cacheById')
+      return tsReceipt
+    }
+
     const tsReceipt: TimestampReceipt = {
       txId,
       cycleMarker,
@@ -1826,7 +1825,7 @@ class TransactionConsenus {
     if (Context.config.p2p.timestampCacheFix) {
       // eslint-disable-next-line security/detect-object-injection
       this.txTimestampCacheByTxId.set(txId, signedTsReceipt)
-      this.seenTimestampRequests.add(txId) 
+      this.seenTimestampRequests.add(txId)
     }
     /* prettier-ignore */ this.mainLogger.debug(`Timestamp receipt cached for txId ${txId} in cycle ${signedTsReceipt.cycleCounter}: ${utils.stringifyReduce(signedTsReceipt)}`)
     return signedTsReceipt
@@ -1867,7 +1866,7 @@ class TransactionConsenus {
 
     if (homeNode.node.id === Self.id) {
       // we generate the tx timestamp by ourselves
-      return this.generateTimestampReceipt(txId, cycleMarker, cycleCounter)
+      return this.getOrGenerateTimestampReceiptFromCache(txId, cycleMarker, cycleCounter)
     } else {
       let timestampReceipt
       try {
@@ -2312,7 +2311,7 @@ class TransactionConsenus {
             // Corresponding tell of receipt+data to entire transaction group
             this.stateManager.transactionQueue.factTellCorrespondingNodesFinalData(queueEntry)
           } else {
-            // however if we have a missing preApplyTXResult but the result is false we should log a count 
+            // however if we have a missing preApplyTXResult but the result is false we should log a count
             // as this may be an error condition to look out for
             // note: appliedReceipt2.result comes from queueEntry.ourVote.transaction_result which comes from PreApplyAcceptedTransactionResult.passed
             // it will be false if the apply funciton throws an error to signal that it was not possible apply
@@ -2887,7 +2886,7 @@ class TransactionConsenus {
             )
             return rBin
           // }
-          // return await Comms.ask(node, 'get_applied_vote', queryData)          
+          // return await Comms.ask(node, 'get_applied_vote', queryData)
         } catch (e) {
           this.mainLogger.error(`robustQueryBestVote: Failed query to node ${node.id} error: ${e.message}`)
           return {
@@ -2943,7 +2942,7 @@ class TransactionConsenus {
         const queryData = { txId: queueEntry.acceptedTx.txId }
         /* prettier-ignore */ if (logFlags.seqdiagram) this.seqLogger.info(`0x53455101 ${shardusGetTime()} tx:${queryData.txId} ${NodeList.activeIdToPartition.get(Self.id)}-->>${NodeList.activeIdToPartition.get(node.id)}: ${'get_confirm_or_challenge'}`)
         // return this.config.p2p.useBinarySerializedEndpoints && this.config.p2p.getConfirmOrChallengeBinary
-        //   ? 
+        //   ?
           const response = await Comms.askBinary<GetConfirmOrChallengeReq, GetConfirmOrChallengeResp>(
               node,
               InternalRouteEnum.binary_get_confirm_or_challenge,
@@ -3767,7 +3766,7 @@ class TransactionConsenus {
     }
     const accountsHash = this.crypto.hash(
       this.crypto.hash(proposal.accountIDs) +
-      this.crypto.hash(proposal.beforeStateHashes) + 
+      this.crypto.hash(proposal.beforeStateHashes) +
       this.crypto.hash(proposal.afterStateHashes)
     )
     const proposalHash = this.crypto.hash(
