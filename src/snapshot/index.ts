@@ -711,35 +711,13 @@ function registerSnapshotRoutes() {
     method: 'POST',
     name: 'snapshot-data-offer',
     handler: async (req, res) => {
-      const err = utils.validateTypes(req, { body: 'o' })
-      if (err) {
-        log('snapshot-data-offer bad req ' + err)
-        res.json([])
-        return
-      }
-      if (Self.isActive) return res.json({ answer: P2P.SnapshotTypes.offerResponse.notNeeded })
-      const offerRequest = req.body
-      let answer = P2P.SnapshotTypes.offerResponse.notNeeded
-      const neededPartitonIds = []
-      const neededHashes = []
-      if (offerRequest.networkStateHash === safetyModeVals.networkStateHash) {
-        for (const partitionId of offerRequest.partitions) {
-          // request only the needed partitions
-          const isNeeded = missingPartitions.includes(partitionId)
-          if (isNeeded) {
-            neededPartitonIds.push(partitionId)
-            const hasHashForPartition = oldPartitionHashMap.has(partitionId)
-            // if node does not have partition_hash for needed partition, request it too.
-            if (!hasHashForPartition) neededHashes.push(partitionId)
-          }
-        }
-        if (neededPartitonIds.length > 0) answer = P2P.SnapshotTypes.offerResponse.needed
-      }
-      res.json({ answer })
-      if (answer === P2P.SnapshotTypes.offerResponse.needed && missingPartitions.length > 0) {
-        const downloadedSnapshotData = await SnapshotFunctions.downloadDataFromNode(offerRequest.downloadUrl)
-        if (downloadedSnapshotData) processDownloadedMissingData(downloadedSnapshotData)
-      }
+      const offerRequestString = Utils.safeStringify(req.body)
+      snapshotLogger.info(JSON.stringify({script: 'snapshot', method: 'handler[snapshot-data-offer]', message: 'Disabled endpoint invoked', data: {offerRequestString}}))
+      return res.status(404).json({
+        success: false,
+        fatal: true,
+        reason: `Shardeum endpoint no longer available`
+      });
     },
   }
   const snapshotWitnessDataOfferRoute: P2P.P2PTypes.Route<express.Handler> = {
