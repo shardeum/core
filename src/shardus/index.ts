@@ -504,9 +504,6 @@ class Shardus extends EventEmitter {
             return false
           }
 
-          console.log('FOR DEBUG PURPOSES: our node\'s IP', Self.ip)
-          console.log('FOR DEBUG PURPOSES: socket.handshake.address', socket.handshake.address.split('::ffff:').pop())
-          console.log('FOR DEBUG PURPOSES: socket.handshake.headers.host', socket.handshake.headers.host.split(':')[0])
           nestedCountersInstance.countEvent('debug-archiverConnections', `ourIP: ${Self.ip}`)
           nestedCountersInstance.countEvent('debug-archiverConnections', `socket.handshake.address: ${socket.handshake.address.split('::ffff:').pop()}`)
           nestedCountersInstance.countEvent('debug-archiverConnections', `socket.handshake.headers.host: ${socket.handshake.headers.host.split(':')[0]}`)
@@ -521,8 +518,6 @@ class Shardus extends EventEmitter {
           // }
 
           const archiverCreds = JSON.parse(socket.handshake.query.data) as { publicKey: string, timestamp: number, intendedConsensor: string, sign: ShardusTypes.Sign }
-          console.log('FOR DEBUG PURPOSES: archiverCreds: ')
-          console.dir(archiverCreds, { depth: null })
           // +/- 5sec tolerance
           if (Math.abs(archiverCreds.timestamp - shardusGetTime()) > 5000) {
             mainLogger.error(`❌ Old signature from Archiver @ ${archiverCreds.publicKey}`)
