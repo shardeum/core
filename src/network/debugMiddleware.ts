@@ -232,7 +232,8 @@ async function handleDebugMultiSigAuth(_req, res, next, authLevel: DevSecurityLe
 
 function stripQueryParams(url: string, params: string[]) {
   // Split the URL into the base and the query string
-  let [base, queryString] = url.split('?')
+  let [base, ...tail] = url.split('?')
+  let queryString = tail.join('?')
 
   // If there's no query string, return the base URL
   if (!queryString) return url
