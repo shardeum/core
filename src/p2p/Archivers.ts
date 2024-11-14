@@ -85,7 +85,8 @@ export function getArchiverWithPublicKey(
 export function getRandomArchiver(): P2P.ArchiversTypes.JoinedArchiver | null {
   if (archivers.size === 0) return null
   const list = Array.from(archivers.values())
-  return list[Math.floor(Math.random() * list.length)]
+  const index = randomInt(0, list.length);
+  return list[index];
 }
 
 /** CycleCreator Functions */
