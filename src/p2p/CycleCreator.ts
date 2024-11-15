@@ -214,7 +214,7 @@ const compareCertBinaryHandler: P2P.P2PTypes.Route<InternalBinaryHandler<Buffer>
       respond(resp, serializeCompareCertResp)
     } catch (errors) {
       nestedCountersInstance.countEvent('internal', `${route}-exception`)
-      p2pLogger.error(`${route} exception executing request: ${errorToStringFull(errors)}`)
+      /* prettier-ignore */ if (logFlags.error) p2pLogger.error(`${route} exception executing request: ${errorToStringFull(errors)}`)
       return respond(InternalError('Exception executing request'), serializeResponseError)
     } finally {
       profilerInstance.scopedProfileSectionEnd(route)

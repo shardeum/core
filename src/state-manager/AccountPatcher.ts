@@ -920,9 +920,9 @@ class AccountPatcher {
             }
           }
         } catch (e) {
-          console.error(`Error processing syncTrieHashesBinaryHandler: ${e}`)
+          /* prettier-ignore */ if (logFlags.error) console.error(`Error processing syncTrieHashesBinaryHandler: ${e}`)
           nestedCountersInstance.countEvent('internal', `${route}-exception`)
-          this.mainLogger.error(`${route}: Exception executing request: ${errorToStringFull(e)}`)
+          /* prettier-ignore */ if (logFlags.error) this.mainLogger.error(`${route}: Exception executing request: ${errorToStringFull(e)}`)
         } finally {
           profilerInstance.scopedProfileSectionEnd(route)
         }
