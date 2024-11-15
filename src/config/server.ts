@@ -340,6 +340,12 @@ const SERVER_CONFIG: StrictServerConfiguration = {
     archiverDataSubscriptionsUpdate: false,
     startInServiceMode: false,
     enableRIAccountsCache: true,
+    tickets: {
+      updateTicketListTimeInMs: 60000 * 10,
+      ticketTypes: [
+        {type: 'silver', enabled: false}
+      ]
+    }
   },
 }
 export default SERVER_CONFIG
