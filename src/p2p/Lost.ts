@@ -1008,7 +1008,7 @@ const LostReportBinaryHandler: Route<InternalBinaryHandler<Buffer>> = {
       // At start of Q1 of the next cycle sendRequests() will start a gossip if the node was found to be down
     } catch (e) {
       nestedCountersInstance.countEvent('internal', `${route}-exception`)
-      p2pLogger.error(`${route}: Exception executing request: ${utils.errorToStringFull(e)}`)
+      /* prettier-ignore */ if (logFlags.error) p2pLogger.error(`${route}: Exception executing request: ${utils.errorToStringFull(e)}`)
     } finally {
       profilerInstance.scopedProfileSectionEnd(route)
     }

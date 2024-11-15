@@ -167,7 +167,7 @@ const apoptosisInternalRoute: P2P.P2PTypes.Route<InternalBinaryHandler<Buffer>> 
       }
     } catch (e) {
       nestedCountersInstance.countEvent('internal', 'apoptosize-exception')
-      error(`apoptosize: Exception executing request: ${errorToStringFull(e)}`)
+      /* prettier-ignore */ if (logFlags.error) error(`apoptosize: Exception executing request: ${errorToStringFull(e)}`)
     } finally {
       profilerInstance.scopedProfileSectionEnd('apoptosize')
     }
