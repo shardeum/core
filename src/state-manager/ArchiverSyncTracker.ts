@@ -7,7 +7,7 @@ import { nestedCountersInstance } from '../utils/nestedCounters'
 import AccountSync from './AccountSync'
 import { logFlags } from '../logger'
 import { errorToStringFull } from '../utils'
-import { P2PModuleContext as P2P, crypto } from '../p2p/Context'
+import { P2PModuleContext as P2P, crypto, config } from '../p2p/Context'
 import { SyncTrackerInterface } from './NodeSyncTracker'
 import ArchiverDataSourceHelper from './ArchiverDataSourceHelper'
 import { getArchiversList } from '../p2p/Archivers'
@@ -141,14 +141,14 @@ export default class ArchiverSyncTracker implements SyncTrackerInterface {
         const highAddress = this.addressRange.high
         partition = `${utils.stringifyReduce(lowAddress)} - ${utils.stringifyReduce(highAddress)}`
 
-        /* prettier-ignore */ nestedCountersInstance.countEvent('archiver_sync', `sync partition: ${partition} start: ${this.accountSync.stateManager.currentCycleShardData.cycleNumber}`)
+        /* prettier-ignore */ if (config.debug.verboseNestedCounters) nestedCountersInstance.countEvent('archiver_sync', `sync partition: ${partition} start: ${this.accountSync.stateManager.currentCycleShardData.cycleNumber}`)
 
         //this.accountSync.readyforTXs = true //Do not open the floodgates of queuing stuffs.
 
         const accountsSaved = await this.syncAccountData2(lowAddress, highAddress)
         /* prettier-ignore */ if (logFlags.debug) this.accountSync.mainLogger.debug(`ARCHIVER_DATASYNC: partition: ${partition}, syncAccountData2 done.`)
 
-        /* prettier-ignore */ nestedCountersInstance.countEvent( 'archiver_sync', `sync partition: ${partition} end: ${this.accountSync.stateManager.currentCycleShardData.cycleNumber} accountsSynced:${accountsSaved} failedHashes:${this.failedAccounts.length}` )
+        /* prettier-ignore */ if (config.debug.verboseNestedCounters) nestedCountersInstance.countEvent( 'archiver_sync', `sync partition: ${partition} end: ${this.accountSync.stateManager.currentCycleShardData.cycleNumber} accountsSynced:${accountsSaved} failedHashes:${this.failedAccounts.length}` )
         this.failedAccounts = [] //clear failed hashes.  We dont try to fix them for now.  let the patcher handle it.  could bring back old code if we change mind
       } catch (error) {
         if (error.message.includes('reset-sync-ranges')) {

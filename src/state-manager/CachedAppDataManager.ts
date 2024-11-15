@@ -220,9 +220,7 @@ class CachedAppDataManager {
           const foundCachedAppData = this.getCachedItem(readableReq.topic, readableReq.dataId)
           response.cachedAppData = foundCachedAppData
           if (foundCachedAppData == null) {
-            this.mainLogger.error(
-              `Cannot find cached data for topic: ${readableReq.topic}, dataId: ${readableReq.dataId}`
-            )
+            /* prettier-ignore */ if (logFlags.error) this.mainLogger.error(`Cannot find cached data for topic: ${readableReq.topic}, dataId: ${readableReq.dataId}`)
           }
           respond(response, serializeGetCachedAppDataResp)
         } catch (e) {

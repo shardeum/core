@@ -178,6 +178,7 @@ const SERVER_CONFIG: StrictServerConfiguration = {
     canDataRepair: false,
     startInFatalsLogMode: true,
     startInErrorLogMode: false,
+    verboseNestedCounters: false,
     fakeNetworkDelay: 0,
     disableSnapshots: true,
     disableTxCoverageReport: true,
