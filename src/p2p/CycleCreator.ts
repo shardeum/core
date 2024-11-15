@@ -363,24 +363,24 @@ async function cycleCreator() {
     //let prevRecord = madeCycle ? bestRecord : await fetchLatestRecord()
     let prevRecord = bestRecord
     if (!prevRecord) {
-      warn(`cc: !prevRecord. Fetech now. ${callTag}`)
+      /* prettier-ignore */ if (logFlags.p2pNonFatal) warn(`cc: !prevRecord. Fetech now. ${callTag}`)
       prevRecord = await fetchLatestRecord()
     }
     while (!prevRecord) {
-      warn(`cc: cycleCreator: Could not get fetch prevRecord. Trying again in 1 sec...  ${callTag}`)
+      /* prettier-ignore */ if (logFlags.p2pNonFatal) warn(`cc: cycleCreator: Could not get fetch prevRecord. Trying again in 1 sec...  ${callTag}`)
       await utils.sleep(1 * SECOND)
       prevRecord = await fetchLatestRecord()
     }
 
     /* prettier-ignore */ if (logFlags.verbose) info(`cc: prevRecord.counter: ${prevRecord.counter} ${callTag}`)
-    info(`cc: prevRecord.counter: ${prevRecord.counter} ${callTag}`)
+    /* prettier-ignore */ if (logFlags.p2pNonFatal) info(`cc: prevRecord.counter: ${prevRecord.counter} ${callTag}`)
     const networkModeBefore = Modes.networkMode // Before applying new record
     //WE complete Sync.digestCycle each cycle even thought we are failing later to get to cycleLogger.info
 
     // Apply the previous records changes to the NodeList
     //if (madeCycle) {
     if (!CycleChain.newest || CycleChain.newest.counter < prevRecord.counter) {
-      warn(`cc: digest cycle ${prevRecord.counter} ${callTag}`)
+      /* prettier-ignore */ if (logFlags.p2pNonFatal) warn(`cc: digest cycle ${prevRecord.counter} ${callTag}`)
       digestCycle(prevRecord, 'cycleCreator')
     }
     //}
@@ -430,7 +430,7 @@ async function cycleCreator() {
     ;({ cycle: currentCycle, quarter: currentQuarter } = currentCycleQuarterByTime(prevRecord))
 
     if (expectedCycle !== currentCycle) {
-      warn(`cc: expectedCycle: ${expectedCycle} currentCycle: ${currentCycle} ${callTag}`)
+      /* prettier-ignore */ if (logFlags.p2pNonFatal) warn(`cc: expectedCycle: ${expectedCycle} currentCycle: ${currentCycle} ${callTag}`)
       /* prettier-ignore */ nestedCountersInstance.countEvent('p2p', `cycleCreator:expectedCycle !== currentCycle ex${expectedCycle}!=${currentCycle}} tag:${callTag}`)
     }
 
@@ -508,7 +508,7 @@ async function runQ1() {
   Self.emitter.emit('cycle_q1_start')
   profilerInstance.profileSectionStart('CycleCreator-runQ1')
 
-  if (logFlags.p2pNonFatal) info(`C${currentCycle} Q${currentQuarter}`)
+  /* prettier-ignore */ if (logFlags.p2pNonFatal) info(`C${currentCycle} Q${currentQuarter}`)
 
   const SECOND = 1000
   const cycleDuration = record.duration * SECOND
@@ -523,7 +523,7 @@ async function runQ1() {
   q1SendRequests = true
 
   // Tell submodules to sign and send their requests
-  if (logFlags.p2pNonFatal) info('Triggering submodules to send requests...')
+  /* prettier-ignore */ if (logFlags.p2pNonFatal) info('Triggering submodules to send requests...')
   for (const submodule of submodules) submodule.sendRequests()
 
   profilerInstance.profileSectionEnd('CycleCreator-runQ1')
@@ -535,7 +535,7 @@ async function runQ1() {
 function runQ2() {
   currentQuarter = 2
   Self.emitter.emit('cycle_q2_start')
-  if (logFlags.p2pNonFatal) info(`C${currentCycle} Q${currentQuarter}`)
+  /* prettier-ignore */ if (logFlags.p2pNonFatal) info(`C${currentCycle} Q${currentQuarter}`)
 }
 
 /**
@@ -645,13 +645,13 @@ async function runQ3() {
 async function runQ4() {
   currentQuarter = 4
 
-  if (logFlags.p2pNonFatal) info(`C${currentCycle} Q${currentQuarter}`)
+  /* prettier-ignore */ if (logFlags.p2pNonFatal) info(`C${currentCycle} Q${currentQuarter}`)
 
-  /* prettier-ignore */ info(`Q4: start: C${currentCycle} Q${currentQuarter}`)
+  /* prettier-ignore */ if (logFlags.p2pNonFatal) info(`Q4: start: C${currentCycle} Q${currentQuarter}`)
 
   // Don't do cert comparison if you didn't make the cycle
   if (madeCycle === false) {
-    warn('In Q4 nothing to do since we madeCycle is false.')
+    /* prettier-ignore */ if (logFlags.p2pNonFatal) warn('In Q4 nothing to do since we madeCycle is false.')
     return
   }
   profilerInstance.profileSectionStart('CycleCreator-runQ4')
@@ -667,13 +667,13 @@ async function runQ4() {
       matched = await compareCycleCert(myC, myQ, DESIRED_CERT_MATCHES)
       if (!matched) {
         if (cycleQuarterChanged(myC, myQ)) {
-          /* prettier-ignore */ warn( `In Q4 ran out of time waiting for compareCycleCert with DESIRED_CERT_MATCHES of ${DESIRED_CERT_MATCHES}` )
+          /* prettier-ignore */ if (logFlags.p2pNonFatal) warn( `In Q4 ran out of time waiting for compareCycleCert with DESIRED_CERT_MATCHES of ${DESIRED_CERT_MATCHES}` )
           profilerInstance.profileSectionEnd('CycleCreator-runQ4')
           return
         }
         await utils.sleep(100)
         if (enterTime + cycleDuration < shardusGetTime()) {
-          /* prettier-ignore */ warn( `In Q4 waited ${config.p2p.cycleDuration} seconds for compareCycleCert with DESIRED_CERT_MATCHES of ${DESIRED_CERT_MATCHES}` )
+          /* prettier-ignore */ if (logFlags.p2pNonFatal) warn( `In Q4 waited ${config.p2p.cycleDuration} seconds for compareCycleCert with DESIRED_CERT_MATCHES of ${DESIRED_CERT_MATCHES}` )
           //profilerInstance.profileSectionEnd('CycleCreator-runQ4')
           //return
           // we should return, but want to catch this get stuck to confirm it is not happening
@@ -682,14 +682,14 @@ async function runQ4() {
       }
     } while (!matched)
 
-    if (logFlags.p2pNonFatal)
+    /* prettier-ignore */ if (logFlags.p2pNonFatal) 
       info(`
     Certified cycle record: ${Utils.safeStringify(record)}
     Certified cycle marker: ${Utils.safeStringify(marker)}
     Certified cycle cert: ${Utils.safeStringify(cert)}
   `)
   } finally {
-    /* prettier-ignore */ info( `Q4: END: myC:${myC}  C${currentCycle} Q${currentQuarter} Certified cycle record: ${Utils.safeStringify(record.counter)}` )
+    /* prettier-ignore */ if (logFlags.p2pNonFatal) info( `Q4: END: myC:${myC}  C${currentCycle} Q${currentQuarter} Certified cycle record: ${Utils.safeStringify(record.counter)}` )
     // Dont need this any more since we are not doing anything after this
     // if (cycleQuarterChanged(myC, myQ)) return
     profilerInstance.profileSectionEnd('CycleCreator-runQ4')
@@ -827,10 +827,10 @@ async function fetchLatestRecord(): Promise<P2P.CycleCreatorTypes.CycleRecord> {
     await syncNewCycles(NodeList.activeOthersByIdOrder)
     if (CycleChain.newest.counter <= oldCounter) {
       // We didn't actually sync
-      /* prettier-ignore */ warn(`CycleCreator: fetchLatestRecord: synced record not newer CycleChain.newest.counter: ${CycleChain.newest.counter} oldCounter: ${oldCounter}`)
+      /* prettier-ignore */ if (logFlags.p2pNonFatal) warn(`CycleCreator: fetchLatestRecord: synced record not newer CycleChain.newest.counter: ${CycleChain.newest.counter} oldCounter: ${oldCounter}`)
       fetchLatestRecordFails++
       if (fetchLatestRecordFails > maxFetchLatestRecordFails) {
-        /* prettier-ignore */ error( 'CycleCreator: fetchLatestRecord_A: fetchLatestRecordFails > maxFetchLatestRecordFails. apoptosizeSelf ' )
+        /* prettier-ignore */ if (logFlags.p2pNonFatal) error( 'CycleCreator: fetchLatestRecord_A: fetchLatestRecordFails > maxFetchLatestRecordFails. apoptosizeSelf ' )
         // this.fatalLogger.fatal(
         //   'CycleCreator: fetchLatestRecord_A: fetchLatestRecordFails > maxFetchLatestRecordFails. apoptosizeSelf '
         // )
@@ -841,10 +841,10 @@ async function fetchLatestRecord(): Promise<P2P.CycleCreatorTypes.CycleRecord> {
       return null
     }
   } catch (err) {
-    warn('CycleCreator: fetchLatestRecord: syncNewCycles failed:', errorToStringFull(err))
+    /* prettier-ignore */ if (logFlags.p2pNonFatal) warn('CycleCreator: fetchLatestRecord: syncNewCycles failed:', errorToStringFull(err))
     fetchLatestRecordFails++
     if (fetchLatestRecordFails > maxFetchLatestRecordFails) {
-      /* prettier-ignore */ error( 'CycleCreator: fetchLatestRecord_B: fetchLatestRecordFails > maxFetchLatestRecordFails. apoptosizeSelf ' )
+      /* prettier-ignore */ if (logFlags.p2pNonFatal) error( 'CycleCreator: fetchLatestRecord_B: fetchLatestRecordFails > maxFetchLatestRecordFails. apoptosizeSelf ' )
       // this.fatalLogger.fatal(
       //   'CycleCreator: fetchLatestRecord_B: fetchLatestRecordFails > maxFetchLatestRecordFails. apoptosizeSelf ',
       //   utils.formatErrorMessage(err)
@@ -970,11 +970,11 @@ function validateCertSign(certs: P2P.CycleCreatorTypes.CycleCert[], sender: P2P.
       sign: cert.sign,
     }
     if (NodeList.byPubKey.has(cleanCert.sign.owner) === false) {
-      warn('validateCertSign: bad owner')
+      /* prettier-ignore */ if (logFlags.p2pNonFatal) warn('validateCertSign: bad owner')
       return false
     }
     if (!crypto.verify(cleanCert)) {
-      warn('validateCertSign: bad sig')
+      /* prettier-ignore */ if (logFlags.p2pNonFatal) warn('validateCertSign: bad sig')
       return false
     }
   }

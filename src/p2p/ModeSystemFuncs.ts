@@ -23,7 +23,7 @@ export function calculateToAcceptV2(prevRecord: P2P.CycleCreatorTypes.CycleRecor
   const desired = prevRecord.desired
   const target = targetCount
 
-  nestedCountersInstance.countEvent(
+  /* prettier-ignore */ if (config.debug.verboseNestedCounters) nestedCountersInstance.countEvent(
     'p2p',
     `desired: ${desired}, target: ${target}, active: ${active}, syncing: ${syncing}`
   )
@@ -91,7 +91,7 @@ export function calculateToAcceptV2(prevRecord: P2P.CycleCreatorTypes.CycleRecor
             add = Math.ceil(addRem)
             remove = 0
 
-            /* prettier-ignore */ nestedCountersInstance.countEvent('p2p', `calculateToAcceptV2 c:${prevRecord.counter} active !== ~~target, addRem > 0 add: ${add}, remove: ${remove}`)
+            /* prettier-ignore */ if (config.debug.verboseNestedCounters) nestedCountersInstance.countEvent('p2p', `calculateToAcceptV2 c:${prevRecord.counter} active !== ~~target, addRem > 0 add: ${add}, remove: ${remove}`)
             return { add, remove }
           }
           if (addRem < 0) {
@@ -119,7 +119,7 @@ export function calculateToAcceptV2(prevRecord: P2P.CycleCreatorTypes.CycleRecor
               }
               add = 0
               remove = Math.ceil(toRemove)
-              /* prettier-ignore */ nestedCountersInstance.countEvent('p2p', `calculateToAcceptV2 c:${prevRecord.counter} active !== ~~target, addRem < 0 (remove) add: ${add}, remove: ${remove}`)
+              /* prettier-ignore */ if (config.debug.verboseNestedCounters) nestedCountersInstance.countEvent('p2p', `calculateToAcceptV2 c:${prevRecord.counter} active !== ~~target, addRem < 0 (remove) add: ${add}, remove: ${remove}`)
               return { add, remove }
             } else {
               //this is a case where syncing nodes are counting against us and we need to take a careful look to allow
@@ -145,7 +145,7 @@ export function calculateToAcceptV2(prevRecord: P2P.CycleCreatorTypes.CycleRecor
 
                 add = maxSyncing - syncing
 
-                /* prettier-ignore */ nestedCountersInstance.countEvent('p2p', `calculateToAcceptV2 c:${prevRecord.counter} active !== ~~target, addRem < 0 (not-remove) add: ${add}, remove: ${remove}`)
+                /* prettier-ignore */ if (config.debug.verboseNestedCounters) nestedCountersInstance.countEvent('p2p', `calculateToAcceptV2 c:${prevRecord.counter} active !== ~~target, addRem < 0 (not-remove) add: ${add}, remove: ${remove}`)
                 return { add, remove }
               }
             }
@@ -187,7 +187,7 @@ export function calculateToAcceptV2(prevRecord: P2P.CycleCreatorTypes.CycleRecor
             remove = 0
           }
 
-          /* prettier-ignore */ nestedCountersInstance.countEvent('p2p', `calculateToAcceptV2 c:${prevRecord.counter} config.p2p.maxRotatedPerCycle !== 0 add: ${add}, remove: ${remove}`)
+          /* prettier-ignore */ if (config.debug.verboseNestedCounters) nestedCountersInstance.countEvent('p2p', `calculateToAcceptV2 c:${prevRecord.counter} config.p2p.maxRotatedPerCycle !== 0 add: ${add}, remove: ${remove}`)
           /* prettier-ignore */ if (logFlags && logFlags.verbose) console.log(`add: ${add}, remove: ${remove}`)
           return { add, remove }
         }

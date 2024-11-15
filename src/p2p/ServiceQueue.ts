@@ -390,7 +390,7 @@ export function sendRequests(): void {
       txAdd.push(addTxCopy)
     }
 
-    /* prettier-ignore */ nestedCountersInstance.countEvent(`gossip-addtx`, `gossip send - ${add.hash}`)
+    /* prettier-ignore */ if (config.debug.verboseNestedCounters) nestedCountersInstance.countEvent(`gossip-addtx`, `gossip send - ${add.hash}`)
     Comms.sendGossip(
       'gossip-addtx',
       add,
@@ -415,7 +415,7 @@ export function sendRequests(): void {
         txRemove.push(unsignedRemoveNetworkTx)
       }
 
-      /* prettier-ignore */ nestedCountersInstance.countEvent(`gossip-removetx`, `gossip send - ${remove.txHash}`)
+      /* prettier-ignore */ if (config.debug.verboseNestedCounters) nestedCountersInstance.countEvent(`gossip-removetx`, `gossip send - ${remove.txHash}`)
       Comms.sendGossip(
         'gossip-removetx',
         remove,
@@ -502,43 +502,43 @@ function makeRemoveNetworkTxProposals(networkTx: P2P.ServiceQueueTypes.RemoveNet
 async function _addNetworkTx(addTx: P2P.ServiceQueueTypes.AddNetworkTx): Promise<boolean> {
   try {
     if (!addTx || !addTx.txData) {
-      warn('Invalid addTx or missing addTx.txData', addTx)
+      /* prettier-ignore */ if (logFlags.p2pNonFatal) warn('Invalid addTx or missing addTx.txData', addTx)
       return false
     }
 
     if (addTx.cycle < currentCycle - 1 || addTx.cycle > currentCycle) {
-      warn(`Invalid cycle ${addTx.cycle} for current cycle ${currentCycle}`)
+      /* prettier-ignore */ if (logFlags.p2pNonFatal) warn(`Invalid cycle ${addTx.cycle} for current cycle ${currentCycle}`)
       return false
     }
 
     if (txList.some((entry) => entry.hash === addTx.hash)) {
       if (logFlags.p2pNonFatal) {
-        info('Transaction already exists in txList', addTx.hash)
+        /* prettier-ignore */ if (logFlags.p2pNonFatal) info('Transaction already exists in txList', addTx.hash)
       }
       return false
     }
 
     if (!beforeAddVerifier.has(addTx.type)) {
-      warn('Adding network tx without a verify function!')
+      /* prettier-ignore */ if (logFlags.p2pNonFatal) warn('Adding network tx without a verify function!')
       return false
     }
 
     const verifyFunction = beforeAddVerifier.get(addTx.type)
     if (!verifyFunction) {
-      error('Verify function is undefined')
+      /* prettier-ignore */ if (logFlags.p2pNonFatal) error('Verify function is undefined')
       return false
     }
 
     if (!(await verifyFunction(addTx))) {
-      error(
+      /* prettier-ignore */ if (logFlags.p2pNonFatal) error(
         `Failed add network tx verification of type ${addTx.type} \n tx: ${stringifyReduce(addTx.txData)}`
       )
       return false
     }
-    console.log('add network tx', addTx.type, addTx.txData.publicKey, addTx)
+    /* prettier-ignore */ if (logFlags.p2pNonFatal) console.log('add network tx', addTx.type, addTx.txData.publicKey, addTx)
     return true
   } catch (e) {
-    error(
+    /* prettier-ignore */ if (logFlags.p2pNonFatal) error(
       `Failed add network tx verification of type ${addTx.type} \n tx: ${stringifyReduce(
         addTx.txData
       )}\n error: ${e instanceof Error ? e.stack : e}`
@@ -555,7 +555,7 @@ export async function _removeNetworkTx(removeTx: P2P.ServiceQueueTypes.RemoveNet
   }
 
   if (removeProposals.some((entry) => entry.txHash === removeTx.txHash)) {
-    warn(`Remove proposal already exists for ${removeTx.txHash}`)
+    /* prettier-ignore */ if (logFlags.p2pNonFatal) warn(`Remove proposal already exists for ${removeTx.txHash}`)
     return false
   }
 
@@ -564,14 +564,14 @@ export async function _removeNetworkTx(removeTx: P2P.ServiceQueueTypes.RemoveNet
   try {
     if (!applyVerifier.has(listEntry.tx.type)) {
       // todo: should this throw or not?
-      warn('Remove network tx without a verify function!')
+      /* prettier-ignore */ if (logFlags.p2pNonFatal) warn('Remove network tx without a verify function!')
     } else if (!(await applyVerifier.get(listEntry.tx.type)(listEntry.tx))) {
-      error(`Failed remove network tx verification of type ${listEntry.tx.type} \n
+      /* prettier-ignore */ if (logFlags.p2pNonFatal) error(`Failed remove network tx verification of type ${listEntry.tx.type} \n
                      tx: ${stringifyReduce(listEntry.tx.txData)}`)
       return false
     }
   } catch (e) {
-    error(`Failed remove network tx verification of type ${listEntry.tx.type} \n
+    /* prettier-ignore */ if (logFlags.p2pNonFatal) error(`Failed remove network tx verification of type ${listEntry.tx.type} \n
                    tx: ${stringifyReduce(listEntry.tx.txData)}\n 
                    error: ${e instanceof Error ? e.stack : e}`)
     return false

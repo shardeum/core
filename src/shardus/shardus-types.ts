@@ -1014,6 +1014,8 @@ export interface ServerConfiguration {
     startInFatalsLogMode?: boolean
     /** starts the node in error mode, use endpoints to turn back on default logs */
     startInErrorLogMode?: boolean
+    /** enables verbose nested counters including possibly unique values */
+    verboseNestedCounters?: boolean
     /** fake network delay in ms */
     fakeNetworkDelay?: number
     /** disable snapshots */

@@ -50,15 +50,15 @@ export function reset(): void {
  * @returns CycleTxs specific to this cycle module
  */
 export function getTxs(): P2P.LostArchiverTypes.Txs {
-  info('getTxs() called')
+  /* prettier-ignore */ if (logFlags.p2pNonFatal) info('getTxs() called')
 
   const lostArchivers: SignedObject<ArchiverDownMsg>[] = []
   const refutedArchivers: SignedObject<ArchiverUpMsg>[] = []
 
   // loop through lostArchiversMap
-  info('  looping through lostArchiversMap')
+  /* prettier-ignore */ if (logFlags.p2pNonFatal) info('  looping through lostArchiversMap')
   for (const entry of lostArchiversMap.values()) {
-    info(`    record: ${inspect(entry)}`)
+    /* prettier-ignore */ if (logFlags.p2pNonFatal) info(`    record: ${inspect(entry)}`)
     // Don't include entries you haven't investigated yet
     if (entry.isInvestigator && !entry.gossippedDownMsg) continue
     // if status == 'down', Put entry's ArchiverDownMsg into lostArchivers array
@@ -71,10 +71,10 @@ export function getTxs(): P2P.LostArchiverTypes.Txs {
     }
   }
 
-  info('===Lost Archivers Txs===')
-  info(`lostArchivers: ${inspect(lostArchivers)}`)
-  info(`refutedArchivers: ${inspect(refutedArchivers)}`)
-  info('===Lost Archivers Txs===')
+  /* prettier-ignore */ if (logFlags.p2pNonFatal) info('===Lost Archivers Txs===')
+  /* prettier-ignore */ if (logFlags.p2pNonFatal) info(`lostArchivers: ${inspect(lostArchivers)}`)
+  /* prettier-ignore */ if (logFlags.p2pNonFatal) info(`refutedArchivers: ${inspect(refutedArchivers)}`)
+  /* prettier-ignore */ if (logFlags.p2pNonFatal) info('===Lost Archivers Txs===')
 
   return {
     lostArchivers,
@@ -88,7 +88,7 @@ export function getTxs(): P2P.LostArchiverTypes.Txs {
  * @returns An object containing only valid txs for this cycle module
  */
 export function dropInvalidTxs(txs: P2P.LostArchiverTypes.Txs): P2P.LostArchiverTypes.Txs {
-  info('dropInvalidTxs() called')
+  /* prettier-ignore */ if (logFlags.p2pNonFatal) info('dropInvalidTxs() called')
 
   // filter lostArchivers array of any invalid ArchiverDownMsgs
   const lostArchivers = txs.lostArchivers.filter((tx) => errorForArchiverDownMsg(tx) === null)
@@ -113,7 +113,7 @@ export function updateRecord(
   record: P2P.CycleCreatorTypes.CycleRecord,
   prev: P2P.CycleCreatorTypes.CycleRecord
 ): void {
-  info('updateRecord function called')
+  /* prettier-ignore */ if (logFlags.p2pNonFatal) info('updateRecord function called')
 
   const lostArchivers = []
   const refutedArchivers = []
@@ -167,7 +167,7 @@ export function updateRecord(
  * @returns A Change describing an addition, removal, or update from the Nodelist
  */
 export function parseRecord(record: P2P.CycleCreatorTypes.CycleRecord): P2P.CycleParserTypes.Change {
-  info('parseRecord function called')
+  /* prettier-ignore */ if (logFlags.p2pNonFatal) info('parseRecord function called')
 
   // loop through publicKeys from record.removedArchivers
   for (const publicKey of record.removedArchivers) {
@@ -198,16 +198,16 @@ export function queueRequest(request: any): void {
  * This is called once per cycle at the start of Q1 by CycleCreator.
  */
 export function sendRequests(): void {
-  info('sendRequests function called')
+  /* prettier-ignore */ if (logFlags.p2pNonFatal) info('sendRequests function called')
 
   // DBG pretty print internal lostArchiversMap to logs
-  info('=== lostArchiversMap ===')
-  info(`${inspect(lostArchiversMap)}`)
-  info('=== lostArchiversMap ===')
+  /* prettier-ignore */ if (logFlags.p2pNonFatal) info('=== lostArchiversMap ===')
+  /* prettier-ignore */ if (logFlags.p2pNonFatal) info(`${inspect(lostArchiversMap)}`)
+  /* prettier-ignore */ if (logFlags.p2pNonFatal) info('=== lostArchiversMap ===')
 
   // loop through lostArchiversMap
   for (const [publicKey, record] of lostArchiversMap) {
-    info(`  record: ${inspect(record)}`)
+    /* prettier-ignore */ if (logFlags.p2pNonFatal) info(`  record: ${inspect(record)}`)
     // any entries with status 'reported'
     if (record.status === 'reported') {
       // Create InvestigateArchiverMsg and send it to the lostArchiverInvestigate route

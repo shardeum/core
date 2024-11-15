@@ -739,7 +739,7 @@ class AccountPatcher {
               const level = radix.length
               const layerMap = this.shardTrie.layerMaps[level]
               if (layerMap == null) {
-                nestedCountersInstance.countEvent('accountPatcher', `get_trie_hashes badrange:${level}`)
+                /* prettier-ignore */ if (this.config.debug.verboseNestedCounters) nestedCountersInstance.countEvent('accountPatcher', `get_trie_hashes badrange:${level}`)
                 break
               }
               const hashTrieNode = layerMap.get(radix)
@@ -1035,7 +1035,7 @@ class AccountPatcher {
             }
           }
 
-          /* prettier-ignore */ nestedCountersInstance.countEvent('accountPatcher', `binary_get_trie_accountHashes c:${this.stateManager.currentCycleShardData.cycleNumber}`, result.stats.childCount)
+          /* prettier-ignore */ if (this.config.debug.verboseNestedCounters) nestedCountersInstance.countEvent('accountPatcher', `binary_get_trie_accountHashes c:${this.stateManager.currentCycleShardData.cycleNumber}`, result.stats.childCount)
           respond(result, serializeGetTrieAccountHashesResp)
         } catch (e) {
           this.statemanager_fatal(
@@ -3040,11 +3040,11 @@ class AccountPatcher {
           remoteAccountsMap.set(account.accountID, {account, nodeId: radixAndChildHash.nodeId})
         }
         if (radixAndChildHash.childAccounts.length > localAccountsMap.size) {
-          nestedCountersInstance.countEvent(`accountPatcher`, `remote trie node has more accounts, radix: ${radixAndChildHash.radix}`)
+          /* prettier-ignore */ if (this.config.debug.verboseNestedCounters) nestedCountersInstance.countEvent(`accountPatcher`, `remote trie node has more accounts, radix: ${radixAndChildHash.radix}`)
         } else if (radixAndChildHash.childAccounts.length < localAccountsMap.size) {
-          nestedCountersInstance.countEvent(`accountPatcher`, `remote trie node has less accounts than local trie node, radix: ${radixAndChildHash.radix}`)
+          /* prettier-ignore */ if (this.config.debug.verboseNestedCounters) nestedCountersInstance.countEvent(`accountPatcher`, `remote trie node has less accounts than local trie node, radix: ${radixAndChildHash.radix}`)
         } else if (radixAndChildHash.childAccounts.length === localAccountsMap.size) {
-          nestedCountersInstance.countEvent(`accountPatcher`, `remote trie node has same number of accounts as local trie node, radix: ${radixAndChildHash.radix}`)
+          /* prettier-ignore */ if (this.config.debug.verboseNestedCounters) nestedCountersInstance.countEvent(`accountPatcher`, `remote trie node has same number of accounts as local trie node, radix: ${radixAndChildHash.radix}`)
         }
         for (let i = 0; i < radixAndChildHash.childAccounts.length; i++) {
           const potentalGoodAcc = radixAndChildHash.childAccounts[i] // eslint-disable-line security/detect-object-injection
