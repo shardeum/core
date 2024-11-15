@@ -1604,9 +1604,9 @@ class TransactionConsenus {
             nestedCountersInstance.countEvent('poqo', 'poqo-send-receipt: no matching data. Can\'t forward')
           }
         } catch (e) {
-          console.error(`Error processing poqoSendReceiptBinary handler: ${e}`)
+          /* prettier-ignore */ if (logFlags.error) console.error(`Error processing poqoSendReceiptBinary handler: ${e}`)
           nestedCountersInstance.countEvent('internal', `${route}-exception`)
-          this.mainLogger.error(`${route}: Exception executing request: ${utils.errorToStringFull(e)}`)
+          /* prettier-ignore */ if (logFlags.error)this.mainLogger.error(`${route}: Exception executing request: ${utils.errorToStringFull(e)}`)
         } finally {
           profilerInstance.scopedProfileSectionEnd(route)
         }

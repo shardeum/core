@@ -1168,7 +1168,7 @@ class TransactionQueue {
     const txExpireTimeMs = this.config.transactionExpireTime * 1000
     const age = shardusGetTime() - timestamp
     if (inRangeOfCurrentTime(timestamp, mostOfQueueSitTimeMs, txExpireTimeMs) === false) {
-      /* prettier-ignore */ this.statemanager_fatal( `spread_tx_to_group_OldTx_or_tooFuture`, 'spread_tx_to_group cannot accept tx with age: ' + age )
+      /* prettier-ignore */ if (logFlags.verbose) this.statemanager_fatal( `spread_tx_to_group_OldTx_or_tooFuture`, 'spread_tx_to_group cannot accept tx with age: ' + age )
       /* prettier-ignore */ if (logFlags.playback) this.logger.playbackLogNote('shrd_spread_tx_to_groupToOldOrTooFuture', '', 'spread_tx_to_group working on tx with age: ' + age)
       profilerInstance.profileSectionEnd('handleSharedTX')
       return null
@@ -2396,7 +2396,7 @@ class TransactionQueue {
                   }
                 }
               }
-              this.mainLogger.debug(`routeAndQueueAcceptedTransaction isSenderWrappedTxGroup ${txQueueEntry.logID} ${utils.stringifyReduce(txQueueEntry.isSenderWrappedTxGroup)}`)
+              /* prettier-ignore */ if (logFlags.verbose) this.mainLogger.debug(`routeAndQueueAcceptedTransaction isSenderWrappedTxGroup ${txQueueEntry.logID} ${utils.stringifyReduce(txQueueEntry.isSenderWrappedTxGroup)}`)
           }
           if (sendGossip && txQueueEntry.globalModification === false) {
             try {
@@ -4638,7 +4638,7 @@ class TransactionQueue {
         tn: queueEntry.transactionGroup.length
       }
 
-      this.mainLogger.debug(`factTellCorrespondingNodes: correspondingIndices and nodes ${queueEntry.logID}`, ourIndexInTxGroup, correspondingIndices, correspondingNodes.map(n => n.id), callParams)
+      /* prettier-ignore */ if (logFlags.verbose) this.mainLogger.debug(`factTellCorrespondingNodes: correspondingIndices and nodes ${queueEntry.logID}`, ourIndexInTxGroup, correspondingIndices, correspondingNodes.map(n => n.id), callParams)
       queueEntry.txDebug.correspondingDebugInfo = {
         ourIndex: ourIndexInTxGroup,
         ourUnwrappedIndex: unwrappedIndex,
@@ -4749,7 +4749,7 @@ class TransactionQueue {
     const targetGroup = queueEntry.executionNodeIdSorted
     const targetIndices = this.getStartAndEndIndexOfTargetGroup(targetGroup, queueEntry.transactionGroup)
 
-    this.mainLogger.debug(`factValidateCorrespondingTellSender: txId: ${queueEntry.acceptedTx.txId} sender node id: ${senderNodeId}, receiver id: ${Self.id} senderHasAddress: ${senderHasAddress} receivingNodeIndex: ${receivingNodeIndex} senderNodeIndex: ${senderNodeIndex} receiverGroupSize: ${receiverGroupSize} senderGroupSize: ${senderGroupSize} targetIndices: ${utils.stringifyReduce(targetIndices)}`)
+    /* prettier-ignore */ if (logFlags.verbose) this.mainLogger.debug(`factValidateCorrespondingTellSender: txId: ${queueEntry.acceptedTx.txId} sender node id: ${senderNodeId}, receiver id: ${Self.id} senderHasAddress: ${senderHasAddress} receivingNodeIndex: ${receivingNodeIndex} senderNodeIndex: ${senderNodeIndex} receiverGroupSize: ${receiverGroupSize} senderGroupSize: ${senderGroupSize} targetIndices: ${utils.stringifyReduce(targetIndices)}`)
 
     let isValidFactSender = verifyCorrespondingSender(
       receivingNodeIndex,
@@ -5520,10 +5520,7 @@ class TransactionQueue {
       }
 
       if (this.transactionQueueHasRemainingWork && timeSinceLastRun > 500) {
-        this.statemanager_fatal(
-          `processAcceptedTxQueue left busy and waited too long to restart`,
-          `processAcceptedTxQueue left busy and waited too long to restart ${timeSinceLastRun / 1000} `
-        )
+        /* prettier-ignore */ if (logFlags.verbose) this.statemanager_fatal(`processAcceptedTxQueue left busy and waited too long to restart`, `processAcceptedTxQueue left busy and waited too long to restart ${timeSinceLastRun / 1000} `)
       }
 
       this.profiler.profileSectionStart('processQ')
@@ -5585,10 +5582,7 @@ class TransactionQueue {
           if (age > timeM * 0.9) {
             // IT turns out the correct thing to check is didSync flag only report errors if we did not wait on this TX while syncing
             if (txQueueEntry.didSync == false) {
-              this.statemanager_fatal(
-                `processAcceptedTxQueue_oldTX.9 fromClient:${txQueueEntry.fromClient}`,
-                `processAcceptedTxQueue cannot accept tx older than 0.9M ${timestamp} age: ${age} fromClient:${txQueueEntry.fromClient}`
-              )
+              /* prettier-ignore */ if (logFlags.verbose) this.statemanager_fatal(`processAcceptedTxQueue_oldTX.9 fromClient:${txQueueEntry.fromClient}`, `processAcceptedTxQueue cannot accept tx older than 0.9M ${timestamp} age: ${age} fromClient:${txQueueEntry.fromClient}`)
               /* prettier-ignore */ if (logFlags.playback) this.logger.playbackLogNote('shrd_processAcceptedTxQueueTooOld1', `${utils.makeShortHash(txQueueEntry.acceptedTx.txId)}`, 'processAcceptedTxQueue working on older tx ' + timestamp + ' age: ' + age)
               //txQueueEntry.waitForReceiptOnly = true
             }
@@ -6834,7 +6828,7 @@ class TransactionQueue {
                     // We got a reciept, but the consensus is that this TX was not applied.
                     /* prettier-ignore */ if (logFlags.verbose) if (logFlags.playback) this.logger.playbackLogNote('shrd_consensingComplete_finishedFailReceipt2', `${shortID}`, `qId: ${queueEntry.entryID}  `)
                     // we are finished since there is nothing to apply
-                    this.statemanager_fatal(
+                    /* prettier-ignore */ if (logFlags.verbose) this.statemanager_fatal(
                       `consensing: on a failed receipt`,
                       `consensing: got a failed receipt for ` +
                         `txid: ${shortID} state: ${queueEntry.state} applyReceipt:${hasApplyReceipt} receivedSignedReceipt:${hasReceivedApplyReceipt} age:${txAge}`
@@ -7763,7 +7757,7 @@ class TransactionQueue {
   // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
   async requestFinalData(queueEntry: QueueEntry, accountIds: string[], nodesToAskKeys: string[] | null = null, includeAppReceiptData = false): Promise<RequestFinalDataResp> {
     profilerInstance.profileSectionStart('requestFinalData')
-    this.mainLogger.debug(`requestFinalData: txid: ${queueEntry.logID} accountIds: ${utils.stringifyReduce(accountIds)}`);
+    /* prettier-ignore */ if (logFlags.debug) this.mainLogger.debug(`requestFinalData: txid: ${queueEntry.logID} accountIds: ${utils.stringifyReduce(accountIds)}`);
     const message = { txid: queueEntry.acceptedTx.txId, accountIds, includeAppReceiptData }
     let success = false
     let successCount = 0
@@ -7778,7 +7772,7 @@ class TransactionQueue {
     }
     if (successCount === accountIds.length && includeAppReceiptData === false) {
       nestedCountersInstance.countEvent('stateManager', 'requestFinalDataAlreadyReceived')
-      this.mainLogger.debug(`requestFinalData: txid: ${queueEntry.logID} already received all data`)
+      /* prettier-ignore */ if (logFlags.debug) this.mainLogger.debug(`requestFinalData: txid: ${queueEntry.logID} already received all data`)
       // no need to request data
       return
     }
@@ -7818,9 +7812,9 @@ class TransactionQueue {
       // } else response = await Comms.ask(nodeToAsk, 'request_tx_and_state', message)
 
       if (response && response.stateList && response.stateList.length > 0) {
-        this.mainLogger.debug(`requestFinalData: txid: ${queueEntry.logID} received data for ${response.stateList.length} accounts`)
+        /* prettier-ignore */ if (logFlags.debug) this.mainLogger.debug(`requestFinalData: txid: ${queueEntry.logID} received data for ${response.stateList.length} accounts`)
       } else {
-        this.mainLogger.error(`requestFinalData: txid: ${queueEntry.logID} response is null`)
+        /* prettier-ignore */ if (logFlags.error) this.mainLogger.error(`requestFinalData: txid: ${queueEntry.logID} response is null`)
         nestedCountersInstance.countEvent('stateManager', 'requestFinalData: failed: response or response.stateList null or statelist length 0')
         return
       }
@@ -7866,11 +7860,11 @@ class TransactionQueue {
       }
     } catch (e) {
       nestedCountersInstance.countEvent('stateManager', 'requestFinalData: failed: Error')
-      this.mainLogger.error(`requestFinalData: txid: ${queueEntry.logID} error: ${e.message}`)
+      /* prettier-ignore */ if (logFlags.error) this.mainLogger.error(`requestFinalData: txid: ${queueEntry.logID} error: ${e.message}`)
     } finally {
       if (success === false) {
         nestedCountersInstance.countEvent('stateManager', 'requestFinalData: failed: success === false')
-        /* prettier-ignore */ this.mainLogger.error(`requestFinalData: txid: ${queueEntry.logID} failed. successCount: ${successCount} accountIds: ${accountIds.length}`);
+        /* prettier-ignore */ if (logFlags.error) this.mainLogger.error(`requestFinalData: txid: ${queueEntry.logID} failed. successCount: ${successCount} accountIds: ${accountIds.length}`);
       }
     }
     profilerInstance.profileSectionEnd('requestFinalData')
@@ -7954,10 +7948,10 @@ class TransactionQueue {
         return results
       } catch (e) {
         nestedCountersInstance.countEvent('stateManager', 'requestInitialDataError')
-        this.mainLogger.error(`requestInitialData: txid: ${queueEntry.logID} error: ${e.message}`)
+        /* prettier-ignore */ if (logFlags.error) this.mainLogger.error(`requestInitialData: txid: ${queueEntry.logID} error: ${e.message}`)
       }
     }
-    /* prettier-ignore */ this.mainLogger.error(`requestInitialData: txid: ${queueEntry.logID} failed. successCount: ${successCount} accountIds: ${accountIds.length}`);
+    /* prettier-ignore */ if (logFlags.error) this.mainLogger.error(`requestInitialData: txid: ${queueEntry.logID} failed. successCount: ${successCount} accountIds: ${accountIds.length}`);
     profilerInstance.profileSectionEnd('requestInitialData')
   }
 
