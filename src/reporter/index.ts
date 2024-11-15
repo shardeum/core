@@ -203,7 +203,7 @@ class Reporter {
       try {
         this.mainLogger.debug(JSON.stringify({report: JSON.stringify(report), method: `_sendReport`, script: '_sendReport'}))
       } catch (error){
-        console.error(error)
+        console.error(`[reporter/index][_sendReport] ERROR while writing report object to log.`, error)
       }
     }
 
