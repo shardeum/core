@@ -61,9 +61,7 @@ const makeReceiptBinaryHandler: P2P.P2PTypes.Route<InternalBinaryHandler<Buffer>
       makeReceipt(req, header.sender_id)
     } catch (e) {
       nestedCountersInstance.countEvent('internal', `${route}-exception`)
-      Context.logger
-        .getLogger('p2p')
-        .error(`${route}: Exception executing request: ${utils.errorToStringFull(e)}`)
+      /* prettier-ignore */ if (logFlags.error) Context.logger.getLogger('p2p').error(`${route}: Exception executing request: ${utils.errorToStringFull(e)}`)
     } finally {
       profilerInstance.scopedProfileSectionEnd(route)
     }

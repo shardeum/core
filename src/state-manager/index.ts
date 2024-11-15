@@ -1851,9 +1851,7 @@ class StateManager {
           respond(response, serializeRequestTxAndStateResp)
         } catch (e) {
           nestedCountersInstance.countEvent('internal', `${route}-exception`)
-          Context.logger
-            .getLogger('p2p')
-            .error(`${route}: Exception executing request: ${utils.errorToStringFull(e)}`)
+          /* prettier-ignore */ if (logFlags.error) Context.logger.getLogger('p2p').error(`${route}: Exception executing request: ${utils.errorToStringFull(e)}`)
           respond(response, serializeRequestTxAndStateResp)
         } finally {
           this.profiler.scopedProfileSectionEnd(route)
@@ -1946,9 +1944,7 @@ class StateManager {
           respond(response, serializeRequestTxAndStateResp)
         } catch (e) {
           nestedCountersInstance.countEvent('internal', `${route}-exception`)
-          Context.logger
-            .getLogger('p2p')
-            .error(`${route}: Exception executing request: ${utils.errorToStringFull(e)}`)
+          /* prettier-ignore */ if (logFlags.error) Context.logger.getLogger('p2p').error(`${route}: Exception executing request: ${utils.errorToStringFull(e)}`)
           respond(response, serializeRequestTxAndStateResp)
         } finally {
           this.profiler.scopedProfileSectionEnd(route)
@@ -2058,7 +2054,7 @@ class StateManager {
           }
         } catch (e) {
           nestedCountersInstance.countEvent('internal', `${route}-exception`)
-          this.mainLogger.error(`${route}: Exception executing request: ${utils.errorToStringFull(e)}`)
+          /* prettier-ignore */ if (logFlags.error) this.mainLogger.error(`${route}: Exception executing request: ${utils.errorToStringFull(e)}`)
         } finally {
           this.profiler.scopedProfileSectionEnd(route)
         }

@@ -499,7 +499,7 @@ class TransactionQueue {
           }
         } catch (e) {
           nestedCountersInstance.countEvent('internal', `${route}-exception`)
-          this.mainLogger.error(`${route}: Exception executing request: ${errorToStringFull(e)}`)
+          /* prettier-ignore */ if (logFlags.error) this.mainLogger.error(`${route}: Exception executing request: ${errorToStringFull(e)}`)
         } finally {
           profilerInstance.scopedProfileSectionEnd(route, payload.length)
         }
@@ -656,7 +656,7 @@ class TransactionQueue {
           }
         } catch (e) {
           nestedCountersInstance.countEvent('internal', `${route}-exception`)
-          this.mainLogger.error(`${route}: Exception executing request: ${errorToStringFull(e)}`)
+          /* prettier-ignore */ if (logFlags.error) this.mainLogger.error(`${route}: Exception executing request: ${errorToStringFull(e)}`)
         } finally {
           profilerInstance.scopedProfileSectionEnd(route, payload.length)
         }
@@ -708,7 +708,7 @@ class TransactionQueue {
           this.handleSharedTX(req.data, req.appData, node)
         } catch (e) {
           nestedCountersInstance.countEvent('internal', `${route}-exception`)
-          this.mainLogger.error(`${route}: Exception executing request: ${errorToStringFull(e)}`)
+          /* prettier-ignore */ if (logFlags.error) this.mainLogger.error(`${route}: Exception executing request: ${errorToStringFull(e)}`)
         } finally {
           this.profiler.scopedProfileSectionEnd(route)
         }
@@ -954,11 +954,7 @@ class TransactionQueue {
           response.success = true
           respond(response, serializeRequestStateForTxResp)
         } catch (e) {
-          this.mainLogger.error(
-            `${
-              InternalRouteEnum.binary_request_state_for_tx
-            }: Exception executing request: ${errorToStringFull(e)}`
-          )
+          /* prettier-ignore */ if (logFlags.error) this.mainLogger.error(`${InternalRouteEnum.binary_request_state_for_tx}: Exception executing request: ${errorToStringFull(e)}`)
           nestedCountersInstance.countEvent('internal', `${route}-exception`)
           respond(response, serializeRequestStateForTxResp)
         } finally {

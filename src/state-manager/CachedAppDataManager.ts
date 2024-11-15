@@ -155,13 +155,13 @@ class CachedAppDataManager {
 
           const existingCachedAppData = this.getCachedItem(req.topic, cachedAppData.dataID)
           if (existingCachedAppData) {
-            console.log(`We have already processed this cached data`, cachedAppData)
+            /* prettier-ignore */ if (logFlags.error) console.log(`We have already processed this cached data`, cachedAppData)
             return
           }
           this.insertCachedItem(req.topic, cachedAppData.dataID, cachedAppData.appData, cachedAppData.cycle)
         } catch (e) {
           nestedCountersInstance.countEvent('internal', `${route}-exception`)
-          this.mainLogger.error(`${route}: Exception executing request: ${utils.errorToStringFull(e)}`)
+          /* prettier-ignore */ if (logFlags.error) this.mainLogger.error(`${route}: Exception executing request: ${utils.errorToStringFull(e)}`)
         } finally {
           profilerInstance.scopedProfileSectionEnd(route)
         }

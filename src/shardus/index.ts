@@ -3014,7 +3014,7 @@ class Shardus extends EventEmitter {
           respond(response, serializeSignAppDataResp)
         } catch (err) {
           nestedCountersInstance.countEvent('internal', `${route}-exception`)
-          this.mainLogger.error(`${route}: Exception executing request: ${utils.errorToStringFull(err)}`)
+          /* prettier-ignore */ if (logFlags.error) this.mainLogger.error(`${route}: Exception executing request: ${utils.errorToStringFull(err)}`)
           respond({ success: false, signature: { owner: '', sig: '' } }, serializeSignAppDataResp)
         } finally {
           this.profiler.scopedProfileSectionEnd(route)
