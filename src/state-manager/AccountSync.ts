@@ -458,7 +458,7 @@ class AccountSync {
           respond(result, serializeGetAccountDataByListResp)
         } catch (e) {
           nestedCountersInstance.countEvent('internal', `${route}-exception`)
-          this.mainLogger.error(`${route}: Exception executing request: ${errorToStringFull(e)}`)
+          /* prettier-ignore */ if (logFlags.error) this.mainLogger.error(`${route}: Exception executing request: ${errorToStringFull(e)}`)
           return respond(InternalError(`${route} exception executing request`), serializeResponseError)
         } finally {
           this.profiler.scopedProfileSectionEnd(route)

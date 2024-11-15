@@ -249,7 +249,7 @@ class AccountGlobals {
           respond(result, serializeGlobalAccountReportResp)
         } catch (e) {
           nestedCountersInstance.countEvent('internal', `${route}-exception`)
-          this.mainLogger.error(`${route}: Exception executing request: ${utils.errorToStringFull(e)}`)
+          /* prettier-ignore */ if (logFlags.error) this.mainLogger.error(`${route}: Exception executing request: ${utils.errorToStringFull(e)}`)
           return respond(InternalError('Exception executing request'), serializeResponseError)
         } finally {
           this.profiler.scopedProfileSectionEnd(route)
