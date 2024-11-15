@@ -558,6 +558,16 @@ class AccountPatcher {
             }
 
             const proposal = signedReceipt.proposal
+            if (
+              signedReceipt.proposalHash !==
+              this.stateManager.transactionConsensus.calculateVoteHash(proposal)
+            ) {
+              nestedCountersInstance.countEvent(
+                'accountPatcher',
+                `binary/repair_oos_accounts: proposal hash mismatch for txId: ${txId}`
+              )
+              continue
+            }
 
             // if (receivedBestVote != null) {
               // Check if vote is from eligible list of voters for this TX
