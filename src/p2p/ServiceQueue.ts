@@ -43,7 +43,6 @@ const addTxGossipRoute: P2P.P2PTypes.GossipHandler<P2P.ServiceQueueTypes.SignedA
   sender,
   tracker
 ) => {
-  /* prettier-ignore */ nestedCountersInstance.countEvent(`gossip-addtx`, `gossip receive - ${payload?.hash}`)
   profilerInstance.scopedProfileSectionStart('serviceQueue - addTx')
 
   if ([1, 2].includes(currentQuarter) === false) {
@@ -89,7 +88,6 @@ const addTxGossipRoute: P2P.P2PTypes.GossipHandler<P2P.ServiceQueueTypes.SignedA
         addTxCopy.txData = txDataWithoutSign
         txAdd.push(addTxCopy)
 
-        /* prettier-ignore */ nestedCountersInstance.countEvent(`gossip-addtx`, `gossip send - ${payload.hash}`)
         Comms.sendGossip(
           'gossip-addtx',
           payload,
@@ -114,7 +112,6 @@ const removeTxGossipRoute: P2P.P2PTypes.GossipHandler<P2P.ServiceQueueTypes.Sign
   sender,
   tracker
 ) => {
-  /* prettier-ignore */ nestedCountersInstance.countEvent(`gossip-removetx`, `gossip receive - ${payload?.txHash}`)
   profilerInstance.scopedProfileSectionStart('serviceQueue - removeTx')
 
   if ([1, 2].includes(currentQuarter) === false) {
@@ -163,7 +160,6 @@ const removeTxGossipRoute: P2P.P2PTypes.GossipHandler<P2P.ServiceQueueTypes.Sign
       if (!txRemove.some((entry) => entry.txHash === payload.txHash)) {
         txRemove.push(unsignedRemoveNetworkTx)
 
-        /* prettier-ignore */ nestedCountersInstance.countEvent(`gossip-removetx`, `gossip send - ${payload.txHash}`)
         Comms.sendGossip(
           'gossip-removetx',
           payload,
