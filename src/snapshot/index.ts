@@ -369,97 +369,6 @@ export function startSnapshotting() {
   )
 }
 
-export async function safetySync() {
-  if (logFlags.console) console.log('Starting SafetySync...')
-  let safetyNum: number
-
-  // Register snapshot routes
-  registerSnapshotRoutes()
-
-  // Wait until safetyNum of nodes have joined the network
-  await new Promise<void>((resolve) => {
-    Self.emitter.on('new_cycle_data', (data: P2P.CycleCreatorTypes.CycleData) => {
-      if (data.syncing >= data.safetyNum) {
-        safetyNum = data.safetyNum
-        if (!safetyModeVals.networkStateHash) {
-          safetyModeVals.networkStateHash = data.networkStateHash
-          safetyModeVals.safetyNum = data.safetyNum
-          safetyModeVals.safetyMode = data.safetyMode
-          if (logFlags.console) console.log('Empty local network state hash detected.')
-          if (logFlags.console) console.log('safetyModeVals', safetyModeVals)
-        }
-        if (logFlags.console) console.log('Ready to share data and safely syncing.')
-        resolve()
-      }
-      if (logFlags.console)
-        console.log(
-          `Waiting for more nodes to recover the network. Required: ${data.safetyNum}, Current: ${data.syncing}`
-        )
-    })
-  })
-
-  // Figure out which nodes hold which partitions in the new network
-  const shardGlobals = ShardFunctions.calculateShardGlobals(
-    safetyNum,
-    Context.config.sharding.nodesPerConsensusGroup,
-    Context.config.sharding.nodesPerConsensusGroup
-  )
-  const nodeShardDataMap: StateManager.shardFunctionTypes.NodeShardDataMap = new Map()
-
-  // populate DataToMigrate and oldDataMap
-  oldDataMap = await SnapshotFunctions.calculateOldDataMap(
-    shardGlobals,
-    nodeShardDataMap,
-    oldPartitionHashMap,
-    lastSnapshotCycle
-  )
-  SnapshotFunctions.copyOldDataToDataToMigrate(oldDataMap, dataToMigrate)
-  SnapshotFunctions.registerDownloadRoutes(Context.network, oldDataMap, oldPartitionHashMap)
-
-  // check if we have data for each partition we cover in new network. We will use this array to request data from other nodes
-  missingPartitions = SnapshotFunctions.getMissingPartitions(shardGlobals, oldDataMap)
-
-  safetySyncing = true
-
-  // Send the old data you have to the new node/s responsible for it
-  for (const [partitionId] of oldDataMap) {
-    await sendOldDataToNodes(partitionId, shardGlobals, nodeShardDataMap)
-  }
-
-  // Check if we have all old data. Once we get the old data you need, go active
-  goActiveIfDataComplete()
-}
-
-async function sendOldDataToNodes(
-  partitionId: number,
-  shardGlobals: StateManager.shardFunctionTypes.ShardGlobals,
-  nodeShardDataMap: StateManager.shardFunctionTypes.NodeShardDataMap
-) {
-  // calcuate all nodes that covers a particular partitions
-  const nodesToSendData: ShardusTypes.Node[] = getNodesThatCoverPartition(
-    partitionId,
-    shardGlobals,
-    nodeShardDataMap
-  )
-
-  const offer = createOffer()
-
-  if (offer.partitions.length === 0) {
-    if (logFlags.console) console.log('No partition data to offer.')
-    return
-  }
-
-  // send data offer to each nodes
-  for (let i = 0; i < nodesToSendData.length; i++) {
-    const res = await http.post(
-      `${nodesToSendData[i].externalIp}:${nodesToSendData[i].externalPort}/snapshot-data-offer`,
-      offer
-    ).catch((e) => {
-      console.error('Error sending data offer to node', e)
-    })
-  }
-}
-
 function createOffer() {
   const partitionsToOffer = []
   for (const [partitionId] of oldDataMap) {
@@ -707,41 +616,6 @@ function processDownloadedMissingData(missingData) {
 }
 
 function registerSnapshotRoutes() {
-  const snapshotDataOfferRoute: P2P.P2PTypes.Route<express.Handler> = {
-    method: 'POST',
-    name: 'snapshot-data-offer',
-    handler: async (req, res) => {
-      const err = utils.validateTypes(req, { body: 'o' })
-      if (err) {
-        log('snapshot-data-offer bad req ' + err)
-        res.json([])
-        return
-      }
-      if (Self.isActive) return res.json({ answer: P2P.SnapshotTypes.offerResponse.notNeeded })
-      const offerRequest = req.body
-      let answer = P2P.SnapshotTypes.offerResponse.notNeeded
-      const neededPartitonIds = []
-      const neededHashes = []
-      if (offerRequest.networkStateHash === safetyModeVals.networkStateHash) {
-        for (const partitionId of offerRequest.partitions) {
-          // request only the needed partitions
-          const isNeeded = missingPartitions.includes(partitionId)
-          if (isNeeded) {
-            neededPartitonIds.push(partitionId)
-            const hasHashForPartition = oldPartitionHashMap.has(partitionId)
-            // if node does not have partition_hash for needed partition, request it too.
-            if (!hasHashForPartition) neededHashes.push(partitionId)
-          }
-        }
-        if (neededPartitonIds.length > 0) answer = P2P.SnapshotTypes.offerResponse.needed
-      }
-      res.json({ answer })
-      if (answer === P2P.SnapshotTypes.offerResponse.needed && missingPartitions.length > 0) {
-        const downloadedSnapshotData = await SnapshotFunctions.downloadDataFromNode(offerRequest.downloadUrl)
-        if (downloadedSnapshotData) processDownloadedMissingData(downloadedSnapshotData)
-      }
-    },
-  }
   const snapshotWitnessDataOfferRoute: P2P.P2PTypes.Route<express.Handler> = {
     method: 'POST',
     name: 'snapshot-witness-data',
@@ -790,7 +664,7 @@ function registerSnapshotRoutes() {
     },
   }
 
-  const routes = [snapshotDataOfferRoute, snapshotWitnessDataOfferRoute]
+  const routes = [snapshotWitnessDataOfferRoute]
 
   for (const route of routes) {
     Context.network._registerExternal(route.method, route.name, route.handler)
