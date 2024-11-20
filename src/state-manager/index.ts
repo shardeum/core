@@ -1428,6 +1428,15 @@ class StateManager {
             return
           }
 
+          if (queueEntry.acceptedTx?.timestamp !== deserialized.timestamp) {
+            response.note = `requested timestamp does not match txid: ${utils.stringifyReduce(deserialized.txid)} 
+            request: ${deserialized.timestamp} 
+            queueuEntry timestamp: ${queueEntry.acceptedTx?.timestamp}
+            dbg:${this.debugTXHistory[utils.stringifyReduce(deserialized.txid)]}`
+            respond(response, serializeRequestReceiptForTxResp)
+            return
+          }
+
           response.receipt = this.getSignedReceipt(queueEntry)
           if (response.receipt != null) {
             response.success = true
