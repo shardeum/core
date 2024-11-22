@@ -1036,7 +1036,7 @@ class TransactionQueue {
   }
 
   isTxInPendingNonceQueue(accountId: string, txId: string): boolean {
-    this.mainLogger.debug(`isTxInPendingNonceQueue ${accountId} ${txId}`, this.nonceQueue)
+    /* prettier-ignore */ if (logFlags.verbose) this.mainLogger.debug(`isTxInPendingNonceQueue ${accountId} ${txId}`, this.nonceQueue)
     const queue = this.nonceQueue.get(accountId)
     if (queue == null) {
       return false
