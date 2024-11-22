@@ -627,7 +627,8 @@ function registerSnapshotRoutes() {
         return
       }
       if (Self.isActive) {
-        return res.json({ answer: P2P.SnapshotTypes.offerResponse.notNeeded })
+        res.json({ answer: P2P.SnapshotTypes.offerResponse.notNeeded })
+        return
       }
       const offerRequest = req.body
       const neededPartitonIds = []
@@ -635,10 +636,11 @@ function registerSnapshotRoutes() {
       if (!safetySyncing || !safetyModeVals.networkStateHash) {
         if (!safetySyncing) log('We are not doing data exchange yet. Try agian later')
         if (!safetyModeVals.networkStateHash) log('We have empty network state hash. Try agian later')
-        return res.json({
+        res.json({
           answer: P2P.SnapshotTypes.offerResponse.tryLater,
           waitTime: Context.config.p2p.cycleDuration * 1000 * 0.5,
         })
+        return
       }
       if (offerRequest.networkStateHash === safetyModeVals.networkStateHash) {
         // ask witnessing node to try offering data later
@@ -653,14 +655,16 @@ function registerSnapshotRoutes() {
           }
         }
         if (neededPartitonIds.length > 0) {
-          return res.json({
+          res.json({
             answer: P2P.SnapshotTypes.offerResponse.needed,
             partitions: neededPartitonIds,
             hashes: neededHashes,
           })
+          return
         }
       }
-      return res.json({ answer: P2P.SnapshotTypes.offerResponse.notNeeded })
+      res.json({ answer: P2P.SnapshotTypes.offerResponse.notNeeded })
+      return
     },
   }
 

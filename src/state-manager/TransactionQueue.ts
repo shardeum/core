@@ -974,12 +974,18 @@ class TransactionQueue {
           full_receipt: 'b',
           sign: 'o',
         })
-        if (error) return res.json((result = { success: false, reason: error }))
+        if (error) {
+          res.json((result = { success: false, reason: error }))
+          return
+        }
         error = utils.validateTypes(req.body.sign, {
           owner: 's',
           sig: 's',
         })
-        if (error) return res.json((result = { success: false, reason: error }))
+        if (error) {
+          res.json((result = { success: false, reason: error }))
+          return
+        }
 
         const { txId, timestamp, full_receipt, sign } = req.body
         const isReqFromArchiver = Archivers.archivers.has(sign.owner)
@@ -1003,10 +1009,16 @@ class TransactionQueue {
               if (logFlags.verbose) console.log('get-tx-receipt: ', txId, timestamp, 'commiting')
               queueEntry = this._transactionQueueByID.get(txId)
             }
-            if (!queueEntry) return res.status(400).json({ success: false, reason: 'Receipt Not Found.' })
+            if (!queueEntry) {
+              res.status(400).json({ success: false, reason: 'Receipt Not Found.' })
+              return
+            }
             if (full_receipt) {
               const fullReceipt: ArchiverReceipt = await this.getArchiverReceiptFromQueueEntry(queueEntry)
-              if (fullReceipt === null) return res.status(400).json({ success: false, reason: 'Receipt Not Found.' })
+              if (fullReceipt === null) {
+                res.status(400).json({ success: false, reason: 'Receipt Not Found.' })
+                return
+              }
               result = Utils.safeJsonParse(Utils.safeStringify({ success: true, receipt: fullReceipt }))
             } else {
               result = { success: true, receipt: this.stateManager.getSignedReceipt(queueEntry) }
