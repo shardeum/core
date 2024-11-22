@@ -73,6 +73,8 @@ const cycleNumberRoute: P2P.P2PTypes.Route<Handler> = {
 const joinRoute: P2P.P2PTypes.Route<Handler> = {
   method: 'POST',
   name: 'join',
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-ignore
   handler: async (req, res) => {
   
 
@@ -82,11 +84,12 @@ const joinRoute: P2P.P2PTypes.Route<Handler> = {
       // Validate the joinReq against the ajv schema
       const errors = verifyPayload(AJVSchemaEnum.JoinReq, joinRequest);
       if (errors) {
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
           fatal: true,
           reason: 'Validation error: ' + errors.join('; ')
         });
+        return
       }
 
 
@@ -94,22 +97,24 @@ const joinRoute: P2P.P2PTypes.Route<Handler> = {
         /* prettier-ignore */ nestedCountersInstance.countEvent('p2p', `join-reject: not-active`)
         /* prettier-ignore */ if (logFlags.p2pNonFatal) console.error( `join-reject: not-active`)
         // if we are not active yet, we cannot accept join requests
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
           fatal: false,
           reason: `this node is not active yet`,
         })
+        return
       }
 
       if (CycleCreator.currentQuarter < 1) {
         /* prettier-ignore */ nestedCountersInstance.countEvent('p2p', `join-reject: CycleCreator.currentQuarter < 1 ${CycleCreator.currentQuarter}`)
         /* prettier-ignore */ if (logFlags.p2pNonFatal) console.error( `join-reject: CycleCreator.currentQuarter < 1 ${CycleCreator.currentQuarter} ${joinRequest.nodeInfo.publicKey}`)
         // if currentQuarter <= 0 then we are not ready
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
           fatal: false,
           reason: `Can't join before quarter 1`,
         })
+        return
       }
 
       if (
@@ -131,12 +136,13 @@ const joinRoute: P2P.P2PTypes.Route<Handler> = {
       if (!externalPortReachable || !internalPortReachable) {
         /* prettier-ignore */ nestedCountersInstance.countEvent( 'p2p', `join-reject: !externalPortReachable || !internalPortReachable` )
         /* prettier-ignore */ if (logFlags.p2pNonFatal) console.error( `join-reject: !externalPortReachable || !internalPortReachable ${joinRequest.nodeInfo.publicKey} ${Utils.safeStringify({ host: externalIp, port: externalPort })}`)
-        return res.json({
+        res.json({
           success: false,
           fatal: true,
           //the following message string is used by submitJoinV2.  if you change the string please update submitJoinV2
           reason: `IP or Port is not reachable. ext:${externalIp}:${externalPort} int:${internalIp}:${internalPort}}`,
         })
+        return
       }
 
       // if the port of the join request was reachable, this join request is free to be
@@ -146,11 +152,12 @@ const joinRoute: P2P.P2PTypes.Route<Handler> = {
         if (getStandbyNodesInfoMap().has(joinRequest.nodeInfo.publicKey)) {
           /* prettier-ignore */ nestedCountersInstance.countEvent('p2p', `join-reject: already standby`)
           /* prettier-ignore */ if (logFlags.p2pNonFatal) console.error( `join-reject: already standby ${joinRequest.nodeInfo.publicKey}:`)
-          return res.status(400).json({
+          res.status(400).json({
             success: false,
             fatal: false, //this was true before which seems wrong.  Do we want to kill a node that already got in?
             reason: `Join request for pubkey ${joinRequest.nodeInfo.publicKey} already exists as a standby node`,
           })
+          return
         }
 
         // then validate the join request. if it's invalid for any reason, return
@@ -159,7 +166,8 @@ const joinRoute: P2P.P2PTypes.Route<Handler> = {
         if (validationError) {
           /* prettier-ignore */ nestedCountersInstance.countEvent('p2p', `join-reject: validateJoinRequest ${validationError.reason}`)
           /* prettier-ignore */ if (logFlags.p2pNonFatal) console.error( `join-reject: validateJoinRequest ${validationError.reason} ${joinRequest.nodeInfo.publicKey}:`)
-          return res.status(400).json(validationError)
+          res.status(400).json(validationError)
+          return
         }
         // then, verify the signature of the join request. this has to be done
         // before selectionNum is calculated because we will mutate the original
@@ -168,7 +176,8 @@ const joinRoute: P2P.P2PTypes.Route<Handler> = {
         if (signatureError) {
           /* prettier-ignore */ nestedCountersInstance.countEvent('p2p', `join-reject: signature error`)
           /* prettier-ignore */ if (logFlags.p2pNonFatal) console.error( `join-reject: signature error ${joinRequest.nodeInfo.publicKey}:`)
-          return res.status(400).json(signatureError)
+          res.status(400).json(signatureError)
+          return
         }
 
         // then, calculate the selection number for this join request.
@@ -176,17 +185,19 @@ const joinRoute: P2P.P2PTypes.Route<Handler> = {
         if (selectionNumResult.isErr()) {
           /* prettier-ignore */ nestedCountersInstance.countEvent('p2p', `join-reject: failed selection number ${selectionNumResult.error.reason}`)
           /* prettier-ignore */ if (logFlags.p2pNonFatal) console.error( `failed to compute selection number for node ${joinRequest.nodeInfo.publicKey}:`, Utils.safeStringify(selectionNumResult.error) )
-          return res.status(500).json(selectionNumResult.error)
+          res.status(500).json(selectionNumResult.error)
+          return
         }
         joinRequest.selectionNum = selectionNumResult.value
 
         if (CycleCreator.currentQuarter > 1) {
           /* prettier-ignore */ nestedCountersInstance.countEvent('p2p', `rejected-late-join-request ${CycleCreator.currentQuarter}`)
-          return res.status(400).json({
+          res.status(400).json({
             success: false,
             fatal: false,
             reason: `Can't join after quarter 1`,
           })
+          return
         }
 
         // following block is DEPRECATED
@@ -200,7 +211,8 @@ const joinRoute: P2P.P2PTypes.Route<Handler> = {
 
         /* prettier-ignore */ nestedCountersInstance.countEvent( 'p2p', `join success` )
         // respond with the number of standby nodes for the user's information
-        return res.status(200).json({ success: true, numStandbyNodes: getStandbyNodesInfoMap().size })
+        res.status(200).json({ success: true, numStandbyNodes: getStandbyNodesInfoMap().size })
+        return
       } else {
         //  Validate of joinReq is done in addJoinRequest
         const joinRequestResponse = addJoinRequest(joinRequest)
@@ -223,15 +235,17 @@ const joinRoute: P2P.P2PTypes.Route<Handler> = {
           )
           nestedCountersInstance.countEvent('p2p', 'initiate gossip-join')
         }
-        return res.json(joinRequestResponse)
+        res.json(joinRequestResponse)
+        return
       }
     } catch (error) {
       console.error('Error handling join request:', error);
-      return res.status(500).json({
+      res.status(500).json({
         success: false,
         fatal: true,
         reason: 'An error occurred while processing the join request'
-      });
+      })
+    return
     }
   },
 }
@@ -243,7 +257,8 @@ const unjoinRoute: P2P.P2PTypes.Route<Handler> = {
     const unjoinRequest = req.body
     const processResult = processNewUnjoinRequest(unjoinRequest)
     if (processResult.isErr()) {
-      return res.status(500).json({ error: processResult.error })
+      res.status(500).json({ error: processResult.error })
+      return
     }
 
     // we need to remove the unjoin request this cycle since we are waiting until next cycle to gossip it to the network
@@ -253,7 +268,8 @@ const unjoinRoute: P2P.P2PTypes.Route<Handler> = {
 
     queueUnjoinRequest(unjoinRequest)
 
-    return res.status(200).json()
+    res.status(200).json()
+    return
   },
 }
 
@@ -307,7 +323,8 @@ const standbyRefreshRoute: P2P.P2PTypes.Route<Handler> = {
     }
 
     queueStandbyRefreshRequest(standbyRefreshPubKey)
-    return res.status(200).json()
+    res.status(200).json()
+    return
   },
 }
 

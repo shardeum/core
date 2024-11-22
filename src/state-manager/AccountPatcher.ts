@@ -1413,7 +1413,8 @@ class AccountPatcher {
           }
           if (!hashTrieNode) {
              /* prettier-ignore */ if (logFlags.error) console.error('debug-patcher-dumpTree-partial - Radix not found. Returning 404')
-            return res.status(404).json({error: 'Radix not found'})
+            res.status(404).json({error: 'Radix not found'})
+            return
           }
           //strip noisy fields
           const tempString = JSON.stringify(hashTrieNode, utils.debugReplacer)
@@ -1446,7 +1447,8 @@ class AccountPatcher {
           const hashTrieSyncConsensus = this.hashTrieSyncConsensusByCycle.get(cycle)
 
           if (!hashTrieSyncConsensus) {
-            return res.json({ error: `Unable to find hashTrieSyncConsensus for last cycle ${lastCycle}` })
+            res.json({ error: `Unable to find hashTrieSyncConsensus for last cycle ${lastCycle}` })
+            return
           }
 
           for (const radix of hashTrieSyncConsensus.radixHashVotes.keys()) {
@@ -1476,11 +1478,12 @@ class AccountPatcher {
               if (!isRadixInSync) outOfSyncRadix[radix] = simpleMap // eslint-disable-line security/detect-object-injection
             }
           }
-          return res.json({
+          res.json({
             cycle,
             notEnoughVotesRadix,
             outOfSyncRadix,
           })
+          return
         } catch (e) {
           console.log('Error', e)
           res.write(`${e}\n`)
