@@ -1115,7 +1115,13 @@ class TransactionQueue {
           }
           // end of timestamp logging.
 
-          await this.stateManager.shardus._timestampAndQueueTransaction(item.tx, item.appData, item.global, item.noConsensus)
+          await this.stateManager.shardus._timestampAndQueueTransaction(
+            item.tx,
+            item.appData,
+            item.global,
+            item.noConsensus,
+            'nonceQueue'
+          )
 
           // start of timestamp logging
           if (logFlags.important_as_error) {
