@@ -294,6 +294,7 @@ function updateScaleFactor() {
     scaleFactorSyncBoost = 1
   }
 
+  //ITN3 example numbers  (128 / 5) * (640 / 100) = 25.6 * 6.4 = 163.84
   scaleFactor = Math.max((consensusRange / consenusParSize) * (activeNodeCount / networkParSize), 1)
 }
 

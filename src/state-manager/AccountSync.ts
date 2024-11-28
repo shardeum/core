@@ -319,6 +319,28 @@ class AccountSync {
     //     this.profiler.scopedProfileSectionEnd('get_account_data3', responseSize)
     //   }
     // )
+    
+    Context.network.registerExternalGet('sync-globals', isDebugModeMiddleware, async (req, res) => {
+      try {
+
+        const cycle = this.stateManager.currentCycleShardData.cycleNumber
+        const syncFromArchiver = false
+    
+        // need to review this , consider sync from archiver. 
+        // consider "express version" that syncs to a specific hash 
+        // todo actual endpoint with options 
+        const syncTracker = this.createSyncTrackerByForGlobals(cycle, false, syncFromArchiver)
+        //this.globalAccountsSynced = false  
+
+        await syncTracker.syncStateDataGlobals()
+        this.syncTrackers.pop()
+      } catch(e) {
+        this.mainLogger.error(`sync-globals: Exception executing request: ${errorToStringFull(e)}`)
+        res.write('error')
+      }
+      res.write('ok')
+      res.end()
+    })
 
     const getAccDataBinaryHandler: Route<InternalBinaryHandler<Buffer>> = {
       name: InternalRouteEnum.binary_get_account_data,
@@ -742,7 +764,7 @@ class AccountSync {
           if (keptGlobal === false && this.globalAccountsSynced === false && useGlobalAccounts === true) {
             this.createSyncTrackerByForGlobals(cycle, true)
             addedGlobal = true
-          }
+          } 
 
           //init new non global trackers
           rangesToSync = this.initRangesToSync(nodeShardData, homePartition, 4, 4)
@@ -751,6 +773,11 @@ class AccountSync {
             this.createSyncTrackerByRange(range, cycle, true)
             newTrackers++
           }
+
+          // sync globals again after all the non global data. 
+          // this is needed in case the global account changed in that time
+          this.createSyncTrackerByForGlobals(cycle, true)
+
           /* prettier-ignore */ nestedCountersInstance.countRareEvent('sync', `RETRYSYNC: lastCycle: ${lastCycle} cycle: ${cycle} ${Utils.safeStringify({keptGlobal, addedGlobal, cleared, kept, newTrackers })}`)
           /* prettier-ignore */ this.mainLogger.debug(`DATASYNC: RETRYSYNC lastCycle: lastCycle: ${lastCycle} cycle: ${cycle} ${Utils.safeStringify({keptGlobal, addedGlobal, cleared, kept, newTrackers })}`)
           continue //resume loop at top!
@@ -1515,6 +1542,20 @@ class AccountSync {
   setGlobalSyncFinished(): void {
     this.globalAccountsSynced = true
   }
+
+
+  reSyncGlobals(): void {
+
+    const cycle = this.stateManager.currentCycleShardData.cycleNumber
+    const syncFromArchiver = false
+
+    // need to review this , consider sync from archiver. 
+    // consider "express version" that syncs to a specific hash 
+    // todo actual endpoint with options 
+    this.createSyncTrackerByForGlobals(cycle, false, syncFromArchiver)
+    //this.globalAccountsSynced = false
+  }
+
 }
 
 export default AccountSync

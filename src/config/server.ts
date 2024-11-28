@@ -134,7 +134,12 @@ const SERVER_CONFIG: StrictServerConfiguration = {
     rotationPercentActive: 0.001, //rotate 0.1% of active nodes per cycle when in a steady processing state
     rotationMaxAddPercent: 0.1,
     rotationMaxRemovePercent: 0.05,
+    syncFloorEnabled: false,  //DEBUG=true, ITN initially false for rotation safety
+    syncingMaxAddPercent: 0.2,
+    syncingDesiredMinCount: 50, //Debug=5, ITN = 50
     allowActivePerCycle: 7,
+    allowActivePerCycleRecover: 4,
+    activeRecoveryEnabled: false, //Debug=true, ITN initially false for rotation safety
     useProxyForDownCheck: false,
     numCheckerNodes: 1,
     minChecksForDown: 1,

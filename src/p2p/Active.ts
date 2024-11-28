@@ -142,6 +142,7 @@ export function updateRecord(
   const activatedPublicKeys = []
 
   if (NodeList.readyByTimeAndIdOrder.length > 0) {
+    // ITN3 example if processing this will pick allowActivePerCycle = 1 nodes
     const selectedNodes = selectNodesFromReadyList(_prev.mode)
     for (const node of selectedNodes) {
       /* prettier-ignore */ nestedCountersInstance.countEvent('p2p', `active:updateRecord node added to activated`)

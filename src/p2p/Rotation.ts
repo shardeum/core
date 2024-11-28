@@ -141,7 +141,7 @@ export function getExpiredRemoved(
   let scaleDownRemove = Math.max(active - desired, 0)
 
   //only let the scale factor impart a partial influence based on scaleInfluenceForShrink
-  const scaledAmountToShrink = getScaledAmountToShrink()
+  const scaledAmountToShrink = getScaledAmountToShrink() //ITN3 example = 36
 
   //limit the scale down by scaledAmountToShrink
   if (scaleDownRemove > scaledAmountToShrink) {
@@ -151,25 +151,13 @@ export function getExpiredRemoved(
   //maxActiveNodesToRemove is a percent of the active nodes that is set as a 0-1 value in maxShrinkMultiplier
   //this is to prevent the network from shrinking too fast
   //make sure the value is at least 1
+  //ITN3 example: maxShrinkMultiplier: 0.02, active: 640 = floor(12.8) = 12
   const maxActiveNodesToRemove = Math.max(Math.floor(config.p2p.maxShrinkMultiplier * active), 1)
 
   const cycle = CycleChain.newest.counter
   if (cycle > lastLoggedCycle && scaleDownRemove > 0) {
     lastLoggedCycle = cycle
-    info(
-      'scale down dump:' +
-        Utils.safeStringify({
-          cycle,
-          scaleFactor: CycleCreator.scaleFactor,
-          scaleDownRemove,
-          maxActiveNodesToRemove,
-          desired,
-          active,
-          scaledAmountToShrink,
-          maxRemove,
-          expired,
-        })
-    )
+    /* prettier-ignore */ if (logFlags?.node_rotation_debug) logger.mainLog_debug('GETEXPIREDREMOVED_DUMPNODES', 'scale down dump:' + Utils.safeStringify({ cycle, scaleFactor: CycleCreator.scaleFactor, scaleDownRemove, maxActiveNodesToRemove, desired, active, scaledAmountToShrink, maxRemove, expired, }) )
   }
 
   // Allows the network to scale down even if node rotation is turned off
@@ -186,6 +174,7 @@ export function getExpiredRemoved(
   // final clamp of max remove, but only if it is more than amountToShrink
   // to avoid messing up the calculation above this next part can only make maxRemove smaller.
   // maxActiveNodesToRemove is a percent of the active nodes that is set as a 0-1 value in maxShrinkMultiplier
+  // ITN3 example amountToShrink = 5.   maxActiveNodesToRemove = 12
   if (maxRemove > config.p2p.amountToShrink && maxRemove > maxActiveNodesToRemove) {
     // yes, this max could be baked in earlier, but I like it here for clarity
     maxRemove = Math.max(config.p2p.amountToShrink, maxActiveNodesToRemove)
@@ -248,7 +237,19 @@ function error(...msg: string[]): void {
 
 /** Returns a linearly interpolated value between `amountToShrink` and the same
 * multiplied by a `scaleFactor`. The result depends on the
-* `scaleInfluenceForShrink` */
+* `scaleInfluenceForShrink` 
+* 
+* ITN3 example numbers  (128 / 5) * (640 / 100) = 25.6 * 6.4 = 163.84
+* config.p2p.amountToShrink  5 
+* config.p2p.scaleInfluenceForShrink  0.2,
+* 
+* Math.floor(lerp(163.84, 5, 0.2)) = 36!
+* 
+* this is use as a max though onlty to clamp but not raise our amount to shrink
+* this is for the scaled down remove case
+* 
+* 
+*/
 function getScaledAmountToShrink(): number {
   const nonScaledAmount = config.p2p.amountToShrink
   const scaledAmount = config.p2p.amountToShrink * CycleCreator.scaleFactor

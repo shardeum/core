@@ -899,8 +899,19 @@ export interface ServerConfiguration {
     rotationMaxAddPercent: number
     /** not an actual percent but 0-1 value or multiplication */
     rotationMaxRemovePercent: number
-    /** The max number of nodes added to `activated` list in cycleRecord each cycle */
+    /** enable sync floor */
+    syncFloorEnabled: boolean  
+    /** additional support for more syncing nodes.  not an actual percent but 0-1 value or multiplication */
+    syncingMaxAddPercent: number
+    /** how many node should be syncing at any given time  */
+    syncingDesiredMinCount: number
+    /** The max number of nodes added to `activated` list in cycleRecord each cycle while processing */
     allowActivePerCycle: number
+    /** The max number of nodes added to `activated` list in cycleRecord each cycle */
+    allowActivePerCycleRecover: number
+    /** enable active node rotation recovery */
+    activeRecoveryEnabled: boolean      
+    /** should a checking node use a random proxy to run the down test */
     useProxyForDownCheck: boolean
     /** The number of checker nodes to ask to investigate whether a node that is potentially lost */
     numCheckerNodes: number
