@@ -28,6 +28,8 @@ interface Logger {
 
   _playbackLogger: any
 
+  _mainLogger: any
+
   _seenAddresses: any
   _shortStrings: any
   _playbackOwner_host: any
@@ -114,6 +116,10 @@ export type LogFlags = {
   txCancel: boolean // extra logging for TXs that get canceled
 
   getLocalOrRemote: boolean // special logging for getLocalOrRemote
+
+  verboseNestedCounters: boolean // extra logging for nested counters
+
+  node_rotation_debug: boolean // extra logging for node rotation math
 }
 
 export let logFlags: LogFlags = {
@@ -153,6 +159,10 @@ export let logFlags: LogFlags = {
   txCancel: false,
 
   getLocalOrRemote: false,
+
+  verboseNestedCounters: false,
+
+  node_rotation_debug: false,
 }
 
 const filePath1 = path.join(process.cwd(), 'data-logs', 'cycleRecords1.txt')
@@ -217,6 +227,7 @@ class Logger {
     this.getLogger('main').info('Logger initialized.')
 
     this._playbackLogger = this.getLogger('playback')
+    this._mainLogger = this.getLogger('main')
 
     this.setupLogControlValues()
 
@@ -674,6 +685,31 @@ class Logger {
 
     console.log(`base logFlags: ` + Utils.safeStringify(logFlags))
   }
+
+  mainLog(level, key: string,  message:string ): void {
+    //initially this will just go to a main log but we could but this in
+    //a json blob with the key and send it to a different logging service
+    this._mainLogger[level](key + ' ' + message)
+  }
+
+  mainLog_debug(key: string,  message:string ): void {
+    //note will change the key to be an array later and remove the DBG prefix
+    this.mainLog('debug', 'DBG_' + key, message)
+  }
+
+  combine(...args: any[]): string {
+    return args
+      .map((arg) => {
+        if (typeof arg === 'object') {
+          return Utils.safeStringify(arg)
+        } else {
+          return String(arg)
+        }
+      })
+      .join(' ')
+  }
+
+  
 }
 
 export default Logger

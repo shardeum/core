@@ -79,7 +79,7 @@ export function init() {
 }
 
 export function reset() {
-  /* prettier-ignore */ if (logFlags && logFlags.verbose) console.log( 'Resetting auto-scale module', `Cycle ${CycleCreator.currentCycle}, Quarter: ${CycleCreator.currentQuarter}`)
+  /* prettier-ignore */ if (logFlags?.verbose) logger.mainLog_debug('RESET_1', logger.combine('Resetting auto-scale module', `Cycle ${CycleCreator.currentCycle}, Quarter: ${CycleCreator.currentQuarter}`))
   scalingRequested = false
   scalingRequestsCollector = new Map()
   requestedScalingType = null
@@ -147,7 +147,7 @@ export function requestNetworkUpsize() {
     return
   }
 
-  console.log('DBG', 'UPSIZE!')
+  /* prettier-ignore */ if (logFlags?.verbose) logger.mainLog_debug('REQUESTNETWORKUPSIZE_1', 'CycleAutoScale: UPSIZE!')
   _requestNetworkScaling(P2P.CycleAutoScaleTypes.ScaleType.UP)
 }
 
@@ -161,7 +161,7 @@ export function requestNetworkDownsize() {
     return
   }
 
-  console.log('DBG', 'DOWNSIZE!')
+  /* prettier-ignore */ if (logFlags?.verbose) logger.mainLog_debug('REQUESTNETWORKDOWNSIZE_1', 'CycleAutoScale: DOWNSIZE!')
   _requestNetworkScaling(P2P.CycleAutoScaleTypes.ScaleType.DOWN)
 }
 
@@ -296,13 +296,7 @@ function _checkScaling() {
 
   // If we haven't approved an scale type, check if we should scale down
   if (!changed) {
-    // if (approvedScalingType === P2P.CycleAutoScaleTypes.ScaleType.DOWN) {
-    //   warn(
-    //     'Already set to scale down for this cycle. No need to scale down anymore.'
-    //   )
-    //   return
-    // }
-    /* prettier-ignore */ if (logFlags && logFlags.verbose) console.log("CycleAutoScale: scale up not approved")
+    /* prettier-ignore */ if (logFlags?.verbose) logger.mainLog_debug('CHECKSCALING_1', 'CycleAutoScale: scale up not approved')
     if (scaleDownRequests.length >= requiredVotes) {
       approvedScalingType = P2P.CycleAutoScaleTypes.ScaleType.DOWN
       changed = true
@@ -341,7 +335,7 @@ function _checkScaling() {
       error(new Error(`Invalid scaling flag after changing flag. Flag: ${approvedScalingType}`))
       return
   }
-  console.log('newDesired', newDesired)
+  /* prettier-ignore */ if (logFlags?.verbose) logger.mainLog_debug('CHECKSCALING_2', logger.combine('newDesired', newDesired))
 }
 
 function setDesiredCount(count: number) {
@@ -390,18 +384,18 @@ function setAndGetTargetCount(prevRecord: P2P.CycleCreatorTypes.CycleRecord): nu
         }
       }
     } else if (prevRecord.mode === 'processing') {
-      /* prettier-ignore */ if (logFlags && logFlags.verbose) console.log("CycleAutoScale: in processing")
+      /* prettier-ignore */ if (logFlags?.verbose) logger.mainLog_debug('SETANDGETTARGETCOUNT_PROCESSING_1', "CycleAutoScale: in processing")
       if (enterSafety(active) === false && enterRecovery(active) === false) {
-        /* prettier-ignore */ if (logFlags && logFlags.verbose) console.log("CycleAutoScale: not in safety")
+        /* prettier-ignore */ if (logFlags?.verbose) logger.mainLog_debug('SETANDGETTARGETCOUNT_PROCESSING_2', "CycleAutoScale: not in safety")
         let addRem = (desired - prevRecord.target) * 0.1
-        /* prettier-ignore */ if (logFlags && logFlags.verbose) console.log(`addRem: ${addRem}, desired: ${desired}, prevTarget: ${prevRecord.target}`)
+        /* prettier-ignore */ if (logFlags?.verbose) logger.mainLog_debug('SETANDGETTARGETCOUNT_PROCESSING_3', `addRem: ${addRem}, desired: ${desired}, prevTarget: ${prevRecord.target}`)
         if (addRem > active * 0.01) {
           addRem = active * 0.01
         }
         if (addRem < 0 - active * 0.005) {
           addRem = 0 - active * 0.005
         }
-        /* prettier-ignore */ if (logFlags && logFlags.verbose) console.log(`CycleAutoScale: prev target is ${prevRecord.target} and addRem is ${addRem}`)
+        /* prettier-ignore */ if (logFlags?.verbose) logger.mainLog_debug('SETANDGETTARGETCOUNT_PROCESSING_4', `CycleAutoScale: prev target is ${prevRecord.target} and addRem is ${addRem}`)
         targetCount = prevRecord.target + addRem
         // may want to swap config values to values from cycle record
         if (targetCount < config.p2p.minNodes) {
@@ -422,7 +416,13 @@ function setAndGetTargetCount(prevRecord: P2P.CycleCreatorTypes.CycleRecord): nu
       targetCount = config.p2p.minNodes + config.p2p.extraNodesToAddInRestart
     } else if (prevRecord.mode === 'restart') {
       // In restart mode, all the nodes remain in 'selected?' mode until the desired number of nodes are reached
-      /* prettier-ignore */ if (logFlags && logFlags.verbose) console.log("CycleAutoScale: in restart")
+      
+      //Instruction:  I have a bunch of logs like this but I want to upgrade them to call logger.mainLog_debug. 
+      /* prettier-ignore */ //if (logFlags && logFlags.verbose) console.log("CycleAutoScale: in restart")
+      //Instruction: here is what I want the log to look like.  Note the first argument is a unique key.  The funciton name in all capps followed by some context and then an int that incrments so we dont have dupes will work
+      /* prettier-ignore */ if (logFlags?.verbose) logger.mainLog_debug('SETANDGETTARGETCOUNT_RESTART_1',"CycleAutoScale: in restart")
+      
+ 
       if (syncing < desired + config.p2p.extraNodesToAddInRestart) {
         /* prettier-ignore */ if (logFlags && logFlags.verbose) console.log("CycleAutoScale: entered syncing < desired")
         let add = ~~(0.5 * syncing) // Add 50% more nodes on each cycle
@@ -439,7 +439,7 @@ function setAndGetTargetCount(prevRecord: P2P.CycleCreatorTypes.CycleRecord): nu
     /* prettier-ignore */ if (logFlags && logFlags.verbose) console.log("CycleAutoScale: in Self.isFirst condition")
     targetCount = config.p2p.formingNodesPerCycle
   }
-  /* prettier-ignore */ if (logFlags && logFlags.verbose) console.log("CycleAutoScale: target count is ", targetCount)
+  /* prettier-ignore */ if (logFlags?.verbose) logger.mainLog_debug('SETANDGETTARGETCOUNT_1', logger.combine('CycleAutoScale: target count is', targetCount))
   return targetCount
 }
 

@@ -124,14 +124,30 @@ export function isNodeSelectedReadyList(nodeId: string): boolean {
 
 export function selectNodesFromReadyList(mode: string): P2P.NodeListTypes.Node[] {
   if (mode === 'processing') {
-    if (config.debug.readyNodeDelay > 0) {
-      nestedCountersInstance.countEvent('p2p', `selectNodesFromReadyList: only returning nodes from the ready list that were added at least ${config.debug.readyNodeDelay} seconds ago`)
-      return NodeList.readyByTimeAndIdOrder
-        .slice(0, config.p2p.allowActivePerCycle)
-        .filter((node) => CycleChain.newest.start >= node.readyTimestamp + config.debug.readyNodeDelay)
+    let nodesToAllowActive = config.p2p.allowActivePerCycle
+
+    if(config.p2p.activeRecoveryEnabled){
+      // check if we are below desired allow more nodes to join
+      if(CycleChain.newest != null){
+        const active = CycleChain.newest.active
+        const desired = CycleChain.newest.desired
+        const deficit = desired - active
+        if(deficit > 0){
+          // This code is rotation safe because if allowActivePerCycleRecover is set to 1
+          // and allowActivePerCycle is set to 1 we will have the same boost
+          const boost = Math.min(config.p2p.allowActivePerCycleRecover, deficit)
+          // apply the boost 
+          nodesToAllowActive = Math.max(nodesToAllowActive, boost)
+        }
+      }
     }
 
-    return NodeList.readyByTimeAndIdOrder.slice(0, config.p2p.allowActivePerCycle)
+    if (config.debug.readyNodeDelay > 0) {
+      nestedCountersInstance.countEvent('p2p', `selectNodesFromReadyList: only returning nodes from the ready list that were added at least ${config.debug.readyNodeDelay} seconds ago`)
+      return NodeList.readyByTimeAndIdOrder.slice(0, config.p2p.allowActivePerCycle).filter((node) => CycleChain.newest.start >= node.readyTimestamp + config.debug.readyNodeDelay)
+    }
+
+    return NodeList.readyByTimeAndIdOrder.slice(0, nodesToAllowActive)
   } else {
     if (mode === 'forming' && isFirst && NodeList.activeByIdOrder.length === 0) return NodeList.readyByTimeAndIdOrder
     
