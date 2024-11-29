@@ -190,8 +190,6 @@ export class NetworkClass extends EventEmitter {
       },
       payloadSizeLimitInBytes: config.p2p.payloadSizeLimitInBytes,
       headerSizeLimitInBytes: config.p2p.headerSizeLimitInBytes,
-      signatureSizeLimitInBytes: config.p2p.signatureSizeLimitInBytes,
-      ownerSizeLimitInBytes: config.p2p.ownerSizeLimitInBytes,
     })
     this.intServer = await this.sn.listen(async (data, remote, respond, header, sign) => {
       let routeName

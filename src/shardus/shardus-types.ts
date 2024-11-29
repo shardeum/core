@@ -809,10 +809,6 @@ export interface ServerConfiguration {
     payloadSizeLimitInBytes: number
     /** Header size limit for shardus/net. Default: 2KB */
     headerSizeLimitInBytes: number
-    /** Signature size limit for shardus/net. Default: 96 bytes */
-    signatureSizeLimitInBytes: number
-    /** Owner size limit for shardus/net. Default: 32 bytes */
-    ownerSizeLimitInBytes: number
     /** Number of cycles we want to delay the lost report by */
     delayLostReportByNumOfCycles: number
     /** If disabled, the lost reports are sent to the checker immediately */
