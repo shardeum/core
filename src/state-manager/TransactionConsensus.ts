@@ -1735,6 +1735,13 @@ class TransactionConsenus {
       voteHash: receipt.proposalHash,
       voteTime: 0,
     }
+    
+    if (
+      receipt.proposalHash !==
+      this.stateManager.transactionConsensus.calculateVoteHash(receipt.proposal)
+    ) {
+      return false
+    }
 
     for (let i = 0; i < receipt.signaturePack.length; i++) {
       const sign = receipt.signaturePack[i]

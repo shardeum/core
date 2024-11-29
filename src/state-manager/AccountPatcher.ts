@@ -91,6 +91,10 @@ import {
 import { BadRequest, InternalError, serializeResponseError } from '../types/ResponseError'
 import { Utils } from '@shardus/types'
 import { RepairOOSAccountsReq, deserializeRepairOOSAccountsReq, serializeRepairOOSAccountsReq } from '../types/RepairOOSAccountsReq'
+import { robustQuery } from '../p2p/Utils'
+import { RequestReceiptForTxReqSerialized, serializeRequestReceiptForTxReq } from '../types/RequestReceiptForTxReq'
+import { deserializeRequestReceiptForTxResp, RequestReceiptForTxRespSerialized } from '../types/RequestReceiptForTxResp'
+import { Node } from '../shardus/shardus-types'
 
 type Line = {
   raw: string
@@ -562,6 +566,49 @@ class AccountPatcher {
               signedReceipt.proposalHash !==
               this.stateManager.transactionConsensus.calculateVoteHash(proposal)
             ) {
+              nestedCountersInstance.countEvent(
+                'accountPatcher',
+                `binary/repair_oos_accounts: proposal hash mismatch for txId: ${txId}`
+              )
+              continue
+            }
+
+            const queryFn = async (node: Node) => {
+              const message = { txid: txId, timestamp: accountData.timestamp }
+              return await this.p2p.askBinary<
+                RequestReceiptForTxReqSerialized,
+                RequestReceiptForTxRespSerialized
+              >(
+                node,
+                InternalRouteEnum.binary_request_receipt_for_tx,
+                message,
+                serializeRequestReceiptForTxReq,
+                deserializeRequestReceiptForTxResp,
+                {}
+              )
+            }
+
+            // make sure tx hasn't been altered by robust querying for the proposal using request txid and timestamp
+            const txReceipt = await robustQuery(storageNodes, queryFn)
+            if (txReceipt.isRobustResult === false) {
+              nestedCountersInstance.countEvent(
+                'accountPatcher',
+                `binary/repair_oos_accounts: robust query failed for txId: ${txId}`
+              )
+              continue
+            }
+            
+            if (txReceipt.topResult.success !== true 
+              || txReceipt.topResult.receipt == null
+              || txReceipt.topResult.receipt.proposalHash == null) {
+              nestedCountersInstance.countEvent(
+                'accountPatcher',
+                `binary/repair_oos_accounts: robust query couldn't find queueEntry for txId: ${txId}`
+              )
+              continue
+            }
+            
+            if (signedReceipt.proposalHash !== txReceipt.topResult.receipt.proposalHash) {
               nestedCountersInstance.countEvent(
                 'accountPatcher',
                 `binary/repair_oos_accounts: proposal hash mismatch for txId: ${txId}`
