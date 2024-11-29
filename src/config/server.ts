@@ -155,7 +155,8 @@ const SERVER_CONFIG: StrictServerConfiguration = {
     requiredVotesPercentage: 2 / 3.0,
     timestampCacheFix: true,
     useAjvCycleRecordValidation: true,
-    networkTransactionsToProcessPerCycle: 20
+    networkTransactionsToProcessPerCycle: 20,
+    getTxTimestampTimeoutOffset: 0
   },
   ip: {
     externalIp: '0.0.0.0',
