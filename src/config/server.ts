@@ -96,6 +96,9 @@ const SERVER_CONFIG: StrictServerConfiguration = {
     useLruCacheForSocketMgmt: false,
     lruCacheSizeForSocketMgmt: 1000,
     payloadSizeLimitInBytes: 2 * 1024 * 1024, // 2MB
+    headerSizeLimitInBytes: 2 * 1024, // 2 KB
+    signatureSizeLimitInBytes: 96, // 96 bytes
+    ownerSizeLimitInBytes: 32, // 32 bytes
     delayLostReportByNumOfCycles: 1,
     aggregateLostReportsTillQ1: true,
     isDownCachePruneCycles: 10,
@@ -156,7 +159,7 @@ const SERVER_CONFIG: StrictServerConfiguration = {
     requiredVotesPercentage: 2 / 3.0,
     timestampCacheFix: true,
     useAjvCycleRecordValidation: true,
-    networkTransactionsToProcessPerCycle: 20
+    networkTransactionsToProcessPerCycle: 20,
   },
   ip: {
     externalIp: '0.0.0.0',
@@ -230,7 +233,7 @@ const SERVER_CONFIG: StrictServerConfiguration = {
     startedSyncingDelay: 0,
     finishedSyncingDelay: 0,
     readyNodeDelay: 0,
-    beforeStateFailChance: 0
+    beforeStateFailChance: 0,
   },
   statistics: { save: true, interval: 1 },
   loadDetection: {
