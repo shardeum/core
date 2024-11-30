@@ -18,6 +18,7 @@ import { getDesiredCount } from "./CycleAutoScale";
 import { Utils } from '@shardus/types'
 import { networkMode } from './Modes'
 import { getNewestCycle } from './Sync'
+import { compareNodesByEffectiveAge } from './NodeRotation'
 
 const clone = rfdc()
 
@@ -150,8 +151,9 @@ export function addNode(node: P2P.NodeListTypes.Node, caller: string) {
     linearInsertSorted(readyByTimeAndIdOrder, node, propComparator2('readyTimestamp', 'id'))
   }
 
-  // If active, insert sorted by id into activeByIdOrder
+  // If active, insert sorted by effective age into byJoinOrder
   if (node.status === P2P.P2PTypes.NodeStatus.ACTIVE) {
+    insertSorted(byJoinOrder, node, compareNodesByEffectiveAge)
     insertSorted(activeByIdOrder, node, propComparator('id'))
     for (let i = 0; i < activeByIdOrder.length; i++) {
       activeIdToPartition.set(activeByIdOrder[i].id, i)
