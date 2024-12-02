@@ -67,6 +67,8 @@ export class NetworkClass extends EventEmitter {
   statisticsInstance: any
   useLruCacheForSocketMgmt: boolean
   lruCacheSizeForSocketMgmt: number
+  payloadSizeLimitInBytes: number
+  headerSizeLimitInBytes: number
 
   constructor(config: Shardus.StrictServerConfiguration, logger: Logger) {
     super()
@@ -96,6 +98,8 @@ export class NetworkClass extends EventEmitter {
     this.useLruCacheForSocketMgmt = config.p2p.useLruCacheForSocketMgmt
     this.lruCacheSizeForSocketMgmt = config.p2p.lruCacheSizeForSocketMgmt
     this.shardusCryptoHashKey = config.crypto.hashKey
+    this.payloadSizeLimitInBytes = config.p2p.payloadSizeLimitInBytes
+    this.headerSizeLimitInBytes = config.p2p.headerSizeLimitInBytes
   }
 
   setDebugNetworkDelay(delay: number) {
@@ -188,8 +192,10 @@ export class NetworkClass extends EventEmitter {
         hashKey: this.shardusCryptoHashKey,
         signingSecretKeyHex: this.signingSecretKeyHex,
       },
-      payloadSizeLimitInBytes: config.p2p.payloadSizeLimitInBytes,
-      headerSizeLimitInBytes: config.p2p.headerSizeLimitInBytes,
+      payloadOpts: {
+        payloadSizeLimitInBytes: this.payloadSizeLimitInBytes,
+        headerSizeLimitInBytes: this.headerSizeLimitInBytes,
+      },
     })
     this.intServer = await this.sn.listen(async (data, remote, respond, header, sign) => {
       let routeName
