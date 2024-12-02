@@ -1332,6 +1332,16 @@ export interface ServerConfiguration {
     startInServiceMode?: boolean
     /** This flag defaults to true. If set to true, addresses marked as ir will be fetched when tx is ageing. */
     enableRIAccountsCache: boolean
+    /** Options for validator tickets. E.g. - Silver tickets */
+    tickets?: {
+      /** Amount of time between checks for an updated list */
+      updateTicketListTimeInMs?: number,
+      /** Array of ticket types */
+      ticketTypes?: Array<{
+        type: string;
+        enabled: boolean;
+      }>,
+    }
   }
 }
 
