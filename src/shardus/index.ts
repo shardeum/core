@@ -1175,7 +1175,6 @@ class Shardus extends EventEmitter {
       global,
       noConsensus
     );
-    console.log('QUEUEUEUEUEUEUE', acceptedTX.txId, acceptedTX.timestamp)
     if (logFlags.verbose) {
       this.mainLogger.debug(`End of injectTransaction ${utils.stringifyReduce(tx)}, added: ${added}`);
     }
