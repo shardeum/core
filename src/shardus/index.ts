@@ -1059,7 +1059,7 @@ class Shardus extends EventEmitter {
     }
   }
 
-  async _timestampAndQueueTransaction(tx: ShardusTypes.OpaqueTransaction, appData: any, global = false, noConsensus = false) {
+  async _timestampAndQueueTransaction(tx: ShardusTypes.OpaqueTransaction, appData: any, global = false, noConsensus = false, loggingContext = '') {
     // Give the dapp an opportunity to do some up front work and generate
     // appData metadata for the applied TX
     const { status: preCrackSuccess, reason } = await this.app.txPreCrackData(tx, appData)
@@ -1075,7 +1075,8 @@ class Shardus extends EventEmitter {
 
     const txId = this.app.calculateTxId(tx);
     let timestampReceipt: ShardusTypes.TimestampReceipt;
-    if (!injectedTimestamp || injectedTimestamp === -1) {
+    let isMissingInjectedTimestamp = !injectedTimestamp || injectedTimestamp === -1
+    if (isMissingInjectedTimestamp) {
       if (injectedTimestamp === -1) {
         /* prettier-ignore */
         if (logFlags.p2pNonFatal && logFlags.console) console.log("Dapp request to generate a new timestmap for the tx");
@@ -1085,13 +1086,13 @@ class Shardus extends EventEmitter {
       if (logFlags.p2pNonFatal && logFlags.console) console.log("Network generated a" +
         " timestamp", txId, timestampReceipt);
     }
-    if (!injectedTimestamp && !timestampReceipt) {
+    if (isMissingInjectedTimestamp && !timestampReceipt) {
       this.shardus_fatal(
         "put_noTimestamp",
         `Transaction timestamp cannot be determined ${utils.stringifyReduce(tx)} `
       );
       this.statistics.incrementCounter("txRejected");
-      nestedCountersInstance.countEvent("rejected", "_timestampNotDetermined");
+      nestedCountersInstance.countEvent("rejected", `_timestampNotDetermined-${loggingContext}`);
       return {
         success: false,
         reason: "Transaction timestamp cannot be determined.",
@@ -1139,7 +1140,7 @@ class Shardus extends EventEmitter {
 
     if (inRangeOfCurrentTime(timestamp, txExpireTimeMs, txExpireTimeMs) === false) {
       /* prettier-ignore */
-      this.shardus_fatal(`tx_outofrange`, `Transaction timestamp out of range: timestamp:${timestamp} now:${shardusGetTime()} diff(now-ts):${shardusGetTime() - timestamp}  ${utils.stringifyReduce(tx)} our offset: ${getNetworkTimeOffset()} `);
+      this.shardus_fatal(`tx_outofrange`, `Transaction timestamp out of range: timestamp:${timestamp} now:${shardusGetTime()} diff(now-ts):${shardusGetTime() - timestamp}  ${utils.stringifyReduce(tx)} our offset: ${getNetworkTimeOffset()} loggingContext: ${loggingContext}`);
       this.statistics.incrementCounter("txRejected");
       nestedCountersInstance.countEvent("rejected", "transaction timestamp out of range");
       return { success: false, reason: "Transaction timestamp out of range", status: 400 };
@@ -1609,7 +1610,7 @@ class Shardus extends EventEmitter {
         }
       } else {
         // tx nonce is equal to account nonce
-        let result = await this._timestampAndQueueTransaction(tx, appData, global, noConsensus)
+        let result = await this._timestampAndQueueTransaction(tx, appData, global, noConsensus, 'immediateQueue')
 
         // start of timestamp logging
         if (logFlags.important_as_error) {

@@ -1889,7 +1889,10 @@ class TransactionConsenus {
             },
             serializeGetTxTimestampReq,
             deserializeGetTxTimestampResp,
-            {}
+            {},
+            '',
+            false,
+            this.config.p2p.getTxTimestampTimeoutOffset ?? 0
           )
 
           timestampReceipt = serialized_res
