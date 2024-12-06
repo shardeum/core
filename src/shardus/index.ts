@@ -1175,6 +1175,7 @@ class Shardus extends EventEmitter {
       global,
       noConsensus
     );
+    console.log('QUEUEUEUEUEUEUE', acceptedTX.txId, acceptedTX.timestamp)
     if (logFlags.verbose) {
       this.mainLogger.debug(`End of injectTransaction ${utils.stringifyReduce(tx)}, added: ${added}`);
     }
@@ -1808,6 +1809,39 @@ class Shardus extends EventEmitter {
       return false
     }
     if (node.status !== NodeStatus.ACTIVE) {
+      return false
+    }
+    return true
+  }
+
+  isNodeReadyByPubKey(pubKey: string): boolean {
+    const node = this.p2p.state.getNodeByPubKey(pubKey)
+    if (node == null) {
+      return false
+    }
+    if (node.status !== NodeStatus.READY) {
+      return false
+    }
+    return true
+  }
+
+  isNodeSyncingByPubKey(pubKey: string): boolean {
+    const node = this.p2p.state.getNodeByPubKey(pubKey)
+    if (node == null) {
+      return false
+    }
+    if (node.status !== NodeStatus.SYNCING) {
+      return false
+    }
+    return true
+  }
+
+  isNodeSelectedByPubKey(pubKey: string): boolean {
+    const node = this.p2p.state.getNodeByPubKey(pubKey)
+    if (node == null) {
+      return false
+    }
+    if (node.status !== NodeStatus.SELECTED) {
       return false
     }
     return true
