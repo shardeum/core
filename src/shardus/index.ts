@@ -1075,8 +1075,8 @@ class Shardus extends EventEmitter {
 
     const txId = this.app.calculateTxId(tx);
     let timestampReceipt: ShardusTypes.TimestampReceipt;
-    let hasInjectedTimestamp = !injectedTimestamp || injectedTimestamp === -1
-    if (hasInjectedTimestamp) {
+    let isMissingInjectedTimestamp = !injectedTimestamp || injectedTimestamp === -1
+    if (isMissingInjectedTimestamp) {
       if (injectedTimestamp === -1) {
         /* prettier-ignore */
         if (logFlags.p2pNonFatal && logFlags.console) console.log("Dapp request to generate a new timestmap for the tx");
@@ -1086,7 +1086,7 @@ class Shardus extends EventEmitter {
       if (logFlags.p2pNonFatal && logFlags.console) console.log("Network generated a" +
         " timestamp", txId, timestampReceipt);
     }
-    if (hasInjectedTimestamp && !timestampReceipt) {
+    if (isMissingInjectedTimestamp && !timestampReceipt) {
       this.shardus_fatal(
         "put_noTimestamp",
         `Transaction timestamp cannot be determined ${utils.stringifyReduce(tx)} `
