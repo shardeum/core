@@ -1813,6 +1813,39 @@ class Shardus extends EventEmitter {
     return true
   }
 
+  isNodeReadyByPubKey(pubKey: string): boolean {
+    const node = this.p2p.state.getNodeByPubKey(pubKey)
+    if (node == null) {
+      return false
+    }
+    if (node.status !== NodeStatus.READY) {
+      return false
+    }
+    return true
+  }
+
+  isNodeSyncingByPubKey(pubKey: string): boolean {
+    const node = this.p2p.state.getNodeByPubKey(pubKey)
+    if (node == null) {
+      return false
+    }
+    if (node.status !== NodeStatus.SYNCING) {
+      return false
+    }
+    return true
+  }
+
+  isNodeSelectedByPubKey(pubKey: string): boolean {
+    const node = this.p2p.state.getNodeByPubKey(pubKey)
+    if (node == null) {
+      return false
+    }
+    if (node.status !== NodeStatus.SELECTED) {
+      return false
+    }
+    return true
+  }
+
   isNodeActive(id: string): boolean {
     const node = this.p2p.state.getNode(id)
     if (node == null) {
