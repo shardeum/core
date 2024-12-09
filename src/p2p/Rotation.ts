@@ -9,7 +9,7 @@ import * as CycleCreator from './CycleCreator'
 import * as CycleChain from './CycleChain'
 import { nestedCountersInstance } from '../utils/nestedCounters'
 import { currentCycle } from './CycleCreator'
-import { getExpiredRemovedV2 } from './ModeSystemFuncs'
+import { getExpiredRemovedV2, getExpiredRemovedV3 } from './ModeSystemFuncs'
 import { logFlags } from '../logger'
 import { Utils } from '@shardus/types'
 
@@ -81,14 +81,28 @@ export function updateRecord(
     nestedCountersInstance.countEvent('p2p', `results of getExpiredRemoved: expired: ${expired} removed: ${removed.length}`, 1)
     if (logFlags && logFlags.verbose) console.log(`results of getExpiredRemoved: expired: ${expired} removed: ${removed.length} array: ${removed}`)
   }
-
-  // Allow the autoscale module to set this value
-  const { expired, removed } = getExpiredRemovedV2(prev, lastLoggedCycle, txs, info)
-  nestedCountersInstance.countEvent('p2p', `results of getExpiredRemovedV2: expired: ${expired} removed: ${removed.length}`, 1)
-  if (logFlags && logFlags.verbose) console.log(`results of getExpiredRemovedV2: expired: ${expired} removed: ${removed.length} array: ${removed}`)
-
-  record.expired = expired
-  record.removed = removed // already sorted
+  
+  const problemNodeRemovalEnabled = config.p2p.enableProblematicNodeRemoval && currentCycle >= config.p2p.enableProblematicNodeRemovalOnCycle;
+  // we only want to use the problematic node removal logic if we are past the enableProblematicNodeRemovalOnCycle and have a full history of refutes
+  // note: we may want to wait an additional config.p2p.problematicNodeHistoryLength cycles before we start removing problematic nodes
+  //       this would give us a full history of refutes before we start removing problematic nodes
+  if (problemNodeRemovalEnabled === false) {
+    // Allow the autoscale module to set this value
+    const { expired, removed } = getExpiredRemovedV2(prev, lastLoggedCycle, txs, info)
+    nestedCountersInstance.countEvent('p2p', `results of getExpiredRemovedV2: expired: ${expired} removed: ${removed.length}`, 1)
+    if (logFlags && logFlags.verbose) console.log(`results of getExpiredRemovedV2: expired: ${expired} removed: ${removed.length} array: ${removed}`)
+      
+    record.expired = expired
+    record.removed = removed // already sorted
+  } else {
+    const { expired, removed, problematic } = getExpiredRemovedV3(prev, lastLoggedCycle, txs, info)
+    nestedCountersInstance.countEvent('p2p', `results of getExpiredRemovedV2: expired: ${expired} removed: ${removed.length} problematic: ${problematic}`, 1)
+    if (logFlags && logFlags.verbose) console.log(`results of getExpiredRemovedV2: expired: ${expired} removed: ${removed.length} array: ${removed} problematic: ${problematic}`)
+    
+      // record.problematic = problematic // may want to write this to cycle record for
+    record.expired = expired
+    record.removed = removed // already sorted
+  }
 }
 
 export function parseRecord(record: P2P.CycleCreatorTypes.CycleRecord): P2P.CycleParserTypes.Change {
