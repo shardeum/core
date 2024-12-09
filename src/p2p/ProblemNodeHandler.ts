@@ -1,9 +1,7 @@
 import { P2P } from '@shardus/types'
 
 interface NodeHistory {
-  consecutiveRefutes: number
   refuteCycles: Set<number> // Set of cycle numbers where node was refuted
-  lastRefuteCycle?: number  // Track the last cycle where node was refuted
 }
 
 export class ProblemNodeTracker {
@@ -33,45 +31,37 @@ export class ProblemNodeTracker {
     let history = this.nodeHistories.get(nodeId)
     if (!history) {
       history = {
-        consecutiveRefutes: 0,
         refuteCycles: new Set(),
-        lastRefuteCycle: undefined
       }
       this.nodeHistories.set(nodeId, history)
     }
 
-    console.log(`[${nodeId}] Cycle ${cycleNumber}, wasRefuted: ${wasRefuted}, before update:`, {
-      consecutiveRefutes: history.consecutiveRefutes,
-      lastRefuteCycle: history.lastRefuteCycle,
+    const before = {    
+      consecutiveRefutes: this.getConsecutiveRefutes(history.refuteCycles, cycleNumber - 1),
+      refutePercentage: this.getRefutePercentage(nodeId, cycleNumber - 1),
       refuteCycles: Array.from(history.refuteCycles)
-    })
-
-    if (wasRefuted) {
-      // Only increment if this refute is consecutive with the last one
-      if (history.lastRefuteCycle === cycleNumber - 1) {
-        history.consecutiveRefutes++
-      } else {
-        // If there was a gap, start a new sequence
-        history.consecutiveRefutes = 1
-      }
-      history.lastRefuteCycle = cycleNumber
-      history.refuteCycles.add(cycleNumber)
-    } else {
-      // Always reset consecutive count on non-refute cycles
-      history.consecutiveRefutes = 0
     }
 
-    console.log(`[${nodeId}] After update:`, {
-      consecutiveRefutes: history.consecutiveRefutes,
-      lastRefuteCycle: history.lastRefuteCycle,
-      refuteCycles: Array.from(history.refuteCycles)
-    })
+    // Calculate window start
+    const windowStart = Math.max(1, cycleNumber - this.HISTORY_LENGTH)
 
-    // Remove cycles older than HISTORY_LENGTH
-    const oldestCycleToKeep = cycleNumber - this.HISTORY_LENGTH
-    history.refuteCycles.forEach(cycle => {
-      if (cycle < oldestCycleToKeep) {
-        history.refuteCycles.delete(cycle)
+    // Clean up old refutes
+    const oldRefutes = Array.from(history.refuteCycles).filter(cycle => cycle < windowStart)
+    oldRefutes.forEach(cycle => history.refuteCycles.delete(cycle))
+
+    if (wasRefuted) {
+      history.refuteCycles.add(cycleNumber)
+    }
+
+    console.log(`Updated:`, {
+      nodeId,
+      cycleNumber,
+      wasRefuted,
+      before,
+      after: {
+        consecutiveRefutes: this.getConsecutiveRefutes(history.refuteCycles, cycleNumber),
+        refutePercentage: this.getRefutePercentage(nodeId, cycleNumber),
+        refuteCycles: Array.from(history.refuteCycles)
       }
     })
   }
@@ -82,26 +72,30 @@ export class ProblemNodeTracker {
 
     // Calculate the window start
     const windowStart = Math.max(1, currentCycle - this.HISTORY_LENGTH + 1)
+    
+    // Use the minimum of HISTORY_LENGTH and currentCycle for window size
+    const windowSize = Math.min(this.HISTORY_LENGTH, currentCycle)
 
     // Count refutes only within the window
-    const recentRefutes = Array.from(history.refuteCycles).filter(cycle => cycle >= windowStart).length
+    const recentRefutes = Array.from(history.refuteCycles).filter(cycle => cycle >= windowStart && cycle <= currentCycle).length
 
     // Calculate percentage based on window size
-    return recentRefutes / this.HISTORY_LENGTH
+    return recentRefutes / windowSize
+  }
+
+  getConsecutiveRefutes(refuteCycles: Set<number>, currentCycle: number): number {
+    const refuteCyclesArray = Array.from(refuteCycles)
+    return refuteCyclesArray[refuteCyclesArray.length - 1] !== currentCycle ? 0 : refuteCyclesArray.filter((cycle, index) => {
+      return index === 0 || cycle === refuteCyclesArray[index - 1] + 1
+    }).length
   }
 
   isNodeProblematic(nodeId: string, currentCycle: number): boolean {
     const history = this.nodeHistories.get(nodeId)
     if (!history) return false
 
-    console.log(`[${nodeId}] Checking problematic status:`, {
-      consecutiveRefutes: history.consecutiveRefutes,
-      refuteCycles: Array.from(history.refuteCycles),
-      percentage: this.getRefutePercentage(nodeId, currentCycle)
-    })
-
     // Check consecutive refutes
-    if (history.consecutiveRefutes >= this.CONSECUTIVE_REFUTE_THRESHOLD) {
+    if (this.getConsecutiveRefutes(history.refuteCycles, currentCycle) >= this.CONSECUTIVE_REFUTE_THRESHOLD) {
       return true
     }
 
@@ -133,36 +127,28 @@ export function getProblematicNodes(
 
   // First update all histories
   const refutedNodes = prevRecord.refuted || []
-  for (const nodeId of refutedNodes) {
-    tracker.updateNodeHistory(nodeId, currentCycle, true)
-  }
-
   const activeNodes = Array.isArray(prevRecord.active) ? prevRecord.active : []
-  for (const nodeId of activeNodes) {
-    if (!refutedNodes.includes(nodeId)) {
-      tracker.updateNodeHistory(nodeId, currentCycle, false)
-    }
+
+  // Update histories for all nodes
+  const allNodes = new Set([...refutedNodes, ...activeNodes])
+  for (const nodeId of allNodes) {
+    tracker.updateNodeHistory(nodeId, currentCycle, refutedNodes.includes(nodeId))
   }
 
   // Then identify problematic nodes
   const problematicNodes = new Set<string>()
-  
-  // Check all active nodes for problematic status
-  for (const nodeId of activeNodes) {
+
+  // Check all nodes for problematic status
+  for (const nodeId of allNodes) {
     if (tracker.isNodeProblematic(nodeId, currentCycle)) {
       problematicNodes.add(nodeId)
     }
   }
 
-  // Add currently lost nodes
-  for (const nodeId of prevRecord.lost || []) {
-    problematicNodes.add(nodeId)
-  }
-
-  // Sort problematic nodes by refute percentage
+  // Convert to array and sort by refute percentage
   return Array.from(problematicNodes).sort((a, b) => {
     const aPercentage = tracker.getRefutePercentage(a, currentCycle)
     const bPercentage = tracker.getRefutePercentage(b, currentCycle)
-    return bPercentage - aPercentage // Higher percentage first
+    return bPercentage - aPercentage
   })
 } 
