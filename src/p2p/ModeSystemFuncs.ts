@@ -10,6 +10,7 @@ import * as CycleCreator from './CycleCreator'
 import * as CycleChain from './CycleChain'
 import { logFlags } from '../logger'
 import { Utils } from '@shardus/types'
+import { getProblematicNodes } from './ProblemNodeHandler'
 
 interface ToAcceptResult {
   add: number
@@ -449,6 +450,16 @@ function calculateFlexibleRotationRemovals(desired: number, active: number, belo
 }
 
 // need to think about and maybe ask Omar about using prev record for determining mode, could use next record
+const getApoptosizedNodes = (txs: P2P.RotationTypes.Txs & P2P.ApoptosisTypes.Txs): string[] => {
+  const apoptosizedNodesList = []
+  for (const request of txs.apoptosis) {
+    const node = NodeList.nodes.get(request.id)
+    if (node) {
+      apoptosizedNodesList.push(node.id)
+    }
+  }
+  return apoptosizedNodesList
+}
 
 /** Returns the number of expired nodes and the list of removed nodes using calculateToAcceptV2 */
 export function getExpiredRemovedV2(
@@ -583,4 +594,109 @@ export function getExpiredRemovedV2(
   return { expired, removed }
 }
 
+/** Returns the number of expired nodes and the list of removed nodes using calculateToAcceptV2 
+ *  this list includes problematic nodes + expired nodes.
+*/
+export function getExpiredRemovedV3(
+  prevRecord: P2P.CycleCreatorTypes.CycleRecord,
+  lastLoggedCycle: number,
+  txs: P2P.RotationTypes.Txs & P2P.ApoptosisTypes.Txs,
+  info: (...msg: string[]) => void
+): { problematic: number; expired: number; removed: string[] } {
 
+  // clear state from last run
+  NodeList.potentiallyRemoved.clear()
+
+  const active = NodeList.activeByIdOrder.length
+  const start = prevRecord.start
+  let expireTimestamp = start - config.p2p.nodeExpiryAge
+  if (expireTimestamp < 0) expireTimestamp = 0
+
+  // calculate the target number of nodes
+  const { add, remove } = calculateToAcceptV2(prevRecord)
+  // get list of expired nodes
+  const expirationTimeThreshold = Math.max(start - config.p2p.nodeExpiryAge, 0)
+
+  // get list of nodes that have been requested to be removed
+  const apoptosizedNodesList = getApoptosizedNodes(txs)
+  const numApoptosizedRemovals = apoptosizedNodesList.length
+
+  // expired, non-apoptosized, non-syncing nodes
+  const expiredNodes = NodeList.byJoinOrder.filter((node) => node.activeTimestamp <= expirationTimeThreshold && node.status !== 'syncing' && !apoptosizedNodesList.includes(node.id)).map(node => node.id)
+  const numExpiredNodes = expiredNodes.length
+
+  // if its recommended that we dont remove any nodes, we MUST adhere to this. 
+  if (remove === 0) return { problematic: 0, expired: numExpiredNodes, removed: [] }
+
+  // Don't expire/remove any if nodeExpiryAge is negative
+  if (config.p2p.nodeExpiryAge < 0) return { problematic: 0, expired: 0, removed: [] }
+
+  nestedCountersInstance.countEvent(
+    'p2p',
+    `results of getExpiredRemovedV3.calculateToAcceptV2: add: ${add}, remove: ${remove}`
+  )
+
+  // Get the set of problematic nodes
+  const problematicWithApoptosizedNodes = getProblematicNodes(prevRecord)
+  // filter out apoptosized nodes from the problematic nodes
+  const problematicNodes = problematicWithApoptosizedNodes.filter(id => !apoptosizedNodesList.includes(id))
+
+  const canRemoveProblematicNodesThisCycle = prevRecord.counter % config.p2p.problematicNodeRemovalCycleFrequency === 0
+  const numProblematicRemovals = Math.min(
+    problematicNodes.length, 
+    canRemoveProblematicNodesThisCycle ? config.p2p.maxProblematicNodeRemovalsPerCycle || 1 : 0,
+  )
+
+  // we can remove `remove` nodes, but we *must* remove the number of apoptosized nodes,
+  // the remainder is the number of expired nodes we can remove this cycle
+  // if there are more nodes apopped than we can remove, we can't remove any expired nodes
+  const numPotentiallyExpiredRemovals = Math.max(remove - numApoptosizedRemovals, 0)
+  const numExpiredRemovals = Math.min(numPotentiallyExpiredRemovals, numExpiredNodes)
+ 
+  const cycle = CycleChain.newest.counter
+
+  if (cycle > lastLoggedCycle && remove > 0) {
+    lastLoggedCycle = cycle
+    info(
+      'scale down dump:' +
+        Utils.safeStringify({
+          cycle,
+          scaleFactor: CycleCreator.scaleFactor,
+          desired: prevRecord.desired,
+          active,
+          maxRemove: remove,
+          expired: numExpiredNodes,
+        })
+    )
+  }
+
+  nestedCountersInstance.countEvent(
+      'p2p',
+      `results of getExpiredRemovedV3: numApoptosizedRemovals: ${numApoptosizedRemovals}, numProblematicRemovals: ${numProblematicRemovals}, numExpiredRemovals: ${numExpiredRemovals}, removed: ${remove}`
+  )
+
+  // array that hold all the nodes to remove
+  // maintains the sort order provided in activeByIdOrder
+  const toRemoveUnsorted = problematicNodes
+    .slice(0, numProblematicRemovals)
+    .concat(
+      expiredNodes.slice(0, numExpiredRemovals)
+    )
+
+  // maintains the sort order provided in activeByIdOrder
+  const toRemove = NodeList.byJoinOrder
+    .filter(node => toRemoveUnsorted.includes(node.id))
+
+  const removed = [];
+  // Process nodes for removal
+  for (const node of toRemove) {
+    nestedCountersInstance.countEvent(
+      'p2p',
+      `getExpiredRemovedV3: adding node to removed: ${node.id}`
+    )
+    NodeList.potentiallyRemoved.add(node.id)
+    insertSorted(removed, node.id)
+  }
+
+  return { problematic: problematicNodes.length, expired: numExpiredNodes, removed }
+}
