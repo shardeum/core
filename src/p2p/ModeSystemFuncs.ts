@@ -10,6 +10,7 @@ import * as CycleCreator from './CycleCreator'
 import * as CycleChain from './CycleChain'
 import { logFlags } from '../logger'
 import { Utils } from '@shardus/types'
+import { getProblematicNodes } from './ProblemNodeHandler'
 
 interface ToAcceptResult {
   add: number
@@ -300,24 +301,15 @@ export function getExpiredRemovedV2(
     }
   }
 
-  // Create a map of nodes that have been marked as lost or refuted in previous cycles
-  const problematicNodes = new Set<string>()
-  for (const id of prevRecord.lost || []) {
-    problematicNodes.add(id)
-  }
-  for (const id of prevRecord.refuted || []) {
-    problematicNodes.add(id)
-  }
-
-  // Sort nodes by priority - problematic nodes first, then by join order
-  const sortedNodes = [...NodeList.byJoinOrder].sort((a, b) => {
-    const aProblematic = problematicNodes.has(a.id) ? 1 : 0
-    const bProblematic = problematicNodes.has(b.id) ? 1 : 0
-    if (aProblematic !== bProblematic) {
-      return bProblematic - aProblematic // Higher priority (1) comes first
-    }
-    return a.activeTimestamp - b.activeTimestamp // Then sort by age
-  })
+  // Get the set of problematic nodes
+  const problematicNodes = getProblematicNodes(prevRecord)
+  // combine problematic nodes with the rest of the nodes
+  // problematic nodes are sorted by how problematic they are
+  // other nodes are sorted by join order
+  const sortedNodes = [
+    ...problematicNodes.map(id => NodeList.nodes.get(id)).filter(node => node),
+    ...NodeList.byJoinOrder.filter(node => !problematicNodes.includes(node.id))
+  ]
 
   // Process nodes for removal
   for (const node of sortedNodes) {
@@ -325,7 +317,7 @@ export function getExpiredRemovedV2(
     if (node.status === 'syncing') continue
 
     // For non-problematic nodes, check if they've expired
-    if (!problematicNodes.has(node.id) && node.activeTimestamp > expireTimestamp) {
+    if (!problematicNodes.includes(node.id) && node.activeTimestamp > expireTimestamp) {
       continue
     }
 
