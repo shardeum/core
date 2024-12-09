@@ -947,6 +947,7 @@ export interface ServerConfiguration {
     // /** The number of network transactions to try to process per cycle from txAdd in cycle record */
     networkTransactionsToProcessPerCycle: number
     useAjvCycleRecordValidation: boolean
+    getTxTimestampTimeoutOffset?: number // default timeout is 5 seconds so this can be used to add or subtract time from that
   }
   /** Server IP configuration */
   ip?: {
