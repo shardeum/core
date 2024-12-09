@@ -67,11 +67,10 @@ export class NetworkClass extends EventEmitter {
   statisticsInstance: any
   useLruCacheForSocketMgmt: boolean
   lruCacheSizeForSocketMgmt: number
+  payloadSizeLimitInBytes: number
+  headerSizeLimitInBytes: number
 
-  constructor(
-    config: Shardus.StrictServerConfiguration,
-    logger: Logger,
-  ) {
+  constructor(config: Shardus.StrictServerConfiguration, logger: Logger) {
     super()
     this.app = express()
     this.sn = null
@@ -99,7 +98,8 @@ export class NetworkClass extends EventEmitter {
     this.useLruCacheForSocketMgmt = config.p2p.useLruCacheForSocketMgmt
     this.lruCacheSizeForSocketMgmt = config.p2p.lruCacheSizeForSocketMgmt
     this.shardusCryptoHashKey = config.crypto.hashKey
-
+    this.payloadSizeLimitInBytes = config.p2p.payloadSizeLimitInBytes
+    this.headerSizeLimitInBytes = config.p2p.headerSizeLimitInBytes
   }
 
   setDebugNetworkDelay(delay: number) {
@@ -111,7 +111,7 @@ export class NetworkClass extends EventEmitter {
   }
 
   customSendJsonMiddleware(req, res, next) {
-    const originalSend = res.send;
+    const originalSend = res.send
     res.send = function (data) {
       if (typeof data === 'object' && data !== null) {
         const jsonString = Utils.safeStringify(data)
@@ -119,7 +119,7 @@ export class NetworkClass extends EventEmitter {
         return originalSend.call(this, jsonString)
       }
       return originalSend.call(this, data)
-    };
+    }
 
     res.json = function (data) {
       const jsonString = Utils.safeStringify(data)
@@ -129,10 +129,6 @@ export class NetworkClass extends EventEmitter {
 
     next()
   }
-
-
-
-
 
   // TODO: Allow for binding to a specified network interface
   _setupExternal() {
@@ -154,17 +150,16 @@ export class NetworkClass extends EventEmitter {
         next()
       }
 
-      this.app.use(bodyParser.json({ limit: '50mb', reviver: Utils.typeReviver}))
+      this.app.use(bodyParser.json({ limit: '50mb', reviver: Utils.typeReviver }))
       this.app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }))
       this.app.use(cors())
       this.app.use(this.customSendJsonMiddleware)
       this.app.use(storeRequests)
       this._applyExternal()
       this.app.use((err, req, res, next) => {
-
         res.status(500).json({
           error: 'Internal Server Error',
-          message: isDebugMode() ? err.message : 'An unexpected error occurred'
+          message: isDebugMode() ? err.message : 'An unexpected error occurred',
         })
       })
 
@@ -196,6 +191,10 @@ export class NetworkClass extends EventEmitter {
       crypto: {
         hashKey: this.shardusCryptoHashKey,
         signingSecretKeyHex: this.signingSecretKeyHex,
+      },
+      payloadOpts: {
+        payloadSizeLimitInBytes: this.payloadSizeLimitInBytes,
+        headerSizeLimitInBytes: this.headerSizeLimitInBytes,
       },
     })
     this.intServer = await this.sn.listen(async (data, remote, respond, header, sign) => {
@@ -885,7 +884,7 @@ export async function checkAndUpdateTimeSyncedOffset(timeServers) {
 
 export function shardusGetTime(): number {
   let time = Date.now()
-  
+
   if (config.p2p.useNTPOffsets === true) {
     time += ntpOffsetMs
   }
@@ -912,11 +911,11 @@ export function calculateFakeTimeOffset(shift: number, spread: number): number {
   const maxShift = 5000
   const minSpread = 0
   const maxSpread = 5000
-  shift = Math.min(Math.max(shift, minShift), maxShift);
-  spread = Math.min(Math.max(spread, minSpread), maxSpread);
+  shift = Math.min(Math.max(shift, minShift), maxShift)
+  spread = Math.min(Math.max(spread, minSpread), maxSpread)
 
-  const begin = shift - (spread / 2)
-  const end = shift + (spread / 2) 
+  const begin = shift - spread / 2
+  const end = shift + spread / 2
   fakeTimeOffsetMs = Math.round(begin + (end - begin) * Math.random())
   return fakeTimeOffsetMs
 }

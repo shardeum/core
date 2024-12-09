@@ -95,6 +95,8 @@ const SERVER_CONFIG: StrictServerConfiguration = {
     uniqueLostIdsUpdate: false,
     useLruCacheForSocketMgmt: false,
     lruCacheSizeForSocketMgmt: 1000,
+    payloadSizeLimitInBytes: 2 * 1024 * 1024, // 2MB
+    headerSizeLimitInBytes: 2 * 1024, // 2 KB
     delayLostReportByNumOfCycles: 1,
     aggregateLostReportsTillQ1: true,
     isDownCachePruneCycles: 10,
@@ -230,7 +232,7 @@ const SERVER_CONFIG: StrictServerConfiguration = {
     startedSyncingDelay: 0,
     finishedSyncingDelay: 0,
     readyNodeDelay: 0,
-    beforeStateFailChance: 0
+    beforeStateFailChance: 0,
   },
   statistics: { save: true, interval: 1 },
   loadDetection: {
