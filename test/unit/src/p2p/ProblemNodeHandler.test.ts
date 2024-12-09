@@ -144,6 +144,36 @@ describe('ProblemNodeHandler', () => {
       }
     })
 
+    it('should sort problematic nodes by refute percentage in descending order', () => {
+      const node1 = 'node1' // Will have 30% refutes
+      const node2 = 'node2' // Will have 20% refutes
+      const node3 = 'node3' // Will have 15% refutes
+      const cycles = 100
+
+      // Create refute history for all nodes over 100 cycles
+      for (let i = 1; i <= cycles; i++) {
+        const refuted = []
+        if (i <= 30) refuted.push(node1) // 30 refutes for node1
+        if (i <= 20) refuted.push(node2) // 20 refutes for node2
+        if (i <= 15) refuted.push(node3) // 15 refutes for node3
+
+        const record = createMockCycleRecord(
+          i,
+          refuted,
+          [],
+          [node1, node2, node3]
+        )
+        
+        if (i === cycles) {
+          const result = getProblematicNodes(record)
+          // Should be ordered from highest refute percentage to lowest
+          expect(result).toEqual([node1, node2, node3])
+        } else {
+          getProblematicNodes(record)
+        }
+      }
+    })
+
     it('should handle empty records', () => {
       const record = createMockCycleRecord(1)
       const result = getProblematicNodes(record)
