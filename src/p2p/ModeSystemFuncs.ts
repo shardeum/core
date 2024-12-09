@@ -316,9 +316,17 @@ export function getExpiredRemovedV2(
     // don't count syncing nodes in our expired count
     if (node.status === 'syncing') continue
 
-    // For non-problematic nodes, check if they've expired
-    if (!problematicNodes.includes(node.id) && node.activeTimestamp > expireTimestamp) {
-      continue
+    // once weve hit the first non-problematic, non-expired node, break.
+    const isProblematic = problematicNodes.includes(node.id)
+    if (!isProblematic && node.activeTimestamp > expireTimestamp) {
+      // note - node.activeTimestamp > expireTimestamp means the node is expired... doesnt it???
+      console.log(
+        'breaking at non-problematic, non-expired node',
+        node.id,
+        'activeTimestamp', node.activeTimestamp,
+        'expireTimestamp', expireTimestamp
+      )
+      break
     }
 
     // Count as expired
@@ -340,7 +348,10 @@ export function getExpiredRemovedV2(
       }
     }
   }
-
+  console.log('DEBUGGING GETEXPIREDREMOVEDV2:')
+  console.log('sortedNodes', sortedNodes)
+  console.log('expired', expired)
+  console.log('removed', removed)
   return { expired, removed }
 }
 
