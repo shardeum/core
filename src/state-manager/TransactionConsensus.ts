@@ -1824,6 +1824,7 @@ class TransactionConsenus {
     if (cycleCounter !== CycleChain.newest.counter || cycleMarker !== CycleChain.getCurrentCycleMarker()){
       return null
     }
+    }
     const tsReceipt: TimestampReceipt = {
       txId,
       cycleMarker,
