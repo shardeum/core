@@ -948,6 +948,7 @@ export interface ServerConfiguration {
     networkTransactionsToProcessPerCycle: number
     useAjvCycleRecordValidation: boolean
     getTxTimestampTimeoutOffset?: number // default timeout is 5 seconds so this can be used to add or subtract time from that
+    timestampCacheFixsize: number
   }
   /** Server IP configuration */
   ip?: {
