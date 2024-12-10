@@ -158,7 +158,8 @@ const SERVER_CONFIG: StrictServerConfiguration = {
     timestampCacheFix: true,
     useAjvCycleRecordValidation: true,
     networkTransactionsToProcessPerCycle: 20,
-    getTxTimestampTimeoutOffset: 0
+    getTxTimestampTimeoutOffset: 0,
+    timestampCacheFixsize: 10000
   },
   ip: {
     externalIp: '0.0.0.0',
