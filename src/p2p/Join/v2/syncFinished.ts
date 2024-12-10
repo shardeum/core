@@ -144,7 +144,7 @@ export function selectNodesFromReadyList(mode: string): P2P.NodeListTypes.Node[]
 
     if (config.debug.readyNodeDelay > 0) {
       nestedCountersInstance.countEvent('p2p', `selectNodesFromReadyList: only returning nodes from the ready list that were added at least ${config.debug.readyNodeDelay} seconds ago`)
-      return NodeList.readyByTimeAndIdOrder.slice(0, config.p2p.allowActivePerCycle).filter((node) => CycleChain.newest.start >= node.readyTimestamp + config.debug.readyNodeDelay)
+      return NodeList.readyByTimeAndIdOrder.slice(0, nodesToAllowActive).filter((node) => CycleChain.newest.start >= node.readyTimestamp + config.debug.readyNodeDelay)
     }
 
     return NodeList.readyByTimeAndIdOrder.slice(0, nodesToAllowActive)
