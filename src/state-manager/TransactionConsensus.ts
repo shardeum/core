@@ -1811,6 +1811,9 @@ class TransactionConsenus {
       nestedCountersInstance.countEvent('consensus', 'get_tx_timestamp found tx timestamp in cacheById')
       return tsReceipt
     }
+    if (Math.abs(cycleCounter - CycleChain.newest.counter) > 1 ){
+      return null
+    }
     if (this.txTimestampCache.size >= Context.config.p2p.timestampCacheFixsize) {
       const oldestCycleCounter = [...this.txTimestampCache.keys()][0]
       const txMap = this.txTimestampCache.get(oldestCycleCounter);
@@ -1821,9 +1824,6 @@ class TransactionConsenus {
       if (txMap.size === 0) {
         this.txTimestampCache.delete(oldestCycleCounter);
       }
-    if (cycleCounter !== CycleChain.newest.counter || cycleMarker !== CycleChain.getCurrentCycleMarker()){
-      return null
-    }
     }
     const tsReceipt: TimestampReceipt = {
       txId,
