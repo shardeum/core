@@ -440,6 +440,7 @@ class TransactionQueue {
           const neighbourNodeIds = neighbourNodes.map((node) => node.id)
           isSenderOurExeNeighbour = senderIsInExecutionGroup && neighbourNodeIds.includes(senderNodeId)
 
+          // sender verification loop
           for (let i = 0; i < req.stateList.length; i++) {
             // eslint-disable-next-line security/detect-object-injection
             const state = req.stateList[i];
@@ -480,6 +481,12 @@ class TransactionQueue {
               nestedCountersInstance.countEvent('processing', 'validateCorrespondingTellSender failed')
               return errorHandler(RequestErrorEnum.InvalidSender);
             }
+          }
+          // update loop
+          for (let i = 0; i < req.stateList.length; i++) {
+            // eslint-disable-next-line security/detect-object-injection
+            const state = req.stateList[i];
+            
             if (configContext.stateManager.collectedDataFix && configContext.stateManager.rejectSharedDataIfCovered) {
               const consensusNodes = this.stateManager.transactionQueue.getConsenusGroupForAccount(state.accountId)
               const coveredByUs = consensusNodes.map((node) => node.id).includes(Self.id)
@@ -507,86 +514,6 @@ class TransactionQueue {
     }
 
     this.p2p.registerInternalBinary(broadcastStateRoute.name, broadcastStateRoute.handler)
-
-    // Comms.registerInternal(
-    //   'broadcast_finalstate',
-    //   async (payload: { txid: string; stateList: Shardus.WrappedResponse[] }, respond: () => void,
-    //   _sender: P2PTypes.NodeListTypes.Node,
-    //   _tracker: string,
-    //   msgSize: number) => {
-    //     profilerInstance.scopedProfileSectionStart('broadcast_finalstate')
-    //     try {
-    //       // make sure we have it
-    //       const queueEntry = this.getQueueEntrySafe(payload.txid) // , payload.timestamp)
-    //       //It is okay to ignore this transaction if the txId is not found in the queue.
-    //       if (queueEntry == null) {
-    //         //In the past we would enqueue the TX, expecially if syncing but that has been removed.
-    //         //The normal mechanism of sharing TXs is good enough.
-    //         nestedCountersInstance.countEvent('processing', 'broadcast_finalstate_noQueueEntry')
-    //         return
-    //       }
-    //       if (logFlags.debug)
-    //         this.mainLogger.debug(`broadcast_finalstate ${queueEntry.logID}, ${Utils.safeStringify(payload.stateList)}`)
-    //       // add the data in
-    //       const savedAccountIds: Set<string> = new Set()
-    //       for (const data of payload.stateList) {
-    //         //let wrappedResponse = data as Shardus.WrappedResponse
-    //         //this.queueEntryAddData(queueEntry, data)
-    //         if (data == null) {
-    //           /* prettier-ignore */ if (logFlags.error && logFlags.verbose) this.mainLogger.error(`broadcast_finalstate data == null`)
-    //           continue
-    //         }
-    //         // validate corresponding tell sender
-    //         if (_sender == null ||  _sender.id == null) {
-    //           /* prettier-ignore */ if (logFlags.error) this.mainLogger.error(`broadcast_finalstate invalid sender for data: ${data.accountId}, sender: ${JSON.stringify(_sender)}`)
-    //           continue
-    //         }
-    //         const isValidFinalDataSender = this.factValidateCorrespondingTellFinalDataSender(queueEntry, _sender.id)
-    //         if (isValidFinalDataSender === false) {
-    //           /* prettier-ignore */ if (logFlags.error) this.mainLogger.error(`broadcast_finalstate invalid sender ${_sender.id} for data: ${data.accountId}`)
-    //           continue
-    //         }
-    //         if (queueEntry.collectedFinalData[data.accountId] == null) {
-    //           queueEntry.collectedFinalData[data.accountId] = data
-    //           savedAccountIds.add(data.accountId)
-    //           /* prettier-ignore */ if (logFlags.playback && logFlags.verbose) this.logger.playbackLogNote('broadcast_finalstate', `${queueEntry.logID}`, `broadcast_finalstate addFinalData qId: ${queueEntry.entryID} data:${utils.makeShortHash(data.accountId)} collected keys: ${utils.stringifyReduce(Object.keys(queueEntry.collectedFinalData))}`)
-    //         }
-
-    //         // if (queueEntry.state === 'syncing') {
-    //         //   /* prettier-ignore */ if (logFlags.playback) this.logger.playbackLogNote('shrd_sync_gotBroadcastfinalstate', `${queueEntry.acceptedTx.txId}`, ` qId: ${queueEntry.entryID} data:${data.accountId}`)
-    //         // }
-    //       }
-    //       const nodesToSendTo: Set<Node> = new Set()
-    //       for (const data of payload.stateList) {
-    //         if (data == null) {
-    //           continue
-    //         }
-    //         if (savedAccountIds.has(data.accountId) === false) {
-    //           continue
-    //         }
-    //         const storageNodes = this.stateManager.transactionQueue.getStorageGroupForAccount(data.accountId)
-    //         for (const node of storageNodes) {
-    //           nodesToSendTo.add(node)
-    //         }
-    //       }
-    //       if (nodesToSendTo.size > 0) {
-    //         Comms.sendGossip(
-    //           'gossip-final-state',
-    //           payload,
-    //           null,
-    //           null,
-    //           Array.from(nodesToSendTo),
-    //           false,
-    //           4,
-    //           queueEntry.acceptedTx.txId
-    //         )
-    //         nestedCountersInstance.countEvent(`processing`, `forwarded final data to storage nodes`)
-    //       }
-    //     } finally {
-    //       profilerInstance.scopedProfileSectionEnd('broadcast_finalstate')
-    //     }
-    //   }
-    // )
 
     const broadcastFinalStateRoute: P2PTypes.P2PTypes.Route<InternalBinaryHandler<Buffer>> = {
       name: InternalRouteEnum.binary_broadcast_finalstate,
@@ -646,6 +573,12 @@ class TransactionQueue {
             const isValidFinalDataSender = this.factValidateCorrespondingTellFinalDataSender(queueEntry, header.sender_id)
             if (isValidFinalDataSender === false) {
               /* prettier-ignore */ if (logFlags.error) this.mainLogger.error(`broadcast_finalstate invalid sender ${header.sender_id} for data: ${data.accountId}`)
+              return errorHandler(RequestErrorEnum.InvalidSender);
+            }
+          }
+          for (const data of req.stateList) {
+            if (data == null) {
+              /* prettier-ignore */ if (logFlags.error && logFlags.verbose) this.mainLogger.error(`broadcast_finalstate data == null`)
               continue
             }
             if (queueEntry.collectedFinalData[data.accountId] == null) {
