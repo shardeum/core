@@ -60,6 +60,9 @@ function calculateAddRemove(
     const syncingCeilingSafety = syncingCeilingBase * 4
     const syncingCeilingRecovery = syncingCeilingBase * 4
 
+    const belowDesiredRemovalDelta = config.p2p.belowDesiredRemovalDelta
+    const maxRemove = config.p2p.maxRotatedPerCycle
+
     if (mode === 'forming') {
       if (Self.isFirst && active < 1) {
         add = target
@@ -128,7 +131,8 @@ function calculateAddRemove(
               add = maintainSyncingFloor(desiredSyncingNodeCount, syncing, add)
               add = clampMaxNodesToAdd(add, active, syncingMaxAddPercent)
               add = maintainSyncingCeiling(syncingCeilingProcessing, syncing, add)
-                          
+
+              remove = calculateFlexibleRotationRemovals(desired, active, belowDesiredRemovalDelta, maxRemove, remove)         
             }
             const logMsg = 'active !== ~~target addRem > 0'
             /* prettier-ignore */ if(logFlags?.node_rotation_debug) logger.mainLog_debug('CALCULATEADDREMOVE_PROCESSING_4', logger.combine(`calculateAddRemove: cycle:${counter} `, logMsg, `add: ${add} remove:${remove} active:${active} syncing:${syncing}`, 'calculateAddRemove_active_not_equal_target_addRem_greater_than_0'))
@@ -167,6 +171,8 @@ function calculateAddRemove(
                 add = maintainSyncingFloor(desiredSyncingNodeCount, syncing, add)
                 add = clampMaxNodesToAdd(add, active, syncingMaxAddPercent)
                 add = maintainSyncingCeiling(syncingCeilingProcessing, syncing, add)
+
+                remove = calculateFlexibleRotationRemovals(desired, active, belowDesiredRemovalDelta, maxRemove, remove)
               }
 
               const logMsg = 'active !== ~~target addRem < 0 tooremove > 0'
@@ -190,6 +196,8 @@ function calculateAddRemove(
                 //counter to other cases where we just add an go on, the best option here
                 // is do avoid all the proceeding logic if we are using the new 
                 // syncingDesiredCount value 
+
+                remove = calculateFlexibleRotationRemovals(desired, active, belowDesiredRemovalDelta, maxRemove, remove)
 
                 const logMsg = 'active !== ~~target addRem too remove <= 0'
                 /* prettier-ignore */ if(logFlags?.node_rotation_debug)  logger.mainLog_debug('CALCULATEADDREMOVE_PROCESSING_8', logger.combine(`calculateAddRemove: cycle:${counter} `, logMsg, `add: ${add} remove:${remove} active:${active} syncing:${syncing}`, 'calculateAddRemove_active_not_equal_target_addRem_too_remove_less_than_or_equal_to_0'))
@@ -242,6 +250,8 @@ function calculateAddRemove(
             add = clampMaxNodesToAdd(add, active, syncingMaxAddPercent)     
             add = maintainSyncingCeiling(syncingCeilingProcessing, syncing, add)
             
+            remove = calculateFlexibleRotationRemovals(desired, active, belowDesiredRemovalDelta, maxRemove, remove)
+
             const logMsg = 'active == ~~target 0'
             /* prettier-ignore */ if(logFlags?.node_rotation_debug) logger.mainLog_debug('CALCULATEADDREMOVE_PROCESSING_9', logger.combine(`calculateAddRemove: cycle:${counter} `, logMsg, `add: ${add} remove:${remove} active:${active} syncing:${syncing}`, 'calculateAddRemove_active_equal_target_0'))
 
@@ -305,6 +315,7 @@ function calculateAddRemove(
           add = maintainSyncingFloor(desiredSyncingNodeCount, syncing, add)
           add = clampMaxNodesToAdd(add, active, syncingMaxAddPercent)  
           add = maintainSyncingCeiling(syncingCeilingSafety, syncing, add) 
+
           const logMsg = 'safety'
           /* prettier-ignore */ if(logFlags?.node_rotation_debug) logger.mainLog_debug('CALCULATEADDREMOVE_SAFETY_1', logger.combine(`calculateAddRemove: cycle:${counter} `, logMsg, `add: ${add} remove:${remove} active:${active} syncing:${syncing}`, 'calculateAddRemove_safety'))
        
@@ -416,6 +427,22 @@ function clampMaxNodesToAdd(add: number, active: number, syncingMaxAddPercent: n
     }
   }
   return add
+}
+
+function calculateFlexibleRotationRemovals(desired: number, active: number, belowDesiredRemovalDelta: number, maxRemove:number, remove:number): number {
+  const additionalRotation = (belowDesiredRemovalDelta + active) - desired
+
+  if (additionalRotation > 0) {
+    const originalRemove = remove
+    //check our rotation limit
+    const allowedToRemove = Math.min(additionalRotation, maxRemove)
+    //if we are able to boost remove then do so
+    remove = Math.max(remove, allowedToRemove)
+    if(originalRemove !== remove){
+      /* prettier-ignore */ if (logFlags?.node_rotation_debug) logger.mainLog_debug('CALC_FLEXIBLE_ROTATION_REMOVAL', `calculateFlexibleRotationRemovals belowDesiredRemovalDelta: ${belowDesiredRemovalDelta} originalRemove: ${originalRemove} remove: ${remove}`)
+    }
+  }
+  return remove
 }
 
 // need to think about and maybe ask Omar about using prev record for determining mode, could use next record
