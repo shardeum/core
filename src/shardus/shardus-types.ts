@@ -752,7 +752,9 @@ export interface ServerConfiguration {
     /** The maxRotatedPerCycle parameter is an Integer specifying the maximum number of nodes that can that can be rotated out of the network each cycle. */
     maxRotatedPerCycle?: number
     /** This allows us to set a window below our desired amount where we can still rotate a node out of the network */
-    belowDesiredRemovalDelta?: number
+    flexibleRotationDelta?: number
+    /** enable a system which allows rotatin even if active nodes are a small amount below the desired in processing mode */
+    flexibleRotationEnabled?: boolean
     /** A fixed boost to let more nodes in when we have just the one seed node in the network */
     firstCycleJoin?: number
 
