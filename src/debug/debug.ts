@@ -6,8 +6,10 @@ import Trie from 'trie-prefix-tree'
 import { isDebugModeMiddleware, isDebugModeMiddlewareMedium } from '../network/debugMiddleware'
 import { nestedCountersInstance } from '../utils/nestedCounters'
 import { logFlags } from '../logger'
-import { ProblemNodeTracker } from '../p2p/ProblemNodeHandler'
 import { currentCycle } from '../p2p/CycleCreator'
+import * as ProblemNodeHandler from '../p2p/ProblemNodeHandler'
+
+import { nodes, NodeWithRefuteCycles } from '../p2p/NodeList'
 const tar = require('tar-fs')
 const fs = require('fs')
 
@@ -137,9 +139,24 @@ class Debug {
     })
     this.network.registerExternalGet('debug_problemNodeTrackerDump', isDebugModeMiddleware, (req, res) => {
       try {
-        const tracker = ProblemNodeTracker.getInstance()
-        const dump = tracker.getDump(currentCycle)
-        return res.json({ success: true, data: dump })
+        const dump: Record<string, any> = {}
+        
+        // Collect data for all nodes that have any refute history
+        for (const [nodeId, node] of nodes as Map<string, NodeWithRefuteCycles>) {
+          if (node.refuteCycles?.size > 0) {
+            const refuteCycles = Array.from(node.refuteCycles).sort((a, b) => a - b)
+            dump[nodeId] = {
+              refuteCycles,
+              stats: {
+                refutePercentage: ProblemNodeHandler.getRefutePercentage(node.refuteCycles, currentCycle),
+                consecutiveRefutes: ProblemNodeHandler.getConsecutiveRefutes(refuteCycles, currentCycle),
+                isProblematic: ProblemNodeHandler.isNodeProblematic(node, currentCycle)
+              }
+            }
+          }
+        }
+        
+        return res.json({ success: true, data: { nodeHistories: dump } })
       } catch (e) {
         return res.json({ success: false, error: e.message })
       }

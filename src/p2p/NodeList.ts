@@ -305,13 +305,31 @@ export function removeNodes(
   for (const id of ids) removeNode(id, raiseEvents, cycle)
 }
 
+// create shorthand type for node with refuteCycles
+export type NodeWithRefuteCycles = P2P.NodeListTypes.Node & { refuteCycles: Set<number> }
+
 export function updateNode(
   update: P2P.NodeListTypes.Update,
   raiseEvents: boolean,
   cycle: P2P.CycleCreatorTypes.CycleRecord | null
 ) {
-  const node = nodes.get(update.id)
+  const node = nodes.get(update.id) as NodeWithRefuteCycles
   if (node) {
+    // Initialize refuteCycles if it doesn't exist
+    if (!node.refuteCycles) {
+      node.refuteCycles = new Set();
+    }
+
+    // Track refutes if this update is from a cycle record
+    if (cycle && cycle.refuted?.includes(node.id)) {
+      node.refuteCycles.add(cycle.counter);
+      
+      // Clean up old refutes using sliding window
+      const windowStart = Math.max(1, cycle.counter - config.p2p.problematicNodeHistoryLength);
+      const oldRefutes = Array.from(node.refuteCycles).filter(c => c < windowStart);
+      oldRefutes.forEach(c => node.refuteCycles.delete(c));
+    }
+
     // Update node properties
     for (const key of Object.keys(update)) {
       node[key] = update[key]

@@ -751,8 +751,17 @@ export interface ServerConfiguration {
     maxNodeForSyncTime?: number
     /** The maxRotatedPerCycle parameter is an Integer specifying the maximum number of nodes that can that can be rotated out of the network each cycle. */
     maxRotatedPerCycle?: number
+
+    /** Problematic Node configurations */
     /** The maxProblematicNodeRemovalsPerCycle parameter is an Integer specifying the maximum number of problematic nodes that can be removed from the network each cycle. */
     maxProblematicNodeRemovalsPerCycle?: number
+    /** The problematicNodeConsecutiveRefuteThreshold parameter is an Integer specifying the number of consecutive refutes a node must have before it is considered problematic. */
+    problematicNodeConsecutiveRefuteThreshold?: number
+    /** The problematicNodeRefutePercentageThreshold parameter is a 0-1 fraction specifying the percentage of refutes a node must have before it is considered problematic. */
+    problematicNodeRefutePercentageThreshold?: number
+    /** The problematicNodeHistoryLength parameter is an Integer specifying the number of cycles to consider when determining if a node is problematic. */
+    problematicNodeHistoryLength?: number
+
     /** A fixed boost to let more nodes in when we have just the one seed node in the network */
     firstCycleJoin?: number
 
