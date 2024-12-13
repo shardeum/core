@@ -69,6 +69,7 @@ const SERVER_CONFIG: StrictServerConfiguration = {
     maxSyncTimeFloor: 1200,
     maxNodeForSyncTime: 9,
     maxRotatedPerCycle: 1,
+    maxProblematicNodeRemovalsPerCycle: 1,
     firstCycleJoin: 10,
     maxPercentOfDelta: 40,
     minScaleReqsNeeded: 5,

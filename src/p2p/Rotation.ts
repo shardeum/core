@@ -83,10 +83,11 @@ export function updateRecord(
   }
 
   // Allow the autoscale module to set this value
-  const { expired, removed } = getExpiredRemovedV2(prev, lastLoggedCycle, txs, info)
-  nestedCountersInstance.countEvent('p2p', `results of getExpiredRemovedV2: expired: ${expired} removed: ${removed.length}`, 1)
-  if (logFlags && logFlags.verbose) console.log(`results of getExpiredRemovedV2: expired: ${expired} removed: ${removed.length} array: ${removed}`)
+  const { expired, removed, problematic } = getExpiredRemovedV2(prev, lastLoggedCycle, txs, info)
+  nestedCountersInstance.countEvent('p2p', `results of getExpiredRemovedV2: expired: ${expired} removed: ${removed.length} problematic: ${problematic}`, 1)
+  if (logFlags && logFlags.verbose) console.log(`results of getExpiredRemovedV2: expired: ${expired} removed: ${removed.length} array: ${removed} problematic: ${problematic}`)
 
+  // record.problematic = problematic // may want to write this to cycle record for bookkeeping sake
   record.expired = expired
   record.removed = removed // already sorted
 }

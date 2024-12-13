@@ -111,6 +111,31 @@ export class ProblemNodeTracker {
   clearHistory(nodeId: string): void {
     this.nodeHistories.delete(nodeId)
   }
+
+  getDump(currentCycle: number): { 
+    nodeHistories: Record<string, { 
+      refuteCycles: number[],
+      stats: {
+        refutePercentage: number,
+        consecutiveRefutes: number,
+        isProblematic: boolean
+      }
+    }> 
+  } {
+    const dump: Record<string, any> = {}
+    this.nodeHistories.forEach((history, nodeId) => {
+      const refuteCycles = Array.from(history.refuteCycles).sort((a, b) => a - b)
+      dump[nodeId] = {
+        refuteCycles,
+        stats: {
+          refutePercentage: this.getRefutePercentage(nodeId, currentCycle),
+          consecutiveRefutes: this.getConsecutiveRefutes(history.refuteCycles, currentCycle),
+          isProblematic: this.isNodeProblematic(nodeId, currentCycle)
+        }
+      }
+    })
+    return { nodeHistories: dump }
+  }
 }
 
 /**

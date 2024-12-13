@@ -6,6 +6,8 @@ import Trie from 'trie-prefix-tree'
 import { isDebugModeMiddleware, isDebugModeMiddlewareMedium } from '../network/debugMiddleware'
 import { nestedCountersInstance } from '../utils/nestedCounters'
 import { logFlags } from '../logger'
+import { ProblemNodeTracker } from '../p2p/ProblemNodeHandler'
+import { currentCycle } from '../p2p/CycleCreator'
 const tar = require('tar-fs')
 const fs = require('fs')
 
@@ -132,6 +134,15 @@ class Debug {
         return res.json({ success: false, error: e.message })
       }
       return res.json({ success: true })
+    })
+    this.network.registerExternalGet('debug_problemNodeTrackerDump', isDebugModeMiddleware, (req, res) => {
+      try {
+        const tracker = ProblemNodeTracker.getInstance()
+        const dump = tracker.getDump(currentCycle)
+        return res.json({ success: true, data: dump })
+      } catch (e) {
+        return res.json({ success: false, error: e.message })
+      }
     })
   }
 }

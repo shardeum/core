@@ -39,6 +39,7 @@
     "maxJoinedPerCycle": 1,
     "maxSyncingPerCycle": 5,
     "maxRotatedPerCycle": 1,
+    "maxProblematicNodeRemovalsPerCycle": 1,
     "firstCycleJoin": 10,
     "maxPercentOfDelta": 40,
     "minScaleReqsNeeded": 5,

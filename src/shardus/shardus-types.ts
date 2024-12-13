@@ -751,6 +751,8 @@ export interface ServerConfiguration {
     maxNodeForSyncTime?: number
     /** The maxRotatedPerCycle parameter is an Integer specifying the maximum number of nodes that can that can be rotated out of the network each cycle. */
     maxRotatedPerCycle?: number
+    /** The maxProblematicNodeRemovalsPerCycle parameter is an Integer specifying the maximum number of problematic nodes that can be removed from the network each cycle. */
+    maxProblematicNodeRemovalsPerCycle?: number
     /** A fixed boost to let more nodes in when we have just the one seed node in the network */
     firstCycleJoin?: number
 
