@@ -753,6 +753,11 @@ export interface ServerConfiguration {
     maxRotatedPerCycle?: number
 
     /** Problematic Node configurations */
+    /** enable problematic node removal */
+    enableProblematicNodeRemoval?: boolean
+    /** enable problematic node removal on a specific cycle. This is to allow the network to stabilize before removing problematic nodes. 
+     * enableProblematicNodeRemoval must be true for this to take effect*/
+    enableProblematicNodeRemovalOnCycle?: number
     /** The maxProblematicNodeRemovalsPerCycle parameter is an Integer specifying the maximum number of problematic nodes that can be removed from the network each cycle. */
     maxProblematicNodeRemovalsPerCycle?: number
     /** The problematicNodeConsecutiveRefuteThreshold parameter is an Integer specifying the number of consecutive refutes a node must have before it is considered problematic. */
@@ -761,6 +766,7 @@ export interface ServerConfiguration {
     problematicNodeRefutePercentageThreshold?: number
     /** The problematicNodeHistoryLength parameter is an Integer specifying the number of cycles to consider when determining if a node is problematic. */
     problematicNodeHistoryLength?: number
+    /** end of problematic node configurations */
 
     /** A fixed boost to let more nodes in when we have just the one seed node in the network */
     firstCycleJoin?: number

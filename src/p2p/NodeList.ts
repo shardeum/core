@@ -320,9 +320,11 @@ export function updateNode(
       node.refuteCycles = new Set();
     }
 
-    // Track refutes if this update is from a cycle record
-    if (cycle && cycle.refuted?.includes(node.id)) {
-      node.refuteCycles.add(cycle.counter);
+    if (config.p2p.enableProblematicNodeRemoval && cycle.counter >= config.p2p.enableProblematicNodeRemovalOnCycle) {
+      // Track refutes if this update is from a cycle record
+      if (cycle && cycle.refuted?.includes(node.id)) {
+        node.refuteCycles.add(cycle.counter);
+      }
       
       // Clean up old refutes using sliding window
       const windowStart = Math.max(1, cycle.counter - config.p2p.problematicNodeHistoryLength);

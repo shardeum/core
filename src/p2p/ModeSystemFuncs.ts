@@ -251,17 +251,149 @@ const getApoptosizedNodes = (txs: P2P.RotationTypes.Txs & P2P.ApoptosisTypes.Txs
   return apoptosizedNodesList
 }
 
-// need to think about and maybe ask Omar about using prev record for determining mode, could use next record
-
-/** Returns the number of expired nodes and the list of removed nodes using calculateToAcceptV2 
- *  this list includes problematic nodes + expired nodes.
-*/
+/** Returns the number of expired nodes and the list of removed nodes using calculateToAcceptV2 */
 export function getExpiredRemovedV2(
   prevRecord: P2P.CycleCreatorTypes.CycleRecord,
   lastLoggedCycle: number,
   txs: P2P.RotationTypes.Txs & P2P.ApoptosisTypes.Txs,
   info: (...msg: string[]) => void
+): { expired: number; removed: string[] } {
+  const start = prevRecord.start
+  let expired = 0
+  const removed = []
+  NodeList.potentiallyRemoved.clear()
+
+  // Don't expire/remove any if nodeExpiryAge is negative
+  if (config.p2p.nodeExpiryAge < 0) return { expired, removed }
+
+  const active = NodeList.activeByIdOrder.length
+
+  let expireTimestamp = start - config.p2p.nodeExpiryAge
+  if (expireTimestamp < 0) expireTimestamp = 0
+
+  // initialize the max amount to remove to our config value
+  // let maxRemove = config.p2p.maxRotatedPerCycle //TODO check if this is needed
+
+  // calculate the target number of nodes
+  const { add, remove } = calculateToAcceptV2(prevRecord)
+  nestedCountersInstance.countEvent(
+    'p2p',
+    `results of getExpiredRemovedV2.calculateToAcceptV2: add: ${add}, remove: ${remove}`
+  )
+  // initialize `scaleDownRemove` to at most any "excess" nodes more than
+  // desired. it can't be less than zero.
+  const maxRemove = remove
+
+  //only let the scale factor impart a partial influence based on scaleInfluenceForShrink
+  // const scaledAmountToShrink = getScaledAmountToShrink() //TODO check if this is needed
+
+  //limit the scale down by scaledAmountToShrink
+  // if (scaleDownRemove > scaledAmountToShrink) {
+  //   scaleDownRemove = scaledAmountToShrink
+  // }
+
+  //maxActiveNodesToRemove is a percent of the active nodes that is set as a 0-1 value in maxShrinkMultiplier
+  //this is to prevent the network from shrinking too fast
+  //make sure the value is at least 1
+  // const maxActiveNodesToRemove = Math.max(Math.floor(config.p2p.maxShrinkMultiplier * active), 1)
+
+  const cycle = CycleChain.newest.counter
+  if (cycle > lastLoggedCycle && maxRemove > 0) {
+    lastLoggedCycle = cycle
+    info(
+      'scale down dump:' +
+        Utils.safeStringify({
+          cycle,
+          scaleFactor: CycleCreator.scaleFactor,
+          // scaleDownRemove,
+          // maxActiveNodesToRemove,
+          desired: prevRecord.desired,
+          active,
+          // scaledAmountToShrink,
+          maxRemove,
+          expired,
+        })
+    )
+  }
+
+  //TODO not sure we still need the following block anymore
+
+  // Allows the network to scale down even if node rotation is turned off
+  // if (maxRemove < 1) {
+  //   maxRemove = scaleDownRemove
+  // } else {
+  //   //else pick the higher of the two
+  //   maxRemove = Math.max(maxRemove, scaleDownRemove)
+  // }
+
+  // never remove more nodes than the difference between active and desired
+  // if (maxRemove > active - desired) maxRemove = active - desired // [TODO] - this is handled inside calculateToAcceptV2
+
+  // final clamp of max remove, but only if it is more than amountToShrink
+  // to avoid messing up the calculation above this next part can only make maxRemove smaller.
+  // maxActiveNodesToRemove is a percent of the active nodes that is set as a 0-1 value in maxShrinkMultiplier
+  // if (maxRemove > config.p2p.amountToShrink && maxRemove > maxActiveNodesToRemove) {
+  // yes, this max could be baked in earlier, but I like it here for clarity
+  // maxRemove = Math.max(config.p2p.amountToShrink, maxActiveNodesToRemove)
+  // }
+
+  //TODO end of block
+
+  nestedCountersInstance.countEvent(
+    'p2p',
+    `results of getExpiredRemovedV2: scaleDownRemove: maxRemove: ${maxRemove}`
+  )
+  // get list of nodes that have been requested to be removed
+  const apoptosizedNodesList = []
+  for (const request of txs.apoptosis) {
+    const node = NodeList.nodes.get(request.id)
+    if (node) {
+      apoptosizedNodesList.push(node.id)
+    }
+  }
+
+  // Oldest node has index 0
+  for (const node of NodeList.byJoinOrder) {
+    // don't count syncing nodes in our expired count
+    if (node.status === 'syncing') continue
+
+    // once we've hit the first node that's not expired, stop counting
+    // updated to use activeTimestamp as this is when the node has gone active for us
+    if (node.activeTimestamp > expireTimestamp) break
+
+    // otherwise, count this node as expired
+    expired++
+
+    // Add it to removed if it isn't full
+    if (config.p2p.uniqueRemovedIds) {
+      // Limit the number of nodes that can be removed by removed + apoptosized
+      if (removed.length + apoptosizedNodesList.length < maxRemove) {
+        NodeList.potentiallyRemoved.add(node.id)
+        if (!apoptosizedNodesList.includes(node.id)) {
+          insertSorted(removed, node.id)
+        }
+      } else break
+    } else {
+      if (removed.length < maxRemove) {
+        NodeList.potentiallyRemoved.add(node.id)
+        insertSorted(removed, node.id)
+      }
+    }
+  }
+
+  return { expired, removed }
+}
+
+/** Returns the number of expired nodes and the list of removed nodes using calculateToAcceptV2 
+ *  this list includes problematic nodes + expired nodes.
+*/
+export function getExpiredRemovedV3(
+  prevRecord: P2P.CycleCreatorTypes.CycleRecord,
+  lastLoggedCycle: number,
+  txs: P2P.RotationTypes.Txs & P2P.ApoptosisTypes.Txs,
+  info: (...msg: string[]) => void
 ): { problematic: number; expired: number; removed: string[] } {
+
   // clear state from last run
   NodeList.potentiallyRemoved.clear()
 

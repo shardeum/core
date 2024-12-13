@@ -69,6 +69,8 @@ const SERVER_CONFIG: StrictServerConfiguration = {
     maxSyncTimeFloor: 1200,
     maxNodeForSyncTime: 9,
     maxRotatedPerCycle: 1,
+    enableProblematicNodeRemoval: true,
+    enableProblematicNodeRemovalOnCycle: 10,
     maxProblematicNodeRemovalsPerCycle: 1,
     problematicNodeConsecutiveRefuteThreshold: 6,
     problematicNodeRefutePercentageThreshold: 0.1,
