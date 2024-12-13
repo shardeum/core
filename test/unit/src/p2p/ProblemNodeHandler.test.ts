@@ -66,10 +66,16 @@ describe('ProblemNodeHandler', () => {
     })
 
     it('should return false if refute percentage is below threshold', () => {
-      // Add 9 refutes in last 100 cycles (9%)
-      for (let i = 92; i <= 100; i++) {
-        mockNode.refuteCycles.add(i)
-      }
+      // Add 9 refutes in last 100 cycles (9%), spread out to avoid consecutive threshold
+      mockNode.refuteCycles.add(10)
+      mockNode.refuteCycles.add(20)
+      mockNode.refuteCycles.add(30)
+      mockNode.refuteCycles.add(40)
+      mockNode.refuteCycles.add(50)
+      mockNode.refuteCycles.add(60)
+      mockNode.refuteCycles.add(70)
+      mockNode.refuteCycles.add(80)
+      mockNode.refuteCycles.add(90)
       expect(isNodeProblematic(mockNode, 100)).toBe(false)
     })
   })
@@ -108,8 +114,8 @@ describe('ProblemNodeHandler', () => {
     })
 
     it('should only count refutes within window', () => {
-      const refuteCycles = new Set([1, 2, 98, 99, 100])
-      expect(getRefutePercentage(refuteCycles, 100)).toBe(0.03) // Only counting 98,99,100
+      const refuteCycles = new Set([1, 2, 98, 99, 100, 100])
+      expect(getRefutePercentage(refuteCycles, 102)).toBe(0.03) // Only counting 98,99,100
     })
 
     it('should handle early cycles with smaller window', () => {
@@ -151,12 +157,12 @@ describe('ProblemNodeHandler', () => {
       // Create nodes with different refute percentages
       const node1: NodeWithRefuteCycles = {
         id: 'node1',
-        refuteCycles: new Set([90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100]), // 11% refute rate
+        refuteCycles: new Set([2, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100]), // 11% refute rate
       } as NodeWithRefuteCycles
 
       const node2: NodeWithRefuteCycles = {
         id: 'node2',
-        refuteCycles: new Set([95, 96, 97, 98, 99, 100]), // 6% refute rate
+        refuteCycles: new Set([90, 92, 94, 96, 98, 100]), // 6% refute rate
       } as NodeWithRefuteCycles
 
       const node3: NodeWithRefuteCycles = {
