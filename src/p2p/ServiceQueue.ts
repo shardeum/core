@@ -7,15 +7,18 @@ import { stringifyReduce, validateTypes } from '../utils'
 import * as Comms from './Comms'
 import { profilerInstance } from '../utils/profiler'
 import * as Self from './Self'
-import { currentCycle, currentQuarter } from './CycleCreator'
+import { currentCycle, currentQuarter, q1SendRequests } from './CycleCreator'
 import { logFlags } from '../logger'
 import { nestedCountersInstance } from '../utils/nestedCounters'
 import { getFromArchiver } from './Archivers'
 import { Result } from 'neverthrow'
 import { getRandomAvailableArchiver } from './Utils'
-import { isDebugModeMiddleware } from '../network/debugMiddleware'
+import { isDebugModeMiddleware, stripQueryParams } from '../network/debugMiddleware'
 import { nodeListFromStates } from './Join'
 import * as Nodelist from './NodeList'
+import { ensureKeySecurity, getDevPublicKeys } from '../debug'
+import { DevSecurityLevel } from '../shardus/shardus-types'
+import { SignedObject } from '@shardus/types/build/src/p2p/P2PTypes'
 
 /** STATE */
 
@@ -35,6 +38,7 @@ const removeProposals: P2P.ServiceQueueTypes.SignedRemoveNetworkTx[] = []
 const beforeAddVerifier = new Map<string, (txEntry: P2P.ServiceQueueTypes.AddNetworkTx) => Promise<boolean>>()
 const applyVerifier = new Map<string, (txEntry: P2P.ServiceQueueTypes.AddNetworkTx) => Promise<boolean>>()
 const tryCounts = new Map<string, number>()
+const debugDropNGTs = []
 
 /** ROUTES */
 
@@ -179,6 +183,60 @@ const removeTxGossipRoute: P2P.P2PTypes.GossipHandler<P2P.ServiceQueueTypes.Sign
   }
 }
 
+const debugDropNGTGossipRoute: P2P.P2PTypes.GossipHandler<any> = async (payload, sender, tracker) => {
+  profilerInstance.scopedProfileSectionStart('serviceQueue - debugDropNGT')
+
+  if ([1, 2].includes(currentQuarter) === false) {
+    /* prettier-ignore */ if (logFlags.error) info('debug-drop-network-tx: Got request after quarter 2')
+    return
+  }
+  if (txRemove.some((entry) => entry.txHash === payload.txHash)) {
+    /* prettier-ignore */ if (logFlags.error) info('debug-drop-network-tx: txHash already exists in txRemove')
+    return
+  }
+  if (payload.txHash == null) {
+    /* prettier-ignore */ if (logFlags.error) info('debug-drop-network-tx: txHash not provided')
+    return
+  }
+  const index = txList.findIndex((entry) => entry.hash === payload.txHash)
+  if (index === -1) {
+    /* prettier-ignore */ if (logFlags.error) info('debug-drop-network-tx: txHash not found')
+    return
+  }
+  let cycle = CycleChain.newest
+  if (payload.usePrevCycle) {
+    cycle = CycleChain.getCycleChain(cycle.counter - 1, cycle.counter - 1)[0]
+  }
+  const verificationResult = verifyDebugDropNGT(payload, cycle)
+  if (verificationResult === 1) {
+    console.log('debug-drop-ngt - signer is not authorized')
+    return
+  }
+  if (verificationResult === 2) {
+    console.log('debug-drop-ngt - signature invalid')
+    return
+  }
+  const unsignedRemoveNetworkTx = {
+    txHash: payload.txHash,
+    cycle: cycle.counter,
+  }
+
+  txRemove.push(unsignedRemoveNetworkTx)
+
+  Comms.sendGossip(
+    'debug-drop-ngt',
+    payload,
+    tracker,
+    Self.id,
+    nodeListFromStates([
+      P2P.P2PTypes.NodeStatus.ACTIVE,
+      P2P.P2PTypes.NodeStatus.READY,
+      P2P.P2PTypes.NodeStatus.SYNCING,
+    ]),
+    false
+  ) // use Self.id so we don't gossip to ourself
+}
+
 const routes = {
   external: [],
   internal: [],
@@ -186,6 +244,7 @@ const routes = {
   gossip: {
     ['gossip-addtx']: addTxGossipRoute,
     ['gossip-removetx']: removeTxGossipRoute,
+    ['debug-drop-ngt']: debugDropNGTGossipRoute,
   },
 }
 
@@ -214,15 +273,31 @@ export function init(): void {
     const txHash = req?.query?.txHash
     if (txHash == null) {
       res.send({ status: 'fail', error: 'txHash not provided' })
-      return
     }
     const index = txList.findIndex((entry) => entry.hash === txHash)
     if (index === -1) {
       res.send({ status: 'fail', error: 'txHash not found' })
-      return
     }
-    txList.splice(index, 1)
-    res.send({ status: 'ok' })
+    const reqParamsDropNGT = {
+      txHash,
+      url: req.originalUrl,
+      sigCounter: req.query.sig_counter,
+      pubKeys: req.query.nodePubkeys,
+      sig: req.query.sig,
+      usePrevCycle: q1SendRequests,
+      owner: '',
+    }
+
+    const verificationResult = verifyDebugDropNGT(reqParamsDropNGT, CycleChain.newest)
+    if (verificationResult === 1) {
+      res.send({ status: 'fail', error: 'signer is not authorized' })
+    }
+    if (verificationResult === 2) {
+      res.send({ status: 'fail', error: 'signature invalid' })
+    }
+
+    debugDropNGTs.push(reqParamsDropNGT)
+    res.json({ status: 'ok' })
   })
 
   network.registerExternalGet('debug-clear-network-txlist', isDebugModeMiddleware, (req, res) => {
@@ -432,6 +507,28 @@ export function sendRequests(): void {
   }
   addProposals.length = 0
   removeProposals.length = 0
+
+  for (const dropNGTInfo of debugDropNGTs) {
+    const unsignedRemoveNetworkTx = {
+      txHash: dropNGTInfo.txHash,
+      cycle: dropNGTInfo.usePrevCycle ? CycleChain.newest.counter - 1 : CycleChain.newest.counter,
+    }
+    txRemove.push(unsignedRemoveNetworkTx)
+
+    Comms.sendGossip(
+      'debug-drop-ngt',
+      dropNGTInfo,
+      '',
+      Self.id,
+      nodeListFromStates([
+        P2P.P2PTypes.NodeStatus.ACTIVE,
+        P2P.P2PTypes.NodeStatus.READY,
+        P2P.P2PTypes.NodeStatus.SYNCING,
+      ]),
+      true
+    )
+  }
+  debugDropNGTs.length = 0
 }
 
 /** Module Functions */
@@ -475,7 +572,7 @@ export async function addNetworkTx(
     priority,
     subQueueKey,
   } as P2P.ServiceQueueTypes.AddNetworkTx
-  if (await _addNetworkTx(networkTx)){
+  if (await _addNetworkTx(networkTx)) {
     makeAddNetworkTxProposals(networkTx)
   }
 }
@@ -724,6 +821,78 @@ function sortedInsert(
     list.push(entry)
   } else {
     list.splice(index, 0, entry)
+  }
+}
+
+function verifyDebugDropNGT(reqParamsDropNGT, cycle): number {
+  const payload = {
+    route: stripQueryParams(reqParamsDropNGT.url, ['sig', 'sig_counter', 'nodePubkeys']), //<- we're gonna hash, these query artificats need to be excluded from the hash
+    count: reqParamsDropNGT.sigCounter,
+    nodes: reqParamsDropNGT.pubKeys,
+    networkId: cycle.networkId,
+    cycleCounter: cycle.counter,
+  }
+  const hash = crypto.hash(Utils.safeStringify(payload))
+  const devPublicKeys = getDevPublicKeys() // This should return list of public keys
+  const requestSig = reqParamsDropNGT.sig
+
+  if (reqParamsDropNGT.owner !== '') {
+    const ownerPk = reqParamsDropNGT.owner
+    const sign = { owner: ownerPk, sig: requestSig }
+    const hashIncluded = {
+      route: payload.route,
+      count: payload.count,
+      nodes: payload.nodes,
+      networkId: payload.networkId,
+      cycleCounter: payload.cycleCounter,
+      requestHash: hash,
+      sign,
+    } as SignedObject
+
+    const verified = crypto.verify(hashIncluded, hashIncluded.sign.owner)
+    if (verified === true) {
+      const authorized = ensureKeySecurity(ownerPk, DevSecurityLevel.High)
+      if (authorized) {
+        return 0
+      } else {
+        /* prettier-ignore */ if (logFlags.verbose) console.log('Authorization failed for security level HIGH')
+        /* prettier-ignore */ nestedCountersInstance.countEvent( 'security', 'Authorization failed for security level: HIGH' )
+        return 1
+      }
+    } else {
+      /* prettier-ignore */ if (logFlags.verbose) console.log('Signature is not correct')
+      return 2
+    }
+  }
+
+  // Check if signature is valid for any of the public keys
+  for (const ownerPk in devPublicKeys) {
+    const sign = { owner: ownerPk, sig: requestSig }
+    const hashIncluded = {
+      route: payload.route,
+      count: payload.count,
+      nodes: payload.nodes,
+      networkId: payload.networkId,
+      cycleCounter: payload.cycleCounter,
+      requestHash: hash,
+      sign,
+    } as SignedObject
+
+    const verified = crypto.verify(hashIncluded, hashIncluded.sign.owner)
+    if (verified === true) {
+      reqParamsDropNGT.owner = ownerPk
+      const authorized = ensureKeySecurity(ownerPk, DevSecurityLevel.High)
+      if (authorized) {
+        return 0
+      } else {
+        /* prettier-ignore */ if (logFlags.verbose) console.log('Authorization failed for security level HIGH')
+        /* prettier-ignore */ nestedCountersInstance.countEvent( 'security', 'Authorization failed for security level: HIGH' )
+        return 1
+      }
+    } else {
+      /* prettier-ignore */ if (logFlags.verbose) console.log('Signature is not correct')
+      return 2
+    }
   }
 }
 
