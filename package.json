@@ -76,7 +76,7 @@
   "devDependencies": {
     "@types/cors": "2.8.6",
     "@types/estree": "1.0.1",
-    "@types/express": "4.17.3",
+    "@types/express": "4.17.21",
     "@types/got": "9.6.9",
     "@types/jest": "27.0.1",
     "@types/node": "18.19.1",
