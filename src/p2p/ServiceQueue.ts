@@ -208,12 +208,8 @@ const debugDropNGTGossipRoute: P2P.P2PTypes.GossipHandler<any> = async (payload,
     cycle = CycleChain.getCycleChain(cycle.counter - 1, cycle.counter - 1)[0]
   }
   const verificationResult = verifyDebugDropNGT(payload, cycle)
-  if (verificationResult === 1) {
-    console.log('debug-drop-ngt - signer is not authorized')
-    return
-  }
-  if (verificationResult === 2) {
-    console.log('debug-drop-ngt - signature invalid')
+  if (verificationResult.success === false) {
+    console.log(`debug-drop-ngt - ${verificationResult.message}`)
     return
   }
   const unsignedRemoveNetworkTx = {
@@ -289,15 +285,12 @@ export function init(): void {
     }
 
     const verificationResult = verifyDebugDropNGT(reqParamsDropNGT, CycleChain.newest)
-    if (verificationResult === 1) {
-      res.send({ status: 'fail', error: 'signer is not authorized' })
-    }
-    if (verificationResult === 2) {
-      res.send({ status: 'fail', error: 'signature invalid' })
+    if (verificationResult.success === false) {
+      res.send({ status: 'fail', error: verificationResult.message })
     }
 
     debugDropNGTs.push(reqParamsDropNGT)
-    res.json({ status: 'ok' })
+    res.json({ status: 'ok', message: verificationResult.message })
   })
 
   network.registerExternalGet('debug-clear-network-txlist', isDebugModeMiddleware, (req, res) => {
@@ -824,7 +817,7 @@ function sortedInsert(
   }
 }
 
-function verifyDebugDropNGT(reqParamsDropNGT, cycle): number {
+function verifyDebugDropNGT(reqParamsDropNGT, cycle): { success: boolean; message: string } {
   const payload = {
     route: stripQueryParams(reqParamsDropNGT.url, ['sig', 'sig_counter', 'nodePubkeys']), //<- we're gonna hash, these query artificats need to be excluded from the hash
     count: reqParamsDropNGT.sigCounter,
@@ -853,15 +846,24 @@ function verifyDebugDropNGT(reqParamsDropNGT, cycle): number {
     if (verified === true) {
       const authorized = ensureKeySecurity(ownerPk, DevSecurityLevel.High)
       if (authorized) {
-        return 0
+        return {
+          success: true,
+          message: 'Signature is correct and signer is authorized'
+        }
       } else {
         /* prettier-ignore */ if (logFlags.verbose) console.log('Authorization failed for security level HIGH')
-        /* prettier-ignore */ nestedCountersInstance.countEvent( 'security', 'Authorization failed for security level: HIGH' )
-        return 1
+        /* prettier-ignore */ nestedCountersInstance.countEvent( 'security', 'Authorization failed for security level HIGH' )
+        return {
+          success: false,
+          message: 'Authorization failed for security level HIGH'
+        }
       }
     } else {
-      /* prettier-ignore */ if (logFlags.verbose) console.log('Signature is not correct')
-      return 2
+      /* prettier-ignore */ if (logFlags.verbose) console.log('Signature verification failed')
+      return {
+        success: false,
+        message: 'Signature verification failed'
+      }
     }
   }
 
@@ -883,15 +885,24 @@ function verifyDebugDropNGT(reqParamsDropNGT, cycle): number {
       reqParamsDropNGT.owner = ownerPk
       const authorized = ensureKeySecurity(ownerPk, DevSecurityLevel.High)
       if (authorized) {
-        return 0
+        return {
+          success: true,
+          message: 'Signature is correct and signer is authorized'
+        }
       } else {
         /* prettier-ignore */ if (logFlags.verbose) console.log('Authorization failed for security level HIGH')
-        /* prettier-ignore */ nestedCountersInstance.countEvent( 'security', 'Authorization failed for security level: HIGH' )
-        return 1
+        /* prettier-ignore */ nestedCountersInstance.countEvent( 'security', 'Authorization failed for security level HIGH' )
+        return {
+          success: false,
+          message: 'Authorization failed for security level HIGH'
+        }
       }
     } else {
-      /* prettier-ignore */ if (logFlags.verbose) console.log('Signature is not correct')
-      return 2
+      /* prettier-ignore */ if (logFlags.verbose) console.log('Signature verification failed')
+      return {
+        success: false,
+        message: 'Signature verification failed'
+      }
     }
   }
 }
