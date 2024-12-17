@@ -269,10 +269,12 @@ export function init(): void {
     const txHash = req?.query?.txHash
     if (txHash == null) {
       res.send({ status: 'fail', error: 'txHash not provided' })
+      return
     }
     const index = txList.findIndex((entry) => entry.hash === txHash)
     if (index === -1) {
       res.send({ status: 'fail', error: 'txHash not found' })
+      return
     }
     const reqParamsDropNGT = {
       txHash,
@@ -287,6 +289,7 @@ export function init(): void {
     const verificationResult = verifyDebugDropNGT(reqParamsDropNGT, CycleChain.newest)
     if (verificationResult.success === false) {
       res.send({ status: 'fail', error: verificationResult.message })
+      return
     }
 
     debugDropNGTs.push(reqParamsDropNGT)
