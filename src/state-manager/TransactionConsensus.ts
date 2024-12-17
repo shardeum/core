@@ -1814,7 +1814,7 @@ class TransactionConsenus {
     if (Math.abs(cycleCounter - CycleChain.newest.counter) > 1 ){
       return null
     }
-    if (this.txTimestampCache.size >= Context.config.p2p.timestampCacheFixsize) {
+    if (this.txTimestampCache.size >= Context.config.p2p.timestampCacheFixSize) {
       const oldestCycleCounter = [...this.txTimestampCache.keys()][0]
       const txMap = this.txTimestampCache.get(oldestCycleCounter);
       if (txMap && txMap.size > 0) {
@@ -1843,7 +1843,7 @@ class TransactionConsenus {
     // cache to txId map
     this.txTimestampCache.get(signedTsReceipt.cycleCounter).set(txId, signedTsReceipt)
     if (Context.config.p2p.timestampCacheFix) {
-      if (this.txTimestampCacheByTxId.size >= Context.config.p2p.timestampCacheFixsize) {
+      if (this.txTimestampCacheByTxId.size >= Context.config.p2p.timestampCacheFixSize) {
         const oldestTxId = [...this.txTimestampCacheByTxId.keys()][0]
         this.txTimestampCacheByTxId.delete(oldestTxId)
         this.seenTimestampRequests.delete(oldestTxId)
