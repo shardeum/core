@@ -254,22 +254,22 @@ const unjoinRoute: P2P.P2PTypes.Route<Handler> = {
   method: 'POST',
   name: 'unjoin',
   handler: (req, res) => {
-    const unjoinRequest = req.body
-    const processResult = processNewUnjoinRequest(unjoinRequest)
-    if (processResult.isErr()) {
-      res.status(500).json({ error: processResult.error })
-      return
-    }
+   try {
+     const unjoinRequest = req.body
 
-    // we need to remove the unjoin request this cycle since we are waiting until next cycle to gossip it to the network
-    // processNewUnjoinRequest automatically adds the unjoin request to newUnjoinRequests it will be added back to our list
-    // once we process the queued request next cycle
-    removeUnjoinRequest(unjoinRequest.publicKey)
+     const processResult = processNewUnjoinRequest(unjoinRequest)
+     if (processResult.isErr()) {
+       res.status(500).json({ error: processResult.error.message })
+       return
+     }
 
-    queueUnjoinRequest(unjoinRequest)
+     removeUnjoinRequest(unjoinRequest.publicKey)
+     queueUnjoinRequest(unjoinRequest)
 
-    res.status(200).json()
-    return
+     res.status(200).json({ message: 'Unjoin request processed successfully' })
+   } catch (error) {
+     res.status(500).json({ error: error.message || 'An unknown error occurred' })
+   }
   },
 }
 

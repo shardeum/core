@@ -1,6 +1,6 @@
 import { crypto } from '../../Context'
 import { err, ok, Result } from 'neverthrow'
-import { hexstring } from '@shardus/types'
+import { hexstring, P2P } from '@shardus/types'
 import * as utils from '../../../utils'
 import * as http from '../../../http'
 import * as NodeList from '../../NodeList'
@@ -9,6 +9,7 @@ import { getActiveNodesFromArchiver, getRandomAvailableArchiver } from '../../Ut
 import { logFlags } from '../../../logger'
 import * as CycleChain from '../../CycleChain'
 import { SignedUnjoinRequest } from '@shardus/types/build/src/p2p/JoinTypes'
+import { getPublicNodeInfo } from '../../Self'
 
 /** A Set of new public keys of nodes that have submitted unjoin requests. */
 const newUnjoinRequests: Set<SignedUnjoinRequest> = new Set()
@@ -20,18 +21,9 @@ export async function submitUnjoin(): Promise<Result<void, Error>> {
   const publicKey = crypto.keypair.publicKey
 
   const foundInStandbyNodes = getStandbyNodesInfoMap().has(publicKey)
-  if (!foundInStandbyNodes) {
+  if (getPublicNodeInfo(true).status !== P2P.P2PTypes.NodeStatus.STANDBY) {
     return err(new Error('node is not in standby. Do not send unjoin request'))
   }
-
-  if(!CycleChain.getNewest()) {
-    return err(new Error('No cycle chain found. Do not send unjoin request'))
-  }
-
-  const unjoinRequest = crypto.sign({
-    publicKey: publicKey,
-    cycleNumber: CycleChain.getNewest().counter,
-  })
 
   const archiver = getRandomAvailableArchiver()
   try {
@@ -47,6 +39,19 @@ export async function submitUnjoin(): Promise<Result<void, Error>> {
     // not being properly removed isn't that big a deal. Standby refresh will take care of them anyways.
     // If we really want to solve this, can do so by sending request to numRotatedOut + 1 nodes.
     const node = utils.getRandom(activeNodes.nodeList, 1)[0]
+    const cycleRecord: P2P.CycleCreatorTypes.CycleRecord = await http.get(
+      `${node.ip}:${node.port}/newest-cycle-record`
+    )
+
+    if (!cycleRecord?.counter) {
+      return err(new Error('No cycle counter found. Do not send unjoin request'))
+    }
+
+    const unjoinRequest = crypto.sign({
+      publicKey: publicKey,
+      cycleNumber: cycleRecord.counter,
+    })
+
     await http.post(`${node.ip}:${node.port}/unjoin`, unjoinRequest)
     return ok(void 0)
   } catch (e) {
