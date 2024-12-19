@@ -9,7 +9,7 @@ export function isNodeProblematic(node: Node, currentCycle: number): boolean {
   // Check consecutive refutes
   const refuteCyclesArray = Array.from(node.refuteCycles as Set<number>).sort((a: number, b: number) => a - b);
   const consecutiveRefutes = getConsecutiveRefutes(refuteCyclesArray, currentCycle);
-  console.log(config.p2p.problematicNodeConsecutiveRefuteThreshold)
+  
   if (consecutiveRefutes >= config.p2p.problematicNodeConsecutiveRefuteThreshold) {
     return true;
   }
