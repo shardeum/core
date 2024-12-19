@@ -149,6 +149,9 @@ describe('ProblemNodeHandler', () => {
     it('counts the current cycle if it is a refute', () => {
       expect(getConsecutiveRefutes([98, 99, 100], 100)).toBe(3)
     })
+    it('gives 0 count if cycle number is -1', () => {
+      expect(getConsecutiveRefutes([98, 99, 100], -1)).toBe(0)
+    })
   })
 
   describe('getRefutePercentage', () => {
