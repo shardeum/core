@@ -1,9 +1,8 @@
 import { isNodeProblematic, getConsecutiveRefutes, getRefutePercentage, getProblematicNodes } from '../../../../src/p2p/ProblemNodeHandler'
 import { P2P } from '@shardus/types'
-import { NodeWithRefuteCycles } from '../../../../src/p2p/NodeList'
 import * as NodeList from '../../../../src/p2p/NodeList'
 import * as Context from '../../../../src/p2p/Context'
-
+import { Node } from '@shardus/types/build/src/p2p/NodeListTypes';
 // Mock NodeList module
 jest.mock('../../../../src/p2p/NodeList', () => ({
   activeByIdOrder: [],
@@ -21,8 +20,31 @@ jest.mock('../../../../src/p2p/Context', () => ({
   }
 }))
 
+const baseMockNode = {
+  id: 'node1',
+  refuteCycles: new Set<number>(),
+  curvePublicKey: 'mockKey',
+  status: P2P.P2PTypes.NodeStatus.SELECTED,
+  cycleJoined: '0',
+  counterRefreshed: 0,
+  activeTimestamp: Date.now(),
+  externalIp: '127.0.0.1',
+  externalPort: 9001,
+  internalIp: '127.0.0.1',
+  internalPort: 9001,
+  publicKey: 'mockPublicKey',
+  timestamp: Date.now(),
+  version: '1.0.0',
+  nodeId: 'mockNodeId',
+  address: '127.0.0.1:9001',
+  joinRequestTimestamp: Date.now(),
+  activeCycle: 0,
+  syncingTimestamp: Date.now(),
+  readyTimestamp: Date.now()
+}
+
 describe('ProblemNodeHandler', () => {
-  let mockNode: NodeWithRefuteCycles
+  let mockNode: Node
 
   beforeEach(() => {
     // Reset config values before each test
@@ -32,9 +54,9 @@ describe('ProblemNodeHandler', () => {
 
     // Create a mock node for testing
     mockNode = {
-      id: 'node1',
+      ...baseMockNode,
       refuteCycles: new Set<number>(),
-    } as NodeWithRefuteCycles
+    }
 
     // Clear NodeList mocks before each test
     NodeList.activeByIdOrder.length = 0
@@ -141,10 +163,10 @@ describe('ProblemNodeHandler', () => {
 
     it('should return empty array when no problematic nodes exist', () => {
       // Add a non-problematic node
-      const node: NodeWithRefuteCycles = {
-        id: 'node1',
+      const node: Node = {
+        ...baseMockNode,
         refuteCycles: new Set([90]), // Only 1% refute rate
-      } as NodeWithRefuteCycles
+      }
 
       NodeList.activeByIdOrder.push(node)
       NodeList.nodes.set(node.id, node)
@@ -155,20 +177,20 @@ describe('ProblemNodeHandler', () => {
 
     it('should sort problematic nodes by refute percentage', () => {
       // Create nodes with different refute percentages
-      const node1: NodeWithRefuteCycles = {
-        id: 'node1',
+      const node1: Node = {
+        ...baseMockNode,
         refuteCycles: new Set([2, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100]), // 11% refute rate
-      } as NodeWithRefuteCycles
+      }
 
-      const node2: NodeWithRefuteCycles = {
-        id: 'node2',
+      const node2: Node = {
+        ...baseMockNode,
         refuteCycles: new Set([90, 92, 94, 96, 98, 100]), // 6% refute rate
-      } as NodeWithRefuteCycles
+      }
 
-      const node3: NodeWithRefuteCycles = {
-        id: 'node3',
+      const node3: Node = {
+        ...baseMockNode,
         refuteCycles: new Set([98, 99, 100]), // 3% refute rate but 3 consecutive
-      } as NodeWithRefuteCycles
+      }
 
       // Add nodes to NodeList mock
       NodeList.activeByIdOrder.push(node1, node2, node3)
@@ -188,10 +210,10 @@ describe('ProblemNodeHandler', () => {
     })
 
     it('should identify nodes with consecutive refutes', () => {
-      const node: NodeWithRefuteCycles = {
-        id: 'node1',
+      const node: Node = {
+        ...baseMockNode,
         refuteCycles: new Set([98, 99, 100]), // 3 consecutive refutes
-      } as NodeWithRefuteCycles
+      }
 
       NodeList.activeByIdOrder.push(node)
       NodeList.nodes.set(node.id, node)
@@ -201,10 +223,10 @@ describe('ProblemNodeHandler', () => {
     })
 
     it('should identify nodes with high refute percentage', () => {
-      const node: NodeWithRefuteCycles = {
-        id: 'node1',
+      const node: Node = {
+        ...baseMockNode,
         refuteCycles: new Set(), // Will add 11 refutes (11%)
-      } as NodeWithRefuteCycles
+      }
 
       for (let i = 90; i <= 100; i++) {
         node.refuteCycles.add(i)
@@ -218,10 +240,10 @@ describe('ProblemNodeHandler', () => {
     })
 
     it('should not include nodes that are neither consecutive nor percentage problematic', () => {
-      const node: NodeWithRefuteCycles = {
-        id: 'node1',
+      const node: Node = {
+        ...baseMockNode,
         refuteCycles: new Set([95, 97, 99]), // Non-consecutive and only 3%
-      } as NodeWithRefuteCycles
+      }
 
       NodeList.activeByIdOrder.push(node)
       NodeList.nodes.set(node.id, node)
