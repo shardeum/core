@@ -20,7 +20,6 @@ const newUnjoinRequests: Set<SignedUnjoinRequest> = new Set()
 export async function submitUnjoin(): Promise<Result<void, Error>> {
   const publicKey = crypto.keypair.publicKey
 
-  const foundInStandbyNodes = getStandbyNodesInfoMap().has(publicKey)
   if (getPublicNodeInfo(true).status !== P2P.P2PTypes.NodeStatus.STANDBY) {
     return err(new Error('node is not in standby. Do not send unjoin request'))
   }
