@@ -307,15 +307,12 @@ export function removeNodes(
   for (const id of ids) removeNode(id, raiseEvents, cycle)
 }
 
-// create shorthand type for node with refuteCycles
-export type NodeWithRefuteCycles = P2P.NodeListTypes.Node
-
 export function updateNode(
   update: P2P.NodeListTypes.Update,
   raiseEvents: boolean,
   cycle: P2P.CycleCreatorTypes.CycleRecord | null
 ) {
-  const node = nodes.get(update.id) as NodeWithRefuteCycles
+  const node = nodes.get(update.id)
   if (node) {
     // Initialize refuteCycles if it doesn't exist
     if (config.p2p.enableProblematicNodeRemoval) {

@@ -97,8 +97,7 @@ export function updateRecord(
   } else {
     const { expired, removed, problematic } = getExpiredRemovedV3(prev, lastLoggedCycle, txs, info)
     nestedCountersInstance.countEvent('p2p', `results of getExpiredRemovedV2: expired: ${expired} removed: ${removed.length} problematic: ${problematic}`, 1)
-    if (logFlags && logFlags.verbose) console.log(`results of getExpiredRemovedV2: expired: ${expired} removed: ${removed.length} array: ${removed} problematic: ${problematic}`)
-    
+    /* prettier-ignore */ if(logFlags?.node_rotation_debug) logger.mainLog_debug('GETEXPIREDREMOVEDV3_STATS', `results of getExpiredRemovedV2: expired: ${expired} removed: ${removed.length} problematic: ${problematic}`)
       // record.problematic = problematic // may want to write this to cycle record for
     record.expired = expired
     record.removed = removed // already sorted

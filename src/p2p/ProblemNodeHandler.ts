@@ -1,9 +1,9 @@
 import { P2P } from '@shardus/types'
 import * as NodeList from './NodeList'
 import { config } from './Context'
-import { NodeWithRefuteCycles } from './NodeList';
+import { Node } from '@shardus/types/build/src/p2p/NodeListTypes';
 
-export function isNodeProblematic(node: NodeWithRefuteCycles, currentCycle: number): boolean {
+export function isNodeProblematic(node: Node, currentCycle: number): boolean {
   if (!node.refuteCycles) return false;
 
   // Check consecutive refutes
@@ -42,15 +42,15 @@ export function getProblematicNodes(prevRecord: P2P.CycleCreatorTypes.CycleRecor
   const problematicNodes = new Set<string>();
   
   for (const node of NodeList.activeByIdOrder) {
-    if (isNodeProblematic(node as NodeWithRefuteCycles, prevRecord.counter)) {
+    if (isNodeProblematic(node as Node, prevRecord.counter)) {
       problematicNodes.add(node.id);
     }
   }
 
   // Sort by refute percentage
   return Array.from(problematicNodes).sort((a, b) => {
-    const nodeA = NodeList.nodes.get(a) as NodeWithRefuteCycles;
-    const nodeB = NodeList.nodes.get(b) as NodeWithRefuteCycles;
+    const nodeA = NodeList.nodes.get(a) as Node;
+    const nodeB = NodeList.nodes.get(b) as Node;
     const percentageA = getRefutePercentage(nodeA.refuteCycles, prevRecord.counter);
     const percentageB = getRefutePercentage(nodeB.refuteCycles, prevRecord.counter);
     return percentageB - percentageA;
