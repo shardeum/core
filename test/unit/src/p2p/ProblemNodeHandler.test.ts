@@ -75,7 +75,7 @@ describe('ProblemNodeHandler', () => {
     })
 
     it('should return false if consecutive refutes are below threshold', () => {
-      mockNode.refuteCycles = new Set([97, 98, 99])
+      mockNode.refuteCycles = new Set([98, 99])
       expect(isNodeProblematic(mockNode, 100)).toBe(false)
     })
 
@@ -103,16 +103,32 @@ describe('ProblemNodeHandler', () => {
   })
 
   describe('getConsecutiveRefutes', () => {
-    it('should return 0 if current cycle is not in refutes', () => {
-      expect(getConsecutiveRefutes([97, 98, 99], 100)).toBe(0)
+    it('should return 0 if current cycle is more than 1 cycle ahead of last refute', () => {
+      expect(getConsecutiveRefutes([97, 98, 99], 101)).toBe(0)
     })
 
-    it('should count consecutive refutes up to current cycle', () => {
+    it('should count consecutive refutes ending at current cycle', () => {
       expect(getConsecutiveRefutes([98, 99, 100], 100)).toBe(3)
     })
 
-    it('should only count consecutive sequences', () => {
-      expect(getConsecutiveRefutes([97, 99, 100], 100)).toBe(2)
+    it('should count consecutive refutes ending one cycle before current cycle', () => {
+      expect(getConsecutiveRefutes([98, 99, 100], 101)).toBe(3)
+    })
+
+    it('should only count the most recent consecutive sequence ending at or one before current cycle', () => {
+      expect(getConsecutiveRefutes([95, 96, 97, 99, 100], 101)).toBe(2)
+    })
+
+    it('should handle non-consecutive sequences ending at current cycle', () => {
+      expect(getConsecutiveRefutes([97, 98, 100], 100)).toBe(1)
+    })
+
+    it('should handle non-consecutive sequences ending one before current cycle', () => {
+      expect(getConsecutiveRefutes([97, 98, 100], 101)).toBe(1)
+    })
+
+    it('should not count future cycles', () => {
+      expect(getConsecutiveRefutes([98, 99, 101], 100)).toBe(2)
     })
 
     it('should handle empty refute array', () => {
@@ -121,6 +137,17 @@ describe('ProblemNodeHandler', () => {
 
     it('should handle single refute at current cycle', () => {
       expect(getConsecutiveRefutes([100], 100)).toBe(1)
+    })
+
+    it('should handle single refute one cycle before current cycle', () => {
+      expect(getConsecutiveRefutes([99], 100)).toBe(1)
+    })
+
+    it('should handle multiple non-consecutive sequences', () => {
+      expect(getConsecutiveRefutes([95, 96, 98, 99, 100], 100)).toBe(3)
+    })
+    it('counts the current cycle if it is a refute', () => {
+      expect(getConsecutiveRefutes([98, 99, 100], 100)).toBe(3)
     })
   })
 
@@ -179,16 +206,19 @@ describe('ProblemNodeHandler', () => {
       // Create nodes with different refute percentages
       const node1: Node = {
         ...baseMockNode,
+        id: 'node1',
         refuteCycles: new Set([2, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100]), // 11% refute rate
       }
 
       const node2: Node = {
         ...baseMockNode,
+        id: 'node2',
         refuteCycles: new Set([90, 92, 94, 96, 98, 100]), // 6% refute rate
       }
 
       const node3: Node = {
         ...baseMockNode,
+        id: 'node3',
         refuteCycles: new Set([98, 99, 100]), // 3% refute rate but 3 consecutive
       }
 
@@ -198,6 +228,7 @@ describe('ProblemNodeHandler', () => {
       NodeList.nodes.set(node2.id, node2)
       NodeList.nodes.set(node3.id, node3)
 
+      console.log(NodeList.activeByIdOrder, mockCycleRecord)
       const result = getProblematicNodes(mockCycleRecord)
       // Should contain node1 (11% refutes) and node3 (3 consecutive refutes)
       // Sorted by refute percentage (node1 first, then node3)

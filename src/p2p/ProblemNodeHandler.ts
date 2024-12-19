@@ -9,6 +9,7 @@ export function isNodeProblematic(node: Node, currentCycle: number): boolean {
   // Check consecutive refutes
   const refuteCyclesArray = Array.from(node.refuteCycles as Set<number>).sort((a: number, b: number) => a - b);
   const consecutiveRefutes = getConsecutiveRefutes(refuteCyclesArray, currentCycle);
+  console.log(config.p2p.problematicNodeConsecutiveRefuteThreshold)
   if (consecutiveRefutes >= config.p2p.problematicNodeConsecutiveRefuteThreshold) {
     return true;
   }
@@ -23,10 +24,39 @@ export function isNodeProblematic(node: Node, currentCycle: number): boolean {
 }
 
 export function getConsecutiveRefutes(refuteCycles: number[], currentCycle: number): number {
-  return refuteCycles[refuteCycles.length - 1] !== currentCycle ? 0 : 
-    refuteCycles.filter((cycle, index) => {
-      return index === 0 || cycle === refuteCycles[index - 1] + 1;
-    }).length;
+  if (refuteCycles.length === 0) return 0;
+  
+  // Filter to only include refutes up to current cycle
+  const relevantRefutes = refuteCycles.filter(cycle => cycle <= currentCycle);
+  if (relevantRefutes.length === 0) return 0;
+  
+  // Find the longest consecutive sequence that ends at current cycle or one before
+  let maxCount = 0;
+  let currentCount = 1;
+  let lastCycle = relevantRefutes[0];
+  
+  for (let i = 1; i < relevantRefutes.length; i++) {
+    const cycle = relevantRefutes[i];
+    
+    if (cycle === lastCycle + 1) {
+      currentCount++;
+    } else {
+      // If sequence breaks, check if previous sequence ended at current cycle or one before
+      if (lastCycle === currentCycle || lastCycle === currentCycle - 1) {
+        maxCount = Math.max(maxCount, currentCount);
+      }
+      currentCount = 1;
+    }
+    
+    lastCycle = cycle;
+  }
+  
+  // Check the last sequence
+  if (lastCycle === currentCycle || lastCycle === currentCycle - 1) {
+    maxCount = Math.max(maxCount, currentCount);
+  }
+  
+  return maxCount;
 }
 
 export function getRefutePercentage(refuteCycles: Set<number>, currentCycle: number): number {
