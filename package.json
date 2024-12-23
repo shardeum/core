@@ -40,7 +40,10 @@
     "test-watch": "jest --watch",
     "depcheck": "depcheck --skip-missing --ignores webpack,webpack-cli,prettier,typescript-eslint,typescript-estree,@mapbox/node-pre-gyp,@types/estree",
     "format-check": "prettier --check './src/**/*.ts'",
-    "format-fix": "prettier --write './src/**/*.ts'"
+    "format-fix": "prettier --write './src/**/*.ts'",
+    "release:patch": "npm run prepare && npm version patch && git push --follow-tags && npm publish",
+    "release:minor": "npm run prepare && npm version minor && git push --follow-tags && npm publish",
+    "release:major": "npm run prepare && npm version major && git push --follow-tags && npm publish"
   },
   "repository": {
     "type": "git",
