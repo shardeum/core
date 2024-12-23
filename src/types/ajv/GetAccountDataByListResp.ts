@@ -1,28 +1,21 @@
-import { addSchema } from '../../utils/serialization/SchemaHelpers'
-import { AJVSchemaEnum } from '../enum/AJVSchemaEnum'
-import { schemaWrappedData } from './WrappedData'
-
+import { addSchema } from '../../utils/serialization/SchemaHelpers';
+import { AJVSchemaEnum } from '../enum/AJVSchemaEnum';
+import { schemaWrappedData } from './WrappedData';
 export const schemaGetAccountDataByListResp = {
-  properties: {
-    accountData: {
-      type: ['array', 'null'],
-      items: schemaWrappedData,
+    properties: {
+        accountData: {
+            type: ['array', 'null'],
+            items: schemaWrappedData,
+        },
     },
-  },
-  required: ['accountData'],
-}
-
+    required: ['accountData'],
+};
 export function initGetAccountDataByListResp(): void {
-  addSchemaDependencies()
-  addSchemas()
+    addSchemaDependencies();
+    addSchemas();
 }
-
-// Function to add schema dependencies
 function addSchemaDependencies(): void {
-  // No dependencies
 }
-
-// Function to register the schema
 function addSchemas(): void {
-  addSchema(AJVSchemaEnum.GetAccountDataByListResp, schemaGetAccountDataByListResp)
+    addSchema(AJVSchemaEnum.GetAccountDataByListResp, schemaGetAccountDataByListResp);
 }

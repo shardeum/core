@@ -1,119 +1,96 @@
-import { VectorBufferStream } from '../utils/serialization/VectorBufferStream'
-import { TypeIdentifierEnum } from './enum/TypeIdentifierEnum'
-import { verifyPayload } from './ajv/Helpers'
-import { AJVSchemaEnum } from './enum/AJVSchemaEnum'
-
-export const cGetTrieAccountHashesRespVersion = 1
-export const cRadixAndChildHashesVersion = 1
-
+import { VectorBufferStream } from '../utils/serialization/VectorBufferStream';
+import { TypeIdentifierEnum } from './enum/TypeIdentifierEnum';
+import { verifyPayload } from './ajv/Helpers';
+import { AJVSchemaEnum } from './enum/AJVSchemaEnum';
+export const cGetTrieAccountHashesRespVersion = 1;
+export const cRadixAndChildHashesVersion = 1;
 export type GetTrieAccountHashesResp = {
-  nodeChildHashes: RadixAndChildHashes[]
-  stats: {
-    matched: number
-    visisted: number
-    empty: number
-    childCount: number
-  }
-}
-
+    nodeChildHashes: RadixAndChildHashes[];
+    stats: {
+        matched: number;
+        visisted: number;
+        empty: number;
+        childCount: number;
+    };
+};
 export type RadixAndChildHashes = {
-  radix: string
-  childAccounts: AccountIDAndHash[]
-}
-
+    radix: string;
+    childAccounts: AccountIDAndHash[];
+};
 export type AccountIDAndHash = {
-  accountID: string
-  hash: string
+    accountID: string;
+    hash: string;
+};
+export function serializeGetTrieAccountHashesResp(stream: VectorBufferStream, req: GetTrieAccountHashesResp, root = false): void {
+    if (root) {
+        stream.writeUInt16(TypeIdentifierEnum.cGetAccountTrieHashesResp);
+    }
+    stream.writeUInt8(cGetTrieAccountHashesRespVersion);
+    stream.writeUInt16(req.nodeChildHashes.length);
+    for (let i = 0; i < req.nodeChildHashes.length; i++) {
+        serializeRadixAndChildHashes(stream, req.nodeChildHashes[i]);
+    }
+    stream.writeUInt32(req.stats.matched);
+    stream.writeUInt32(req.stats.visisted);
+    stream.writeUInt32(req.stats.empty);
+    stream.writeUInt32(req.stats.childCount);
 }
-
-export function serializeGetTrieAccountHashesResp(
-  stream: VectorBufferStream,
-  req: GetTrieAccountHashesResp,
-  root = false
-): void {
-  if (root) {
-    stream.writeUInt16(TypeIdentifierEnum.cGetAccountTrieHashesResp)
-  }
-  stream.writeUInt8(cGetTrieAccountHashesRespVersion)
-  stream.writeUInt16(req.nodeChildHashes.length)
-  for (let i = 0; i < req.nodeChildHashes.length; i++) {
-    // eslint-disable-next-line security/detect-object-injection
-    serializeRadixAndChildHashes(stream, req.nodeChildHashes[i])
-  }
-  stream.writeUInt32(req.stats.matched)
-  stream.writeUInt32(req.stats.visisted)
-  stream.writeUInt32(req.stats.empty)
-  stream.writeUInt32(req.stats.childCount)
-}
-
 export function deserializeGetTrieAccountHashesResp(stream: VectorBufferStream): GetTrieAccountHashesResp {
-  const version = stream.readUInt8()
-  if (version !== cGetTrieAccountHashesRespVersion) {
-    throw new Error(`Unsupported version for GetAccountTrieHashesResp: ${version}`)
-  }
-  const nodeChildHashesLength = stream.readUInt16()
-  const nodeChildHashes: RadixAndChildHashes[] = []
-  for (let i = 0; i < nodeChildHashesLength; i++) {
-    nodeChildHashes.push(deserializeRadixAndChildHashes(stream))
-  }
-
-  const stats = {
-    matched: stream.readUInt32(),
-    visisted: stream.readUInt32(),
-    empty: stream.readUInt32(),
-    childCount: stream.readUInt32(),
-  }
-
-  const errors = verifyPayload(AJVSchemaEnum.GetTrieAccountHashesResp, {
-    nodeChildHashes,
-    stats,
-  })
-
-  if (errors && errors.length > 0) {
-    throw new Error('Data validation error')
-  }
-
-  return {
-    nodeChildHashes,
-    stats,
-  }
+    const version = stream.readUInt8();
+    if (version !== cGetTrieAccountHashesRespVersion) {
+        throw new Error(`Unsupported version for GetAccountTrieHashesResp: ${version}`);
+    }
+    const nodeChildHashesLength = stream.readUInt16();
+    const nodeChildHashes: RadixAndChildHashes[] = [];
+    for (let i = 0; i < nodeChildHashesLength; i++) {
+        nodeChildHashes.push(deserializeRadixAndChildHashes(stream));
+    }
+    const stats = {
+        matched: stream.readUInt32(),
+        visisted: stream.readUInt32(),
+        empty: stream.readUInt32(),
+        childCount: stream.readUInt32(),
+    };
+    const errors = verifyPayload(AJVSchemaEnum.GetTrieAccountHashesResp, {
+        nodeChildHashes,
+        stats,
+    });
+    if (errors && errors.length > 0) {
+        throw new Error('Data validation error');
+    }
+    return {
+        nodeChildHashes,
+        stats,
+    };
 }
-
-export function serializeRadixAndChildHashes(
-  stream: VectorBufferStream,
-  req: RadixAndChildHashes,
-  root = false
-): void {
-  if (root) {
-    stream.writeUInt16(TypeIdentifierEnum.cRadixAndChildHashes)
-  }
-  stream.writeUInt8(cRadixAndChildHashesVersion)
-  stream.writeString(req.radix)
-  stream.writeUInt16(req.childAccounts.length)
-  for (let i = 0; i < req.childAccounts.length; i++) {
-    // eslint-disable-next-line security/detect-object-injection
-    stream.writeString(req.childAccounts[i].accountID)
-    // eslint-disable-next-line security/detect-object-injection
-    stream.writeString(req.childAccounts[i].hash)
-  }
+export function serializeRadixAndChildHashes(stream: VectorBufferStream, req: RadixAndChildHashes, root = false): void {
+    if (root) {
+        stream.writeUInt16(TypeIdentifierEnum.cRadixAndChildHashes);
+    }
+    stream.writeUInt8(cRadixAndChildHashesVersion);
+    stream.writeString(req.radix);
+    stream.writeUInt16(req.childAccounts.length);
+    for (let i = 0; i < req.childAccounts.length; i++) {
+        stream.writeString(req.childAccounts[i].accountID);
+        stream.writeString(req.childAccounts[i].hash);
+    }
 }
-
 export function deserializeRadixAndChildHashes(stream: VectorBufferStream): RadixAndChildHashes {
-  const version = stream.readUInt8()
-  if (version !== cRadixAndChildHashesVersion) {
-    throw new Error(`Unsupported version for RadixAndChildHashes: ${version}`)
-  }
-  const radix = stream.readString()
-  const childAccountsLength = stream.readUInt16()
-  const childAccounts: AccountIDAndHash[] = []
-  for (let i = 0; i < childAccountsLength; i++) {
-    childAccounts.push({
-      accountID: stream.readString(),
-      hash: stream.readString(),
-    })
-  }
-  return {
-    radix,
-    childAccounts,
-  }
+    const version = stream.readUInt8();
+    if (version !== cRadixAndChildHashesVersion) {
+        throw new Error(`Unsupported version for RadixAndChildHashes: ${version}`);
+    }
+    const radix = stream.readString();
+    const childAccountsLength = stream.readUInt16();
+    const childAccounts: AccountIDAndHash[] = [];
+    for (let i = 0; i < childAccountsLength; i++) {
+        childAccounts.push({
+            accountID: stream.readString(),
+            hash: stream.readString(),
+        });
+    }
+    return {
+        radix,
+        childAccounts,
+    };
 }

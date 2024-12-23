@@ -1,15 +1,13 @@
-import { SQLDataTypes } from '../utils/schemaDefintions'
-
+import { SQLDataTypes } from '../utils/schemaDefintions';
 const network = [
-  'network',
-  {
-    cycleNumber: {
-      type: SQLDataTypes.STRING,
-      allowNull: false,
-      unique: 'compositeIndex',
+    'network',
+    {
+        cycleNumber: {
+            type: SQLDataTypes.STRING,
+            allowNull: false,
+            unique: 'compositeIndex',
+        },
+        hash: { type: SQLDataTypes.STRING, allowNull: false },
     },
-    hash: { type: SQLDataTypes.STRING, allowNull: false },
-  },
-]
-
-export default network
+];
+export default network;

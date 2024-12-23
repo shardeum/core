@@ -1,36 +1,29 @@
-import { addSchema } from '../../utils/serialization/SchemaHelpers'
-import { AJVSchemaEnum } from '../enum/AJVSchemaEnum'
-
+import { addSchema } from '../../utils/serialization/SchemaHelpers';
+import { AJVSchemaEnum } from '../enum/AJVSchemaEnum';
 const schemaSyncTrieHashesReq = {
-  type: 'object',
-  properties: {
-    cycle: { type: 'number' },
-    nodeHashes: {
-      type: 'array',
-      items: {
-        type: 'object',
-        properties: {
-          radix: { type: 'string' },
-          hash: { type: 'string' },
+    type: 'object',
+    properties: {
+        cycle: { type: 'number' },
+        nodeHashes: {
+            type: 'array',
+            items: {
+                type: 'object',
+                properties: {
+                    radix: { type: 'string' },
+                    hash: { type: 'string' },
+                },
+                required: ['radix', 'hash'],
+            },
         },
-        required: ['radix', 'hash'],
-      },
     },
-  },
-  required: ['cycle', 'nodeHashes'],
-}
-
+    required: ['cycle', 'nodeHashes'],
+};
 export function initSyncTrieHashesReq(): void {
-  addSchemaDependencies()
-  addSchemas()
+    addSchemaDependencies();
+    addSchemas();
 }
-
-// Function to add schema dependencies
 function addSchemaDependencies(): void {
-  // No dependencies
 }
-
-// Function to register the schema
 function addSchemas(): void {
-  addSchema(AJVSchemaEnum.SyncTrieHashesReq, schemaSyncTrieHashesReq)
+    addSchema(AJVSchemaEnum.SyncTrieHashesReq, schemaSyncTrieHashesReq);
 }

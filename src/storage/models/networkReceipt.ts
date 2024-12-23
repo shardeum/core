@@ -1,15 +1,13 @@
-import { SQLDataTypes } from '../utils/schemaDefintions'
-
+import { SQLDataTypes } from '../utils/schemaDefintions';
 const networkReceipt = [
-  'networkReceipt',
-  {
-    cycleNumber: {
-      type: SQLDataTypes.STRING,
-      allowNull: false,
-      unique: 'compositeIndex',
+    'networkReceipt',
+    {
+        cycleNumber: {
+            type: SQLDataTypes.STRING,
+            allowNull: false,
+            unique: 'compositeIndex',
+        },
+        hash: { type: SQLDataTypes.STRING, allowNull: false },
     },
-    hash: { type: SQLDataTypes.STRING, allowNull: false },
-  },
-]
-
-export default networkReceipt
+];
+export default networkReceipt;

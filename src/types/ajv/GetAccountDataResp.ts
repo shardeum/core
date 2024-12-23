@@ -1,46 +1,39 @@
-import { addSchema } from '../../utils/serialization/SchemaHelpers'
-import { AJVSchemaEnum } from '../enum/AJVSchemaEnum'
-import { schemaWrappedData } from './WrappedData'
-
+import { addSchema } from '../../utils/serialization/SchemaHelpers';
+import { AJVSchemaEnum } from '../enum/AJVSchemaEnum';
+import { schemaWrappedData } from './WrappedData';
 const schemaGetAccountDataResp = {
-  type: 'object',
-  properties: {
-    data: {
-      type: 'object',
-      properties: {
-        wrappedAccounts: {
-          type: 'array',
-          items: schemaWrappedData,
+    type: 'object',
+    properties: {
+        data: {
+            type: 'object',
+            properties: {
+                wrappedAccounts: {
+                    type: 'array',
+                    items: schemaWrappedData,
+                },
+                lastUpdateNeeded: { type: 'boolean' },
+                wrappedAccounts2: {
+                    type: 'array',
+                    items: schemaWrappedData,
+                },
+                highestTs: { type: 'number' },
+                delta: { type: 'number' },
+            },
+            required: ['wrappedAccounts', 'lastUpdateNeeded', 'wrappedAccounts2', 'highestTs', 'delta'],
         },
-        lastUpdateNeeded: { type: 'boolean' },
-        wrappedAccounts2: {
-          type: 'array',
-          items: schemaWrappedData,
+        errors: {
+            type: 'array',
+            items: { type: 'string' },
         },
-        highestTs: { type: 'number' },
-        delta: { type: 'number' },
-      },
-      required: ['wrappedAccounts', 'lastUpdateNeeded', 'wrappedAccounts2', 'highestTs', 'delta'],
     },
-    errors: {
-      type: 'array',
-      items: { type: 'string' },
-    },
-  },
-  required: [],
-}
-
+    required: [],
+};
 export function initGetAccountDataRespSerializable(): void {
-  addSchemaDependencies()
-  addSchemas()
+    addSchemaDependencies();
+    addSchemas();
 }
-
-// Function to add schema dependencies
 function addSchemaDependencies(): void {
-  // No dependencies
 }
-
-// Function to register the schema
 function addSchemas(): void {
-  addSchema(AJVSchemaEnum.GetAccountDataResp, schemaGetAccountDataResp)
+    addSchema(AJVSchemaEnum.GetAccountDataResp, schemaGetAccountDataResp);
 }

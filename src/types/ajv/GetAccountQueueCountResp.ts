@@ -1,44 +1,37 @@
-import { addSchema } from '../../utils/serialization/SchemaHelpers'
-import { AJVSchemaEnum } from '../enum/AJVSchemaEnum'
-
+import { addSchema } from '../../utils/serialization/SchemaHelpers';
+import { AJVSchemaEnum } from '../enum/AJVSchemaEnum';
 const getAccountQueueCountRespSchema = {
-  oneOf: [
-    {
-      type: 'object',
-      properties: {
-        counts: {
-          type: 'array',
-          items: { type: 'number' },
+    oneOf: [
+        {
+            type: 'object',
+            properties: {
+                counts: {
+                    type: 'array',
+                    items: { type: 'number' },
+                },
+                committingAppData: {
+                    type: 'array',
+                    items: {},
+                },
+                accounts: {
+                    type: 'array',
+                    items: {},
+                },
+            },
+            required: ['counts', 'committingAppData', 'accounts'],
         },
-        committingAppData: {
-          type: 'array',
-          items: {}, // unknown
+        {
+            type: 'boolean',
+            enum: [false],
         },
-        accounts: {
-          type: 'array',
-          items: {}, // unknown
-        },
-      },
-      required: ['counts', 'committingAppData', 'accounts'],
-    },
-    {
-      type: 'boolean',
-      enum: [false],
-    },
-  ],
-}
-
+    ],
+};
 export function initGetAccountQueueCountResp(): void {
-  addSchemaDependencies()
-  addSchemas()
+    addSchemaDependencies();
+    addSchemas();
 }
-
-// Function to add schema dependencies
 function addSchemaDependencies(): void {
-  // No dependencies
 }
-
-// Function to register the schema
 function addSchemas(): void {
-  addSchema(AJVSchemaEnum.GetAccountQueueCountResp, getAccountQueueCountRespSchema)
+    addSchema(AJVSchemaEnum.GetAccountQueueCountResp, getAccountQueueCountRespSchema);
 }
