@@ -1,255 +1,161 @@
-import Statistics from '../statistics'
-// import { Ring } from '../statistics'
-import { EventEmitter } from 'events'
-import { nestedCountersInstance } from '../utils/nestedCounters'
-import { profilerInstance, NodeLoad } from '../utils/profiler'
-import * as Context from '../p2p/Context'
-import { memoryReportingInstance } from '../utils/memoryReporting'
-import { isDebugModeMiddleware } from '../network/debugMiddleware'
-import { Utils } from '@shardus/types'
-
+import Statistics from '../statistics';
+import { EventEmitter } from 'events';
+import { nestedCountersInstance } from '../utils/nestedCounters';
+import { profilerInstance, NodeLoad } from '../utils/profiler';
+import * as Context from '../p2p/Context';
+import { memoryReportingInstance } from '../utils/memoryReporting';
+import { isDebugModeMiddleware } from '../network/debugMiddleware';
+import { Utils } from '@shardus/types';
 interface LoadDetection {
-  highThreshold: number /** if load > highThreshold, then scale up request */
-  lowThreshold: number /** if load < lowThreshold, then scale down request */
-  desiredTxTime: number /** max desired average time for the age of a TX.  */
-  queueLimit: number /** max desired TXs in queue. note TXs must spend a minimum 6 seconds in the before they can process*/
-  executeQueueLimit: number /** max desired TXs in queue that will be executed on this node. note TXs must spend a minimum 6 seconds in the before they can process*/
-  statistics: Statistics
-  load: number /** load is what matters for scale up or down. it is the max of scaledTimeInQueue and scaledQueueLength. */
-  nodeLoad: NodeLoad /** this nodes perf related load. does not determine scale up/down, but can cause rate-limiting */
-  scaledTxTimeInQueue: number /** 0-1 value on how close to desiredTxTime this nodes is (set to 0 if scaledQueueLength < lowThreshold) */
-  scaledQueueLength: number /** 0-1 value on how close to queueLimit this nodes is */
-  scaledExecuteQueueLength: number /** 0-1 value on how close to queueLimit this nodes is */
-  dbg: boolean
-  lastEmitCycle: number /** the last cylce that we have sent load events on */
+    highThreshold: number;
+    lowThreshold: number;
+    desiredTxTime: number;
+    queueLimit: number;
+    executeQueueLimit: number;
+    statistics: Statistics;
+    load: number;
+    nodeLoad: NodeLoad;
+    scaledTxTimeInQueue: number;
+    scaledQueueLength: number;
+    scaledExecuteQueueLength: number;
+    dbg: boolean;
+    lastEmitCycle: number;
 }
-let lastMeasuredTimestamp = 0
-
+let lastMeasuredTimestamp = 0;
 class LoadDetection extends EventEmitter {
-  constructor(config, statistics) {
-    super()
-    this.highThreshold = config.highThreshold
-    this.lowThreshold = config.lowThreshold
-    this.desiredTxTime = config.desiredTxTime
-    this.queueLimit = config.queueLimit
-    this.executeQueueLimit = config.executeQueueLimit
-    this.statistics = statistics
-    this.load = 0
-    this.nodeLoad = {
-      internal: 0,
-      external: 0,
-    }
-    this.scaledTxTimeInQueue = 0
-    this.scaledQueueLength = 0
-    this.scaledExecuteQueueLength = 0
-
-    this.dbg = false
-    this.lastEmitCycle = -1
-
-    /**
-     * Sets load to DESIRED_LOAD (should be between 0 and 1)
-     *
-     * Usage: http://<NODE_IP>:<NODE_EXT_PORT>/loadset?load=<DESIRED_LOAD>
-     */
-    Context.network.registerExternalGet('loadset', isDebugModeMiddleware, (req, res) => {
-      if (req.query.load == null) return
-      this.dbg = true
-      this.load = Number(req.query.load)
-      console.log(`set load to ${this.load}`)
-      res.json({ success: true, data: `set load to ${this.load}` })
-    })
-    /**
-     * Resets load detection to normal behavior
-     *
-     * Usage: http://<NODE_IP>:<NODE_EXT_PORT>/loadreset
-     */
-    Context.network.registerExternalGet('loadreset', isDebugModeMiddleware, (req, res) => {
-      this.dbg = false
-      console.log('reset load detection to normal behavior')
-      res.json({ success: true, data: 'reset load detection to normal behavior' })
-    })
-    Context.network.registerExternalGet('load', (req, res) => {
-      try {
-        // todo: reject if request is not coming from node operator dashboard
-        const load = this.getCurrentLoad()
-        const nodeLoad = this.getCurrentNodeLoad()
-        res.json({ load, nodeLoad })
-      } catch (e) {
-        console.log(`Error getting load: ${e.message}`);
-      }
-      return
-    })
-  }
-
-  configUpdated() {
-    try {
-      if (this.desiredTxTime !== Context.config.loadDetection.desiredTxTime) {
-        this.desiredTxTime = typeof Context.config.loadDetection.desiredTxTime === 'string' ? Number(Context.config.loadDetection.desiredTxTime) : Context.config.loadDetection.desiredTxTime
-        console.log('Config updated for loadDetection.desiredTxTime', this.desiredTxTime)
-        nestedCountersInstance.countEvent(
-          'loadRelated',
-          `desiredTxTime config updated`
-        )
-      }
-      if (this.executeQueueLimit !== Context.config.loadDetection.executeQueueLimit) {
-        this.executeQueueLimit = typeof Context.config.loadDetection.executeQueueLimit === 'string' ? Number(Context.config.loadDetection.executeQueueLimit) : Context.config.loadDetection.executeQueueLimit
-        console.log('Config updated for loadDetection.executeQueueLimit', this.executeQueueLimit)
-        nestedCountersInstance.countEvent(
-          'loadRelated',
-          `executeQueueLimit config updated`
-        )
-      }
-      if (this.queueLimit !== Context.config.loadDetection.queueLimit) {
-        this.queueLimit = typeof Context.config.loadDetection.queueLimit === 'string' ? Number(Context.config.loadDetection.queueLimit) : Context.config.loadDetection.queueLimit
-        console.log('Config updated for loadDetection.queueLimit', this.queueLimit)
-        nestedCountersInstance.countEvent(
-          'loadRelated',
-          `queueLimit config updated`
-        )
-      }
-    } catch (e) {
-      nestedCountersInstance.countEvent('loadRelated', `config update failed`)
-    }
-  }
-
-  /**
-   * Returns a number between 0 and 1 indicating the current load.
-   */
-  updateLoad() {
-    let load
-
-    if (this.dbg) {
-      load = this.load
-      this.scaledTxTimeInQueue = load
-      this.scaledQueueLength = load
-      this.scaledExecuteQueueLength = load
-    } else {
-      const txTimeInQueue = this.statistics.getAverage('txTimeInQueue') / 1000
-      let scaledTxTimeInQueue = txTimeInQueue >= this.desiredTxTime ? 1 : txTimeInQueue / this.desiredTxTime
-
-      const queueLength = this.statistics.getWatcherValue('queueLength')
-      const scaledQueueLength = queueLength >= this.queueLimit ? 1 : queueLength / this.queueLimit
-
-      // looking at these counters individually so we can have more detail about load
-      // if (scaledTxTimeInQueue > this.highThreshold){
-      //   nestedCountersInstance.countEvent('loadRelated',`highLoad-scaledTxTimeInQueue ${this.highThreshold}`)
-      // }
-      // if (scaledQueueLength > this.highThreshold){
-      //   nestedCountersInstance.countEvent('loadRelated',`highLoad-scaledQueueLength ${this.highThreshold}`)
-      // }
-
-      //need 20 samples in the queue before we start worrying about them being there too long
-      if (queueLength < 20) {
-        //if(scaledQueueLength < (this.lowThreshold)){ //tried to get fancy, but going back to 20 as a constant.
-        if (scaledTxTimeInQueue > this.highThreshold) {
-          nestedCountersInstance.countEvent(
-            'loadRelated',
-            `scaledTxTimeInQueue clamped due to low scaledQueueLength`
-          )
-        }
-        scaledTxTimeInQueue = 0
-      }
-
-      const executeQueueLength = this.statistics.getWatcherValue('executeQueueLength')
-      const scaledExecuteQueueLength =
-        executeQueueLength >= this.executeQueueLimit ? 1 : executeQueueLength / this.executeQueueLimit
-
-      this.scaledTxTimeInQueue = scaledTxTimeInQueue
-      this.scaledQueueLength = scaledQueueLength
-      this.scaledExecuteQueueLength = scaledExecuteQueueLength
-
-      if (profilerInstance != null) {
-        let dutyCycleLoad = profilerInstance.getTotalBusyInternal()
-        if (dutyCycleLoad.duty > 0.8) {
-          nestedCountersInstance.countEvent('loadRelated', `note-dutyCycle 0.8`)
-        } else if (dutyCycleLoad.duty > 0.6) {
-          nestedCountersInstance.countEvent('loadRelated', `note-dutyCycle 0.6`)
-        } else if (dutyCycleLoad.duty > 0.4) {
-          nestedCountersInstance.countEvent('loadRelated', 'note-dutyCycle 0.4')
-        }
-
-        this.statistics.setManualStat('netInternalDuty', dutyCycleLoad.netInternlDuty)
-        this.statistics.setManualStat('netExternalDuty', dutyCycleLoad.netInternlDuty)
-
-        let cpuPercent = memoryReportingInstance.cpuPercent()
-        this.statistics.setFifoStat('cpuPercent', cpuPercent)
-
-        let internalDutyAvg = this.statistics.getAverage('netInternalDuty')
-        let externalDutyAvg = this.statistics.getAverage('netExternalDuty')
-
+    constructor(config, statistics) {
+        super();
+        this.highThreshold = config.highThreshold;
+        this.lowThreshold = config.lowThreshold;
+        this.desiredTxTime = config.desiredTxTime;
+        this.queueLimit = config.queueLimit;
+        this.executeQueueLimit = config.executeQueueLimit;
+        this.statistics = statistics;
+        this.load = 0;
         this.nodeLoad = {
-          internal: internalDutyAvg, //dutyCycleLoad.netInternlDuty,
-          external: externalDutyAvg, //dutyCycleLoad.netExternlDuty,
+            internal: 0,
+            external: 0,
+        };
+        this.scaledTxTimeInQueue = 0;
+        this.scaledQueueLength = 0;
+        this.scaledExecuteQueueLength = 0;
+        this.dbg = false;
+        this.lastEmitCycle = -1;
+        Context.network.registerExternalGet('loadset', isDebugModeMiddleware, (req, res) => {
+            if (req.query.load == null)
+                return;
+            this.dbg = true;
+            this.load = Number(req.query.load);
+            res.json({ success: true, data: `set load to ${this.load}` });
+        });
+        Context.network.registerExternalGet('loadreset', isDebugModeMiddleware, (req, res) => {
+            this.dbg = false;
+            res.json({ success: true, data: 'reset load detection to normal behavior' });
+        });
+        Context.network.registerExternalGet('load', (req, res) => {
+            try {
+                const load = this.getCurrentLoad();
+                const nodeLoad = this.getCurrentNodeLoad();
+                res.json({ load, nodeLoad });
+            }
+            catch (e) {
+            }
+            return;
+        });
+    }
+    configUpdated() {
+        try {
+            if (this.desiredTxTime !== Context.config.loadDetection.desiredTxTime) {
+                this.desiredTxTime = typeof Context.config.loadDetection.desiredTxTime === 'string' ? Number(Context.config.loadDetection.desiredTxTime) : Context.config.loadDetection.desiredTxTime;
+            }
+            if (this.executeQueueLimit !== Context.config.loadDetection.executeQueueLimit) {
+                this.executeQueueLimit = typeof Context.config.loadDetection.executeQueueLimit === 'string' ? Number(Context.config.loadDetection.executeQueueLimit) : Context.config.loadDetection.executeQueueLimit;
+            }
+            if (this.queueLimit !== Context.config.loadDetection.queueLimit) {
+                this.queueLimit = typeof Context.config.loadDetection.queueLimit === 'string' ? Number(Context.config.loadDetection.queueLimit) : Context.config.loadDetection.queueLimit;
+            }
         }
-      }
-
-      //lets use 80% of our EXSS load and 20% of our total load
-      //let adjustedQueueLoad = (scaledExecuteQueueLength * 0.8) + (scaledQueueLength * 0.2)
-      //lets use 100% of our EXSS load ... todo could make this a setting
-      //let adjustedQueueLoad = (scaledExecuteQueueLength * 1.0) + (scaledQueueLength * 0.0)
-
-      //mix these together with a MAX use settings to make scaledQueueLength much larger than scaledExecuteQueueLength
-      let adjustedQueueLoad = Math.max(scaledExecuteQueueLength, scaledQueueLength)
-
-      //load = Math.max(scaledTxTimeInQueue, scaledQueueLength)
-
-      load = Math.max(scaledTxTimeInQueue, adjustedQueueLoad)
-
-      if (scaledQueueLength > this.highThreshold) {
-        nestedCountersInstance.countEvent('loadRelated', 'highThreshold-scaledQueueLength')
-      }
-      if (scaledExecuteQueueLength > this.highThreshold) {
-        nestedCountersInstance.countEvent('loadRelated', 'highThreshold-scaledExecuteQueueLength')
-      }
-      // if(adjustedQueueLoad > this.highThreshold){
-      //   nestedCountersInstance.countEvent(
-      //     'loadRelated',
-      //     'highThreshold-adjustedQueueLoad'
-      //   )
-      // }
-      if (scaledTxTimeInQueue > this.highThreshold) {
-        nestedCountersInstance.countEvent('loadRelated', 'highThreshold-scaledTxTimeInQueue')
-      }
+        catch (e) {
+        }
     }
-
-    //only send load events if we are on a new cycle.
-    //updateLoad gets called at a much higher frequency than once per cycle
-    //We could potentially make this better by taking some kind of self average
-    //rather than just the random luck of load see when a new cycle has turned over.
-    //however, these load metrics already have some inherent averaging
-    let lastCycle = Context.p2p.state.getLastCycle();
-    if (lastCycle == null) {
-      return
-    } else if (this.lastEmitCycle != lastCycle.counter) {
-      this.lastEmitCycle = lastCycle.counter
-      //If our max load is higher than the threshold send highLoad event that will create scale up gossip
-      if (load > this.highThreshold) {
-        this.emit('highLoad')
-      }
-      //If our max load is lower than threshold send a scale down message.
-      if (load < this.lowThreshold) {
-        this.emit('lowLoad')
-      }
+    updateLoad() {
+        let load;
+        if (this.dbg) {
+            load = this.load;
+            this.scaledTxTimeInQueue = load;
+            this.scaledQueueLength = load;
+            this.scaledExecuteQueueLength = load;
+        }
+        else {
+            const txTimeInQueue = this.statistics.getAverage('txTimeInQueue') / 1000;
+            let scaledTxTimeInQueue = txTimeInQueue >= this.desiredTxTime ? 1 : txTimeInQueue / this.desiredTxTime;
+            const queueLength = this.statistics.getWatcherValue('queueLength');
+            const scaledQueueLength = queueLength >= this.queueLimit ? 1 : queueLength / this.queueLimit;
+            if (queueLength < 20) {
+                if (scaledTxTimeInQueue > this.highThreshold) {
+                }
+                scaledTxTimeInQueue = 0;
+            }
+            const executeQueueLength = this.statistics.getWatcherValue('executeQueueLength');
+            const scaledExecuteQueueLength = executeQueueLength >= this.executeQueueLimit ? 1 : executeQueueLength / this.executeQueueLimit;
+            this.scaledTxTimeInQueue = scaledTxTimeInQueue;
+            this.scaledQueueLength = scaledQueueLength;
+            this.scaledExecuteQueueLength = scaledExecuteQueueLength;
+            if (profilerInstance != null) {
+                let dutyCycleLoad = profilerInstance.getTotalBusyInternal();
+                if (dutyCycleLoad.duty > 0.8) {
+                }
+                else if (dutyCycleLoad.duty > 0.6) {
+                }
+                else if (dutyCycleLoad.duty > 0.4) {
+                }
+                this.statistics.setManualStat('netInternalDuty', dutyCycleLoad.netInternlDuty);
+                this.statistics.setManualStat('netExternalDuty', dutyCycleLoad.netInternlDuty);
+                let cpuPercent = memoryReportingInstance.cpuPercent();
+                this.statistics.setFifoStat('cpuPercent', cpuPercent);
+                let internalDutyAvg = this.statistics.getAverage('netInternalDuty');
+                let externalDutyAvg = this.statistics.getAverage('netExternalDuty');
+                this.nodeLoad = {
+                    internal: internalDutyAvg,
+                    external: externalDutyAvg,
+                };
+            }
+            let adjustedQueueLoad = Math.max(scaledExecuteQueueLength, scaledQueueLength);
+            load = Math.max(scaledTxTimeInQueue, adjustedQueueLoad);
+            if (scaledQueueLength > this.highThreshold) {
+            }
+            if (scaledExecuteQueueLength > this.highThreshold) {
+            }
+            if (scaledTxTimeInQueue > this.highThreshold) {
+            }
+        }
+        let lastCycle = Context.p2p.state.getLastCycle();
+        if (lastCycle == null) {
+            return;
+        }
+        else if (this.lastEmitCycle != lastCycle.counter) {
+            this.lastEmitCycle = lastCycle.counter;
+            if (load > this.highThreshold) {
+                this.emit('highLoad');
+            }
+            if (load < this.lowThreshold) {
+                this.emit('lowLoad');
+            }
+        }
+        this.load = load;
     }
-
-    this.load = load
-  }
-
-  getCurrentLoad() {
-    return this.load
-  }
-
-  getCurrentNodeLoad() {
-    return this.nodeLoad
-  }
-
-  getQueueLoad() {
-    return {
-      txTimeInQueue: this.scaledTxTimeInQueue,
-      queueLength: this.scaledQueueLength, //this will impact rejections, but not scale up-down
-      executeQueueLength: this.scaledExecuteQueueLength,
+    getCurrentLoad() {
+        return this.load;
     }
-  }
+    getCurrentNodeLoad() {
+        return this.nodeLoad;
+    }
+    getQueueLoad() {
+        return {
+            txTimeInQueue: this.scaledTxTimeInQueue,
+            queueLength: this.scaledQueueLength,
+            executeQueueLength: this.scaledExecuteQueueLength,
+        };
+    }
 }
-
-export default LoadDetection
+export default LoadDetection;

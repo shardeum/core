@@ -1,29 +1,21 @@
-import { addSchema } from '../../utils/serialization/SchemaHelpers'
-import { AJVSchemaEnum } from '../enum/AJVSchemaEnum'
-
+import { addSchema } from '../../utils/serialization/SchemaHelpers';
+import { AJVSchemaEnum } from '../enum/AJVSchemaEnum';
 export const schemaCachedAppData = {
-  type: 'object',
-  properties: {
-    cycle: { type: 'number' },
-    appData: { type: 'object' },
-    dataID: { type: 'string' },
-  },
-  required: ['cycle', 'appData', 'dataID'],
-  additionalProperties: false,
-
-}
-
+    type: 'object',
+    properties: {
+        cycle: { type: 'number' },
+        appData: { type: 'object' },
+        dataID: { type: 'string' },
+    },
+    required: ['cycle', 'appData', 'dataID'],
+    additionalProperties: false,
+};
 export function initCachedAppData(): void {
-  addSchemaDependencies()
-  addSchemas()
+    addSchemaDependencies();
+    addSchemas();
 }
-
-// Function to add schema dependencies
 function addSchemaDependencies(): void {
-  // No dependencies
 }
-
-// Function to register the schema
 function addSchemas(): void {
-  addSchema(AJVSchemaEnum.CachedAppData, schemaCachedAppData)
+    addSchema(AJVSchemaEnum.CachedAppData, schemaCachedAppData);
 }

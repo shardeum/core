@@ -98,3 +98,4 @@ build/
 
 # anything you want
 _scrap
+.prettierrc

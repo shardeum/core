@@ -1,317 +1,260 @@
-import { isDebugMode, getDevPublicKeys, ensureKeySecurity, getMultisigPublicKeys } from '../debug'
-import * as Context from '../p2p/Context'
-import * as crypto from '@shardus/crypto-utils'
-import { DevSecurityLevel } from '../shardus/shardus-types'
-import SERVER_CONFIG from '../config/server'
-import { logFlags } from '../logger'
-import { nestedCountersInstance } from '../utils/nestedCounters'
-import { Utils } from '@shardus/types'
-import { SignedObject } from '@shardus/crypto-utils'
-import * as CycleChain from '../p2p/CycleChain'
-import { contactArchiver, getStatusHistoryCopy } from '../p2p/Self'
-import { NodeStatus } from '@shardus/types/build/src/p2p/P2PTypes'
-import { getNewestCycle } from '../p2p/Sync'
-
-const MAX_COUNTER_BUFFER_MILLISECONDS = 10000 // <- Nonce are essentially just timestamp. This number dictate how much time range we will tolerance.
-let lastCounter = Date.now() // <- when node is first load onto mem this used to be 0, but that would cause a replay attack. So now it is set to the current time with ntp offset accounted
-let multiSigLstCounter = Date.now()
-
-// This function is used to check if the request is authorized to access the debug endpoint
+import { isDebugMode, getDevPublicKeys, ensureKeySecurity, getMultisigPublicKeys } from '../debug';
+import * as Context from '../p2p/Context';
+import * as crypto from '@shardus/crypto-utils';
+import { DevSecurityLevel } from '../shardus/shardus-types';
+import SERVER_CONFIG from '../config/server';
+import { logFlags } from '../logger';
+import { nestedCountersInstance } from '../utils/nestedCounters';
+import { Utils } from '@shardus/types';
+import { SignedObject } from '@shardus/crypto-utils';
+import * as CycleChain from '../p2p/CycleChain';
+import { contactArchiver, getStatusHistoryCopy } from '../p2p/Self';
+import { NodeStatus } from '@shardus/types/build/src/p2p/P2PTypes';
+import { getNewestCycle } from '../p2p/Sync';
+const MAX_COUNTER_BUFFER_MILLISECONDS = 10000;
+let lastCounter = Date.now();
+let multiSigLstCounter = Date.now();
 async function handleDebugAuth(_req, res, next, authLevel) {
-  try {
-    let statusHist = getStatusHistoryCopy()
-    let statusNow = statusHist[statusHist.length -1].moduleStatus || undefined
-    let weAreActive = statusNow === NodeStatus.ACTIVE
-    let latestCycle = CycleChain.newest
-
-    if (!weAreActive) {
-      const activeNodes = await contactArchiver("dbgMiddleware")
-      latestCycle = await getNewestCycle(activeNodes)
-    }
-
-    if(!latestCycle) {
-      res.status(500).json({ error: "Node can't gather latest Cycle to perform signature verification"})
-    }
-
-
-    //auth with a signature
-    if (_req.query.sig != null && _req.query.sig_counter != null) {
-      const nodes = String(_req.query.nodePubkeys).split(',')
-      const ourPubkey = Context.crypto.getPublicKey().slice(0, 4)
-      let intentedForOurNode = false
-      nodes.forEach((id) => {
-        if (ourPubkey === id) {
-          intentedForOurNode = true
+    try {
+        let statusHist = getStatusHistoryCopy();
+        let statusNow = statusHist[statusHist.length - 1].moduleStatus || undefined;
+        let weAreActive = statusNow === NodeStatus.ACTIVE;
+        let latestCycle = CycleChain.newest;
+        if (!weAreActive) {
+            const activeNodes = await contactArchiver("dbgMiddleware");
+            latestCycle = await getNewestCycle(activeNodes);
         }
-      })
-      if (!intentedForOurNode) {
-        return res.status(401).json({
-          status: 401,
-          message: 'Unauthorized!',
-        })
-      }
-
-      // trim sig and sig_counter from the originalUrl
-      // when the debug call is signed it include the hash of baseurl and counter to prevent replay at later time and replay at different node or the same endpoint different query params
-      let payload = {
-        route: stripQueryParams(_req.originalUrl, ['sig', 'sig_counter', 'nodePubkeys']), //<- we're gonna hash, these query artificats need to be excluded from the hash
-        count: _req.query.sig_counter,
-        nodes: _req.query.nodePubkeys, // example 8f35,8b3a,85f1
-        networkId: latestCycle.networkId,
-        cycleCounter: latestCycle.counter,
-      }
-      const hash = crypto.hash(Utils.safeStringify(payload))
-      const devPublicKeys = getDevPublicKeys() // This should return list of public keys
-      const requestSig = _req.query.sig
-      // Check if signature is valid for any of the public keys
-      for (const ownerPk in devPublicKeys) {
-        const sign = { owner: ownerPk, sig: requestSig }
-        const hashIncluded = {
-          route: payload.route,
-          count: payload.count,
-          nodes: payload.nodes,
-          networkId: payload.networkId,
-          cycleCounter: payload.cycleCounter,
-          requestHash: hash,
-          sign,
-        } as SignedObject
-
-        //reguire a larger counter than before. This prevents replay attacks
-        const currentCounter = parseInt(payload.count)
-        const currentTime = Date.now()
-        if (currentCounter > lastCounter && currentCounter <= currentTime + MAX_COUNTER_BUFFER_MILLISECONDS) {
-          let verified = Context.crypto.verify(hashIncluded, hashIncluded.sign.owner)
-          if (verified === true) {
-            const authorized = ensureKeySecurity(ownerPk, authLevel)
-            if (authorized) {
-              lastCounter = currentCounter
-              next()
-              return
-            } else {
-              /* prettier-ignore */ if (logFlags.verbose) console.log('Authorization failed for security level', authLevel)
-              /* prettier-ignore */ nestedCountersInstance.countEvent( 'security', 'Authorization failed for security level: ', authLevel )
-              return res.status(403).json({
-                status: 403,
-                message: 'FORBIDDEN!',
-              })
-            }
-          } else {
-            /* prettier-ignore */ if (logFlags.verbose) console.log('Signature is not correct')
-          }
-        } else {
-          if (logFlags.verbose) {
-            const parsedCounter = parseInt(hashIncluded.count)
-            if (Number.isNaN(parsedCounter)) {
-              console.log('Counter is not a number')
-            } else {
-              console.log('Counter is not larger than last counter', parsedCounter, lastCounter)
-            }
-          }
+        if (!latestCycle) {
+            res.status(500).json({ error: "Node can't gather latest Cycle to perform signature verification" });
         }
-      }
+        if (_req.query.sig != null && _req.query.sig_counter != null) {
+            const nodes = String(_req.query.nodePubkeys).split(',');
+            const ourPubkey = Context.crypto.getPublicKey().slice(0, 4);
+            let intentedForOurNode = false;
+            nodes.forEach((id) => {
+                if (ourPubkey === id) {
+                    intentedForOurNode = true;
+                }
+            });
+            if (!intentedForOurNode) {
+                return res.status(401).json({
+                    status: 401,
+                    message: 'Unauthorized!',
+                });
+            }
+            let payload = {
+                route: stripQueryParams(_req.originalUrl, ['sig', 'sig_counter', 'nodePubkeys']),
+                count: _req.query.sig_counter,
+                nodes: _req.query.nodePubkeys,
+                networkId: latestCycle.networkId,
+                cycleCounter: latestCycle.counter,
+            };
+            const hash = crypto.hash(Utils.safeStringify(payload));
+            const devPublicKeys = getDevPublicKeys();
+            const requestSig = _req.query.sig;
+            for (const ownerPk in devPublicKeys) {
+                const sign = { owner: ownerPk, sig: requestSig };
+                const hashIncluded = {
+                    route: payload.route,
+                    count: payload.count,
+                    nodes: payload.nodes,
+                    networkId: payload.networkId,
+                    cycleCounter: payload.cycleCounter,
+                    requestHash: hash,
+                    sign,
+                } as SignedObject;
+                const currentCounter = parseInt(payload.count);
+                const currentTime = Date.now();
+                if (currentCounter > lastCounter && currentCounter <= currentTime + MAX_COUNTER_BUFFER_MILLISECONDS) {
+                    let verified = Context.crypto.verify(hashIncluded, hashIncluded.sign.owner);
+                    if (verified === true) {
+                        const authorized = ensureKeySecurity(ownerPk, authLevel);
+                        if (authorized) {
+                            lastCounter = currentCounter;
+                            next();
+                            return;
+                        }
+                        else {
+                            return res.status(403).json({
+                                status: 403,
+                                message: 'FORBIDDEN!',
+                            });
+                        }
+                    }
+                    else {
+                    }
+                }
+                else {
+                    if (logFlags.verbose) {
+                        const parsedCounter = parseInt(hashIncluded.count);
+                        if (Number.isNaN(parsedCounter)) {
+                        }
+                        else {
+                        }
+                    }
+                }
+            }
+        }
     }
-  } catch (error) {
-    /* prettier-ignore */ if (logFlags.verbose) console.log('Error in handleDebugAuth:', error)
-    nestedCountersInstance.countEvent('security', 'debug unauthorized failure - exception caught')
-  }
-
-  return res.status(401).json({
-    status: 401,
-    message: 'Unauthorized!',
-  })
+    catch (error) {
+    }
+    return res.status(401).json({
+        status: 401,
+        message: 'Unauthorized!',
+    });
 }
-
 async function handleDebugMultiSigAuth(_req, res, next, authLevel: DevSecurityLevel) {
-  nestedCountersInstance.countEvent('middleware', 'debug_multi_sig_auth')
-  try {
-
-    let statusHist = getStatusHistoryCopy()
-    let statusNow = statusHist[statusHist.length -1].moduleStatus || undefined
-    let weAreActive = statusNow === NodeStatus.ACTIVE
-    let latestCycle = CycleChain.newest
-
-    if (!weAreActive) {
-      const activeNodes = await contactArchiver("dbgMiddleware")
-      latestCycle = await getNewestCycle(activeNodes)
-    }
-
-    if(!latestCycle) {
-      res.status(500).json({ error: "Node can't gather latest Cycle to perform signature verification"})
-    }
-    //auth with a signature
-    if (_req.query.sig != null && _req.query.sig_counter != null) {
-      const devPublicKeys = getMultisigPublicKeys()
-
-      let parsedSignatures = Utils.safeJsonParse(_req.query.sig)
-
-      if (!parsedSignatures || Array.isArray(parsedSignatures) === false) {
-        return res.status(400).json({
-          status: 400,
-          message: 'Bad Request!',
-        })
-      }
-
-      const nodes = String(_req.query.nodePubkeys).split(',')
-      const ourPubkey = Context.crypto.getPublicKey().slice(0, 4)
-      let intentedForOurNode = false
-      nodes.forEach((id) => {
-        if (ourPubkey === id) {
-          intentedForOurNode = true
+    try {
+        let statusHist = getStatusHistoryCopy();
+        let statusNow = statusHist[statusHist.length - 1].moduleStatus || undefined;
+        let weAreActive = statusNow === NodeStatus.ACTIVE;
+        let latestCycle = CycleChain.newest;
+        if (!weAreActive) {
+            const activeNodes = await contactArchiver("dbgMiddleware");
+            latestCycle = await getNewestCycle(activeNodes);
         }
-      })
-      if (!intentedForOurNode) {
-        return res.status(401).json({
-          status: 401,
-          message: 'Unauthorized!',
-        })
-      }
-
-      // Check if parsed signatures exceed the number of developer public keys
-      if (parsedSignatures.length > devPublicKeys.length) {
-        return res.status(400).json({
-          status: 400,
-          message: 'Bad Request! Too many signatures.',
-        })
-      }
-
-      // Remove duplicates from parsedSignatures
-      parsedSignatures = Array.from(new Set(parsedSignatures))
-
-      const minApprovals = Math.max(1, SERVER_CONFIG.debug.minMultiSigRequiredForEndpoints)
-
-      if (parsedSignatures.length < minApprovals) {
-        return res.status(400).json({
-          status: 400,
-          message: 'Bad Request! Not enough signatures.',
-        })
-      }
-
-      // when the debug call is signed it include the counter to prevent replay at later time and replay at different node or the same endpoint different query params
-      const payload: any = {
-        route: stripQueryParams(_req.originalUrl, ['sig', 'sig_counter', 'nodePubkeys']),
-        nodes: _req.query.nodePubkeys, // example 8f35,8b3a,85f1
-        count: _req.query.sig_counter,
-        networkId: latestCycle.networkId,
-      }
-
-      // Require a larger counter than before. This prevents replay attacks
-      if (parseInt(_req.query.sig_counter) > multiSigLstCounter && parsedSignatures.length >= minApprovals) {
-        const signaturesValid = Context.stateManager.app.verifyMultiSigs(
-          payload,
-          parsedSignatures,
-          devPublicKeys,
-          minApprovals,
-          authLevel
-        )
-
-        // If all signatures are valid, proceed with the next middleware
-        if (signaturesValid) {
-          multiSigLstCounter = parseInt(_req.query.sig_counter)
-          next()
-          return
-        } else {
-          return res.status(401).json({
-            status: 401,
-            message: 'Unauthorized! Invalid signatures.',
-          })
+        if (!latestCycle) {
+            res.status(500).json({ error: "Node can't gather latest Cycle to perform signature verification" });
         }
-      } else {
-        console.log('Counter is not larger than last counter', _req.query.sig_counter, multiSigLstCounter)
-      }
+        if (_req.query.sig != null && _req.query.sig_counter != null) {
+            const devPublicKeys = getMultisigPublicKeys();
+            let parsedSignatures = Utils.safeJsonParse(_req.query.sig);
+            if (!parsedSignatures || Array.isArray(parsedSignatures) === false) {
+                return res.status(400).json({
+                    status: 400,
+                    message: 'Bad Request!',
+                });
+            }
+            const nodes = String(_req.query.nodePubkeys).split(',');
+            const ourPubkey = Context.crypto.getPublicKey().slice(0, 4);
+            let intentedForOurNode = false;
+            nodes.forEach((id) => {
+                if (ourPubkey === id) {
+                    intentedForOurNode = true;
+                }
+            });
+            if (!intentedForOurNode) {
+                return res.status(401).json({
+                    status: 401,
+                    message: 'Unauthorized!',
+                });
+            }
+            if (parsedSignatures.length > devPublicKeys.length) {
+                return res.status(400).json({
+                    status: 400,
+                    message: 'Bad Request! Too many signatures.',
+                });
+            }
+            parsedSignatures = Array.from(new Set(parsedSignatures));
+            const minApprovals = Math.max(1, SERVER_CONFIG.debug.minMultiSigRequiredForEndpoints);
+            if (parsedSignatures.length < minApprovals) {
+                return res.status(400).json({
+                    status: 400,
+                    message: 'Bad Request! Not enough signatures.',
+                });
+            }
+            const payload: any = {
+                route: stripQueryParams(_req.originalUrl, ['sig', 'sig_counter', 'nodePubkeys']),
+                nodes: _req.query.nodePubkeys,
+                count: _req.query.sig_counter,
+                networkId: latestCycle.networkId,
+            };
+            if (parseInt(_req.query.sig_counter) > multiSigLstCounter && parsedSignatures.length >= minApprovals) {
+                const signaturesValid = Context.stateManager.app.verifyMultiSigs(payload, parsedSignatures, devPublicKeys, minApprovals, authLevel);
+                if (signaturesValid) {
+                    multiSigLstCounter = parseInt(_req.query.sig_counter);
+                    next();
+                    return;
+                }
+                else {
+                    return res.status(401).json({
+                        status: 401,
+                        message: 'Unauthorized! Invalid signatures.',
+                    });
+                }
+            }
+            else {
+            }
+        }
     }
-  } catch (error) {
-    if (logFlags.verbose && logFlags.console) console.log('Error in handleDebugMultiSigAuth:', error)
-    console.log(error)
-  }
-  nestedCountersInstance.countEvent('middleware', 'debug_multi_sig_auth failure')
-  return res.status(403).json({
-    status: 403,
-    message: 'FORBIDDEN. Endpoint is only available in debug mode in addtion to signature verification.',
-  })
+    catch (error) {
+    }
+    return res.status(403).json({
+        status: 403,
+        message: 'FORBIDDEN. Endpoint is only available in debug mode in addtion to signature verification.',
+    });
 }
-
 function stripQueryParams(url: string, params: string[]) {
-  // Split the URL into the base and the query string
-  let [base, ...tail] = url.split('?')
-  let queryString = tail.join('?')
-
-  // If there's no query string, return the base URL
-  if (!queryString) return url
-
-  // Split the query string into individual key-value pairs
-  let queryParams = queryString.split('&')
-
-  // Filter out the parameters that are not in the params array
-  queryParams = queryParams.filter((param) => {
-    let [key, value] = param.split('=')
-    return !params.includes(key)
-  })
-
-  // Join the filtered parameters back into a query string
-  queryString = queryParams.join('&')
-
-  // If there are no parameters left, return the base URL
-  if (queryString === '') return base
-
-  // Otherwise, return the base URL with the filtered query string
-  return `${base}?${queryString}`
+    let [base, ...tail] = url.split('?');
+    let queryString = tail.join('?');
+    if (!queryString)
+        return url;
+    let queryParams = queryString.split('&');
+    queryParams = queryParams.filter((param) => {
+        let [key, value] = param.split('=');
+        return !params.includes(key);
+    });
+    queryString = queryParams.join('&');
+    if (queryString === '')
+        return base;
+    return `${base}?${queryString}`;
 }
-
-//Secury Levels: Unauthorized = 0, Low=1, Medium=2, High=3
-
-// Alias for isDebugModeMiddlewareHigh
 export const isDebugModeMiddleware = (_req, res, next) => {
-  isDebugModeMiddlewareHigh(_req, res, next)
-}
-
-// Middleware for low security level
+    isDebugModeMiddlewareHigh(_req, res, next);
+};
 export const isDebugModeMiddlewareLow = (_req, res, next) => {
-  const isDebug = isDebugMode()
-  if (!isDebug) {
-    handleDebugAuth(_req, res, next, DevSecurityLevel.Low)
-  } else next()
-}
-
-// Middleware for medium security level
+    const isDebug = isDebugMode();
+    if (!isDebug) {
+        handleDebugAuth(_req, res, next, DevSecurityLevel.Low);
+    }
+    else
+        next();
+};
 export const isDebugModeMiddlewareMedium = (_req, res, next) => {
-  const isDebug = isDebugMode()
-  if (!isDebug) {
-    handleDebugAuth(_req, res, next, DevSecurityLevel.Medium)
-  } else next()
-}
-
-// Middleware for high security level
+    const isDebug = isDebugMode();
+    if (!isDebug) {
+        handleDebugAuth(_req, res, next, DevSecurityLevel.Medium);
+    }
+    else
+        next();
+};
 export const isDebugModeMiddlewareHigh = (_req, res, next) => {
-  const isDebug = isDebugMode()
-  if (!isDebug) {
-    handleDebugAuth(_req, res, next, DevSecurityLevel.High)
-  } else next()
-}
-
+    const isDebug = isDebugMode();
+    if (!isDebug) {
+        handleDebugAuth(_req, res, next, DevSecurityLevel.High);
+    }
+    else
+        next();
+};
 export const isDebugModeMiddlewareMultiSig = (_req, res, next) => {
-  const isDebug = isDebugMode()
-  if (!isDebug) {
-    handleDebugMultiSigAuth(_req, res, next, DevSecurityLevel.High)
-  } else next()
-}
-
+    const isDebug = isDebugMode();
+    if (!isDebug) {
+        handleDebugMultiSigAuth(_req, res, next, DevSecurityLevel.High);
+    }
+    else
+        next();
+};
 export const isDebugModeMiddlewareMultiSigHigh = (_req, res, next) => {
-  const isDebug = isDebugMode()
-  if (!isDebug) {
-    handleDebugMultiSigAuth(_req, res, next, DevSecurityLevel.High)
-  } else next()
-}
-
+    const isDebug = isDebugMode();
+    if (!isDebug) {
+        handleDebugMultiSigAuth(_req, res, next, DevSecurityLevel.High);
+    }
+    else
+        next();
+};
 export const isDebugModeMiddlewareMultiSigMedium = (_req, res, next) => {
-  const isDebug = isDebugMode()
-  if (!isDebug) {
-    handleDebugMultiSigAuth(_req, res, next, DevSecurityLevel.Medium)
-  } else next()
-}
-
+    const isDebug = isDebugMode();
+    if (!isDebug) {
+        handleDebugMultiSigAuth(_req, res, next, DevSecurityLevel.Medium);
+    }
+    else
+        next();
+};
 export const isDebugModeMiddlewareMultiSigLow = (_req, res, next) => {
-  const isDebug = isDebugMode()
-  if (!isDebug) {
-    handleDebugMultiSigAuth(_req, res, next, DevSecurityLevel.Low)
-  } else next()
-}
+    const isDebug = isDebugMode();
+    if (!isDebug) {
+        handleDebugMultiSigAuth(_req, res, next, DevSecurityLevel.Low);
+    }
+    else
+        next();
+};
