@@ -982,6 +982,8 @@ export interface ServerConfiguration {
     networkTransactionsToProcessPerCycle: number
     useAjvCycleRecordValidation: boolean
     getTxTimestampTimeoutOffset?: number // default timeout is 5 seconds so this can be used to add or subtract time from that
+    /** allow dropping NGTs by hitting a single node's endpoint and the drop mesage being sent to other nodes by gossip  */
+    dropNGTByGossipEnabled: boolean
   }
   /** Server IP configuration */
   ip?: {

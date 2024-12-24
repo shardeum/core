@@ -276,24 +276,27 @@ export function init(): void {
       res.send({ status: 'fail', error: 'txHash not found' })
       return
     }
-    const reqParamsDropNGT = {
-      txHash,
-      url: req.originalUrl,
-      sigCounter: req.query.sig_counter,
-      pubKeys: req.query.nodePubkeys,
-      sig: req.query.sig,
-      usePrevCycle: q1SendRequests,
-      owner: '',
+    if (config.p2p.dropNGTByGossipEnabled) {
+      const reqParamsDropNGT = {
+        txHash,
+        url: req.originalUrl,
+        sigCounter: req.query.sig_counter,
+        pubKeys: req.query.nodePubkeys,
+        sig: req.query.sig,
+        usePrevCycle: q1SendRequests,
+        owner: '',
+      }
+      const verificationResult = verifyDebugDropNGT(reqParamsDropNGT, CycleChain.newest)
+      if (verificationResult.success === false) {
+        res.send({ status: 'fail', error: verificationResult.message })
+        return
+      }
+      debugDropNGTs.push(reqParamsDropNGT)
+      res.json({ status: 'ok', message: verificationResult.message })
+    } else {
+      txList.splice(index, 1)
+      res.send({ status: 'ok' })
     }
-
-    const verificationResult = verifyDebugDropNGT(reqParamsDropNGT, CycleChain.newest)
-    if (verificationResult.success === false) {
-      res.send({ status: 'fail', error: verificationResult.message })
-      return
-    }
-
-    debugDropNGTs.push(reqParamsDropNGT)
-    res.json({ status: 'ok', message: verificationResult.message })
   })
 
   network.registerExternalGet('debug-clear-network-txlist', isDebugModeMiddleware, (req, res) => {
