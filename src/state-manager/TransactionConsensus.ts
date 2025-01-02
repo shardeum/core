@@ -1811,6 +1811,7 @@ class TransactionConsenus {
       nestedCountersInstance.countEvent('consensus', 'get_tx_timestamp found tx timestamp in cacheById')
       return tsReceipt
     }
+    // Ensure the cycleCounter is within the acceptable range relative to lastest cycle number. If the absolute difference is greater than 1, return null to indicate an invalid state.
     if (Math.abs(cycleCounter - CycleChain.newest.counter) > 1 ){
       return null
     }
