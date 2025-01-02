@@ -80,7 +80,7 @@ const addTxGossipRoute: P2P.P2PTypes.GossipHandler<P2P.ServiceQueueTypes.SignedA
 
     if (!crypto.verify(payload, payload.sign.owner)) {
       if (logFlags.console) console.log(`addTxGossipRoute(): signature invalid`, payload.sign.owner)
-      /* prettier-ignore */ nestedCountersInstance.countEvent('serviceQueue.ts', `addTxGossipRoute(): signature invalid`)
+      /* prettier-ignore */ nestedCountersInstance.countEvent('serviceQueue', `addTxGossipRoute(): signature invalid`)
       return
     }
 
@@ -155,7 +155,7 @@ const removeTxGossipRoute: P2P.P2PTypes.GossipHandler<P2P.ServiceQueueTypes.Sign
 
     if (!crypto.verify(payload, payload.sign.owner)) {
       if (logFlags.console) console.log(`removeTxGossipRoute(): signature invalid`, payload.sign.owner)
-      /* prettier-ignore */ nestedCountersInstance.countEvent('serviceQueue.ts', `removeTxGossipRoute(): signature invalid`)
+      /* prettier-ignore */ nestedCountersInstance.countEvent('serviceQueue', `removeTxGossipRoute(): signature invalid`)
       return
     }
     const { sign, ...unsignedRemoveNetworkTx } = payload
@@ -186,21 +186,21 @@ const removeTxGossipRoute: P2P.P2PTypes.GossipHandler<P2P.ServiceQueueTypes.Sign
 const debugDropNGTGossipRoute: P2P.P2PTypes.GossipHandler<any> = async (payload, sender, tracker) => {
   profilerInstance.scopedProfileSectionStart('serviceQueue - debugDropNGT')
 
-  if ([1, 2].includes(currentQuarter) === false) {
-    /* prettier-ignore */ if (logFlags.error) info('debug-drop-network-tx: Got request after quarter 2')
-    return
-  }
-  if (txRemove.some((entry) => entry.txHash === payload.txHash)) {
-    /* prettier-ignore */ if (logFlags.error) info('debug-drop-network-tx: txHash already exists in txRemove')
-    return
-  }
   if (payload.txHash == null) {
-    /* prettier-ignore */ if (logFlags.error) info('debug-drop-network-tx: txHash not provided')
+    /* prettier-ignore */ if (logFlags.p2pNonFatal) error('debug-drop-network-tx: txHash not provided')
+    return
+  }
+  if ([1, 2].includes(currentQuarter) === false) {
+    /* prettier-ignore */ if (logFlags.p2pNonFatal) warn('debug-drop-network-tx: Got request after quarter 2')
     return
   }
   const index = txList.findIndex((entry) => entry.hash === payload.txHash)
   if (index === -1) {
-    /* prettier-ignore */ if (logFlags.error) info('debug-drop-network-tx: txHash not found')
+    /* prettier-ignore */ if (logFlags.p2pNonFatal) warn('debug-drop-network-tx: txHash not found')
+    return
+  }
+  if (txRemove.some((entry) => entry.txHash === payload.txHash)) {
+    /* prettier-ignore */ if (logFlags.p2pNonFatal) info('debug-drop-network-tx: txHash already exists in txRemove')
     return
   }
   let cycle = CycleChain.newest
@@ -209,7 +209,8 @@ const debugDropNGTGossipRoute: P2P.P2PTypes.GossipHandler<any> = async (payload,
   }
   const verificationResult = verifyDebugDropNGT(payload, cycle)
   if (verificationResult.success === false) {
-    console.log(`debug-drop-ngt - ${verificationResult.message}`)
+    if (logFlags.important_as_error) console.log(`debug-drop-ngt - ${verificationResult.message}`)
+    nestedCountersInstance.countEvent('serviceQueue', `debug-drop-ngt - verification of debug drop NGT payload failed: ${verificationResult.message}`)
     return
   }
   const unsignedRemoveNetworkTx = {
