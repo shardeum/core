@@ -139,15 +139,15 @@ interface Shardus {
   registerExternalPut: RouteHandlerRegister
   registerExternalDelete: RouteHandlerRegister
   registerExternalPatch: RouteHandlerRegister
-  registerBeforeAddVerifier: (type: string, verifier: (tx: OpaqueTransaction) => Promise<boolean>) => void
-  registerApplyVerifier: (type: string, verifier: (tx: OpaqueTransaction) => Promise<boolean>) => void
-  registerShutdownHandler: (
-    type: string,
-    handler: (
-      activeNode: P2P.NodeListTypes.Node,
-      record: P2P.CycleCreatorTypes.CycleRecord
-    ) => Omit<P2P.ServiceQueueTypes.AddNetworkTx, 'cycle' | 'hash'> | null | undefined
-  ) => void
+  serviceQueue: {
+    registerBeforeAddVerifier: typeof ServiceQueue.registerBeforeAddVerifier
+    registerApplyVerifier: typeof ServiceQueue.registerApplyVerifier
+    registerShutdownHandler: typeof ServiceQueue.registerShutdownHandler
+    containsTxData: typeof ServiceQueue.containsTxData
+    containsTx: typeof ServiceQueue.containsTx
+    addNetworkTx: typeof ServiceQueue.addNetworkTx
+    getLatestNetworkTxEntryForSubqueueKey: typeof ServiceQueue.getLatestNetworkTxEntryForSubqueueKey
+  }
   _listeners: any
   appliedConfigChanges: Set<string>
 
@@ -265,10 +265,16 @@ class Shardus extends EventEmitter {
     this.registerExternalPatch = (route, authHandler, handler) =>
       this.network.registerExternalPatch(route, authHandler, handler)
 
-    this.registerBeforeAddVerifier = ServiceQueue.registerBeforeAddVerifier
-    this.registerApplyVerifier = ServiceQueue.registerApplyVerifier
-    this.registerApplyVerifier = ServiceQueue.registerApplyVerifier
-    this.registerShutdownHandler = ServiceQueue.registerShutdownHandler
+    // serviceQueue module
+    this.serviceQueue = {
+      registerBeforeAddVerifier: ServiceQueue.registerBeforeAddVerifier,
+      registerApplyVerifier: ServiceQueue.registerApplyVerifier,
+      registerShutdownHandler: ServiceQueue.registerShutdownHandler,
+      containsTxData: ServiceQueue.containsTxData,
+      containsTx: ServiceQueue.containsTx,
+      addNetworkTx: ServiceQueue.addNetworkTx,
+      getLatestNetworkTxEntryForSubqueueKey: ServiceQueue.getLatestNetworkTxEntryForSubqueueKey
+    }
 
     this.exitHandler.addSigListeners()
     this.exitHandler.registerSync('reporter', () => {
