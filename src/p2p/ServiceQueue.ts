@@ -533,6 +533,15 @@ export function sendRequests(): void {
 
 /** Module Functions */
 
+export function containsTx(txHash: string): boolean {
+  return txList.some((entry) => entry.hash === txHash)
+}
+
+export function containsTxData(txData: OpaqueTransaction): boolean {
+  const hash = crypto.hash(txData)
+  return containsTx(hash)
+}
+
 export function registerShutdownHandler(
   type: string,
   handler: (
