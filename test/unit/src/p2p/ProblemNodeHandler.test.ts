@@ -179,16 +179,19 @@ describe('ProblemNodeHandler', () => {
       // Create nodes with different refute percentages
       const node1: Node = {
         ...baseMockNode,
+        id: 'node1',
         refuteCycles: new Set([2, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100]), // 11% refute rate
       }
 
       const node2: Node = {
         ...baseMockNode,
+        id: 'node2',
         refuteCycles: new Set([90, 92, 94, 96, 98, 100]), // 6% refute rate
       }
 
       const node3: Node = {
         ...baseMockNode,
+        id: 'node3',
         refuteCycles: new Set([98, 99, 100]), // 3% refute rate but 3 consecutive
       }
 
