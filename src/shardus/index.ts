@@ -925,51 +925,63 @@ class Shardus extends EventEmitter {
         else this.exitHandler.exitUncleanly(`invoke-exit: ${tag}`, `invoke-exit: ${tag} ${exitType}`) // exits with status 1 so that PM2 CANNOT restart the process
       }
     )
-    Self.emitter.on('node-activated', ({ ...params }) => {
+    Self.emitter.on('node-activated', async ({ ...params }) => {
       if (networkMode === 'shutdown') return
       try {
-        this.app.eventNotify?.({ type: 'node-activated', ...params })
+        const result: any = this.app.eventNotify?.({ type: 'node-activated', ...params })
+        if (result instanceof Promise) {
+          await result
+        }
       } catch (e) {
-        this.mainLogger.error(`Error: while processing node-activated event stack: ${e.stack}`)
+        this.mainLogger.error(`Error: while processing node-activated event stack: ${utils.formatErrorMessage(e)}`)
       }
     })
-    Self.emitter.on('node-deactivated', ({ ...params }) => {
+    Self.emitter.on('node-deactivated', async ({ ...params }) => {
       if (networkMode === 'shutdown') return
       try {
-        this.app.eventNotify?.({ type: 'node-deactivated', ...params })
+        const result: any = this.app.eventNotify?.({ type: 'node-deactivated', ...params })
+        if (result instanceof Promise) {
+          await result
+        }
       } catch (e) {
-        this.mainLogger.error(`Error: while processing node-deactivated event stack: ${e.stack}`)
+        this.mainLogger.error(`Error: while processing node-deactivated event stack: ${utils.formatErrorMessage(e)}`)
       }
     })
-    Self.emitter.on('node-refuted', ({ ...params }) => {
+    Self.emitter.on('node-refuted', async ({ ...params }) => {
       try {
         if (!this.stateManager.currentCycleShardData) throw new Error('No current cycle data')
         if (params.publicKey == null) throw new Error('No node publicKey provided for node-refuted event')
         const consensusNodes = this.getConsenusGroupForAccount(params.publicKey)
         for (let node of consensusNodes) {
           if (node.id === Self.id) {
-            this.app.eventNotify?.({ type: 'node-refuted', ...params })
+            const result: any = this.app.eventNotify?.({ type: 'node-refuted', ...params })
+            if (result instanceof Promise) {
+              await result
+            }
           }
         }
       } catch (e) {
-        this.mainLogger.error(`Error: while processing node-refuted event stack: ${e.stack}`)
+        this.mainLogger.error(`Error: while processing node-refuted event stack: ${utils.formatErrorMessage(e)}`)
       }
     })
-    Self.emitter.on('node-left-early', ({ ...params }) => {
+    Self.emitter.on('node-left-early', async ({ ...params }) => {
       try {
         if (!this.stateManager.currentCycleShardData) throw new Error('No current cycle data')
         if (params.publicKey == null) throw new Error('No node publicKey provided for node-left-early event')
         const consensusNodes = this.getConsenusGroupForAccount(params.publicKey)
         for (let node of consensusNodes) {
           if (node.id === Self.id) {
-            this.app.eventNotify?.({ type: 'node-left-early', ...params })
+            const result: any = this.app.eventNotify?.({ type: 'node-left-early', ...params })
+            if (result instanceof Promise) {
+              await result
+            }
           }
         }
       } catch (e) {
-        this.mainLogger.error(`Error: while processing node-left-early event stack: ${e.stack}`)
+        this.mainLogger.error(`Error: while processing node-left-early event stack: ${utils.formatErrorMessage(e)}`)
       }
     })
-    Self.emitter.on('node-sync-timeout', ({ ...params }) => {
+    Self.emitter.on('node-sync-timeout', async ({ ...params }) => {
       try {
         if (!this.stateManager.currentCycleShardData) throw new Error('No current cycle data')
         if (params.publicKey == null)
@@ -977,19 +989,25 @@ class Shardus extends EventEmitter {
         const consensusNodes = this.getConsenusGroupForAccount(params.publicKey)
         for (let node of consensusNodes) {
           if (node.id === Self.id) {
-            this.app.eventNotify?.({ type: 'node-sync-timeout', ...params })
+            const result: any = this.app.eventNotify?.({ type: 'node-sync-timeout', ...params })
+            if (result instanceof Promise) {
+              await result
+            }
             break
           }
         }
       } catch (e) {
-        this.mainLogger.error(`Error: while processing node-sync-timeout event stack: ${e.stack}`)
+        this.mainLogger.error(`Error: while processing node-sync-timeout event stack: ${utils.formatErrorMessage(e)}`)
       }
     })
-    Self.emitter.on('try-network-transaction', ({ ...params }) => {
+    Self.emitter.on('try-network-transaction', async ({ ...params }) => {
       try {
-        this.app.eventNotify?.({ type: 'try-network-transaction', ...params })
+        const result: any = this.app.eventNotify?.({ type: 'try-network-transaction', ...params })
+        if (result instanceof Promise) {
+          await result
+        }
       } catch (e) {
-        this.mainLogger.error(`Error: while processing try-network-transaction event stack: ${e.stack}`)
+        this.mainLogger.error(`Error: while processing try-network-transaction event stack: ${utils.formatErrorMessage(e)}`)
       }
     })
 
