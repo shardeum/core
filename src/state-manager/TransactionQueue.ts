@@ -515,88 +515,88 @@ class TransactionQueue {
 
     this.p2p.registerInternalBinary(broadcastStateRoute.name, broadcastStateRoute.handler)
 
-    const broadcastFinalStateRoute: P2PTypes.P2PTypes.Route<InternalBinaryHandler<Buffer>> = {
-      name: InternalRouteEnum.binary_broadcast_finalstate,
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      handler: (payload, response, header, sign) => {
-        const route = InternalRouteEnum.binary_broadcast_finalstate
-        nestedCountersInstance.countEvent('internal', route)
-        profilerInstance.scopedProfileSectionStart(route, false, payload.length)
-        const errorHandler = (
-          errorType: RequestErrorEnum,
-          opts?: { customErrorLog?: string; customCounterSuffix?: string }
-        ): void => requestErrorHandler(route, errorType, header, opts)
+    // const broadcastFinalStateRoute: P2PTypes.P2PTypes.Route<InternalBinaryHandler<Buffer>> = {
+    //   name: InternalRouteEnum.binary_broadcast_finalstate,
+    //   // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    //   handler: (payload, response, header, sign) => {
+    //     const route = InternalRouteEnum.binary_broadcast_finalstate
+    //     nestedCountersInstance.countEvent('internal', route)
+    //     profilerInstance.scopedProfileSectionStart(route, false, payload.length)
+    //     const errorHandler = (
+    //       errorType: RequestErrorEnum,
+    //       opts?: { customErrorLog?: string; customCounterSuffix?: string }
+    //     ): void => requestErrorHandler(route, errorType, header, opts)
 
-        try {
-          const requestStream = getStreamWithTypeCheck(payload, TypeIdentifierEnum.cBroadcastFinalStateReq)
-          if (!requestStream) {
-            return errorHandler(RequestErrorEnum.InvalidRequest)
-          }
+    //     try {
+    //       const requestStream = getStreamWithTypeCheck(payload, TypeIdentifierEnum.cBroadcastFinalStateReq)
+    //       if (!requestStream) {
+    //         return errorHandler(RequestErrorEnum.InvalidRequest)
+    //       }
 
-          // verification data checks
-          if (header.verification_data == null) {
-            return errorHandler(RequestErrorEnum.MissingVerificationData)
-          }
-          const verificationDataParts = verificationDataSplitter(header.verification_data)
-          if (verificationDataParts.length !== 2) {
-            return errorHandler(RequestErrorEnum.InvalidVerificationData)
-          }
-          const [vTxId, vStateSize] = verificationDataParts
-          const queueEntry = this.getQueueEntrySafe(vTxId)
-          //It is okay to ignore this transaction if the txId is not found in the queue.
-          if (queueEntry == null) {
-            /* prettier-ignore */ if (logFlags.error && logFlags.verbose) this.mainLogger.error(`${route} cant find queueEntry for: ${utils.makeShortHash(vTxId)}`)
-            return errorHandler(RequestErrorEnum.InvalidVerificationData, {
-              customCounterSuffix: 'queueEntryNotFound',
-            })
-          }
+    //       // verification data checks
+    //       if (header.verification_data == null) {
+    //         return errorHandler(RequestErrorEnum.MissingVerificationData)
+    //       }
+    //       const verificationDataParts = verificationDataSplitter(header.verification_data)
+    //       if (verificationDataParts.length !== 2) {
+    //         return errorHandler(RequestErrorEnum.InvalidVerificationData)
+    //       }
+    //       const [vTxId, vStateSize] = verificationDataParts
+    //       const queueEntry = this.getQueueEntrySafe(vTxId)
+    //       //It is okay to ignore this transaction if the txId is not found in the queue.
+    //       if (queueEntry == null) {
+    //         /* prettier-ignore */ if (logFlags.error && logFlags.verbose) this.mainLogger.error(`${route} cant find queueEntry for: ${utils.makeShortHash(vTxId)}`)
+    //         return errorHandler(RequestErrorEnum.InvalidVerificationData, {
+    //           customCounterSuffix: 'queueEntryNotFound',
+    //         })
+    //       }
 
-          // deserialization
-          const req = deserializeBroadcastFinalStateReq(requestStream)
-          if (req.txid !== vTxId) {
-            return errorHandler(RequestErrorEnum.InvalidVerificationData)
-          }
+    //       // deserialization
+    //       const req = deserializeBroadcastFinalStateReq(requestStream)
+    //       if (req.txid !== vTxId) {
+    //         return errorHandler(RequestErrorEnum.InvalidVerificationData)
+    //       }
 
-          if (req.stateList.length !== parseInt(vStateSize)) {
-            return errorHandler(RequestErrorEnum.InvalidVerificationData)
-          }
+    //       if (req.stateList.length !== parseInt(vStateSize)) {
+    //         return errorHandler(RequestErrorEnum.InvalidVerificationData)
+    //       }
 
-          /* prettier-ignore */ if (logFlags.verbose && logFlags.console) console.log(`${route}: txId: ${req.txid} stateSize: ${req.stateList.length}`)
-          let saveSomething = false
-          for (const data of req.stateList) {
-            //let wrappedResponse = data as Shardus.WrappedResponse
-            //this.queueEntryAddData(queueEntry, data)
-            if (data == null) {
-              /* prettier-ignore */ if (logFlags.error && logFlags.verbose) this.mainLogger.error(`broadcast_finalstate data == null`)
-              continue
-            }
-            const isValidFinalDataSender = this.factValidateCorrespondingTellFinalDataSender(queueEntry, header.sender_id)
-            if (isValidFinalDataSender === false) {
-              /* prettier-ignore */ if (logFlags.error) this.mainLogger.error(`broadcast_finalstate invalid sender ${header.sender_id} for data: ${data.accountId}`)
-              return errorHandler(RequestErrorEnum.InvalidSender);
-            }
-          }
-          for (const data of req.stateList) {
-            if (data == null) {
-              /* prettier-ignore */ if (logFlags.error && logFlags.verbose) this.mainLogger.error(`broadcast_finalstate data == null`)
-              continue
-            }
-            if (queueEntry.collectedFinalData[data.accountId] == null) {
-              queueEntry.collectedFinalData[data.accountId] = data
-              saveSomething = true
-              /* prettier-ignore */ if (logFlags.playback && logFlags.verbose) this.logger.playbackLogNote('broadcast_finalstate', `${queueEntry.logID}`, `broadcast_finalstate addFinalData qId: ${queueEntry.entryID} data:${utils.makeShortHash(data.accountId)} collected keys: ${utils.stringifyReduce(Object.keys(queueEntry.collectedFinalData))}`)
-            }
-          }
-        } catch (e) {
-          nestedCountersInstance.countEvent('internal', `${route}-exception`)
-          /* prettier-ignore */ if (logFlags.error) this.mainLogger.error(`${route}: Exception executing request: ${errorToStringFull(e)}`)
-        } finally {
-          profilerInstance.scopedProfileSectionEnd(route, payload.length)
-        }
-      },
-    }
+    //       /* prettier-ignore */ if (logFlags.verbose && logFlags.console) console.log(`${route}: txId: ${req.txid} stateSize: ${req.stateList.length}`)
+    //       let saveSomething = false
+    //       for (const data of req.stateList) {
+    //         //let wrappedResponse = data as Shardus.WrappedResponse
+    //         //this.queueEntryAddData(queueEntry, data)
+    //         if (data == null) {
+    //           /* prettier-ignore */ if (logFlags.error && logFlags.verbose) this.mainLogger.error(`broadcast_finalstate data == null`)
+    //           continue
+    //         }
+    //         const isValidFinalDataSender = this.factValidateCorrespondingTellFinalDataSender(queueEntry, header.sender_id)
+    //         if (isValidFinalDataSender === false) {
+    //           /* prettier-ignore */ if (logFlags.error) this.mainLogger.error(`broadcast_finalstate invalid sender ${header.sender_id} for data: ${data.accountId}`)
+    //           return errorHandler(RequestErrorEnum.InvalidSender);
+    //         }
+    //       }
+    //       for (const data of req.stateList) {
+    //         if (data == null) {
+    //           /* prettier-ignore */ if (logFlags.error && logFlags.verbose) this.mainLogger.error(`broadcast_finalstate data == null`)
+    //           continue
+    //         }
+    //         if (queueEntry.collectedFinalData[data.accountId] == null) {
+    //           queueEntry.collectedFinalData[data.accountId] = data
+    //           saveSomething = true
+    //           /* prettier-ignore */ if (logFlags.playback && logFlags.verbose) this.logger.playbackLogNote('broadcast_finalstate', `${queueEntry.logID}`, `broadcast_finalstate addFinalData qId: ${queueEntry.entryID} data:${utils.makeShortHash(data.accountId)} collected keys: ${utils.stringifyReduce(Object.keys(queueEntry.collectedFinalData))}`)
+    //         }
+    //       }
+    //     } catch (e) {
+    //       nestedCountersInstance.countEvent('internal', `${route}-exception`)
+    //       /* prettier-ignore */ if (logFlags.error) this.mainLogger.error(`${route}: Exception executing request: ${errorToStringFull(e)}`)
+    //     } finally {
+    //       profilerInstance.scopedProfileSectionEnd(route, payload.length)
+    //     }
+    //   },
+    // }
 
-    this.p2p.registerInternalBinary(broadcastFinalStateRoute.name, broadcastFinalStateRoute.handler)
+    // this.p2p.registerInternalBinary(broadcastFinalStateRoute.name, broadcastFinalStateRoute.handler)
 
     // this.p2p.registerInternal(
     //   'spread_tx_to_group_syncing',
@@ -4783,225 +4783,225 @@ class TransactionQueue {
    * @param queueEntry
    * @returns
    */
-  async tellCorrespondingNodesFinalData(queueEntry: QueueEntry): Promise<void> {
-    profilerInstance.profileSectionStart('tellCorrespondingNodesFinalData', true)
-    /* prettier-ignore */ if (logFlags.playback) this.logger.playbackLogNote('tellCorrespondingNodesFinalData', queueEntry.logID, `tellCorrespondingNodesFinalData - start: ${queueEntry.logID}`)
+  // async tellCorrespondingNodesFinalData(queueEntry: QueueEntry): Promise<void> {
+  //   profilerInstance.profileSectionStart('tellCorrespondingNodesFinalData', true)
+  //   /* prettier-ignore */ if (logFlags.playback) this.logger.playbackLogNote('tellCorrespondingNodesFinalData', queueEntry.logID, `tellCorrespondingNodesFinalData - start: ${queueEntry.logID}`)
 
-    if (this.stateManager.currentCycleShardData == null) {
-      throw new Error('tellCorrespondingNodesFinalData: currentCycleShardData == null')
-    }
-    if (queueEntry.uniqueKeys == null) {
-      throw new Error('tellCorrespondingNodesFinalData: queueEntry.uniqueKeys == null')
-    }
-    if (queueEntry.globalModification === true) {
-      throw new Error('tellCorrespondingNodesFinalData globalModification === true')
-    }
+  //   if (this.stateManager.currentCycleShardData == null) {
+  //     throw new Error('tellCorrespondingNodesFinalData: currentCycleShardData == null')
+  //   }
+  //   if (queueEntry.uniqueKeys == null) {
+  //     throw new Error('tellCorrespondingNodesFinalData: queueEntry.uniqueKeys == null')
+  //   }
+  //   if (queueEntry.globalModification === true) {
+  //     throw new Error('tellCorrespondingNodesFinalData globalModification === true')
+  //   }
 
-    if (this.executeInOneShard && queueEntry.isInExecutionHome === false) {
-      throw new Error('tellCorrespondingNodesFinalData isInExecutionHome === false')
-    }
-    if (queueEntry.executionShardKey == null || queueEntry.executionShardKey == '') {
-      throw new Error('tellCorrespondingNodesFinalData executionShardKey == null or empty')
-    }
-    if (queueEntry.preApplyTXResult == null) {
-      throw new Error('tellCorrespondingNodesFinalData preApplyTXResult == null')
-    }
+  //   if (this.executeInOneShard && queueEntry.isInExecutionHome === false) {
+  //     throw new Error('tellCorrespondingNodesFinalData isInExecutionHome === false')
+  //   }
+  //   if (queueEntry.executionShardKey == null || queueEntry.executionShardKey == '') {
+  //     throw new Error('tellCorrespondingNodesFinalData executionShardKey == null or empty')
+  //   }
+  //   if (queueEntry.preApplyTXResult == null) {
+  //     throw new Error('tellCorrespondingNodesFinalData preApplyTXResult == null')
+  //   }
 
-    // Report data to corresponding nodes
-    const ourNodeData = this.stateManager.currentCycleShardData.nodeShardData
-    let correspondingAccNodes: Shardus.Node[] = []
-    const datas: { [accountID: string]: Shardus.WrappedResponse } = {}
+  //   // Report data to corresponding nodes
+  //   const ourNodeData = this.stateManager.currentCycleShardData.nodeShardData
+  //   let correspondingAccNodes: Shardus.Node[] = []
+  //   const datas: { [accountID: string]: Shardus.WrappedResponse } = {}
 
-    const applyResponse = queueEntry.preApplyTXResult.applyResponse
-    let wrappedStates = this.stateManager.useAccountWritesOnly ? {} : queueEntry.collectedData
-    const writtenAccountsMap: WrappedResponses = {}
-    if (applyResponse.accountWrites != null && applyResponse.accountWrites.length > 0) {
-      for (const writtenAccount of applyResponse.accountWrites) {
-        writtenAccountsMap[writtenAccount.accountId] = writtenAccount.data
-        writtenAccountsMap[writtenAccount.accountId].prevStateId = wrappedStates[writtenAccount.accountId]
-          ? wrappedStates[writtenAccount.accountId].stateId
-          : ''
-        writtenAccountsMap[writtenAccount.accountId].prevDataCopy = wrappedStates[writtenAccount.accountId]
-          ? utils.deepCopy(writtenAccount.data)
-          : {}
+  //   const applyResponse = queueEntry.preApplyTXResult.applyResponse
+  //   let wrappedStates = this.stateManager.useAccountWritesOnly ? {} : queueEntry.collectedData
+  //   const writtenAccountsMap: WrappedResponses = {}
+  //   if (applyResponse.accountWrites != null && applyResponse.accountWrites.length > 0) {
+  //     for (const writtenAccount of applyResponse.accountWrites) {
+  //       writtenAccountsMap[writtenAccount.accountId] = writtenAccount.data
+  //       writtenAccountsMap[writtenAccount.accountId].prevStateId = wrappedStates[writtenAccount.accountId]
+  //         ? wrappedStates[writtenAccount.accountId].stateId
+  //         : ''
+  //       writtenAccountsMap[writtenAccount.accountId].prevDataCopy = wrappedStates[writtenAccount.accountId]
+  //         ? utils.deepCopy(writtenAccount.data)
+  //         : {}
 
-        datas[writtenAccount.accountId] = writtenAccount.data
-      }
-      //override wrapped states with writtenAccountsMap which should be more complete if it included
-      wrappedStates = writtenAccountsMap
-    }
-    const keysToShare = Object.keys(wrappedStates)
+  //       datas[writtenAccount.accountId] = writtenAccount.data
+  //     }
+  //     //override wrapped states with writtenAccountsMap which should be more complete if it included
+  //     wrappedStates = writtenAccountsMap
+  //   }
+  //   const keysToShare = Object.keys(wrappedStates)
 
-    let message: { stateList: Shardus.WrappedResponse[]; txid: string }
-    let edgeNodeIds = []
-    let consensusNodeIds = []
+  //   let message: { stateList: Shardus.WrappedResponse[]; txid: string }
+  //   let edgeNodeIds = []
+  //   let consensusNodeIds = []
 
-    const localHomeNode = queueEntry.homeNodes[queueEntry.executionShardKey]
+  //   const localHomeNode = queueEntry.homeNodes[queueEntry.executionShardKey]
 
-    let nodesToSendTo: StringNodeObjectMap = {}
-    let doOnceNodeAccPair = new Set<string>() //can skip  node+acc if it happens more than once.
+  //   let nodesToSendTo: StringNodeObjectMap = {}
+  //   let doOnceNodeAccPair = new Set<string>() //can skip  node+acc if it happens more than once.
 
-    //let uniqueAccountsShared = 0
-    let totalShares = 0
-    for (const key of keysToShare) {
-      nodesToSendTo = {}
-      doOnceNodeAccPair = new Set<string>()
+  //   //let uniqueAccountsShared = 0
+  //   let totalShares = 0
+  //   for (const key of keysToShare) {
+  //     nodesToSendTo = {}
+  //     doOnceNodeAccPair = new Set<string>()
 
-      // eslint-disable-next-line security/detect-object-injection
-      if (wrappedStates[key] != null) {
-        // eslint-disable-next-line security/detect-object-injection
-        let accountHomeNode = queueEntry.homeNodes[key]
+  //     // eslint-disable-next-line security/detect-object-injection
+  //     if (wrappedStates[key] != null) {
+  //       // eslint-disable-next-line security/detect-object-injection
+  //       let accountHomeNode = queueEntry.homeNodes[key]
 
-        if (accountHomeNode == null) {
-          accountHomeNode = ShardFunctions.findHomeNode(
-            this.stateManager.currentCycleShardData.shardGlobals,
-            key,
-            this.stateManager.currentCycleShardData.parititionShardDataMap
-          )
-          nestedCountersInstance.countEvent('stateManager', 'fetch missing home info')
-        }
-        if (accountHomeNode == null) {
-          throw new Error('tellCorrespondingNodesFinalData: should never get here.  accountHomeNode == null')
-        }
+  //       if (accountHomeNode == null) {
+  //         accountHomeNode = ShardFunctions.findHomeNode(
+  //           this.stateManager.currentCycleShardData.shardGlobals,
+  //           key,
+  //           this.stateManager.currentCycleShardData.parititionShardDataMap
+  //         )
+  //         nestedCountersInstance.countEvent('stateManager', 'fetch missing home info')
+  //       }
+  //       if (accountHomeNode == null) {
+  //         throw new Error('tellCorrespondingNodesFinalData: should never get here.  accountHomeNode == null')
+  //       }
 
-        edgeNodeIds = []
-        consensusNodeIds = []
-        correspondingAccNodes = []
+  //       edgeNodeIds = []
+  //       consensusNodeIds = []
+  //       correspondingAccNodes = []
 
-        if (queueEntry.ourExGroupIndex === -1) {
-          throw new Error(
-            'tellCorrespondingNodesFinalData: should never get here.  our sending node must be in the execution group'
-          )
-        }
+  //       if (queueEntry.ourExGroupIndex === -1) {
+  //         throw new Error(
+  //           'tellCorrespondingNodesFinalData: should never get here.  our sending node must be in the execution group'
+  //         )
+  //       }
 
-        const ourLocalExecutionSetIndex = queueEntry.ourExGroupIndex
-        const ourSendingGroupSize = queueEntry.executionGroupMap.size
+  //       const ourLocalExecutionSetIndex = queueEntry.ourExGroupIndex
+  //       const ourSendingGroupSize = queueEntry.executionGroupMap.size
 
-        const consensusListSize = accountHomeNode.consensusNodeForOurNodeFull.length
-        const edgeListSize = accountHomeNode.edgeNodes.length
-        const pachedListSize = accountHomeNode.patchedOnNodes.length
+  //       const consensusListSize = accountHomeNode.consensusNodeForOurNodeFull.length
+  //       const edgeListSize = accountHomeNode.edgeNodes.length
+  //       const pachedListSize = accountHomeNode.patchedOnNodes.length
 
-        // must add one to each lookup index!
-        const indicies = ShardFunctions.debugFastStableCorrespondingIndicies(
-          ourSendingGroupSize,
-          consensusListSize,
-          ourLocalExecutionSetIndex + 1
-        )
-        const edgeIndicies = ShardFunctions.debugFastStableCorrespondingIndicies(
-          ourSendingGroupSize,
-          edgeListSize,
-          ourLocalExecutionSetIndex + 1
-        )
+  //       // must add one to each lookup index!
+  //       const indicies = ShardFunctions.debugFastStableCorrespondingIndicies(
+  //         ourSendingGroupSize,
+  //         consensusListSize,
+  //         ourLocalExecutionSetIndex + 1
+  //       )
+  //       const edgeIndicies = ShardFunctions.debugFastStableCorrespondingIndicies(
+  //         ourSendingGroupSize,
+  //         edgeListSize,
+  //         ourLocalExecutionSetIndex + 1
+  //       )
 
-        let patchIndicies = []
-        if (accountHomeNode.patchedOnNodes.length > 0) {
-          patchIndicies = ShardFunctions.debugFastStableCorrespondingIndicies(
-            ourSendingGroupSize,
-            pachedListSize,
-            ourLocalExecutionSetIndex + 1
-          )
-        }
+  //       let patchIndicies = []
+  //       if (accountHomeNode.patchedOnNodes.length > 0) {
+  //         patchIndicies = ShardFunctions.debugFastStableCorrespondingIndicies(
+  //           ourSendingGroupSize,
+  //           pachedListSize,
+  //           ourLocalExecutionSetIndex + 1
+  //         )
+  //       }
 
-        // for each remote node lets save it's id
-        for (const index of indicies) {
-          const node = accountHomeNode.consensusNodeForOurNodeFull[index - 1] // fastStableCorrespondingIndicies is one based so adjust for 0 based array
-          if (node != null && node.id !== ourNodeData.node.id) {
-            nodesToSendTo[node.id] = node
-            consensusNodeIds.push(node.id)
-          }
-        }
-        for (const index of edgeIndicies) {
-          const node = accountHomeNode.edgeNodes[index - 1] // fastStableCorrespondingIndicies is one based so adjust for 0 based array
-          if (node != null && node.id !== ourNodeData.node.id) {
-            nodesToSendTo[node.id] = node
-            edgeNodeIds.push(node.id)
-          }
-        }
+  //       // for each remote node lets save it's id
+  //       for (const index of indicies) {
+  //         const node = accountHomeNode.consensusNodeForOurNodeFull[index - 1] // fastStableCorrespondingIndicies is one based so adjust for 0 based array
+  //         if (node != null && node.id !== ourNodeData.node.id) {
+  //           nodesToSendTo[node.id] = node
+  //           consensusNodeIds.push(node.id)
+  //         }
+  //       }
+  //       for (const index of edgeIndicies) {
+  //         const node = accountHomeNode.edgeNodes[index - 1] // fastStableCorrespondingIndicies is one based so adjust for 0 based array
+  //         if (node != null && node.id !== ourNodeData.node.id) {
+  //           nodesToSendTo[node.id] = node
+  //           edgeNodeIds.push(node.id)
+  //         }
+  //       }
 
-        for (const index of patchIndicies) {
-          const node = accountHomeNode.edgeNodes[index - 1] // fastStableCorrespondingIndicies is one based so adjust for 0 based array
-          if (node != null && node.id !== ourNodeData.node.id) {
-            nodesToSendTo[node.id] = node
-            //edgeNodeIds.push(node.id)
-          }
-        }
+  //       for (const index of patchIndicies) {
+  //         const node = accountHomeNode.edgeNodes[index - 1] // fastStableCorrespondingIndicies is one based so adjust for 0 based array
+  //         if (node != null && node.id !== ourNodeData.node.id) {
+  //           nodesToSendTo[node.id] = node
+  //           //edgeNodeIds.push(node.id)
+  //         }
+  //       }
 
-        for (const [accountID, node] of Object.entries(nodesToSendTo)) {
-          const keyPair = accountID + key
-          if (node != null && doOnceNodeAccPair.has(keyPair) === false) {
-            doOnceNodeAccPair.add(keyPair)
-            correspondingAccNodes.push(node)
-          }
-        }
+  //       for (const [accountID, node] of Object.entries(nodesToSendTo)) {
+  //         const keyPair = accountID + key
+  //         if (node != null && doOnceNodeAccPair.has(keyPair) === false) {
+  //           doOnceNodeAccPair.add(keyPair)
+  //           correspondingAccNodes.push(node)
+  //         }
+  //       }
 
-        //how can we be making so many calls??
-        /* prettier-ignore */ if (logFlags.verbose) if (logFlags.playback) this.logger.playbackLogNote('tellCorrespondingNodesFinalData', queueEntry.logID, `tellCorrespondingNodesFinalData nodesToSendTo:${Object.keys(nodesToSendTo).length} doOnceNodeAccPair:${doOnceNodeAccPair.size} indicies:${Utils.safeStringify(indicies)} edgeIndicies:${Utils.safeStringify(edgeIndicies)} patchIndicies:${Utils.safeStringify(patchIndicies)}  doOnceNodeAccPair: ${Utils.safeStringify([...doOnceNodeAccPair.keys()])} ourLocalExecutionSetIndex:${ourLocalExecutionSetIndex} ourSendingGroupSize:${ourSendingGroupSize} consensusListSize:${consensusListSize} edgeListSize:${edgeListSize} pachedListSize:${pachedListSize}`)
+  //       //how can we be making so many calls??
+  //       /* prettier-ignore */ if (logFlags.verbose) if (logFlags.playback) this.logger.playbackLogNote('tellCorrespondingNodesFinalData', queueEntry.logID, `tellCorrespondingNodesFinalData nodesToSendTo:${Object.keys(nodesToSendTo).length} doOnceNodeAccPair:${doOnceNodeAccPair.size} indicies:${Utils.safeStringify(indicies)} edgeIndicies:${Utils.safeStringify(edgeIndicies)} patchIndicies:${Utils.safeStringify(patchIndicies)}  doOnceNodeAccPair: ${Utils.safeStringify([...doOnceNodeAccPair.keys()])} ourLocalExecutionSetIndex:${ourLocalExecutionSetIndex} ourSendingGroupSize:${ourSendingGroupSize} consensusListSize:${consensusListSize} edgeListSize:${edgeListSize} pachedListSize:${pachedListSize}`)
 
-        const dataToSend: Shardus.WrappedResponse[] = []
-        // eslint-disable-next-line security/detect-object-injection
-        dataToSend.push(datas[key]) // only sending just this one key at a time
-        message = { stateList: dataToSend, txid: queueEntry.acceptedTx.txId }
-        if (correspondingAccNodes.length > 0) {
-          const remoteRelation = ShardFunctions.getNodeRelation(
-            accountHomeNode,
-            this.stateManager.currentCycleShardData.ourNode.id
-          )
-          const localRelation = ShardFunctions.getNodeRelation(
-            localHomeNode,
-            this.stateManager.currentCycleShardData.ourNode.id
-          )
-          /* prettier-ignore */ if (logFlags.playback) this.logger.playbackLogNote('tellCorrespondingNodesFinalData', queueEntry.logID, `remoteRel: ${remoteRelation} localrel: ${localRelation} qId: ${queueEntry.entryID} AccountBeingShared: ${utils.makeShortHash(key)} EdgeNodes:${utils.stringifyReduce(edgeNodeIds)} ConsesusNodes${utils.stringifyReduce(consensusNodeIds)}`)
+  //       const dataToSend: Shardus.WrappedResponse[] = []
+  //       // eslint-disable-next-line security/detect-object-injection
+  //       dataToSend.push(datas[key]) // only sending just this one key at a time
+  //       message = { stateList: dataToSend, txid: queueEntry.acceptedTx.txId }
+  //       if (correspondingAccNodes.length > 0) {
+  //         const remoteRelation = ShardFunctions.getNodeRelation(
+  //           accountHomeNode,
+  //           this.stateManager.currentCycleShardData.ourNode.id
+  //         )
+  //         const localRelation = ShardFunctions.getNodeRelation(
+  //           localHomeNode,
+  //           this.stateManager.currentCycleShardData.ourNode.id
+  //         )
+  //         /* prettier-ignore */ if (logFlags.playback) this.logger.playbackLogNote('tellCorrespondingNodesFinalData', queueEntry.logID, `remoteRel: ${remoteRelation} localrel: ${localRelation} qId: ${queueEntry.entryID} AccountBeingShared: ${utils.makeShortHash(key)} EdgeNodes:${utils.stringifyReduce(edgeNodeIds)} ConsesusNodes${utils.stringifyReduce(consensusNodeIds)}`)
 
-          // Filter nodes before we send tell()
-          const filteredNodes = this.stateManager.filterValidNodesForInternalMessage(
-            correspondingAccNodes,
-            'tellCorrespondingNodesFinalData',
-            true,
-            true
-          )
-          if (filteredNodes.length === 0) {
-            /* prettier-ignore */ if (logFlags.error) this.mainLogger.error('tellCorrespondingNodesFinalData: filterValidNodesForInternalMessage no valid nodes left to try')
-            //return null
-            continue
-          }
-          const filterdCorrespondingAccNodes = filteredNodes
-          const filterNodesIpPort = filterdCorrespondingAccNodes.map(
-            (node) => node.externalIp + ':' + node.externalPort
-          )
-          /* prettier-ignore */ if (logFlags.error) this.mainLogger.debug('tellcorrernodingnodesfinaldata', queueEntry.logID, ` : filterValidNodesForInternalMessage ${filterNodesIpPort} for accounts: ${utils.stringifyReduce(message.stateList)}`)
-          // if (this.config.p2p.useBinarySerializedEndpoints && this.config.p2p.broadcastFinalStateBinary) {
-            // convert legacy message to binary supported type
-            const request = message as BroadcastFinalStateReq
-            if (logFlags.seqdiagram) {
-              for (const node of filterdCorrespondingAccNodes) {
-                /* prettier-ignore */ if (logFlags.seqdiagram) this.seqLogger.info(`0x53455102 ${shardusGetTime()} tx:${message.txid} ${NodeList.activeIdToPartition.get(Self.id)}-->>${NodeList.activeIdToPartition.get(node.id)}: ${'broadcast_finalstate'}`)
-              }
-            }
+  //         // Filter nodes before we send tell()
+  //         const filteredNodes = this.stateManager.filterValidNodesForInternalMessage(
+  //           correspondingAccNodes,
+  //           'tellCorrespondingNodesFinalData',
+  //           true,
+  //           true
+  //         )
+  //         if (filteredNodes.length === 0) {
+  //           /* prettier-ignore */ if (logFlags.error) this.mainLogger.error('tellCorrespondingNodesFinalData: filterValidNodesForInternalMessage no valid nodes left to try')
+  //           //return null
+  //           continue
+  //         }
+  //         const filterdCorrespondingAccNodes = filteredNodes
+  //         const filterNodesIpPort = filterdCorrespondingAccNodes.map(
+  //           (node) => node.externalIp + ':' + node.externalPort
+  //         )
+  //         /* prettier-ignore */ if (logFlags.error) this.mainLogger.debug('tellcorrernodingnodesfinaldata', queueEntry.logID, ` : filterValidNodesForInternalMessage ${filterNodesIpPort} for accounts: ${utils.stringifyReduce(message.stateList)}`)
+  //         // if (this.config.p2p.useBinarySerializedEndpoints && this.config.p2p.broadcastFinalStateBinary) {
+  //           // convert legacy message to binary supported type
+  //           const request = message as BroadcastFinalStateReq
+  //           if (logFlags.seqdiagram) {
+  //             for (const node of filterdCorrespondingAccNodes) {
+  //               /* prettier-ignore */ if (logFlags.seqdiagram) this.seqLogger.info(`0x53455102 ${shardusGetTime()} tx:${message.txid} ${NodeList.activeIdToPartition.get(Self.id)}-->>${NodeList.activeIdToPartition.get(node.id)}: ${'broadcast_finalstate'}`)
+  //             }
+  //           }
 
-            this.p2p.tellBinary<BroadcastFinalStateReq>(
-              filterdCorrespondingAccNodes,
-              InternalRouteEnum.binary_broadcast_finalstate,
-              request,
-              serializeBroadcastFinalStateReq,
-              {
-                verification_data: verificationDataCombiner(
-                  message.txid,
-                  message.stateList.length.toString()
-                ),
-              }
-            )
-          // } else {
-            // this.p2p.tell(filterdCorrespondingAccNodes, 'broadcast_finalstate', message)
-          // }
-          totalShares++
-        }
-      }
-    }
+  //           this.p2p.tellBinary<BroadcastFinalStateReq>(
+  //             filterdCorrespondingAccNodes,
+  //             InternalRouteEnum.binary_broadcast_finalstate,
+  //             request,
+  //             serializeBroadcastFinalStateReq,
+  //             {
+  //               verification_data: verificationDataCombiner(
+  //                 message.txid,
+  //                 message.stateList.length.toString()
+  //               ),
+  //             }
+  //           )
+  //         // } else {
+  //           // this.p2p.tell(filterdCorrespondingAccNodes, 'broadcast_finalstate', message)
+  //         // }
+  //         totalShares++
+  //       }
+  //     }
+  //   }
 
-    nestedCountersInstance.countEvent('tellCorrespondingNodesFinalData', 'totalShares', totalShares)
-    /* prettier-ignore */ if (logFlags.verbose) this.mainLogger.debug(`tellCorrespondingNodesFinalData - end: ${queueEntry.logID} totalShares:${totalShares}`)
-    profilerInstance.profileSectionEnd('tellCorrespondingNodesFinalData', true)
-  }
+  //   nestedCountersInstance.countEvent('tellCorrespondingNodesFinalData', 'totalShares', totalShares)
+  //   /* prettier-ignore */ if (logFlags.verbose) this.mainLogger.debug(`tellCorrespondingNodesFinalData - end: ${queueEntry.logID} totalShares:${totalShares}`)
+  //   profilerInstance.profileSectionEnd('tellCorrespondingNodesFinalData', true)
+  // }
 
   factTellCorrespondingNodesFinalData(queueEntry: QueueEntry): void {
     profilerInstance.profileSectionStart('factTellCorrespondingNodesFinalData', true)
@@ -5146,19 +5146,19 @@ class TransactionQueue {
             }
 
 
-          if (this.usePOQo) {
+          // if (this.usePOQo) {
             // && this.config.p2p.useBinarySerializedEndpoints && Context.config.p2p.poqoDataAndReceiptBinary) {
-            this.p2p.tellBinary<PoqoDataAndReceiptReq>(
-              filterdCorrespondingAccNodes,
-              InternalRouteEnum.binary_poqo_data_and_receipt,
-              {
-                finalState: message,
-                receipt: queueEntry.signedReceipt,
-                txGroupCycle: queueEntry.txGroupCycle
-              },
-              serializePoqoDataAndReceiptReq,
-              {}
-            )
+          this.p2p.tellBinary<PoqoDataAndReceiptReq>(
+            filterdCorrespondingAccNodes,
+            InternalRouteEnum.binary_poqo_data_and_receipt,
+            {
+              finalState: message,
+              receipt: queueEntry.signedReceipt,
+              txGroupCycle: queueEntry.txGroupCycle
+            },
+            serializePoqoDataAndReceiptReq,
+            {}
+          )
           // } else if (this.usePOQo) {
           //   this.p2p.tell(
           //     filterdCorrespondingAccNodes,
@@ -5168,19 +5168,19 @@ class TransactionQueue {
           //       receipt: queueEntry.appliedReceipt2
           //     }
           //   )
-          } else //if (this.config.p2p.useBinarySerializedEndpoints && this.config.p2p.broadcastFinalStateBinary) {
-            this.p2p.tellBinary<BroadcastFinalStateReq>(
-              filterdCorrespondingAccNodes,
-              InternalRouteEnum.binary_broadcast_finalstate,
-              request,
-              serializeBroadcastFinalStateReq,
-              {
-                verification_data: verificationDataCombiner(
-                  message.txid,
-                  message.stateList.length.toString()
-                ),
-              }
-            )
+          // } else //if (this.config.p2p.useBinarySerializedEndpoints && this.config.p2p.broadcastFinalStateBinary) {
+          //   this.p2p.tellBinary<BroadcastFinalStateReq>(
+          //     filterdCorrespondingAccNodes,
+          //     InternalRouteEnum.binary_broadcast_finalstate,
+          //     request,
+          //     serializeBroadcastFinalStateReq,
+          //     {
+          //       verification_data: verificationDataCombiner(
+          //         message.txid,
+          //         message.stateList.length.toString()
+          //       ),
+          //     }
+          //   )
           // } else {
             // this.p2p.tell(filterdCorrespondingAccNodes, 'broadcast_finalstate', message)
           // }
@@ -6754,9 +6754,10 @@ class TransactionQueue {
                     if (configContext.stateManager.attachDataToReceipt === false) {
                       if (configContext.p2p.useFactCorrespondingTell) {
                         this.factTellCorrespondingNodesFinalData(queueEntry)
-                      } else {
-                        this.tellCorrespondingNodesFinalData(queueEntry)
-                      }
+                      } 
+                      // else {
+                      //   this.tellCorrespondingNodesFinalData(queueEntry)
+                      // }
                     }
                     this.updateSimpleStatsObject(
                       processStats.awaitStats,
