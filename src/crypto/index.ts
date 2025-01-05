@@ -1,4 +1,4 @@
-import * as crypto from '@shardus/crypto-utils'
+import * as crypto from '@shardeum-foundation/lib-crypto-utils'
 import { ChildProcess, fork, Serializable } from 'child_process'
 import fs from 'fs'
 import Log4js from 'log4js'
@@ -6,7 +6,7 @@ import path from 'path'
 import Logger, { logFlags } from '../logger'
 import * as Shardus from '../shardus/shardus-types'
 import Storage from '../storage'
-import { Utils } from '@shardus/types'
+import { Utils } from '@shardeum-foundation/lib-types'
 
 export type HashableObject = (object | string) & { sign?: Shardus.Sign }
 

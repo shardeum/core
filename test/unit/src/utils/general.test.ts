@@ -1,4 +1,4 @@
-import { Utils } from '@shardus/types'
+import { Utils } from '@shardeum-foundation/lib-types'
 import { compareObjectShape, generateArraySchema, generateObjectSchema } from '../../../../src/utils'
 
 test('compareObjectShape() > two identical object should return true', () => {

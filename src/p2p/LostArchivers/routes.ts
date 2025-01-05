@@ -1,12 +1,12 @@
-import { P2P } from '@shardus/types'
+import { P2P } from '@shardeum-foundation/lib-types'
 import {
   ArchiverDownMsg,
   ArchiverRefutesLostMsg,
   ArchiverUpMsg,
   InvestigateArchiverMsg,
-} from '@shardus/types/build/src/p2p/LostArchiverTypes'
-import { Node } from '@shardus/types/build/src/p2p/NodeListTypes'
-import { GossipHandler, InternalHandler, Route, SignedObject } from '@shardus/types/build/src/p2p/P2PTypes'
+} from '@shardeum-foundation/lib-types/build/src/p2p/LostArchiverTypes'
+import { Node } from '@shardeum-foundation/lib-types/build/src/p2p/NodeListTypes'
+import { GossipHandler, InternalHandler, Route, SignedObject } from '@shardeum-foundation/lib-types/build/src/p2p/P2PTypes'
 import { Handler } from 'express'
 import * as Comms from '../Comms'
 import { config, crypto, network } from '../Context'
@@ -28,7 +28,7 @@ import { deserializeLostArchiverInvestigateReq } from '../../types/LostArchiverI
 import { getStreamWithTypeCheck } from '../../types/Helpers'
 import { TypeIdentifierEnum } from '../../types/enum/TypeIdentifierEnum'
 import { checkGossipPayload } from '../../utils/GossipValidation'
-import { Utils } from '@shardus/types'
+import { Utils } from '@shardeum-foundation/lib-types'
 
 /** Gossip */
 

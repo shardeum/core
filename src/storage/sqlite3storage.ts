@@ -1,5 +1,5 @@
 /* eslint-disable no-empty */
-import { Utils } from '@shardus/types'
+import { Utils } from '@shardeum-foundation/lib-types'
 import fs from 'fs'
 import Log4js from 'log4js'
 import path from 'path'

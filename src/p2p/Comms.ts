@@ -1,5 +1,5 @@
-import { AppHeader } from '@shardus/net/build/src/types'
-import { P2P } from '@shardus/types'
+import { AppHeader } from '@shardeum-foundation/lib-net/build/src/types'
+import { P2P } from '@shardeum-foundation/lib-types'
 import { Logger } from 'log4js'
 import { logFlags } from '../logger'
 import { ipInfo, shardusGetTime } from '../network'
@@ -25,7 +25,7 @@ import { RequestErrorEnum } from '../types/enum/RequestErrorEnum'
 import { getStreamWithTypeCheck, requestErrorHandler } from '../types/Helpers'
 import { TypeIdentifierEnum } from '../types/enum/TypeIdentifierEnum'
 import { InternalError, ResponseError, serializeResponseError } from '../types/ResponseError'
-import { Utils } from '@shardus/types'
+import { Utils } from '@shardeum-foundation/lib-types'
 import { nodeListFromStates } from './Join'
 
 /** ROUTES */

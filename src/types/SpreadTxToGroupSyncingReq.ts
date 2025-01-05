@@ -1,4 +1,4 @@
-import { Utils } from '@shardus/types'
+import { Utils } from '@shardeum-foundation/lib-types'
 import { stateManager } from '../p2p/Context'
 import {
   AppObjEnum,

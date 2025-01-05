@@ -18,7 +18,7 @@ it is saved and gossiped to other nodes.
 When the apoptosized field of a cycle record contains the node id
 of a particular node, the node is removed from the node list.
 */
-import { P2P } from '@shardus/types'
+import { P2P } from '@shardeum-foundation/lib-types'
 import { Handler } from 'express'
 import { isDebugMode } from '../debug'
 import { logFlags } from '../logger'
@@ -47,7 +47,7 @@ import { robustQuery } from './Utils'
 import { TypeIdentifierEnum } from '../types/enum/TypeIdentifierEnum'
 import { SQLDataTypes } from '../storage/utils/schemaDefintions'
 import { InternalRouteEnum } from '../types/enum/InternalRouteEnum'
-import { Utils } from '@shardus/types'
+import { Utils } from '@shardeum-foundation/lib-types'
 import { BadRequest, serializeResponseError } from '../types/ResponseError'
 import { RequestErrorEnum } from '../types/enum/RequestErrorEnum'
 import { getStreamWithTypeCheck, requestErrorHandler } from '../types/Helpers'

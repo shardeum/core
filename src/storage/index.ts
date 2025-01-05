@@ -18,7 +18,7 @@ import { ColumnDescription } from './utils/schemaDefintions'
 import { Op } from './utils/sqlOpertors'
 import { nestedCountersInstance } from "../utils/nestedCounters";
 import { shardusGetTime } from "../network";
-import { Utils } from '@shardus/types'
+import { Utils } from '@shardeum-foundation/lib-types'
 
 /** A type alias to avoid both `any` and having to spell this type out any time
  * we want to use it. */

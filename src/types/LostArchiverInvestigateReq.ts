@@ -1,4 +1,4 @@
-import { Signature } from '@shardus/types/build/src/p2p/P2PTypes'
+import { Signature } from '@shardeum-foundation/lib-types/build/src/p2p/P2PTypes'
 import { VectorBufferStream } from '../utils/serialization/VectorBufferStream'
 import { TypeIdentifierEnum } from './enum/TypeIdentifierEnum'
 

@@ -1,7 +1,7 @@
 import { parse as parseUrl } from 'url'
 import got from 'got'
 import { logFlags } from '../logger'
-import { Utils } from '@shardus/types'
+import { Utils } from '@shardeum-foundation/lib-types'
 import { stringifyReduceLimit } from '../utils'
 
 let _logger = null

@@ -1,5 +1,5 @@
 import * as Shardus from '../shardus/shardus-types'
-import { StateManager as StateManagerTypes } from '@shardus/types'
+import { StateManager as StateManagerTypes } from '@shardeum-foundation/lib-types'
 import * as utils from '../utils'
 import Profiler, { profilerInstance } from '../utils/profiler'
 import { P2PModuleContext as P2P } from '../p2p/Context'
@@ -12,7 +12,7 @@ import { nestedCountersInstance } from '../utils/nestedCounters'
 import * as NodeList from '../p2p/NodeList'
 import * as Context from '../p2p/Context'
 import * as Self from '../p2p/Self'
-import { SignedObject } from '@shardus/crypto-utils'
+import { SignedObject } from '@shardeum-foundation/lib-crypto-utils'
 import {
   AccountHashCache,
   AccountHashCacheHistory,
@@ -47,7 +47,7 @@ import { appdata_replacer, errorToStringFull, Ordering } from '../utils'
 import { Response } from 'express-serve-static-core'
 import { shardusGetTime } from '../network'
 import { InternalBinaryHandler } from '../types/Handler'
-import { Route } from '@shardus/types/build/src/p2p/P2PTypes'
+import { Route } from '@shardeum-foundation/lib-types/build/src/p2p/P2PTypes'
 import { InternalRouteEnum } from '../types/enum/InternalRouteEnum'
 import {
   SyncTrieHashesRequest,
@@ -89,7 +89,7 @@ import {
   serializeGetTrieAccountHashesResp,
 } from '../types/GetTrieAccountHashesResp'
 import { BadRequest, InternalError, serializeResponseError } from '../types/ResponseError'
-import { Utils } from '@shardus/types'
+import { Utils } from '@shardeum-foundation/lib-types'
 import { RepairOOSAccountsReq, deserializeRepairOOSAccountsReq, serializeRepairOOSAccountsReq } from '../types/RepairOOSAccountsReq'
 import { robustQuery } from '../p2p/Utils'
 import { RequestReceiptForTxReqSerialized, serializeRequestReceiptForTxReq } from '../types/RequestReceiptForTxReq'

@@ -1,5 +1,5 @@
-import { StateManager as StateManagerTypes, P2P as P2PTypes } from '@shardus/types'
-import { Route } from '@shardus/types/build/src/p2p/P2PTypes'
+import { StateManager as StateManagerTypes, P2P as P2PTypes } from '@shardeum-foundation/lib-types'
+import { Route } from '@shardeum-foundation/lib-types/build/src/p2p/P2PTypes'
 import { Logger as Log4jsLogger } from 'log4js'
 import StateManager from '.'
 import Crypto from '../crypto'
@@ -46,7 +46,7 @@ import {
   deserializeGetCachedAppDataResp,
   serializeGetCachedAppDataResp,
 } from '../types/GetCachedAppDataResp'
-import { Utils } from '@shardus/types'
+import { Utils } from '@shardeum-foundation/lib-types'
 import { getCorrespondingNodes, verifyCorrespondingSender } from '../utils/fastAggregatedCorrespondingTell'
 import * as NodeList from '../p2p/NodeList'
 

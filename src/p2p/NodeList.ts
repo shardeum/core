@@ -1,5 +1,5 @@
-import { hexstring } from '@shardus/crypto-utils'
-import { P2P } from '@shardus/types'
+import { hexstring } from '@shardeum-foundation/lib-crypto-utils'
+import { P2P } from '@shardeum-foundation/lib-types'
 import { Logger } from 'log4js'
 import { isDebugModeMiddleware, isDebugModeMiddlewareLow } from '../network/debugMiddleware'
 import { ShardusEvent } from '../shardus/shardus-types'
@@ -15,7 +15,7 @@ import { nestedCountersInstance } from '..'
 import { shardusGetTime } from '../network'
 import { getStandbyNodesInfoMap, standbyNodesInfo } from "./Join/v2";
 import { getDesiredCount } from "./CycleAutoScale";
-import { Utils } from '@shardus/types'
+import { Utils } from '@shardeum-foundation/lib-types'
 import { networkMode } from './Modes'
 import { getNewestCycle } from './Sync'
 

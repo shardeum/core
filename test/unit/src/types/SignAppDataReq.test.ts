@@ -7,7 +7,7 @@ import {
 } from '../../../../src/types/SignAppDataReq'
 import { TypeIdentifierEnum } from '../../../../src/types/enum/TypeIdentifierEnum'
 import { initSignAppDataReq } from '../../../../src/types/ajv/SignAppDataReq'
-import { Utils } from '@shardus/types'
+import { Utils } from '@shardeum-foundation/lib-types'
 import { AppObjEnum } from '../../../../src/shardus/shardus-types'
 import { stateManager } from '../../../../src/p2p/Context'
 

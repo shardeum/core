@@ -1,12 +1,12 @@
-import { hexstring, P2P } from "@shardus/types";
+import { hexstring, P2P } from "@shardeum-foundation/lib-types";
+import { JoinedConsensor } from "@shardeum-foundation/lib-types/build/src/p2p/JoinTypes";
+import { SignedObject } from "@shardeum-foundation/lib-types/build/src/p2p/P2PTypes";
 import { err, ok } from "neverthrow";
 import { EventEmitter } from "events";
 import { Result } from "neverthrow";
 import * as http from '../../../http'
 import { getRandom } from "../../../utils";
 import { crypto } from "../../Context";
-import { JoinedConsensor } from "@shardus/types/build/src/p2p/JoinTypes";
-import { SignedObject } from "@shardus/types/build/src/p2p/P2PTypes";
 import { getActiveNodesFromArchiver, getRandomAvailableArchiver } from "../../Utils";
 import * as Self from "../../Self";
 

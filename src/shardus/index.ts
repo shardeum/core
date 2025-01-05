@@ -1,5 +1,5 @@
-import { NodeStatus, Route } from '@shardus/types/build/src/p2p/P2PTypes'
-import { RemoveCertificate } from '@shardus/types/build/src/p2p/LostTypes'
+import { NodeStatus, Route } from '@shardeum-foundation/lib-types/build/src/p2p/P2PTypes'
+import { RemoveCertificate } from '@shardeum-foundation/lib-types/build/src/p2p/LostTypes'
 import { EventEmitter } from 'events'
 import { Handler } from 'express'
 import Log4js from 'log4js'
@@ -67,11 +67,11 @@ import { startSaving } from './saveConsoleOutput'
 import { isDebugMode, isServiceMode } from '../debug'
 import * as JoinV2 from '../p2p/Join/v2'
 import { getNetworkTimeOffset, shardusGetTime, calculateFakeTimeOffset, clearFakeTimeOffset } from '../network'
-import { JoinRequest } from '@shardus/types/build/src/p2p/JoinTypes'
+import { JoinRequest } from '@shardeum-foundation/lib-types/build/src/p2p/JoinTypes'
 import { networkMode, isInternalTxAllowed } from '../p2p/Modes'
 import { lostArchiversMap } from '../p2p/LostArchivers/state'
 import getCallstack from '../utils/getCallstack'
-import * as crypto from '@shardus/crypto-utils'
+import * as crypto from '@shardeum-foundation/lib-crypto-utils'
 import * as Comms from './../p2p/Comms'
 import { isFirst, waitForQ1SendRequests } from '../p2p/Self'
 import { currentQuarter } from '../p2p/CycleCreator'
@@ -86,13 +86,13 @@ import {
   deserializeSignAppDataResp,
   serializeSignAppDataResp,
 } from '../types/SignAppDataResp'
-import { Utils } from '@shardus/types'
+import { Utils } from '@shardeum-foundation/lib-types'
 import { getOurNodeIndex, isNodeInRotationBounds } from '../p2p/Utils'
 import ShardFunctions from '../state-manager/shardFunctions'
 import SocketIO from 'socket.io'
 import { nodeListFromStates, queueFinishedSyncingRequest } from '../p2p/Join'
 import * as NodeList from '../p2p/NodeList'
-import { P2P } from '@shardus/types'
+import { P2P } from '@shardeum-foundation/lib-types'
 
 // the following can be removed now since we are not using the old p2p code
 //const P2P = require('../p2p')

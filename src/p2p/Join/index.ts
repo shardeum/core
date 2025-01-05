@@ -2,7 +2,7 @@ import deepmerge from 'deepmerge'
 import { version } from '../../../package.json'
 import * as http from '../../http'
 import { logFlags } from '../../logger'
-import { hexstring, P2P } from '@shardus/types'
+import { hexstring, P2P } from '@shardeum-foundation/lib-types'
 import * as utils from '../../utils'
 import { validateTypes, isEqualOrNewerVersion } from '../../utils'
 import * as Comms from '../Comms'
@@ -28,7 +28,7 @@ import {
 import { err, ok, Result } from 'neverthrow'
 import { drainSelectedPublicKeys, forceSelectSelf } from './v2/select'
 import { deleteStandbyNode, drainNewUnjoinRequests, processNewUnjoinRequest } from './v2/unjoin'
-import { JoinRequest } from '@shardus/types/build/src/p2p/JoinTypes'
+import { JoinRequest } from '@shardeum-foundation/lib-types/build/src/p2p/JoinTypes'
 import { updateNodeState } from '../Self'
 import { HTTPError } from 'got'
 import {
@@ -41,7 +41,7 @@ import { addFinishedSyncing, drainFinishedSyncingRequest, newSyncFinishedNodes }
 //import { getLastCycleStandbyRefreshRequest, resetLastCycleStandbyRefreshRequests, drainNewStandbyRefreshRequests } from './v2/standbyRefresh'
 import { drainNewStandbyRefreshRequests, addStandbyRefresh } from './v2/standbyRefresh'
 import rfdc from 'rfdc'
-import { Utils } from '@shardus/types'
+import { Utils } from '@shardeum-foundation/lib-types'
 import { neverGoActive } from '../Active'
 
 /** STATE */

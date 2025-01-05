@@ -3,11 +3,11 @@ import * as utils from '../../../utils'
 import * as http from '../../../http'
 import { ok, Result } from 'neverthrow'
 import { logFlags } from '../../../logger'
-import { JoinRequest, StandbyRefreshRequest } from '@shardus/types/build/src/p2p/JoinTypes'
+import { JoinRequest, StandbyRefreshRequest } from '@shardeum-foundation/lib-types/build/src/p2p/JoinTypes'
 import {  isOnStandbyList } from './index'
 import * as CycleChain from '../../CycleChain'
 import { crypto } from '../../Context'
-import { SignedObject } from '@shardus/types/build/src/p2p/P2PTypes'
+import { SignedObject } from '@shardeum-foundation/lib-types/build/src/p2p/P2PTypes'
 import { config } from '../../Context'
 
 type publickey = JoinRequest['nodeInfo']['publicKey']

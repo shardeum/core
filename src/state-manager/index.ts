@@ -1,7 +1,7 @@
 import * as ShardusTypes from '../shardus/shardus-types'
 import Shardus from '../shardus'
 
-import { StateManager as StateManagerTypes, P2P as P2PTypes } from '@shardus/types'
+import { StateManager as StateManagerTypes, P2P as P2PTypes } from '@shardeum-foundation/lib-types'
 
 import { isNodeDown, isNodeLost, isNodeUpRecent } from '../p2p/Lost'
 
@@ -10,7 +10,7 @@ import ShardFunctions from './shardFunctions'
 import EventEmitter from 'events'
 import * as utils from '../utils'
 
-import { Utils } from '@shardus/types'
+import { Utils } from '@shardeum-foundation/lib-types'
 
 // not sure about this.
 import Profiler, { cUninitializedSize, profilerInstance } from '../utils/profiler'
@@ -75,14 +75,14 @@ import {
   Proposal
 } from './state-manager-types'
 import { isDebugModeMiddleware, isDebugModeMiddlewareLow } from '../network/debugMiddleware'
-import { ReceiptMapResult } from '@shardus/types/build/src/state-manager/StateManagerTypes'
+import { ReceiptMapResult } from '@shardeum-foundation/lib-types/build/src/state-manager/StateManagerTypes'
 import { Logger as Log4jsLogger } from 'log4js'
 import { timingSafeEqual } from 'crypto'
 import { shardusGetTime } from '../network'
 import { isServiceMode } from '../debug'
 import { InternalRouteEnum } from '../types/enum/InternalRouteEnum'
 import { InternalBinaryHandler } from '../types/Handler'
-import { Route } from '@shardus/types/build/src/p2p/P2PTypes'
+import { Route } from '@shardeum-foundation/lib-types/build/src/p2p/P2PTypes'
 import { VectorBufferStream } from '../utils/serialization/VectorBufferStream'
 import { TypeIdentifierEnum } from '../types/enum/TypeIdentifierEnum'
 import {

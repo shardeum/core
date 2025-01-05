@@ -1,7 +1,7 @@
 import { WrappedResponse } from '../shardus/shardus-types'
 import { VectorBufferStream } from '../utils/serialization/VectorBufferStream'
 import { TypeIdentifierEnum } from './enum/TypeIdentifierEnum'
-import { Utils as StringUtils } from '@shardus/types'
+import { Utils as StringUtils } from '@shardeum-foundation/lib-types'
 import { deserializeSignedReceipt, serializeSignedReceipt, SignedReceiptSerializable } from './SignedReceipt'
 
 export type PoqoDataAndReceiptReq = {

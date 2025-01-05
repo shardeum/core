@@ -1,7 +1,7 @@
-import { P2P } from '@shardus/types'
+import { P2P } from '@shardeum-foundation/lib-types'
 import { VectorBufferStream } from '../utils/serialization/VectorBufferStream'
 import { TypeIdentifierEnum } from './enum/TypeIdentifierEnum'
-import { Utils } from '@shardus/types'
+import { Utils } from '@shardeum-foundation/lib-types'
 import { verifyPayload } from './ajv/Helpers'
 import { AJVSchemaEnum } from './enum/AJVSchemaEnum'
 

@@ -1,4 +1,4 @@
-import { Utils } from '@shardus/types'
+import { Utils } from '@shardeum-foundation/lib-types'
 import { AcceptedTx, WrappedResponses } from '../state-manager/state-manager-types'
 import { VectorBufferStream } from '../utils/serialization/VectorBufferStream'
 import {
