@@ -1,6 +1,6 @@
 import { crypto } from '../../Context'
 import { err, ok, Result } from 'neverthrow'
-import { hexstring, P2P } from '@shardus/types'
+import { hexstring, P2P } from '@shardeum-foundation/lib-types'
 import * as utils from '../../../utils'
 import * as http from '../../../http'
 import * as NodeList from '../../NodeList'
@@ -8,7 +8,7 @@ import { deleteStandbyNodeFromMap, getStandbyNodesInfoMap } from '.'
 import { getActiveNodesFromArchiver, getRandomAvailableArchiver } from '../../Utils'
 import { logFlags } from '../../../logger'
 import * as CycleChain from '../../CycleChain'
-import { SignedUnjoinRequest } from '@shardus/types/build/src/p2p/JoinTypes'
+import { SignedUnjoinRequest } from '@shardeum-foundation/lib-types/build/src/p2p/JoinTypes'
 import { getPublicNodeInfo } from '../../Self'
 
 /** A Set of new public keys of nodes that have submitted unjoin requests. */

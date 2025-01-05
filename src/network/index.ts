@@ -1,6 +1,6 @@
 import Sntp from '@hapi/sntp'
-import { Sn } from '@shardus/net'
-import { AppHeader } from '@shardus/net/build/src/types'
+import { Sn } from '@shardeum-foundation/lib-net'
+import { AppHeader } from '@shardeum-foundation/lib-net/build/src/types'
 import bodyParser from 'body-parser'
 import cors from 'cors'
 import { EventEmitter } from 'events'
@@ -19,7 +19,7 @@ import { formatErrorMessage } from '../utils'
 import { nestedCountersInstance } from '../utils/nestedCounters'
 import { profilerInstance } from '../utils/profiler'
 import NatAPI = require('nat-api')
-import { Utils } from '@shardus/types'
+import { Utils } from '@shardeum-foundation/lib-types'
 
 /** TYPES */
 export interface IPInfo {

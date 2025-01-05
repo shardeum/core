@@ -1,7 +1,7 @@
 import { Logger } from 'log4js'
 import { logger, config, crypto, network, shardus } from './Context'
 import * as CycleChain from './CycleChain'
-import { P2P, Utils } from '@shardus/types'
+import { P2P, Utils } from '@shardeum-foundation/lib-types'
 import { OpaqueTransaction, ShardusEvent } from '../shardus/shardus-types'
 import { stringifyReduce, validateTypes } from '../utils'
 import * as Comms from './Comms'

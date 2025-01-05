@@ -1,5 +1,5 @@
 import * as Shardus from '../shardus/shardus-types'
-import { StateManager as StateManagerTypes } from '@shardus/types'
+import { StateManager as StateManagerTypes } from '@shardeum-foundation/lib-types'
 import * as utils from '../utils'
 
 import {

@@ -6,7 +6,7 @@ import {
 import { VectorBufferStream } from '../../../../src/utils/serialization/VectorBufferStream'
 import { TypeIdentifierEnum } from '../../../../src/types/enum/TypeIdentifierEnum'
 import { initAjvSchemas } from '../../../../src/types/ajv/Helpers'
-import { Utils } from '@shardus/types'
+import { Utils } from '@shardeum-foundation/lib-types'
 
 describe('MakeReceiptReq Tests', () => {
   beforeAll(() => {

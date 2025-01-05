@@ -1,4 +1,4 @@
-import { Utils } from '@shardus/types'
+import { Utils } from '@shardeum-foundation/lib-types'
 import { readdirSync, readFileSync } from 'fs'
 import { join } from 'path'
 

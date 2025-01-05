@@ -9,7 +9,7 @@ import {
   deserializeCachedAppData,
 } from '../../../../src/types/CachedAppData'
 import { AppObjEnum } from '../../../../src/types/enum/AppObjEnum'
-import { Utils } from '@shardus/types'
+import { Utils } from '@shardeum-foundation/lib-types'
 
 // Mock the Context module and its nested structure
 jest.mock('../../../../src/p2p/Context', () => ({

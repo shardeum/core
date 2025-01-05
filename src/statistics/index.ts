@@ -6,7 +6,7 @@ import * as utils from '../utils'
 import { nestedCountersInstance } from '../utils/nestedCounters'
 import { CountedEvent, CountedEventMap } from './countedEvents'
 import { shardusGetTime } from '../network'
-import { Utils } from '@shardus/types'
+import { Utils } from '@shardeum-foundation/lib-types'
 
 interface Statistics {
   intervalDuration: number

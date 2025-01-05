@@ -8,7 +8,7 @@ import {
 import { serializeWrappedData } from '../../../../src/types/WrappedData'
 import { initAjvSchemas } from '../../../../src/types/ajv/Helpers'
 import { TypeIdentifierEnum } from '../../../../src/types/enum/TypeIdentifierEnum'
-import { Utils } from '@shardus/types'
+import { Utils } from '@shardeum-foundation/lib-types'
 
 // Mock the Context module and its nested structure
 jest.mock('../../../../src/p2p/Context', () => ({

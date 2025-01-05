@@ -1,7 +1,7 @@
-import { P2P } from '@shardus/types'
+import { P2P } from '@shardeum-foundation/lib-types'
 import * as NodeList from './NodeList'
 import { config } from './Context'
-import { Node } from '@shardus/types/build/src/p2p/NodeListTypes';
+import { Node } from '@shardeum-foundation/lib-types/build/src/p2p/NodeListTypes';
 
 export function isNodeProblematic(node: Node, currentCycle: number): boolean {
   if (!node.refuteCycles) return false;

@@ -1,5 +1,5 @@
 import got from 'got'
-import { P2P, StateManager } from '@shardus/types'
+import { P2P, StateManager } from '@shardeum-foundation/lib-types'
 import stream from 'stream'
 import zlib from 'zlib'
 import { logFlags } from '../logger'
@@ -12,7 +12,7 @@ import { Cycle, CycleShardData } from '../state-manager/state-manager-types'
 import { safetyModeVals, snapshotLogger } from './index'
 import { hashMap } from './partition-gossip'
 import { NetworkClass } from '../network'
-import { Utils } from '@shardus/types'
+import { Utils } from '@shardeum-foundation/lib-types'
 
 /** TYPES */
 

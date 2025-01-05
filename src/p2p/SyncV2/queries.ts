@@ -3,13 +3,13 @@
  * requires an external node to be queried, including robust queries.
  */
 
-import { hexstring, P2P } from '@shardus/types'
+import { hexstring, P2P } from '@shardeum-foundation/lib-types'
 import { errAsync, ResultAsync } from 'neverthrow'
 import { attempt, robustQuery } from '../Utils'
 import * as http from '../../http'
 import { logger } from '../Context'
 import { Logger } from 'log4js'
-import { JoinRequest } from '@shardus/types/build/src/p2p/JoinTypes'
+import { JoinRequest } from '@shardeum-foundation/lib-types/build/src/p2p/JoinTypes'
 
 /** A `ResultAsync` that wraps an `UnwrappedRobustResult`. */
 export type RobustQueryResultAsync<T> = ResultAsync<UnwrappedRobustResult<ActiveNode, T>, Error>

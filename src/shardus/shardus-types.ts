@@ -1,5 +1,5 @@
-import { P2P } from '@shardus/types'
-import { JoinRequest } from '@shardus/types/build/src/p2p/JoinTypes'
+import { P2P } from '@shardeum-foundation/lib-types'
+import { JoinRequest } from '@shardeum-foundation/lib-types/build/src/p2p/JoinTypes'
 import { AppObjEnum } from '../types/enum/AppObjEnum'
 export type Node = P2P.NodeListTypes.Node
 export type Cycle = P2P.CycleCreatorTypes.CycleRecord

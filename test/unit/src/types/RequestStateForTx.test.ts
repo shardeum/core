@@ -1,4 +1,4 @@
-import { Utils } from '@shardus/types'
+import { Utils } from '@shardeum-foundation/lib-types'
 import { initAjvSchemas, verifyPayload } from '../../../../src/types/ajv/Helpers'
 import { TypeIdentifierEnum } from '../../../../src/types/enum/TypeIdentifierEnum'
 import {

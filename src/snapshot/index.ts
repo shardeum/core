@@ -11,13 +11,13 @@ import * as Self from '../p2p/Self'
 import * as ShardusTypes from '../shardus/shardus-types'
 import ShardFunctions from '../state-manager/shardFunctions'
 import { Cycle, CycleShardData, MainHashResults } from '../state-manager/state-manager-types'
-import { P2P, StateManager } from '@shardus/types'
+import { P2P, StateManager } from '@shardeum-foundation/lib-types'
 import * as utils from '../utils'
 import { profilerInstance } from '../utils/profiler'
 import * as partitionGossip from './partition-gossip'
 import * as SnapshotFunctions from './snapshotFunctions'
 import { getNewestCycle } from '../p2p/Sync'
-import { Utils } from '@shardus/types'
+import { Utils } from '@shardeum-foundation/lib-types'
 
 console.log('StateManager', StateManager)
 console.log('StateManager type', StateManager.StateManagerTypes)

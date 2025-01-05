@@ -7,7 +7,7 @@ import * as NodeList from '../NodeList'
 import * as Self from '../Self'
 import * as utils from '../../utils'
 import { Handler } from 'express'
-import { P2P } from '@shardus/types'
+import { P2P } from '@shardeum-foundation/lib-types'
 import {
   addJoinRequest,
   computeSelectionNum,
@@ -38,10 +38,10 @@ import {
   JoinRequest,
   SignedUnjoinRequest,
   StartedSyncingRequest,
-} from '@shardus/types/build/src/p2p/JoinTypes'
+} from '@shardeum-foundation/lib-types/build/src/p2p/JoinTypes'
 import { addSyncStarted } from './v2/syncStarted'
 import { addStandbyRefresh } from './v2/standbyRefresh'
-import { Utils } from '@shardus/types'
+import { Utils } from '@shardeum-foundation/lib-types'
 import { testFailChance } from '../../utils'
 import { shardusGetTime } from '../../network'
 import { verifyPayload } from '../../types/ajv/Helpers'

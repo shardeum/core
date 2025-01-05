@@ -1,4 +1,4 @@
-import { AppHeader } from '@shardus/net/build/src/types'
+import { AppHeader } from '@shardeum-foundation/lib-net/build/src/types'
 import { Sign } from '../shardus/shardus-types'
 import { VectorBufferStream } from '../utils/serialization/VectorBufferStream'
 

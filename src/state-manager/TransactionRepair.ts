@@ -1,5 +1,5 @@
 import * as Shardus from '../shardus/shardus-types'
-import { StateManager as StateManagerTypes } from '@shardus/types'
+import { StateManager as StateManagerTypes } from '@shardeum-foundation/lib-types'
 import * as utils from '../utils'
 
 import Profiler from '../utils/profiler'
@@ -18,7 +18,7 @@ import { RequestStateForTxPostResp, deserializeRequestStateForTxPostResp } from 
 import { InternalRouteEnum } from '../types/enum/InternalRouteEnum'
 import * as NodeList from '../p2p/NodeList'
 import * as Self from '../p2p/Self'
-import { Utils } from '@shardus/types'
+import { Utils } from '@shardeum-foundation/lib-types'
 
 class TransactionRepair {
   app: Shardus.App

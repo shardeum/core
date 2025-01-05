@@ -1,8 +1,8 @@
 import { isNodeProblematic, getConsecutiveRefutes, getRefutePercentage, getProblematicNodes } from '../../../../src/p2p/ProblemNodeHandler'
-import { P2P } from '@shardus/types'
+import { P2P } from '@shardeum-foundation/lib-types'
 import * as NodeList from '../../../../src/p2p/NodeList'
 import * as Context from '../../../../src/p2p/Context'
-import { Node } from '@shardus/types/build/src/p2p/NodeListTypes';
+import { Node } from '@shardeum-foundation/lib-types/build/src/p2p/NodeListTypes';
 // Mock NodeList module
 jest.mock('../../../../src/p2p/NodeList', () => ({
   activeByIdOrder: [],

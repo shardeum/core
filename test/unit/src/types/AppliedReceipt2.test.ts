@@ -6,7 +6,7 @@ import { serializeAppliedVote } from '../../../../src/types/AppliedVote'
 import { serializeConfirmOrChallengeMessage } from '../../../../src/types/ConfirmOrChallengeMessage'
 import { cSignVersion, serializeSign } from '../../../../src/types/Sign'
 import { TypeIdentifierEnum } from '../../../../src/types/enum/TypeIdentifierEnum'
-import { Utils } from '@shardus/types'
+import { Utils } from '@shardeum-foundation/lib-types'
 
 describe('AppliedReceipt2 Serialization', () => {
   test('Should serialization with root true', () => {
