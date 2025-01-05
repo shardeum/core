@@ -8,7 +8,7 @@ import { nestedCountersInstance } from '../utils/nestedCounters'
 import { isDebugModeMiddleware, isDebugModeMiddlewareLow } from '../network/debugMiddleware'
 import { memoryReportingInstance } from '../utils/memoryReporting'
 import { shardusGetTime, getNetworkTimeOffset } from '../network'
-import { Utils } from '@shardus/types'
+import { Utils } from '@shardeum-foundation/lib-types'
 
 const cDefaultMin = 1e12
 const cDefaultMinBig = BigInt(cDefaultMin)

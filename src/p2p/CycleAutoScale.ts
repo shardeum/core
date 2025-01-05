@@ -1,7 +1,7 @@
 import deepmerge from 'deepmerge'
 import { Logger } from 'log4js'
 import { logFlags } from '../logger'
-import { P2P } from '@shardus/types'
+import { P2P } from '@shardeum-foundation/lib-types'
 import { sleep, validateTypes, fastIsPicked } from '../utils'
 import * as Comms from './Comms'
 import { config, crypto, logger, stateManager } from './Context'
@@ -14,7 +14,7 @@ import { nestedCountersInstance } from '../utils/nestedCounters'
 import { enterRecovery, enterSafety } from './Modes'
 import { getOurNodeIndex } from './Utils'
 import { shardusGetTime } from '../network'
-import { Utils } from '@shardus/types'
+import { Utils } from '@shardeum-foundation/lib-types'
 
 /** STATE */
 

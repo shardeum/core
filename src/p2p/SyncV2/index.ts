@@ -4,7 +4,7 @@
  */
 
 import { errAsync, okAsync, ResultAsync } from 'neverthrow'
-import { hexstring, P2P, Utils } from '@shardus/types'
+import { hexstring, P2P, Utils } from '@shardeum-foundation/lib-types'
 import {
   getCycleDataFromNode,
   initLogger,
@@ -25,7 +25,7 @@ import * as CycleChain from '../CycleChain'
 import * as ServiceQueue from '../ServiceQueue'
 import { initRoutes } from './routes'
 import { digestCycle } from '../Sync'
-import { JoinRequest } from '@shardus/types/build/src/p2p/JoinTypes'
+import { JoinRequest } from '@shardeum-foundation/lib-types/build/src/p2p/JoinTypes'
 import { addStandbyJoinRequests } from '../Join/v2'
 import { logFlags } from '../../logger'
 import { makeCycleMarker } from '../CycleCreator'

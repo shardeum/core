@@ -6,7 +6,7 @@ import {
 } from '../../../../src/types/CompareCertReq'
 import { initCompareCertReq } from '../../../../src/types/ajv/CompareCert'
 import { TypeIdentifierEnum } from '../../../../src/types/enum/TypeIdentifierEnum'
-import { Utils } from '@shardus/types'
+import { Utils } from '@shardeum-foundation/lib-types'
 import { verifyPayload } from '../../../../src/types/ajv/Helpers'
 import { AJVSchemaEnum } from '../../../../src/types/enum/AJVSchemaEnum'
 

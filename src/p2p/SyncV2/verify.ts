@@ -3,12 +3,12 @@
  * given hashes.
  */
 
-import { P2P, hexstring } from '@shardus/types'
+import { P2P, hexstring } from '@shardeum-foundation/lib-types'
 import { err, ok, Result } from 'neverthrow'
 import { HashableObject } from '../../crypto'
 import { crypto } from '../Context'
 import { makeCycleMarker } from '../CycleCreator'
-import { Utils } from '@shardus/types'
+import { Utils } from '@shardeum-foundation/lib-types'
 
 /**
  * Verifies if the hash of a given object matches the expected hash.

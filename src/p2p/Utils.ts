@@ -11,14 +11,14 @@ import * as Context from './Context'
 import * as Self from './Self'
 import * as NodeList from './NodeList'
 import { Logger } from 'log4js'
-import { P2P } from '@shardus/types'
+import { P2P } from '@shardeum-foundation/lib-types'
 import { Result } from 'neverthrow'
 import { getPublicNodeInfo } from './Self'
 import * as http from '../http'
 import { ok, err } from 'neverthrow'
 import { postToArchiver, getNumArchivers, getRandomArchiver } from './Archivers'
-import { JoinedArchiver } from '@shardus/types/build/src/p2p/ArchiversTypes'
-import { ActiveNode } from '@shardus/types/build/src/p2p/SyncTypes'
+import { JoinedArchiver } from '@shardeum-foundation/lib-types/build/src/p2p/ArchiversTypes'
+import { ActiveNode } from '@shardeum-foundation/lib-types/build/src/p2p/SyncTypes'
 export type QueryFunction<Node, Response> = (node: Node) => PromiseLike<Response>
 
 export type VerifyFunction<Result> = (result: Result) => boolean

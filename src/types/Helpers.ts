@@ -1,4 +1,4 @@
-import { AppHeader } from '@shardus/net/build/src/types'
+import { AppHeader } from '@shardeum-foundation/lib-net/build/src/types'
 import { logFlags } from '../logger'
 import { nestedCountersInstance } from '../utils/nestedCounters'
 import { VectorBufferStream } from '../utils/serialization/VectorBufferStream'

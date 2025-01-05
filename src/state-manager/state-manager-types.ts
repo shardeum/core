@@ -1,4 +1,4 @@
-import { StateManager, P2P } from '@shardus/types'
+import { StateManager, P2P } from '@shardeum-foundation/lib-types'
 import * as Shardus from '../shardus/shardus-types'
 export { AcceptedTx, App, ApplyResponse, Cycle, Sign } from '../shardus/shardus-types'
 

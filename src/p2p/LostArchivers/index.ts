@@ -1,4 +1,4 @@
-import { P2P } from '@shardus/types'
+import { P2P } from '@shardeum-foundation/lib-types'
 import { insertSorted } from '../../utils'
 import { removeArchiverByPublicKey } from '../Archivers'
 import {
@@ -11,11 +11,11 @@ import {
 import { info, initLogging } from './logging'
 import { registerRoutes } from './routes'
 import { lostArchiversMap } from './state'
-import { ArchiverDownMsg, ArchiverUpMsg } from '@shardus/types/build/src/p2p/LostArchiverTypes'
-import { SignedObject } from '@shardus/types/build/src/p2p/P2PTypes'
+import { ArchiverDownMsg, ArchiverUpMsg } from '@shardeum-foundation/lib-types/build/src/p2p/LostArchiverTypes'
+import { SignedObject } from '@shardeum-foundation/lib-types/build/src/p2p/P2PTypes'
 import { inspect } from 'util'
 import { logFlags } from '../../logger'
-import { Utils } from '@shardus/types'
+import { Utils } from '@shardeum-foundation/lib-types'
 
 /** CycleCreator Functions */
 

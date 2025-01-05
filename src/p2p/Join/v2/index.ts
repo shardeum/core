@@ -3,8 +3,8 @@
  * TODO: Rename this module later?
  */
 
-import { P2P, hexstring } from '@shardus/types'
-import { JoinRequest } from '@shardus/types/build/src/p2p/JoinTypes'
+import { P2P, hexstring } from '@shardeum-foundation/lib-types'
+import { JoinRequest } from '@shardeum-foundation/lib-types/build/src/p2p/JoinTypes'
 import { config, crypto, shardus } from '../../Context'
 import * as CycleChain from '../../CycleChain'
 import * as Self from '../../Self'
@@ -16,7 +16,7 @@ import { ResultAsync } from 'neverthrow'
 import { reset as resetAcceptance } from './acceptance'
 import { stringifyReduce } from '../../../utils/functions/stringifyReduce'
 import { logFlags } from '../../../logger'
-import { Utils } from '@shardus/types'
+import { Utils } from '@shardeum-foundation/lib-types'
 
 const clone = rfdc()
 

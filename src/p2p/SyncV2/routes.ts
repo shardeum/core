@@ -3,7 +3,7 @@
  * available for other nodes to query.
  */
 
-import { P2P } from '@shardus/types'
+import { P2P } from '@shardeum-foundation/lib-types'
 import { Handler } from 'express'
 import * as CycleChain from '../CycleChain'
 import { network } from '../Context'
@@ -15,7 +15,7 @@ import * as ServiceQueue from '../ServiceQueue'
 import { profilerInstance } from '../../utils/profiler'
 import { logFlags } from '../../logger'
 import { jsonHttpResWithSize } from '../../utils'
-import { Utils } from '@shardus/types'
+import { Utils } from '@shardeum-foundation/lib-types'
 
 /** An endpoint that returns the latest node list hash. */
 const validatorListHashRoute: P2P.P2PTypes.Route<Handler> = {

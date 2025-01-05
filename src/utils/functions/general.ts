@@ -1,9 +1,9 @@
-import { P2P } from '@shardus/types'
+import { P2P } from '@shardeum-foundation/lib-types'
 import { Ordering } from '..'
 import { Response } from 'express-serve-static-core'
 import { DevSecurityLevel, NodeWithRank } from '../../shardus/shardus-types'
 import { nestedCountersInstance } from '../nestedCounters'
-import { Utils } from '@shardus/types'
+import { Utils } from '@shardeum-foundation/lib-types'
 
 /**
  * Checks if the input string is a valid IPv4 address

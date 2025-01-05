@@ -4,12 +4,12 @@ import { enterRecovery, enterSafety, enterProcessing, enterShutdown } from './Mo
 import { config, logger } from './Context'
 import { targetCount } from './CycleAutoScale'
 import { nestedCountersInstance } from '../utils/nestedCounters'
-import { P2P } from '@shardus/types'
+import { P2P } from '@shardeum-foundation/lib-types'
 import { insertSorted, lerp } from '../utils'
 import * as CycleCreator from './CycleCreator'
 import * as CycleChain from './CycleChain'
 import { logFlags } from '../logger'
-import { Utils } from '@shardus/types'
+import { Utils } from '@shardeum-foundation/lib-types'
 import { getProblematicNodes } from './ProblemNodeHandler'
 
 interface ToAcceptResult {

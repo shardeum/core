@@ -7,7 +7,7 @@ import {
 import { serializeWrappedData } from '../../../../src/types/WrappedData'
 import { initAjvSchemas } from '../../../../src/types/ajv/Helpers'
 import { TypeIdentifierEnum } from '../../../../src/types/enum/TypeIdentifierEnum'
-import { Utils } from '@shardus/types'
+import { Utils } from '@shardeum-foundation/lib-types'
 import { VectorBufferStream } from '../../../../src/utils/serialization/VectorBufferStream'
 import { serializeSignedReceipt } from '../../../../src/types/SignedReceipt'
 

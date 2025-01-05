@@ -1,5 +1,5 @@
 import { Logger } from 'log4js'
-import { P2P } from '@shardus/types'
+import { P2P } from '@shardeum-foundation/lib-types'
 import { insertSorted, lerp, validateTypes } from '../utils'
 import * as Comms from './Comms'
 import { config, logger } from './Context'
@@ -11,7 +11,7 @@ import { nestedCountersInstance } from '../utils/nestedCounters'
 import { currentCycle } from './CycleCreator'
 import { getExpiredRemovedV2, getExpiredRemovedV3 } from './ModeSystemFuncs'
 import { logFlags } from '../logger'
-import { Utils } from '@shardus/types'
+import { Utils } from '@shardeum-foundation/lib-types'
 
 /** STATE */
 
