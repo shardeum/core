@@ -610,6 +610,7 @@ export function parseRecord(record: P2P.CycleCreatorTypes.CycleRecord): P2P.Cycl
         // if the node has just appeared in startedSyncing or finishedSyncing, do nothing
         if (record.startedSyncing.includes(nodeId)) continue
         if (record.finishedSyncing.includes(nodeId)) continue
+        if (record.lostAfterSelection.includes(nodeId)) continue
 
         // add node to lostAfterSelection to be added to the cycle record next cycle
         lostAfterSelection.push(nodeId)
