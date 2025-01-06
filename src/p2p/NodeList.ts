@@ -105,10 +105,13 @@ export function addNode(node: P2P.NodeListTypes.Node, caller: string) {
     return
   }
 
+  if (!node.refuteCycles) {
+    node.refuteCycles = new Set();
+  }
+
   // Don't add duplicates
   if (nodes.has(node.id)) {
     warn(`NodeList.addNode: tried to add duplicate ${node.externalPort}: ${Utils.safeStringify(node)}\n` + `${caller}`)
-
     return
   }
 
@@ -167,6 +170,7 @@ export function addNode(node: P2P.NodeListTypes.Node, caller: string) {
     removeReadyNode(node.id)
   }
 }
+
 export function addNodes(newNodes: P2P.NodeListTypes.Node[], caller: string) {
   for (const node of newNodes) {
     addNode(node, caller)
@@ -312,69 +316,104 @@ export function updateNode(
   raiseEvents: boolean,
   cycle: P2P.CycleCreatorTypes.CycleRecord | null
 ) {
+  nestedCountersInstance.countEvent('p2p', `updateNode: ${update.id}`, 1)
   const node = nodes.get(update.id)
-  if (node) {
-    // Initialize refuteCycles if it doesn't exist
-    if (config.p2p.enableProblematicNodeRemoval) {
-      if (cycle.counter >= config.p2p.enableProblematicNodeRemovalOnCycle) {
-        if (!node.refuteCycles) {
-          node.refuteCycles = new Set();
+  if (!node) {
+    nestedCountersInstance.countEvent('p2p', `updateNode: node not found`, 1)
+    return
+  }
+
+  // Only handle refuteCycles for nodes that have it initialized
+  if (node.refuteCycles !== undefined) {
+    nestedCountersInstance.countEvent('p2p', `updateNode: handling refuteCycles for node ${node.id}`, 1)
+    
+    // Skip refute cycle handling if no cycle data is provided
+    if (!cycle) {
+      nestedCountersInstance.countEvent('p2p', `updateNode: skipping refuteCycles for node ${node.id} - no cycle data`, 1)
+    } else {
+      // Track refutes if this update is from a cycle record
+      if (cycle.refuted?.includes(node.id)) {
+        nestedCountersInstance.countEvent('p2p', `updateNode: cycle.refuted includes node.id ${node.id}`, 1)
+        nestedCountersInstance.countEvent('p2p', `updateNode: adding cycle ${cycle.counter} to refuteCycles for node ${node.id}`, 1)
+        node.refuteCycles.add(cycle.counter);
+      } else {
+        nestedCountersInstance.countEvent('p2p', `updateNode: node ${node.id} not refuted in cycle ${cycle.counter}`, 1)
+        if (cycle.refuted) {
+          nestedCountersInstance.countEvent('p2p', `updateNode: cycle.refuted exists with length ${cycle.refuted.length}`, 1)
+        } else {
+          nestedCountersInstance.countEvent('p2p', `updateNode: cycle.refuted is undefined`, 1)
         }
-        // Track refutes if this update is from a cycle record
-        if (cycle && cycle.refuted?.includes(node.id)) {
-          node.refuteCycles.add(cycle.counter);
-        }
-        
-        // Clean up old refutes using sliding window
-        const windowStart = Math.max(1, cycle.counter - config.p2p.problematicNodeHistoryLength);
-        const oldRefutes = Array.from(node.refuteCycles).filter(c => c < windowStart);
-        oldRefutes.forEach(c => node.refuteCycles.delete(c));
+      }
+      
+      // Clean up old refutes using sliding window
+      const windowStart = Math.max(1, cycle.counter - config.p2p.problematicNodeHistoryLength);
+      nestedCountersInstance.countEvent('p2p', `updateNode: windowStart ${windowStart} for cycle ${cycle.counter}`, 1)
+      nestedCountersInstance.countEvent('p2p', `updateNode: problematicNodeHistoryLength ${config.p2p.problematicNodeHistoryLength}`, 1)
+
+      const oldRefutes = Array.from(node.refuteCycles).filter(c => c < windowStart);
+      nestedCountersInstance.countEvent('p2p', `updateNode: found ${oldRefutes.length} old refutes for node ${node.id}`, 1)
+      if (oldRefutes.length > 0) {
+        nestedCountersInstance.countEvent('p2p', `updateNode: oldRefutes cycles: ${oldRefutes.join(',')}`, 1)
+      }
+      oldRefutes.forEach(c => {
+        nestedCountersInstance.countEvent('p2p', `updateNode: removing old refute cycle ${c} for node ${node.id}`, 1)
+        node.refuteCycles.delete(c)
+      });
+
+      // Log final state after updates
+      nestedCountersInstance.countEvent('p2p', `updateNode: final refuteCycles size ${node.refuteCycles.size} for node ${node.id}`, 1)
+      if (node.refuteCycles.size > 0) {
+        const cycles = Array.from(node.refuteCycles).sort((a,b) => a - b);
+        nestedCountersInstance.countEvent('p2p', `updateNode: remaining refute cycles: ${cycles.join(',')}`, 1)
       }
     }
+  } else {
+    nestedCountersInstance.countEvent('p2p', `updateNode: skipping refuteCycles for node ${node.id} - not initialized`, 1)
+  }
 
-    // Update node properties
-    for (const key of Object.keys(update)) {
-      node[key] = update[key]
+  // Update node properties
+  for (const key of Object.keys(update)) {
+    node[key] = update[key]
+  }
+
+  // add node to syncing list if its status is changed to syncing
+  if (update.status === P2P.P2PTypes.NodeStatus.SYNCING) {
+    insertSorted(syncingByIdOrder, node, propComparator('id'))
+    removeSelectedNode(node.id)
+  } else if (update.status === P2P.P2PTypes.NodeStatus.READY) {
+    linearInsertSorted(readyByTimeAndIdOrder, node, propComparator2('readyTimestamp', 'id'))
+    if (config.p2p.hardenNewSyncingProtocol) {
+      if (selectedById.has(node.id)) removeSelectedNode(node.id) // in case we missed the sync-started gossip
     }
-    // add node to syncing list if its status is changed to syncing
-    if (update.status === P2P.P2PTypes.NodeStatus.SYNCING) {
-      insertSorted(syncingByIdOrder, node, propComparator('id'))
-      removeSelectedNode(node.id)
-    } else if (update.status === P2P.P2PTypes.NodeStatus.READY) {
-      linearInsertSorted(readyByTimeAndIdOrder, node, propComparator2('readyTimestamp', 'id'))
-      if (config.p2p.hardenNewSyncingProtocol) {
-        if (selectedById.has(node.id)) removeSelectedNode(node.id) // in case we missed the sync-started gossip
+    removeSyncingNode(node.id)
+  } else if (update.status === P2P.P2PTypes.NodeStatus.ACTIVE) {
+    //test if this node is in the active list already.  if it is not, then we can add it
+    let idx = binarySearch(activeByIdOrder, { id: node.id }, propComparator('id'))
+    if (idx < 0) {
+      insertSorted(activeByIdOrder, node, propComparator('id'))
+      for (let i = 0; i < activeByIdOrder.length; i++) {
+        activeIdToPartition.set(activeByIdOrder[i].id, i)
       }
-      removeSyncingNode(node.id)
-    } else if (update.status === P2P.P2PTypes.NodeStatus.ACTIVE) {
-      //test if this node is in the active list already.  if it is not, then we can add it
-      let idx = binarySearch(activeByIdOrder, { id: node.id }, propComparator('id'))
-      if (idx < 0) {
-        insertSorted(activeByIdOrder, node, propComparator('id'))
-        for (let i = 0; i < activeByIdOrder.length; i++) {
-          activeIdToPartition.set(activeByIdOrder[i].id, i)
-        }
-        // Don't add yourself to activeOthersByIdOrder
-        if (node.id !== id) {
-          insertSorted(activeOthersByIdOrder, node, propComparator('id'))
-        }
-        // remove active node from ready list
-        /* prettier-ignore */ if (logFlags.verbose) console.log('updateNode: removing active node from ready list')
-        removeReadyNode(node.id)
+      // Don't add yourself to activeOthersByIdOrder
+      if (node.id !== id) {
+        insertSorted(activeOthersByIdOrder, node, propComparator('id'))
+      }
+      // remove active node from ready list
+      /* prettier-ignore */ if (logFlags.verbose) console.log('updateNode: removing active node from ready list')
+      removeReadyNode(node.id)
 
-        if (raiseEvents) {
-          const emitParams: Omit<ShardusEvent, 'type'> = {
-            nodeId: node.id,
-            reason: 'Node activated',
-            time: cycle.start,
-            publicKey: node.publicKey,
-            cycleNumber: cycle.counter,
-          }
-          if (cycle.mode === 'shutdown' || networkMode === 'shutdown') {
-            return
-          }
-          emitter.emit('node-activated', emitParams)
+      if (raiseEvents && cycle) {
+        const emitParams: Omit<ShardusEvent, 'type'> = {
+          nodeId: node.id,
+          reason: 'Node activated',
+          time: cycle.start,
+          publicKey: node.publicKey,
+          cycleNumber: cycle.counter,
         }
+        if (cycle.mode === 'shutdown' || networkMode === 'shutdown') {
+          return
+        }
+        emitter.emit('node-activated', emitParams)
       }
     }
   }
@@ -399,6 +438,21 @@ export function createNode(joined: P2P.JoinTypes.JoinedConsensor) {
     ...joined,
     curvePublicKey: crypto.convertPublicKeyToCurve(joined.publicKey),
     status: P2P.P2PTypes.NodeStatus.SELECTED,
+  }
+
+  // Initialize refuteCycles if problematic node removal is enabled
+  if (config.p2p.enableProblematicNodeRemoval) {
+    const newestCycle = CycleChain.newest;
+    // Force initialization if feature flag is on and cycle threshold is 0
+    if (!newestCycle && config.p2p.enableProblematicNodeRemovalOnCycle === 0) {
+      nestedCountersInstance.countEvent('p2p', `createNode: forcing refuteCycles initialization for new node (no cycle yet)`, 1)
+      node.refuteCycles = new Set()
+    } else if (newestCycle && newestCycle.counter >= config.p2p.enableProblematicNodeRemovalOnCycle) {
+      nestedCountersInstance.countEvent('p2p', `createNode: initializing refuteCycles for new node at cycle ${newestCycle.counter}`, 1)
+      node.refuteCycles = new Set()
+    } else {
+      nestedCountersInstance.countEvent('p2p', `createNode: skipping refuteCycles init - cycle ${newestCycle?.counter} below threshold ${config.p2p.enableProblematicNodeRemovalOnCycle}`, 1)
+    }
   }
 
   return node

@@ -75,17 +75,12 @@ export function updateRecord(
     record.removed = []
     return
   }
-
-  {
-    const { expired, removed } = getExpiredRemoved(prev.start, prev.desired, txs)
-    nestedCountersInstance.countEvent('p2p', `results of getExpiredRemoved: expired: ${expired} removed: ${removed.length}`, 1)
-    if (logFlags && logFlags.verbose) console.log(`results of getExpiredRemoved: expired: ${expired} removed: ${removed.length} array: ${removed}`)
-  }
   
   const problemNodeRemovalEnabled = config.p2p.enableProblematicNodeRemoval && currentCycle >= config.p2p.enableProblematicNodeRemovalOnCycle;
   // we only want to use the problematic node removal logic if we are past the enableProblematicNodeRemovalOnCycle and have a full history of refutes
   // note: we may want to wait an additional config.p2p.problematicNodeHistoryLength cycles before we start removing problematic nodes
   //       this would give us a full history of refutes before we start removing problematic nodes
+  nestedCountersInstance.countEvent('p2p', `problemNodeRemovalEnabled: ${problemNodeRemovalEnabled}`, 1)
   if (problemNodeRemovalEnabled === false) {
     // Allow the autoscale module to set this value
     const { expired, removed } = getExpiredRemovedV2(prev, lastLoggedCycle, txs, info)
@@ -96,7 +91,7 @@ export function updateRecord(
     record.removed = removed // already sorted
   } else {
     const { expired, removed, problematic } = getExpiredRemovedV3(prev, lastLoggedCycle, txs, info)
-    nestedCountersInstance.countEvent('p2p', `results of getExpiredRemovedV2: expired: ${expired} removed: ${removed.length} problematic: ${problematic}`, 1)
+    nestedCountersInstance.countEvent('p2p', `results of getExpiredRemovedV3: expired: ${expired} removed: ${removed.length} problematic: ${problematic}`, 1)
     /* prettier-ignore */ if(logFlags?.node_rotation_debug) logger.mainLog_debug('GETEXPIREDREMOVEDV3_STATS', `results of getExpiredRemovedV2: expired: ${expired} removed: ${removed.length} problematic: ${problematic}`)
       // record.problematic = problematic // may want to write this to cycle record for
     record.expired = expired

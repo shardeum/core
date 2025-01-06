@@ -1,0 +1,43 @@
+name: Node.js Tests
+
+on:
+  # Allow this workflow to be called from other repositories
+  workflow_call:
+    inputs:
+      test-command:
+        description: 'Command to run tests'
+        default: 'npm test'
+        required: false
+        type: string
+      install-command:
+        description: 'Command to install dependencies'
+        default: 'npm ci'
+        required: false
+        type: string
+      lint-command:
+        description: 'Command to run linting'
+        default: 'npm run lint'
+        required: false
+        type: string
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: ${{ inputs.install-command }}
+    
+    - name: Run linting
+      if: vars.IS_LINT_REQUIRED == 'true'
+      run: ${{ inputs.lint-command }}
+      
+    - name: Run tests
+      run: ${{ inputs.test-command }}

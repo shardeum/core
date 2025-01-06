@@ -608,14 +608,11 @@ export function getExpiredRemovedV3(
   NodeList.potentiallyRemoved.clear()
 
   const active = NodeList.activeByIdOrder.length
-  const start = prevRecord.start
-  let expireTimestamp = start - config.p2p.nodeExpiryAge
-  if (expireTimestamp < 0) expireTimestamp = 0
 
   // calculate the target number of nodes
   const { add, remove } = calculateToAcceptV2(prevRecord)
   // get list of expired nodes
-  const expirationTimeThreshold = Math.max(start - config.p2p.nodeExpiryAge, 0)
+  const expirationTimeThreshold = Math.max(prevRecord.start - config.p2p.nodeExpiryAge, 0)
 
   // get list of nodes that have been requested to be removed
   const apoptosizedNodesList = getApoptosizedNodes(txs)
@@ -626,10 +623,16 @@ export function getExpiredRemovedV3(
   const numExpiredNodes = expiredNodes.length
 
   // if its recommended that we dont remove any nodes, we MUST adhere to this. 
-  if (remove === 0) return { problematic: 0, expired: numExpiredNodes, removed: [] }
+  if (remove === 0) {
+    nestedCountersInstance.countEvent('p2p', `getExpiredRemovedV3: remove is 0`, 1)
+    return { problematic: 0, expired: numExpiredNodes, removed: [] }
+  }
 
   // Don't expire/remove any if nodeExpiryAge is negative
-  if (config.p2p.nodeExpiryAge < 0) return { problematic: 0, expired: 0, removed: [] }
+  if (config.p2p.nodeExpiryAge < 0) {
+    nestedCountersInstance.countEvent('p2p', `getExpiredRemovedV3: nodeExpiryAge is negative`, 1)
+    return { problematic: 0, expired: 0, removed: [] }
+  }
 
   nestedCountersInstance.countEvent(
     'p2p',

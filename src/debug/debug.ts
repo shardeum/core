@@ -9,7 +9,7 @@ import { logFlags } from '../logger'
 import { currentCycle } from '../p2p/CycleCreator'
 import * as ProblemNodeHandler from '../p2p/ProblemNodeHandler'
 import { Node } from '@shardus/types/build/src/p2p/NodeListTypes'
-import { nodes } from '../p2p/NodeList'
+import * as NodeList from '../p2p/NodeList'
 const tar = require('tar-fs')
 const fs = require('fs')
 
@@ -150,7 +150,7 @@ class Debug {
         const dump: Record<string, any> = {}
         
         // Collect data for all nodes that have any refute history
-        for (const [nodeId, node] of nodes as Map<string, Node>) {
+        for (const [nodeId, node] of NodeList.nodes as Map<string, Node>) {
           if (node.refuteCycles?.size > 0) {
             const refuteCycles = Array.from(node.refuteCycles).sort((a, b) => a - b)
             dump[nodeId] = {
