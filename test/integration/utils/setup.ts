@@ -1,6 +1,6 @@
 // shardus-core/test/integration/setup.ts
-import * as crypto from '@shardus/crypto-utils'
-import { NodeStatus } from '@shardus/types/build/src/p2p/P2PTypes'
+import * as crypto from '@shardeum-foundation/lib-crypto-utils'
+import { NodeStatus } from '@shardeum-foundation/lib-types/build/src/p2p/P2PTypes'
 import SHARDUS_CONFIG from '../../../src/config'
 import * as http from '../../../src/http'
 import Logger from '../../../src/logger'

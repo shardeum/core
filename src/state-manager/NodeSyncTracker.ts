@@ -28,7 +28,7 @@ import { GetAccountDataReqSerializable, serializeGetAccountDataReq } from '../ty
 import { deserializeGetAccountDataResp, GetAccountDataRespSerializable } from '../types/GetAccountDataResp'
 import { ResponseError } from '../types/ResponseError'
 
-// Not sure where to put this interface yet. I guess maybe to @shardus/types? or to state-manager-types?
+// Not sure where to put this interface yet. I guess maybe to @shardeum-foundation/lib-types? or to state-manager-types?
 // Keeping it here for now. can move it later.
 export interface SyncTrackerInterface {
   // accountSync: AccountSync
