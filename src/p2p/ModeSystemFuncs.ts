@@ -673,21 +673,23 @@ export function getExpiredRemovedV3(
         })
     )
   }
-
-  const counters = {
-    add,
-    remove,
-    numApoptosizedRemovals: numApoptosizedRemovals,
-    numProblematicRemovals: numProblematicRemovals,
-    numProblematicNodes: problematicNodes.length,
-    canRemoveProblematicNodesThisCycle: canRemoveProblematicNodesThisCycle,
-    numPotentiallyExpiredRemovals: numPotentiallyExpiredRemovals,
-    numExpiredRemovals: numExpiredRemovals,
+  
+  if (logFlags?.node_rotation_debug) {
+    const counters = {
+      add,
+      remove,
+      numApoptosizedRemovals: numApoptosizedRemovals,
+      numProblematicRemovals: numProblematicRemovals,
+      numProblematicNodes: problematicNodes.length,
+      canRemoveProblematicNodesThisCycle: canRemoveProblematicNodesThisCycle,
+      numPotentiallyExpiredRemovals: numPotentiallyExpiredRemovals,
+      numExpiredRemovals: numExpiredRemovals,
+    }
+    nestedCountersInstance.countEvent(
+      'p2p',
+      `results of getExpiredRemovedV3: ${JSON.stringify(counters)}`
+    )
   }
-  nestedCountersInstance.countEvent(
-    'p2p',
-    `results of getExpiredRemovedV3: ${JSON.stringify(counters)}`
-  )
 
   const dangerousRemoval = remove === 0 && config.p2p.enableDangerousProblematicNodeRemoval === false
   const nodesNeverExpire = config.p2p.nodeExpiryAge < 0
