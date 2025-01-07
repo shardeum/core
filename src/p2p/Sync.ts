@@ -486,6 +486,7 @@ function applyNodeListChange(
     'applyNodeListChange'
   )
   NodeList.updateNodes(change.updated, raiseEvents, cycle)
+  NodeList.updateProblematicNodeTracking(cycle)
   if (change.removed[0] !== 'all') NodeList.removeNodes(change.removed, raiseEvents, cycle)
 }
 
