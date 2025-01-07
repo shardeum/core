@@ -759,6 +759,8 @@ export interface ServerConfiguration {
     /** Problematic Node configurations */
     /** enable problematic node removal */
     enableProblematicNodeRemoval?: boolean
+    /** when true, we will remove problematic nodes even when calculateToAcceptV2 says we should not remove any nodes. This is useful in development when testing this feature. */
+    enableDangerousProblematicNodeRemoval?: boolean
     /** enable problematic node removal on a specific cycle. This is to allow the network to stabilize before removing problematic nodes. 
      * enableProblematicNodeRemoval must be true for this to take effect*/
     enableProblematicNodeRemovalOnCycle?: number
