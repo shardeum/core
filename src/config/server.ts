@@ -221,7 +221,6 @@ const SERVER_CONFIG: StrictServerConfiguration = {
     profiler: false,
     minMultiSigRequiredForEndpoints: 2,
     minMultiSigRequiredForGlobalTxs: 2,
-    minMultiSigRequiredForArchiverConfig: 2,
     robustQueryDebug: false,
     forwardTXToSyncingNeighbors: false,
     recordAcceptedTx: false,

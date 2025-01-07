@@ -1086,8 +1086,6 @@ export interface ServerConfiguration {
     minMultiSigRequiredForEndpoints: number
     /** minimum approvals needed for global txs using multisig */
     minMultiSigRequiredForGlobalTxs: number
-    /** minimum approvals needed for archiver config using multisig */
-    minMultiSigRequiredForArchiverConfig: number
     /** dump extra data for robust query even if in error/fatal logggin only mode */
     robustQueryDebug: boolean
     /** pretty sure we don't want this ever but making a config so we can AB test as needed */

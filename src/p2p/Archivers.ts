@@ -35,7 +35,6 @@ import { Result, ResultAsync } from 'neverthrow'
 import { Utils } from '@shardeum-foundation/lib-types'
 import { arch } from 'os'
 import { checkGossipPayload } from '../utils/GossipValidation'
-import { DevSecurityLevel } from '../shardus/shardus-types'
 
 const clone = rfdc()
 
