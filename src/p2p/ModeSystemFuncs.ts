@@ -691,11 +691,11 @@ export function getExpiredRemovedV3(
     )
   }
 
-  const dangerousRemoval = remove === 0 && config.p2p.enableDangerousProblematicNodeRemoval === false
+  const wouldBeDangerousToRemoveNodes = remove === 0
   const nodesNeverExpire = config.p2p.nodeExpiryAge < 0
   // if its recommended that we dont remove any nodes, Or the nodes never expire, we MUST adhere to this.
-  if (dangerousRemoval || nodesNeverExpire) {
-     return { 
+  if (!config.p2p.enableDangerousProblematicNodeRemoval && (wouldBeDangerousToRemoveNodes || nodesNeverExpire)) {
+     return {
       problematic: 0, 
       expired: 0, 
       removed: [] 
