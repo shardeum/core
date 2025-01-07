@@ -61,7 +61,7 @@ export let connectedSockets = {}
 let lastSentCycle = -1
 let lastTimeForwardedArchivers = []
 export const RECEIPT_FORWARD_INTERVAL_MS = 5000
-const ALLOWED_ARCHIVERS_UPDATE_INTERVAL_MS = 10000
+const ALLOWED_ARCHIVERS_UPDATE_INTERVAL_MS = process.env.ALLOWED_ARCHIVERS_UPDATE_INTERVAL_MS || 60000
 
 export enum DataRequestTypes {
   SUBSCRIBE = 'SUBSCRIBE',
@@ -106,19 +106,24 @@ export function init() {
   resetLeaveRequests()
   registerRoutes()
   getAllowedArchivers().then(archivers => {
-    allowedArchivers = archivers
+    if (archivers.length >= 1) {
+      allowedArchivers = archivers
+    }
   })
 
-  // Set up interval to fetch allowed archivers every minute
+  // Set up interval to fetch allowed archivers
   allowedArchiversInterval = setInterval(async () => {
     try {
-      allowedArchivers = await getAllowedArchivers()
+      const newArchiversList = await getAllowedArchivers()
+      if (newArchiversList.length >= 1) {
+        allowedArchivers = newArchiversList
+      }
     } catch (err) {
       if (logFlags.important_as_fatal) {
         console.error('Periodic update: failed to update allowedArchivers:', err)
       }
     }
-  }, ALLOWED_ARCHIVERS_UPDATE_INTERVAL_MS) // 10 seconds
+  }, Number(ALLOWED_ARCHIVERS_UPDATE_INTERVAL_MS)) // Default is 60 seconds
 
   if (config.p2p.experimentalSnapshot && !receiptForwardInterval) {
     receiptForwardInterval = setInterval(forwardReceipts, RECEIPT_FORWARD_INTERVAL_MS)
@@ -144,118 +149,62 @@ export function init() {
   }
 }
 
-let lastSeenCounter = 0;
-
 async function getAllowedArchivers(): Promise<Array<{
   ip: string
   port: number
   publicKey: string
 }>> {
+  // Type for archiver data response
+  type ArchiverResponse = {
+    allowedArchivers: Array<{
+      ip: string
+      port: number
+      publicKey: string
+    }>
+    allowedAccounts: string[]
+    counter: number
+    minSigRequired: number
+    signatures: Array<{
+      owner: string
+      sig: string
+    }>
+  }
+
+  // Helper function to fetch and validate archiver data
+  async function fetchArchiverData(ip: string, port: number): Promise<ArchiverResponse | null> {
+    try {
+      const response = await fetch(`http://${ip}:${port}/allowed-archivers`)
+      if (!response.ok) {
+        return null
+      }
+      const data = await response.json() as ArchiverResponse
+      if (data.allowedArchivers?.length > 0 && data.signatures?.length >= data.minSigRequired) {
+        return data
+      }
+    } catch (err) {
+      p2pLogger.warn(`Failed to get archiver data from ${ip}:${port}`)
+    }
+    return null
+  }
+
+  // Try getting from existing archivers first
   if (archivers.size > 0) {
-    // Get config from a random existing archiver
     const randomArchiver = getRandomArchiver()
     if (!randomArchiver) return []
 
-    try {
-      const response = await fetch(`http://${randomArchiver.ip}:${randomArchiver.port}/allowed-archivers`)
-      if (!response.ok) {
-        return []
-      }
-      const data = await response.json() as {
-        allowedArchivers: Array<{
-          ip: string
-          port: number
-          publicKey: string
-        }>
-        signatures: Array<{
-          owner: string
-          sig: string
-        }>
-        counter: number
-      }
-
-      // Verify signatures
-      const verifyRawPayload = {
-        allowedArchivers: data.allowedArchivers,
-        counter: data.counter
-      }
-
-      // Verify counter is increasing
-      if (data.counter <= lastSeenCounter) {
-        p2pLogger.error('Invalid counter in allowed-archivers response - counter must be increasing')
-        return []
-      }
-
-      const isValid = Context.stateManager.app.verifyMultiSigs(
-        verifyRawPayload,
-        data.signatures,
-        config.debug.multisigKeys,
-        config.debug.minMultiSigRequiredForArchiverConfig,
-        DevSecurityLevel.High
-      )
-
-      if (!isValid) {
-        p2pLogger.error('Invalid signatures in allowed-archivers response')
-        return []
-      }
-
-      // Update last seen counter only after successful verification
-      lastSeenCounter = data.counter
-
-      if (data.allowedArchivers && data.allowedArchivers.length > 0) {
-        p2pLogger.info(`Found ${data.allowedArchivers.length} whitelisted archivers from ${randomArchiver.ip}:${randomArchiver.port}`)
-        return data.allowedArchivers
-      }
-    } catch (err) {
-      p2pLogger.warn(`Failed to get archiver config from ${randomArchiver.ip}:${randomArchiver.port}`)
-      return []
+    const data = await fetchArchiverData(randomArchiver.ip, randomArchiver.port)
+    if (data) {
+      return data.allowedArchivers
     }
-  } else {
-    // Use existingArchivers from config when no archivers exist yet
-    const existingArchivers = config.p2p.existingArchivers
-    if (existingArchivers.length > 0) {
-      for (const archiver of existingArchivers) {
-        try {
-          const response = await fetch(`http://${archiver.ip}:${archiver.port}/allowed-archivers`)
-          if (!response.ok) {
-            continue
-          }
-          const data = await response.json() as {
-            allowedArchivers: Array<{
-              ip: string
-              port: number
-              publicKey: string
-            }>
-            signatures: Array<{
-              owner: string
-              sig: string
-            }>
-          }
+  }
 
-          // Verify signatures
-          const verifyRawPayload = {
-            allowedArchivers: data.allowedArchivers
-          }
-
-          const isValid = Context.stateManager.app.verifyMultiSigs(
-            verifyRawPayload,
-            data.signatures,
-            config.debug.multisigKeys, // Use the multisig keys from the config
-            config.debug.minMultiSigRequiredForArchiverConfig,
-            DevSecurityLevel.High
-          )
-          if (!isValid) {
-            p2pLogger.error('Invalid signatures in allowed-archivers response')
-            break // Exit the loop if the signatures are invalid
-          }
-          if (data.allowedArchivers && data.allowedArchivers.length > 0) {
-            p2pLogger.info(`Found ${data.allowedArchivers.length} allowed archivers from ${archiver.ip}:${archiver.port}`)
-            return data.allowedArchivers
-          }
-        } catch (err) {
-          p2pLogger.warn(`Failed to get allowed archivers from ${archiver.ip}:${archiver.port}`)
-          continue
-        }
+  // Fall back to configured existing archivers
+  const existingArchivers = config.p2p.existingArchivers
+  if (existingArchivers.length > 0) {
+    for (const archiver of existingArchivers) {
+      const data = await fetchArchiverData(archiver.ip, archiver.port)
+      if (data) {
+        return data.allowedArchivers
       }
     }
   }
