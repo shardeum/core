@@ -113,6 +113,9 @@
     "webpack-node-externals": "1.7.2"
   },
   "overrides": {
+    "@shardus/crypto-utils": {
+      "@shardus/types": "git+https://github.com/shardeum/lib-types#itn4-1.16.3"
+    },
     "qs": "6.11.2",
     "ip": "2.0.1",
     "@hapi/hoek": "8.5.1",

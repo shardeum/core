@@ -594,16 +594,25 @@ export function getExpiredRemovedV2(
   return { expired, removed }
 }
 
-/** Returns the number of expired nodes and the list of removed nodes using calculateToAcceptV2 
- *  this list includes problematic nodes + expired nodes.
+type GetExpiredRemovedV3Result = {
+  // the number of problematic nodes that we have removed
+  problematic: number
+  // the number of expired nodes that we have removed
+  expired: number
+  // the list of nodes (by id) that we have removed
+  removed: string[]
+}
+
+/** 
+ * Gets the list of nodes that should be removed from the network in the next cycle.
+ * 
 */
 export function getExpiredRemovedV3(
   prevRecord: P2P.CycleCreatorTypes.CycleRecord,
   lastLoggedCycle: number,
   txs: P2P.RotationTypes.Txs & P2P.ApoptosisTypes.Txs,
   info: (...msg: string[]) => void
-): { problematic: number; expired: number; removed: string[] } {
-
+): GetExpiredRemovedV3Result {
   // clear state from last run
   NodeList.potentiallyRemoved.clear()
 
@@ -622,25 +631,20 @@ export function getExpiredRemovedV3(
   const numApoptosizedRemovals = apoptosizedNodesList.length
 
   // expired, non-apoptosized, non-syncing nodes
-  const expiredNodes = NodeList.byJoinOrder.filter((node) => node.activeTimestamp <= expirationTimeThreshold && node.status !== 'syncing' && !apoptosizedNodesList.includes(node.id)).map(node => node.id)
+  const expiredNodes = NodeList.byJoinOrder
+    .filter((node) => {
+      const timestampExpired = node.activeTimestamp <= expirationTimeThreshold
+      const isSyncing = node.status === 'syncing'
+      const isApoptosized = apoptosizedNodesList.includes(node.id)
+      return timestampExpired && !isSyncing && !isApoptosized
+    })
+    .map(node => node.id)
   const numExpiredNodes = expiredNodes.length
-
-  // if its recommended that we dont remove any nodes, we MUST adhere to this. 
-  if (remove === 0) return { problematic: 0, expired: numExpiredNodes, removed: [] }
-
-  // Don't expire/remove any if nodeExpiryAge is negative
-  if (config.p2p.nodeExpiryAge < 0) return { problematic: 0, expired: 0, removed: [] }
-
-  nestedCountersInstance.countEvent(
-    'p2p',
-    `results of getExpiredRemovedV3.calculateToAcceptV2: add: ${add}, remove: ${remove}`
-  )
 
   // Get the set of problematic nodes
   const problematicWithApoptosizedNodes = getProblematicNodes(prevRecord)
   // filter out apoptosized nodes from the problematic nodes
   const problematicNodes = problematicWithApoptosizedNodes.filter(id => !apoptosizedNodesList.includes(id))
-
   const canRemoveProblematicNodesThisCycle = prevRecord.counter % config.p2p.problematicNodeRemovalCycleFrequency === 0
   const numProblematicRemovals = Math.min(
     problematicNodes.length, 
@@ -651,7 +655,7 @@ export function getExpiredRemovedV3(
   // the remainder is the number of expired nodes we can remove this cycle
   // if there are more nodes apopped than we can remove, we can't remove any expired nodes
   const numPotentiallyExpiredRemovals = Math.max(remove - numApoptosizedRemovals, 0)
-  const numExpiredRemovals = Math.min(numPotentiallyExpiredRemovals, numExpiredNodes)
+  const numExpiredRemovals = Math.min(numPotentiallyExpiredRemovals, numExpiredNodes)  
  
   const cycle = CycleChain.newest.counter
 
@@ -669,11 +673,34 @@ export function getExpiredRemovedV3(
         })
     )
   }
-
-  nestedCountersInstance.countEvent(
+  
+  if (logFlags?.node_rotation_debug) {
+    const counters = {
+      add,
+      remove,
+      numApoptosizedRemovals: numApoptosizedRemovals,
+      numProblematicRemovals: numProblematicRemovals,
+      numProblematicNodes: problematicNodes.length,
+      canRemoveProblematicNodesThisCycle: canRemoveProblematicNodesThisCycle,
+      numPotentiallyExpiredRemovals: numPotentiallyExpiredRemovals,
+      numExpiredRemovals: numExpiredRemovals,
+    }
+    nestedCountersInstance.countEvent(
       'p2p',
-      `results of getExpiredRemovedV3: numApoptosizedRemovals: ${numApoptosizedRemovals}, numProblematicRemovals: ${numProblematicRemovals}, numExpiredRemovals: ${numExpiredRemovals}, removed: ${remove}`
-  )
+      `results of getExpiredRemovedV3: ${JSON.stringify(counters)}`
+    )
+  }
+
+  const dangerousRemoval = remove === 0 && config.p2p.enableDangerousProblematicNodeRemoval === false
+  const nodesNeverExpire = config.p2p.nodeExpiryAge < 0
+  // if its recommended that we dont remove any nodes, Or the nodes never expire, we MUST adhere to this.
+  if (dangerousRemoval || nodesNeverExpire) {
+     return { 
+      problematic: 0, 
+      expired: 0, 
+      removed: [] 
+    }
+  }
 
   // array that hold all the nodes to remove
   // maintains the sort order provided in activeByIdOrder
@@ -698,5 +725,5 @@ export function getExpiredRemovedV3(
     insertSorted(removed, node.id)
   }
 
-  return { problematic: problematicNodes.length, expired: numExpiredNodes, removed }
+  return { problematic: numProblematicRemovals, expired: numExpiredRemovals, removed }
 }

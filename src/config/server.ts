@@ -71,6 +71,7 @@ const SERVER_CONFIG: StrictServerConfiguration = {
     maxRotatedPerCycle: 1,
     flexibleRotationDelta: 1,
     flexibleRotationEnabled: false,
+    enableDangerousProblematicNodeRemoval: false,
     enableProblematicNodeRemoval: false,
     enableProblematicNodeRemovalOnCycle: 20000,
     maxProblematicNodeRemovalsPerCycle: 1,

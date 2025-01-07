@@ -112,6 +112,12 @@ export function addNode(node: P2P.NodeListTypes.Node, caller: string) {
     return
   }
 
+  if (config.p2p.enableProblematicNodeRemoval) {
+    if (!node.refuteCycles) {
+      node.refuteCycles = [];
+    }
+  }
+
   nodes.set(node.id, node)
   byPubKey.set(node.publicKey, node)
   byIpPort.set(ipPort(node.internalIp, node.internalPort), node)
@@ -314,24 +320,6 @@ export function updateNode(
 ) {
   const node = nodes.get(update.id)
   if (node) {
-    // Initialize refuteCycles if it doesn't exist
-    if (config.p2p.enableProblematicNodeRemoval) {
-      if (cycle.counter >= config.p2p.enableProblematicNodeRemovalOnCycle) {
-        if (!node.refuteCycles) {
-          node.refuteCycles = new Set();
-        }
-        // Track refutes if this update is from a cycle record
-        if (cycle && cycle.refuted?.includes(node.id)) {
-          node.refuteCycles.add(cycle.counter);
-        }
-        
-        // Clean up old refutes using sliding window
-        const windowStart = Math.max(1, cycle.counter - config.p2p.problematicNodeHistoryLength);
-        const oldRefutes = Array.from(node.refuteCycles).filter(c => c < windowStart);
-        oldRefutes.forEach(c => node.refuteCycles.delete(c));
-      }
-    }
-
     // Update node properties
     for (const key of Object.keys(update)) {
       node[key] = update[key]
@@ -386,6 +374,32 @@ export function updateNodes(
   cycle: P2P.CycleCreatorTypes.CycleRecord | null
 ) {
   for (const update of updates) updateNode(update, raiseEvents, cycle)
+}
+
+export function updateProblematicNodeTracking(cycle: P2P.CycleCreatorTypes.CycleRecord | null) {
+  for (const node of nodes.values()) {
+    if (config.p2p.enableProblematicNodeRemoval) {
+      // note: first cut of this had refuteCycles as a set. We need to switch to array, this makes it rotation-safe.
+      // Remove the instanceof check after this is deployed/after itn4 is over.
+      // its also very likely not even necessary.
+      if (!node.refuteCycles || node.refuteCycles instanceof Set) {
+        node.refuteCycles = [];
+      }
+
+      if (cycle.counter >= config.p2p.enableProblematicNodeRemovalOnCycle) {
+        // Track refutes if this update is from a cycle record
+        if (cycle && cycle.refuted?.includes(node.id)) {
+          if (!node.refuteCycles.includes(cycle.counter)) {
+            node.refuteCycles.push(cycle.counter);
+          }
+        }
+        
+        // Clean up old refutes using sliding window
+        const windowStart = Math.max(1, cycle.counter - config.p2p.problematicNodeHistoryLength);
+        node.refuteCycles = node.refuteCycles.filter(c => c >= windowStart);
+      }
+    }
+  }
 }
 
 export function isNodeLeftNetworkEarly(node: P2P.NodeListTypes.Node) {
