@@ -18,7 +18,7 @@ import { nodeListFromStates } from './Join'
 import * as Nodelist from './NodeList'
 import { ensureKeySecurity, getDevPublicKeys } from '../debug'
 import { DevSecurityLevel } from '../shardus/shardus-types'
-import { SignedObject } from '@shardus/types/build/src/p2p/P2PTypes'
+import { SignedObject } from '@shardeum-foundation/lib-types/build/src/p2p/P2PTypes'
 
 /** STATE */
 
