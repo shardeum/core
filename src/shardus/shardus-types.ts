@@ -1,5 +1,5 @@
-import { P2P } from '@shardus/types'
-import { JoinRequest } from '@shardus/types/build/src/p2p/JoinTypes'
+import { P2P } from '@shardeum-foundation/lib-types'
+import { JoinRequest } from '@shardeum-foundation/lib-types/build/src/p2p/JoinTypes'
 import { AppObjEnum } from '../types/enum/AppObjEnum'
 export type Node = P2P.NodeListTypes.Node
 export type Cycle = P2P.CycleCreatorTypes.CycleRecord
@@ -751,6 +751,29 @@ export interface ServerConfiguration {
     maxNodeForSyncTime?: number
     /** The maxRotatedPerCycle parameter is an Integer specifying the maximum number of nodes that can that can be rotated out of the network each cycle. */
     maxRotatedPerCycle?: number
+    /** This allows us to set a window below our desired amount where we can still rotate a node out of the network */
+    flexibleRotationDelta?: number
+    /** enable a system which allows rotatin even if active nodes are a small amount below the desired in processing mode */
+    flexibleRotationEnabled?: boolean
+
+    /** Problematic Node configurations */
+    /** enable problematic node removal */
+    enableProblematicNodeRemoval?: boolean
+    /** enable problematic node removal on a specific cycle. This is to allow the network to stabilize before removing problematic nodes. 
+     * enableProblematicNodeRemoval must be true for this to take effect*/
+    enableProblematicNodeRemovalOnCycle?: number
+    /** The problematicNodeRemovalCycleFrequency parameter is an Integer specifying the number of cycles between problematic node removals. */
+    problematicNodeRemovalCycleFrequency?: number
+    /** The maxProblematicNodeRemovalsPerCycle parameter is an Integer specifying the maximum number of problematic nodes that can be removed from the network each cycle. */
+    maxProblematicNodeRemovalsPerCycle?: number
+    /** The problematicNodeConsecutiveRefuteThreshold parameter is an Integer specifying the number of consecutive refutes a node must have before it is considered problematic. */
+    problematicNodeConsecutiveRefuteThreshold?: number
+    /** The problematicNodeRefutePercentageThreshold parameter is a 0-1 fraction specifying the percentage of refutes a node must have before it is considered problematic. */
+    problematicNodeRefutePercentageThreshold?: number
+    /** The problematicNodeHistoryLength parameter is an Integer specifying the number of cycles to consider when determining if a node is problematic. */
+    problematicNodeHistoryLength?: number
+    /** end of problematic node configurations */
+
     /** A fixed boost to let more nodes in when we have just the one seed node in the network */
     firstCycleJoin?: number
 
@@ -899,8 +922,19 @@ export interface ServerConfiguration {
     rotationMaxAddPercent: number
     /** not an actual percent but 0-1 value or multiplication */
     rotationMaxRemovePercent: number
-    /** The max number of nodes added to `activated` list in cycleRecord each cycle */
+    /** enable sync floor */
+    syncFloorEnabled: boolean  
+    /** additional support for more syncing nodes.  not an actual percent but 0-1 value or multiplication */
+    syncingMaxAddPercent: number
+    /** how many node should be syncing at any given time  */
+    syncingDesiredMinCount: number
+    /** The max number of nodes added to `activated` list in cycleRecord each cycle while processing */
     allowActivePerCycle: number
+    /** The max number of nodes added to `activated` list in cycleRecord each cycle */
+    allowActivePerCycleRecover: number
+    /** enable active node rotation recovery */
+    activeRecoveryEnabled: boolean      
+    /** should a checking node use a random proxy to run the down test */
     useProxyForDownCheck: boolean
     /** The number of checker nodes to ask to investigate whether a node that is potentially lost */
     numCheckerNodes: number
@@ -948,6 +982,8 @@ export interface ServerConfiguration {
     networkTransactionsToProcessPerCycle: number
     useAjvCycleRecordValidation: boolean
     getTxTimestampTimeoutOffset?: number // default timeout is 5 seconds so this can be used to add or subtract time from that
+    /** allow dropping NGTs by hitting a single node's endpoint and the drop mesage being sent to other nodes by gossip  */
+    dropNGTByGossipEnabled: boolean
     timestampCacheFixSize: number
   }
   /** Server IP configuration */
