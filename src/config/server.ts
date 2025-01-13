@@ -69,6 +69,15 @@ const SERVER_CONFIG: StrictServerConfiguration = {
     maxSyncTimeFloor: 1200,
     maxNodeForSyncTime: 9,
     maxRotatedPerCycle: 1,
+    flexibleRotationDelta: 1,
+    flexibleRotationEnabled: false,
+    enableProblematicNodeRemoval: false,
+    enableProblematicNodeRemovalOnCycle: 20000,
+    maxProblematicNodeRemovalsPerCycle: 1,
+    problematicNodeConsecutiveRefuteThreshold: 6,
+    problematicNodeRefutePercentageThreshold: 0.1,
+    problematicNodeHistoryLength: 100,
+    problematicNodeRemovalCycleFrequency: 5,
     firstCycleJoin: 10,
     maxPercentOfDelta: 40,
     minScaleReqsNeeded: 5,
@@ -134,7 +143,12 @@ const SERVER_CONFIG: StrictServerConfiguration = {
     rotationPercentActive: 0.001, //rotate 0.1% of active nodes per cycle when in a steady processing state
     rotationMaxAddPercent: 0.1,
     rotationMaxRemovePercent: 0.05,
+    syncFloorEnabled: false,  //DEBUG=true, ITN initially false for rotation safety
+    syncingMaxAddPercent: 0.2,
+    syncingDesiredMinCount: 50, //Debug=5, ITN = 50
     allowActivePerCycle: 7,
+    allowActivePerCycleRecover: 4,
+    activeRecoveryEnabled: false, //Debug=true, ITN initially false for rotation safety
     useProxyForDownCheck: false,
     numCheckerNodes: 1,
     minChecksForDown: 1,
@@ -159,6 +173,7 @@ const SERVER_CONFIG: StrictServerConfiguration = {
     useAjvCycleRecordValidation: true,
     networkTransactionsToProcessPerCycle: 20,
     getTxTimestampTimeoutOffset: 0,
+    dropNGTByGossipEnabled: false,
     timestampCacheFixSize: 10000
   },
   ip: {
