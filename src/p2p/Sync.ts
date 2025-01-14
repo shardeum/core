@@ -483,7 +483,8 @@ function applyNodeListChange(
 ) {
   NodeList.addNodes(
     change.added.map((joined) => NodeList.createNode(joined)),
-    'applyNodeListChange'
+    'applyNodeListChange',
+    cycle
   )
   NodeList.updateNodes(change.updated, raiseEvents, cycle)
   NodeList.updateProblematicNodeTracking(cycle)
