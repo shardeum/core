@@ -1086,6 +1086,8 @@ export interface ServerConfiguration {
     minMultiSigRequiredForEndpoints: number
     /** minimum approvals needed for global txs using multisig */
     minMultiSigRequiredForGlobalTxs: number
+    /** minimum approvals needed for archiver whitelist using multisig */
+    minSigRequiredForArchiverWhitelist: number
     /** dump extra data for robust query even if in error/fatal logggin only mode */
     robustQueryDebug: boolean
     /** pretty sure we don't want this ever but making a config so we can AB test as needed */
@@ -1605,7 +1607,7 @@ type ObjectAlias = object
  * OpaqueTransaction is the way shardus should see transactions internally. it should not be able to mess with parameters individually
  */
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
-export interface OpaqueTransaction extends ObjectAlias {}
+export interface OpaqueTransaction extends ObjectAlias { }
 
 export interface ReinjectedOpaqueTransaction extends OpaqueTransaction {
   isReinjected: boolean

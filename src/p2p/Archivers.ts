@@ -33,8 +33,9 @@ import { reportLostArchiver } from '../p2p/LostArchivers/functions'
 import { ActiveNode } from '@shardeum-foundation/lib-types/build/src/p2p/SyncTypes'
 import { Result, ResultAsync } from 'neverthrow'
 import { Utils } from '@shardeum-foundation/lib-types'
-import { arch } from 'os'
 import { checkGossipPayload } from '../utils/GossipValidation'
+import { arch } from 'os'
+import { DevSecurityLevel } from '../shardus/shardus-types'
 
 const clone = rfdc()
 
@@ -148,6 +149,9 @@ export function init() {
   }
 }
 
+let lastAllowedArchiversCounter = 0
+let lastAllowedArchiversConfigHash = ''
+
 async function getAllowedArchivers(): Promise<Array<{
   ip: string
   port: number
@@ -169,6 +173,47 @@ async function getAllowedArchivers(): Promise<Array<{
     }>
   }
 
+  // Helper function to verify signatures and counter
+  function verifyArchiverData(data: ArchiverResponse): boolean {
+
+    // Create payload for signature verification
+    const payload = {
+      allowedArchivers: data.allowedArchivers,
+      counter: data.counter
+    }
+    // Calculate hash of current config
+    const currentConfigHash = crypto.hash(payload)
+
+    // Only verify counter if config hash is different
+    if (currentConfigHash !== lastAllowedArchiversConfigHash && currentConfigHash !== '') {
+      // Verify counter is increasing
+      if (data.counter <= lastAllowedArchiversCounter) {
+        p2pLogger.warn('getAllowedArchivers: received stale or invalid counter')
+        return false
+      }
+    }
+
+    // Get allowed signers and min sig required from the global account
+    const allowedSigners = config.debug.multisigKeys
+    const minSigRequired = config.debug.minSigRequiredForArchiverWhitelist
+
+    if (!data.signatures || data.signatures.length < minSigRequired) {
+      p2pLogger.warn('getAllowedArchivers: insufficient signatures')
+      return false
+    }
+
+    const isValidList = Context.stateManager.app.verifyMultiSigs(payload, data.signatures, allowedSigners, minSigRequired, DevSecurityLevel.High)
+    if (!isValidList) {
+      p2pLogger.warn('getAllowedArchivers: invalid signatures')
+      return false
+    }
+
+    // Update last seen counter and config hash if verification passed
+    lastAllowedArchiversCounter = data.counter
+    lastAllowedArchiversConfigHash = currentConfigHash
+    return true
+  }
+
   // Helper function to fetch and validate archiver data
   async function fetchArchiverData(ip: string, port: number): Promise<ArchiverResponse | null> {
     try {
@@ -177,8 +222,11 @@ async function getAllowedArchivers(): Promise<Array<{
         return null
       }
       const data = await response.json() as ArchiverResponse
-      if (data.allowedArchivers?.length > 0 && data.signatures?.length >= data.minSigRequired) {
+      if (data.allowedArchivers?.length > 0 && verifyArchiverData(data)) {
         return data
+      } else {
+        p2pLogger.warn('getAllowedArchivers: invalid signatures or no allowed archivers')
+        return null
       }
     } catch (err) {
       p2pLogger.warn(`Failed to get archiver data from ${ip}:${port}`)
@@ -298,10 +346,10 @@ export function parseRecord(record: P2P.CycleCreatorTypes.CycleRecord): P2P.Cycl
 }
 
 /** Not used by Archivers */
-export function sendRequests() {}
+export function sendRequests() { }
 
 /** Not used by Archivers */
-export function queueRequest() {}
+export function queueRequest() { }
 
 /** Original Functions */
 
@@ -432,8 +480,7 @@ function validateArchiverAppData(joinRequest: P2P.ArchiversTypes.Request): {
       const validationResponse = shardus.app.validateArchiverJoinRequest(joinRequest)
       if (validationResponse.success !== true) {
         error(
-          `Validation of Archiver join request data failed due to ${
-            validationResponse.reason || 'unknown reason'
+          `Validation of Archiver join request data failed due to ${validationResponse.reason || 'unknown reason'
           }`
         )
         nestedCountersInstance.countEvent('Archiver', `Join-reject-dapp`)
