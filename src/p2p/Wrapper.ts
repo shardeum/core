@@ -175,6 +175,10 @@ class State extends EventEmitter {
     return NodeList.nodes.get(id)
   }
 
+  getRemovedNodePubKeyFromCache(id: string): P2PTypings.NodeListTypes.Node['publicKey'] | undefined {
+    return NodeList.getRemovedNodePubKeyFromCache(id)
+  }
+
   getNodes() {
     return NodeList.nodes
   }

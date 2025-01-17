@@ -1814,6 +1814,10 @@ class Shardus extends EventEmitter {
     return this.p2p.state.getNode(id)
   }
 
+  getRemovedNodePubKeyFromCache(id: string): ShardusTypes.Node['publicKey'] | undefined {
+    return this.p2p.state.getRemovedNodePubKeyFromCache(id)
+  }
+
   getNodeByPubKey(id: string): ShardusTypes.Node {
     return this.p2p.state.getNodeByPubKey(id)
   }

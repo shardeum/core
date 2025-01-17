@@ -3,7 +3,14 @@ import { P2P } from '@shardeum-foundation/lib-types'
 import { Logger } from 'log4js'
 import { isDebugModeMiddleware, isDebugModeMiddlewareLow } from '../network/debugMiddleware'
 import { ShardusEvent } from '../shardus/shardus-types'
-import { binarySearch, getTime, insertSorted, linearInsertSorted, propComparator, propComparator2 } from '../utils'
+import {
+  binarySearch,
+  FIFOCache,
+  insertSorted,
+  linearInsertSorted,
+  propComparator,
+  propComparator2
+} from '../utils'
 import * as Comms from './Comms'
 import { config, crypto, logger, network } from './Context'
 import * as CycleChain from './CycleChain'
@@ -41,6 +48,10 @@ export let readyByTimeAndIdOrder: P2P.NodeListTypes.Node[]
 export let activeOthersByIdOrder: P2P.NodeListTypes.Node[]
 export let potentiallyRemoved: Set<P2P.NodeListTypes.Node['id']>
 export let selectedById: Map<P2P.NodeListTypes.Node['id'], number>
+export let removedNodeIDCache: FIFOCache<
+  P2P.NodeListTypes.Node['id'],
+  P2P.NodeListTypes.Node['publicKey']
+> 
 
 const VERBOSE = false // Use to dump complete NodeList and CycleChain data
 
@@ -179,6 +190,10 @@ export function addNodes(newNodes: P2P.NodeListTypes.Node[], caller: string) {
   }
 }
 
+export function getRemovedNodePubKeyFromCache(nodeId: P2P.NodeListTypes.Node['id']) {
+  return removedNodeIDCache.get(nodeId);
+}
+
 export function removeSelectedNode(id: string) {
   selectedById.delete(id)
   const idx = binarySearch(selectedByIdOrder, { id }, propComparator('id'))
@@ -263,6 +278,14 @@ export function removeNode(
   nodes.delete(id)
   selectedById.delete(id)
   //readyByTimeAndIdOrder = readyByTimeAndIdOrder.filter((node) => node.id !== id)
+
+  // add to removed node cache
+  if (!removedNodeIDCache) {
+    removedNodeIDCache = new FIFOCache<P2P.NodeListTypes.Node['id'], P2P.NodeListTypes.Node['publicKey']>(
+        config.p2p.removedNodeIDCacheSize
+    )
+  }
+  removedNodeIDCache.set(id, node.publicKey)
 
   Comms.evictCachedSockets([node])
 
