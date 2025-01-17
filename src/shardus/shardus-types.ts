@@ -761,7 +761,7 @@ export interface ServerConfiguration {
     enableProblematicNodeRemoval?: boolean
     /** when true, we will remove problematic nodes even when calculateToAcceptV2 says we should not remove any nodes. This is useful in development when testing this feature. */
     enableDangerousProblematicNodeRemoval?: boolean
-    /** enable problematic node removal on a specific cycle. This is to allow the network to stabilize before removing problematic nodes. 
+    /** enable problematic node removal on a specific cycle. This is to allow the network to stabilize before removing problematic nodes.
      * enableProblematicNodeRemoval must be true for this to take effect*/
     enableProblematicNodeRemovalOnCycle?: number
     /** The problematicNodeRemovalCycleFrequency parameter is an Integer specifying the number of cycles between problematic node removals. */
@@ -986,6 +986,8 @@ export interface ServerConfiguration {
     getTxTimestampTimeoutOffset?: number // default timeout is 5 seconds so this can be used to add or subtract time from that
     /** allow dropping NGTs by hitting a single node's endpoint and the drop mesage being sent to other nodes by gossip  */
     dropNGTByGossipEnabled: boolean
+    // cache size for mapping of nodeId to pubKey for the `n` last removed nodes
+    removedNodeIDCacheSize: number
     timestampCacheFixSize: number
   }
   /** Server IP configuration */
