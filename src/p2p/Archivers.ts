@@ -149,9 +149,6 @@ export function init() {
   }
 }
 
-let lastAllowedArchiversCounter = 0
-let lastAllowedArchiversConfigHash = ''
-
 async function getAllowedArchivers(): Promise<Array<{
   ip: string
   port: number
@@ -165,7 +162,6 @@ async function getAllowedArchivers(): Promise<Array<{
       publicKey: string
     }>
     allowedAccounts: string[]
-    counter: number
     minSigRequired: number
     signatures: Array<{
       owner: string
@@ -173,26 +169,8 @@ async function getAllowedArchivers(): Promise<Array<{
     }>
   }
 
-  // Helper function to verify signatures and counter
+  // Helper function to verify signatures
   function verifyArchiverData(data: ArchiverResponse): boolean {
-
-    // Create payload for signature verification
-    const payload = {
-      allowedArchivers: data.allowedArchivers,
-      counter: data.counter
-    }
-    // Calculate hash of current config
-    const currentConfigHash = crypto.hash(payload)
-
-    // Only verify counter if config hash is different
-    if (currentConfigHash !== lastAllowedArchiversConfigHash && currentConfigHash !== '') {
-      // Verify counter is increasing
-      if (data.counter <= lastAllowedArchiversCounter) {
-        p2pLogger.warn('getAllowedArchivers: received stale or invalid counter')
-        return false
-      }
-    }
-
     // Get allowed signers and min sig required from the global account
     const allowedSigners = config.debug.multisigKeys
     const minSigRequired = config.debug.minSigRequiredForArchiverWhitelist
@@ -202,15 +180,16 @@ async function getAllowedArchivers(): Promise<Array<{
       return false
     }
 
+    const payload = {
+      allowedArchivers: data.allowedArchivers
+    }
+
     const isValidList = Context.stateManager.app.verifyMultiSigs(payload, data.signatures, allowedSigners, minSigRequired, DevSecurityLevel.High)
     if (!isValidList) {
       p2pLogger.warn('getAllowedArchivers: invalid signatures')
       return false
     }
 
-    // Update last seen counter and config hash if verification passed
-    lastAllowedArchiversCounter = data.counter
-    lastAllowedArchiversConfigHash = currentConfigHash
     return true
   }
 
