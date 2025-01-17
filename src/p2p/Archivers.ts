@@ -33,8 +33,7 @@ import { reportLostArchiver } from '../p2p/LostArchivers/functions'
 import { ActiveNode } from '@shardeum-foundation/lib-types/build/src/p2p/SyncTypes'
 import { Result, ResultAsync } from 'neverthrow'
 import { Utils } from '@shardeum-foundation/lib-types'
-import { arch } from 'os'
-import { checkGossipPayload } from '../utils/GossipValidation'
+import { DevSecurityLevel } from '../shardus/shardus-types'
 
 const clone = rfdc()
 
@@ -49,6 +48,8 @@ export let recipients: Map<
   P2P.ArchiversTypes.DataRecipient | any
 >
 
+let allowedArchivers: Array<{ ip: string, port: number, publicKey: string }> = []
+let allowedArchiversInterval: NodeJS.Timeout | null = null
 let joinRequests: P2P.ArchiversTypes.Request[]
 let leaveRequests: P2P.ArchiversTypes.Request[]
 let receiptForwardInterval: Timeout | null = null
@@ -58,6 +59,7 @@ export let connectedSockets = {}
 let lastSentCycle = -1
 let lastTimeForwardedArchivers = []
 export const RECEIPT_FORWARD_INTERVAL_MS = 5000
+const ALLOWED_ARCHIVERS_UPDATE_INTERVAL_MS = process.env.ALLOWED_ARCHIVERS_UPDATE_INTERVAL_MS || 60000
 
 export enum DataRequestTypes {
   SUBSCRIBE = 'SUBSCRIBE',
@@ -101,6 +103,25 @@ export function init() {
   reset()
   resetLeaveRequests()
   registerRoutes()
+  getAllowedArchivers().then(archivers => {
+    if (archivers.length >= 1) {
+      allowedArchivers = archivers
+    }
+  })
+
+  // Set up interval to fetch allowed archivers
+  allowedArchiversInterval = setInterval(async () => {
+    try {
+      const newArchiversList = await getAllowedArchivers()
+      if (newArchiversList.length >= 1) {
+        allowedArchivers = newArchiversList
+      }
+    } catch (err) {
+      if (logFlags.important_as_fatal) {
+        console.error('Periodic update: failed to update allowedArchivers:', err)
+      }
+    }
+  }, Number(ALLOWED_ARCHIVERS_UPDATE_INTERVAL_MS)) // Default is 60 seconds
 
   if (config.p2p.experimentalSnapshot && !receiptForwardInterval) {
     receiptForwardInterval = setInterval(forwardReceipts, RECEIPT_FORWARD_INTERVAL_MS)
@@ -124,6 +145,94 @@ export function init() {
       }, 1000 * 60 * 5) // Check every 5 min
     }, randomInt(1000 * 60, 1000 * 60 * 5)) // Stagger initial checks between 1-5 min
   }
+}
+
+async function getAllowedArchivers(): Promise<Array<{
+  ip: string
+  port: number
+  publicKey: string
+}>> {
+  // Type for archiver data response
+  type ArchiverResponse = {
+    allowedArchivers: Array<{
+      ip: string
+      port: number
+      publicKey: string
+    }>
+    allowedAccounts: string[]
+    minSigRequired: number
+    signatures: Array<{
+      owner: string
+      sig: string
+    }>
+  }
+
+  // Helper function to verify signatures
+  function verifyArchiverData(data: ArchiverResponse): boolean {
+    // Get allowed signers and min sig required from the global account
+    const allowedSigners = config.debug.multisigKeys
+    const minSigRequired = config.debug.minSigRequiredForArchiverWhitelist
+
+    if (!data.signatures || data.signatures.length < minSigRequired) {
+      p2pLogger.warn('getAllowedArchivers: insufficient signatures')
+      return false
+    }
+
+    const payload = {
+      allowedArchivers: data.allowedArchivers
+    }
+
+    const isValidList = Context.stateManager.app.verifyMultiSigs(payload, data.signatures, allowedSigners, minSigRequired, DevSecurityLevel.High)
+    if (!isValidList) {
+      p2pLogger.warn('getAllowedArchivers: invalid signatures')
+      return false
+    }
+
+    return true
+  }
+
+  // Helper function to fetch and validate archiver data
+  async function fetchArchiverData(ip: string, port: number): Promise<ArchiverResponse | null> {
+    try {
+      const response = await fetch(`http://${ip}:${port}/allowed-archivers`)
+      if (!response.ok) {
+        return null
+      }
+      const data = await response.json() as ArchiverResponse
+      if (data.allowedArchivers?.length > 0 && verifyArchiverData(data)) {
+        return data
+      } else {
+        p2pLogger.warn('getAllowedArchivers: invalid signatures or no allowed archivers')
+        return null
+      }
+    } catch (err) {
+      p2pLogger.warn(`Failed to get archiver data from ${ip}:${port}`)
+    }
+    return null
+  }
+
+  // Try getting from existing archivers first
+  if (archivers.size > 0) {
+    const randomArchiver = getRandomArchiver()
+    if (!randomArchiver) return []
+
+    const data = await fetchArchiverData(randomArchiver.ip, randomArchiver.port)
+    if (data) {
+      return data.allowedArchivers
+    }
+  }
+
+  // Fall back to configured existing archivers
+  const existingArchivers = config.p2p.existingArchivers
+  if (existingArchivers.length > 0) {
+    for (const archiver of existingArchivers) {
+      const data = await fetchArchiverData(archiver.ip, archiver.port)
+      if (data) {
+        return data.allowedArchivers
+      }
+    }
+  }
+  return []
 }
 
 export function reset() {
@@ -169,6 +278,14 @@ export function updateRecord(txs: P2P.ArchiversTypes.Txs, record: P2P.CycleCreat
     .filter((request) => request.requestType === P2P.ArchiversTypes.RequestTypes.LEAVE)
     .map((leaveRequest) => leaveRequest.nodeInfo)
 
+  // Remove archivers that are not in the allowed list
+  for (const existingArchiver of archivers.values()) {
+    if (allowedArchivers.length > 0 && !allowedArchivers.some(allowed => allowed.publicKey === existingArchiver.publicKey) &&
+      !leavingArchivers.some(leaving => leaving.publicKey === existingArchiver.publicKey)) {
+      leavingArchivers.push(existingArchiver)
+    }
+  }
+
   if (logFlags.console)
     console.log(
       `Archiver before updating record: Cycle ${CycleCreator.currentCycle}, Quarter: ${CycleCreator.currentQuarter}`,
@@ -206,10 +323,10 @@ export function parseRecord(record: P2P.CycleCreatorTypes.CycleRecord): P2P.Cycl
 }
 
 /** Not used by Archivers */
-export function sendRequests() {}
+export function sendRequests() { }
 
 /** Not used by Archivers */
-export function queueRequest() {}
+export function queueRequest() { }
 
 /** Original Functions */
 
@@ -267,6 +384,12 @@ export function addArchiverJoinRequest(joinRequest: P2P.ArchiversTypes.Request, 
       warn('addJoinRequest: This archiver join request uses a bogon IP')
       return { success: false, reason: 'This archiver join request is a bogon IP' }
     }
+  }
+
+  const isPublicKeyWhitelisted = allowedArchivers.some(archiver => archiver.publicKey === joinRequest.nodeInfo.publicKey);
+  if (!isPublicKeyWhitelisted && archivers.size > 0) {
+    warn('addJoinRequest: Archiver not found in the allowed list')
+    return { success: false, reason: 'Archiver not found in the allowed list' }
   }
 
   if (archivers.size > 0) {
@@ -334,8 +457,7 @@ function validateArchiverAppData(joinRequest: P2P.ArchiversTypes.Request): {
       const validationResponse = shardus.app.validateArchiverJoinRequest(joinRequest)
       if (validationResponse.success !== true) {
         error(
-          `Validation of Archiver join request data failed due to ${
-            validationResponse.reason || 'unknown reason'
+          `Validation of Archiver join request data failed due to ${validationResponse.reason || 'unknown reason'
           }`
         )
         nestedCountersInstance.countEvent('Archiver', `Join-reject-dapp`)
@@ -1083,8 +1205,8 @@ export function registerRoutes() {
     delete queryRequest.tag
     let data: {
       [key: number]:
-        | StateManager.StateManagerTypes.ReceiptMapResult[]
-        | StateManager.StateManagerTypes.StatsClump
+      | StateManager.StateManagerTypes.ReceiptMapResult[]
+      | StateManager.StateManagerTypes.StatsClump
     }
     if (queryRequest.type === 'RECEIPT_MAP') {
       data = getReceiptMap(queryRequest.lastData)

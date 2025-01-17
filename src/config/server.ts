@@ -221,6 +221,7 @@ const SERVER_CONFIG: StrictServerConfiguration = {
     profiler: false,
     minMultiSigRequiredForEndpoints: 2,
     minMultiSigRequiredForGlobalTxs: 2,
+    minSigRequiredForArchiverWhitelist: 2,
     robustQueryDebug: false,
     forwardTXToSyncingNeighbors: false,
     recordAcceptedTx: false,
@@ -362,7 +363,7 @@ const SERVER_CONFIG: StrictServerConfiguration = {
     tickets: {
       updateTicketListTimeInMs: 60000 * 10,
       ticketTypes: [
-        {type: 'silver', enabled: false}
+        { type: 'silver', enabled: false }
       ]
     }
   },

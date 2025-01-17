@@ -925,7 +925,7 @@ export interface ServerConfiguration {
     /** not an actual percent but 0-1 value or multiplication */
     rotationMaxRemovePercent: number
     /** enable sync floor */
-    syncFloorEnabled: boolean  
+    syncFloorEnabled: boolean
     /** additional support for more syncing nodes.  not an actual percent but 0-1 value or multiplication */
     syncingMaxAddPercent: number
     /** how many node should be syncing at any given time  */
@@ -935,7 +935,7 @@ export interface ServerConfiguration {
     /** The max number of nodes added to `activated` list in cycleRecord each cycle */
     allowActivePerCycleRecover: number
     /** enable active node rotation recovery */
-    activeRecoveryEnabled: boolean      
+    activeRecoveryEnabled: boolean
     /** should a checking node use a random proxy to run the down test */
     useProxyForDownCheck: boolean
     /** The number of checker nodes to ask to investigate whether a node that is potentially lost */
@@ -1086,6 +1086,8 @@ export interface ServerConfiguration {
     minMultiSigRequiredForEndpoints: number
     /** minimum approvals needed for global txs using multisig */
     minMultiSigRequiredForGlobalTxs: number
+    /** minimum approvals needed for archiver whitelist using multisig */
+    minSigRequiredForArchiverWhitelist: number
     /** dump extra data for robust query even if in error/fatal logggin only mode */
     robustQueryDebug: boolean
     /** pretty sure we don't want this ever but making a config so we can AB test as needed */
@@ -1605,7 +1607,7 @@ type ObjectAlias = object
  * OpaqueTransaction is the way shardus should see transactions internally. it should not be able to mess with parameters individually
  */
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
-export interface OpaqueTransaction extends ObjectAlias {}
+export interface OpaqueTransaction extends ObjectAlias { }
 
 export interface ReinjectedOpaqueTransaction extends OpaqueTransaction {
   isReinjected: boolean
