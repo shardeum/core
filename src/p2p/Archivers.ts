@@ -33,8 +33,6 @@ import { reportLostArchiver } from '../p2p/LostArchivers/functions'
 import { ActiveNode } from '@shardeum-foundation/lib-types/build/src/p2p/SyncTypes'
 import { Result, ResultAsync } from 'neverthrow'
 import { Utils } from '@shardeum-foundation/lib-types'
-import { checkGossipPayload } from '../utils/GossipValidation'
-import { arch } from 'os'
 import { DevSecurityLevel } from '../shardus/shardus-types'
 
 const clone = rfdc()
