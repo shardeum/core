@@ -188,12 +188,12 @@ class Reporter {
 
   // Sends a report
   async _sendReport(data) {
-    if (logFlags.debug) this.mainLogger.debug(JSON.stringify({method: '_sendReport', script: 'reporter/index', hasRecipient: this.hasRecipient}))
+    if (logFlags.debug) this.mainLogger.debug(Utils.safeStringify({method: '_sendReport', script: 'reporter/index', hasRecipient: this.hasRecipient}))
     if (!this.hasRecipient) {
       return
     }
     const nodeId = Self.id
-    if (logFlags.debug) this.mainLogger.debug(JSON.stringify({method: '_sendReport', script: 'reporter/index', nodeId: nodeId}))
+    if (logFlags.debug) this.mainLogger.debug(Utils.safeStringify({method: '_sendReport', script: 'reporter/index', nodeId: nodeId}))
     if (!nodeId) throw new Error('No node ID available to the Reporter module.')
     const report = {
       nodeId,
@@ -201,7 +201,7 @@ class Reporter {
     }
     if (logFlags.debug){
       try {
-        this.mainLogger.debug(JSON.stringify({report: JSON.stringify(report), method: `_sendReport`, script: '_sendReport'}))
+        this.mainLogger.debug(Utils.safeStringify({report: Utils.safeStringify(report), method: `_sendReport`, script: '_sendReport'}))
       } catch (error){
         console.error(`[reporter/index][_sendReport] ERROR while writing report object to log.`, error)
       }
@@ -256,7 +256,7 @@ class Reporter {
         ? await this.stateManager.transactionQueue.getAccountsStateHash()
         : allZeroes64
     */
-    if (logFlags.debug) this.mainLogger.debug(JSON.stringify({method: 'report', script: 'reporter/index', cycleChainNewest: CycleChain.newest}))
+    if (logFlags.debug) this.mainLogger.debug(Utils.safeStringify({method: 'report', script: 'reporter/index', cycleChainNewest: CycleChain.newest}))
     if (CycleChain.newest == null) {
       this.restartReportInterval()
       return
@@ -415,7 +415,7 @@ class Reporter {
       clearTimeout(this.reportTimer)
     }
     const reportInterval = this.getReportInterval()
-    if (logFlags.debug) this.mainLogger.debug(JSON.stringify({script: 'reporter/index', method: 'restartReportInterval', reportInterval}))
+    if (logFlags.debug) this.mainLogger.debug(Utils.safeStringify({script: 'reporter/index', method: 'restartReportInterval', reportInterval}))
     this.reportTimer = setTimeout(() => {
       this.report()
     }, reportInterval)
@@ -424,12 +424,12 @@ class Reporter {
   startReporting() {
     const self = this
 
-    if (logFlags.debug) this.mainLogger.debug(JSON.stringify({script: 'reporter/index', method: 'startReporting', reportingIntervalDefined: (this.reportingInterval !== undefined)}))
+    if (logFlags.debug) this.mainLogger.debug(Utils.safeStringify({script: 'reporter/index', method: 'startReporting', reportingIntervalDefined: (this.reportingInterval !== undefined)}))
     if (this.reportingInterval) {
       return
     }
     this.reportingInterval = setInterval(() => {
-      if (logFlags.debug) this.mainLogger.debug(JSON.stringify({script: 'reporter/index', method: 'startReporting[reportingInterval]', message: 'called'}))
+      if (logFlags.debug) this.mainLogger.debug(Utils.safeStringify({script: 'reporter/index', method: 'startReporting[reportingInterval]', message: 'called'}))
       self.collectStatisticToReport()
 
       //temp mem debugging:
@@ -438,7 +438,7 @@ class Reporter {
 
     //log a socket report every 5 minutes
     this.socketReportInterval = setInterval(async () => {
-      if (logFlags.debug) this.mainLogger.debug(JSON.stringify({script: 'reporter/index', method: 'startReporting[socketReportInterval]', logSocketReports: this.config.logSocketReports}))
+      if (logFlags.debug) this.mainLogger.debug(Utils.safeStringify({script: 'reporter/index', method: 'startReporting[socketReportInterval]', logSocketReports: this.config.logSocketReports}))
       if (this.config.logSocketReports) {
         const report = await getSocketReport()
         this.mainLogger.info(Utils.safeStringify(report))
@@ -478,7 +478,7 @@ class Reporter {
   }
 
   stopReporting() {
-    if (logFlags.debug) this.mainLogger.debug(JSON.stringify({script: 'reporter/index', method: 'stopReporting', message: 'called'}))
+    if (logFlags.debug) this.mainLogger.debug(Utils.safeStringify({script: 'reporter/index', method: 'stopReporting', message: 'called'}))
     this.mainLogger.info('Stopping statistics reporting...')
     clearTimeout(this.reportTimer)
     clearInterval(this.reportingInterval)
