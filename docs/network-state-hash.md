@@ -134,7 +134,7 @@ depth we are operating on (well, one down from what we are working to solve)
 ### implement and call shareNetworkStateHashes()
 
 Next need a function shareNetworkStateHashes() this function is first must build out a plan
-for which hashes will be sent to which nodes. Ideally we could have some cases where we are sending the same data and can do a multi-tell. It can get tricky to bucket things up. I suppose a simple way to do it is by concatenating the the ratix values that will be sent (sorted). This can be a key to a list of nodes that can take that given set of data along with an array of the non concatenated radix values. If we solve this in a "first pass" then we can make perfect buckets.
+for which hashes will be sent to which nodes. Ideally we could have some cases where we are sending the same data and can do a multi-tell. It can get tricky to bucket things up. I suppose a simple way to do it is by concatenating the ratix values that will be sent (sorted). This can be a key to a list of nodes that can take that given set of data along with an array of the non concatenated radix values. If we solve this in a "first pass" then we can make perfect buckets.
 The next pass will be to iterate through the bucket values above and and for each bucket build a message given the array of radix values we want to forward. Then do a multi tell to all the nodes in the list that will get this data.
 
 ### calculating coverage ranges in shareNetworkStateHashes
