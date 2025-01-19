@@ -956,7 +956,12 @@ function scoreCert(cert: P2P.CycleCreatorTypes.CycleCert): number {
     const id = NodeList.byPubKey.get(cert.sign.owner).id // get node id from cert pub key
     const obj = { id }
     const hid = crypto.hash(obj) // Omar - use hash of id so the cert is not made by nodes that are near based on node id
-    const out = utils.XOR(cert.marker, hid)
+
+    // since we dont have the prev cycle marker stored in the cycle record, we need to hash it each time. Alternatively, we
+    // can just use CycleChain.newest.previous, which is the cycle marker of the cycle two cycles before the current one
+    // I am partial to this, but I have done the previous cycle marker for now since that is what the ticket asked for
+    const prevMarker = makeCycleMarker(CycleChain.newest)
+    const out = utils.XOR(prevMarker, hid)
     return out
   } catch (err) {
     error('scoreCert ERR:', err)
