@@ -1811,7 +1811,21 @@ class TransactionConsenus {
       nestedCountersInstance.countEvent('consensus', 'get_tx_timestamp found tx timestamp in cacheById')
       return tsReceipt
     }
-
+    // Ensure the cycleCounter is within the acceptable range relative to lastest cycle number. If the absolute difference is greater than 1, return null to indicate an invalid state.
+    if (Math.abs(cycleCounter - CycleChain.newest.counter) > 1 ){
+      return null
+    }
+    if (this.txTimestampCache.size >= Context.config.p2p.timestampCacheFixSize) {
+      const oldestCycleCounter = [...this.txTimestampCache.keys()][0]
+      const txMap = this.txTimestampCache.get(oldestCycleCounter);
+      if (txMap && txMap.size > 0) {
+        const oldestTxId = [...txMap.keys()][0]
+        txMap.delete(oldestTxId)
+      }
+      if (txMap.size === 0) {
+        this.txTimestampCache.delete(oldestCycleCounter);
+      }
+    }
     const tsReceipt: TimestampReceipt = {
       txId,
       cycleMarker,
@@ -1830,6 +1844,11 @@ class TransactionConsenus {
     // cache to txId map
     this.txTimestampCache.get(signedTsReceipt.cycleCounter).set(txId, signedTsReceipt)
     if (Context.config.p2p.timestampCacheFix) {
+       if (this.txTimestampCacheByTxId.size >= Context.config.p2p.timestampCacheFixSize) {
+        const oldestTxId = [...this.txTimestampCacheByTxId.keys()][0]
+        this.txTimestampCacheByTxId.delete(oldestTxId)
+        this.seenTimestampRequests.delete(oldestTxId)
+      }
       // eslint-disable-next-line security/detect-object-injection
       this.txTimestampCacheByTxId.set(txId, signedTsReceipt)
       this.seenTimestampRequests.add(txId) 
