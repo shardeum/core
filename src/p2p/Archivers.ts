@@ -159,8 +159,6 @@ async function getAllowedArchivers(): Promise<Array<{
       port: number
       publicKey: string
     }>
-    allowedAccounts: string[]
-    minSigRequired: number
     signatures: Array<{
       owner: string
       sig: string
