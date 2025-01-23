@@ -364,11 +364,11 @@ async function cycleCreator() {
     //let prevRecord = madeCycle ? bestRecord : await fetchLatestRecord()
     let prevRecord = bestRecord
     if (!prevRecord) {
-      /* prettier-ignore */ if (logFlags.p2pNonFatal) warn(`cc: !prevRecord. Fetech now. ${callTag}`)
+      warn(`cc: !prevRecord. Fetech now. ${callTag}`)
       prevRecord = await fetchLatestRecord()
     }
     while (!prevRecord) {
-      /* prettier-ignore */ if (logFlags.p2pNonFatal) warn(`cc: cycleCreator: Could not get fetch prevRecord. Trying again in 1 sec...  ${callTag}`)
+      warn(`cc: cycleCreator: Could not get fetch prevRecord. Trying again in 1 sec...  ${callTag}`)
       await utils.sleep(1 * SECOND)
       prevRecord = await fetchLatestRecord()
     }
@@ -381,7 +381,7 @@ async function cycleCreator() {
     // Apply the previous records changes to the NodeList
     //if (madeCycle) {
     if (!CycleChain.newest || CycleChain.newest.counter < prevRecord.counter) {
-      /* prettier-ignore */ if (logFlags.p2pNonFatal) warn(`cc: digest cycle ${prevRecord.counter} ${callTag}`)
+      warn(`cc: digest cycle ${prevRecord.counter} ${callTag}`)
       digestCycle(prevRecord, 'cycleCreator')
     }
     //}
@@ -403,7 +403,7 @@ async function cycleCreator() {
       }
       lastSavedData = data
 
-      /* prettier-ignore */ if (logFlags.verbose) info(`cc: cycle data created and stored. data.counter:${data.counter} ${callTag}`)
+      info(`cc: cycle data created and stored. data.counter:${data.counter} ${callTag}`)
 
       // this event is currently only handled by non active snapshot system
       Self.emitter.emit('new_cycle_data', data)
@@ -431,7 +431,7 @@ async function cycleCreator() {
     ;({ cycle: currentCycle, quarter: currentQuarter } = currentCycleQuarterByTime(prevRecord))
 
     if (expectedCycle !== currentCycle) {
-      /* prettier-ignore */ if (logFlags.p2pNonFatal) warn(`cc: expectedCycle: ${expectedCycle} currentCycle: ${currentCycle} ${callTag}`)
+      warn(`cc: expectedCycle: ${expectedCycle} currentCycle: ${currentCycle} ${callTag}`)
       /* prettier-ignore */ nestedCountersInstance.countEvent('p2p', `cycleCreator:expectedCycle !== currentCycle ex${expectedCycle}!=${currentCycle}} tag:${callTag}`)
     }
 
@@ -488,7 +488,7 @@ async function cycleCreator() {
     schedule(runQ4, startQ4)
     schedule(cycleCreator, end, { runEvenIfLateBy: Infinity })
   } finally {
-    /* prettier-ignore */ if (logFlags.verbose) info( `cc: end C${currentCycle} Q${currentQuarter} madeCycle: ${madeCycle} bestMarker: ${bestMarker} ${callTag}` )
+    info( `cc: end C${currentCycle} Q${currentQuarter} madeCycle: ${madeCycle} bestMarker: ${bestMarker} ${callTag}` )
   }
 }
 
@@ -828,10 +828,10 @@ async function fetchLatestRecord(): Promise<P2P.CycleCreatorTypes.CycleRecord> {
     await syncNewCycles(NodeList.activeOthersByIdOrder)
     if (CycleChain.newest.counter <= oldCounter) {
       // We didn't actually sync
-      /* prettier-ignore */ if (logFlags.p2pNonFatal) warn(`CycleCreator: fetchLatestRecord: synced record not newer CycleChain.newest.counter: ${CycleChain.newest.counter} oldCounter: ${oldCounter}`)
+      warn(`CycleCreator: fetchLatestRecord: synced record not newer CycleChain.newest.counter: ${CycleChain.newest.counter} oldCounter: ${oldCounter}`)
       fetchLatestRecordFails++
       if (fetchLatestRecordFails > maxFetchLatestRecordFails) {
-        /* prettier-ignore */ if (logFlags.p2pNonFatal) error( 'CycleCreator: fetchLatestRecord_A: fetchLatestRecordFails > maxFetchLatestRecordFails. apoptosizeSelf ' )
+        error( 'CycleCreator: fetchLatestRecord_A: fetchLatestRecordFails > maxFetchLatestRecordFails. apoptosizeSelf ' )
         // this.fatalLogger.fatal(
         //   'CycleCreator: fetchLatestRecord_A: fetchLatestRecordFails > maxFetchLatestRecordFails. apoptosizeSelf '
         // )
@@ -842,10 +842,10 @@ async function fetchLatestRecord(): Promise<P2P.CycleCreatorTypes.CycleRecord> {
       return null
     }
   } catch (err) {
-    /* prettier-ignore */ if (logFlags.p2pNonFatal) warn('CycleCreator: fetchLatestRecord: syncNewCycles failed:', errorToStringFull(err))
+    warn('CycleCreator: fetchLatestRecord: syncNewCycles failed:', errorToStringFull(err))
     fetchLatestRecordFails++
     if (fetchLatestRecordFails > maxFetchLatestRecordFails) {
-      /* prettier-ignore */ if (logFlags.p2pNonFatal) error( 'CycleCreator: fetchLatestRecord_B: fetchLatestRecordFails > maxFetchLatestRecordFails. apoptosizeSelf ' )
+      error( 'CycleCreator: fetchLatestRecord_B: fetchLatestRecordFails > maxFetchLatestRecordFails. apoptosizeSelf ' )
       // this.fatalLogger.fatal(
       //   'CycleCreator: fetchLatestRecord_B: fetchLatestRecordFails > maxFetchLatestRecordFails. apoptosizeSelf ',
       //   utils.formatErrorMessage(err)

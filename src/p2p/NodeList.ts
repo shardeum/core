@@ -114,7 +114,10 @@ export function addNode(node: P2P.NodeListTypes.Node, caller: string) {
 
   if (config.p2p.enableProblematicNodeRemoval) {
     if (!node.refuteCycles) {
+      info(`NodeList.addNode: enabling problematic node removal for node ${node.id}`)
       node.refuteCycles = [];
+    } else {
+      info(`NodeList.addNode: node ${node.id} already has refuteCycles: ${node.refuteCycles}`)
     }
   }
 
@@ -383,7 +386,10 @@ export function updateProblematicNodeTracking(cycle: P2P.CycleCreatorTypes.Cycle
       // Remove the instanceof check after this is deployed/after itn4 is over.
       // its also very likely not even necessary.
       if (!node.refuteCycles || node.refuteCycles instanceof Set) {
+        info(`NodeList.updateProblematicNodeTracking: node ${node.id} has refuteCycles: ${node.refuteCycles}`)
         node.refuteCycles = [];
+      } else {
+        info(`NodeList.updateProblematicNodeTracking: node ${node.id} has refuteCycles: ${node.refuteCycles}`)
       }
 
       if (cycle.counter >= config.p2p.enableProblematicNodeRemovalOnCycle) {

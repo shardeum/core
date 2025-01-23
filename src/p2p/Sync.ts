@@ -4,7 +4,7 @@ import util from 'util'
 import * as http from '../http'
 import { P2P } from '@shardus/types'
 import { reversed, validateTypes } from '../utils'
-import { config, logger, network } from './Context'
+import { config, crypto, logger, network } from './Context'
 import * as Archivers from './Archivers'
 import * as CycleChain from './CycleChain'
 import * as CycleCreator from './CycleCreator'
@@ -320,7 +320,6 @@ export async function syncNewCycles(activeNodes: SyncNode[]) {
           const resp = await http.post(`${ip}:${port}/sync-cycles`, data)
           info(`syncNewCycles: responder ${ip}:${port} cycle ${CycleChain.newest.counter} ${Utils.safeStringify(resp[0])}`)
         }
-
         //20230730: comment below is from 3 years ago, is it something that needs to be handled.
         //          was not getting to this spot even when our node failed to stay up to date with cycles
         //          so this may not be a current point of failure
@@ -356,6 +355,7 @@ export async function syncNewCycles(activeNodes: SyncNode[]) {
 
 export function digestCycle(cycle: P2P.CycleCreatorTypes.CycleRecord, source: string) {
   info(`digestCycle: c${CycleCreator.currentCycle}q${CycleCreator.currentQuarter} marker of cycle${cycle.counter} from ${source} before digest is ${CycleChain.computeCycleMarker(cycle)}`)
+  info(`source: ${source}, joinedConsensors length: ${cycle.joinedConsensors.length}`)
   // get the node list hashes *before* applying node changes
   if (config.p2p.useSyncProtocolV2 || config.p2p.writeSyncProtocolV2) {
     // would this cause issues if called from syncV2?
@@ -366,22 +366,24 @@ export function digestCycle(cycle: P2P.CycleCreatorTypes.CycleRecord, source: st
     // standby list, but not with the validator and archivers lists
 
     const newNodeListHash = NodeList.computeNewNodeListHash()
+    info(`source: ${source}, newNodeListHash: ${newNodeListHash}, cycle.nodeListHash: ${cycle.nodeListHash}`)
     if (source === 'syncV2' && newNodeListHash !== cycle.nodeListHash) warn(`sync:digestCycle source: ${source} cycle: ${cycle.counter} patching nodelisthash ${cycle.nodeListHash} -> ${newNodeListHash}`)
     cycle.nodeListHash = newNodeListHash
 
     const newArchiverListHash = Archivers.computeNewArchiverListHash()
+    info(`source: ${source}, newArchiverListHash: ${newArchiverListHash}, cycle.archiverListHash: ${cycle.archiverListHash}`)
     if (source === 'syncV2' && newArchiverListHash !== cycle.archiverListHash) warn(`sync:digestCycle source: ${source} cycle: ${cycle.counter} patching archiverlisthash ${cycle.archiverListHash} -> ${newArchiverListHash}`)
     cycle.archiverListHash = newArchiverListHash
 
     // for join v2, also get the standby node list hash
     if (config.p2p.useJoinProtocolV2) {
       const standbyNodeListHash = JoinV2.computeNewStandbyListHash()
-      /* prettier-ignore */ if (logFlags.important_as_error) info( `sync:digestCycle source: ${source} cycle: ${cycle.counter} standbyNodeListHash: ${standbyNodeListHash} cycle.standbyNodeListHash: ${cycle.standbyNodeListHash}` )
+      info( `sync:digestCycle source: ${source} cycle: ${cycle.counter} standbyNodeListHash: ${standbyNodeListHash} cycle.standbyNodeListHash: ${cycle.standbyNodeListHash}` )
       
       // [TODO] We can remove `source !== 'syncV2'` once we shut down ITN2
       if (source !== 'syncV2'){
         if( standbyNodeListHash !== cycle.standbyNodeListHash){
-          /* prettier-ignore */ if (logFlags.important_as_error) info( `sync:digestCycle source:${source} cycle: ${cycle.counter} patching standbylisthash ${cycle.counter} standbyNodeListHash: ${standbyNodeListHash} -> cycle.standbyNodeListHash: ${cycle.standbyNodeListHash}` )
+          info( `sync:digestCycle source:${source} cycle: ${cycle.counter} patching standbylisthash ${cycle.counter} standbyNodeListHash: ${standbyNodeListHash} -> cycle.standbyNodeListHash: ${cycle.standbyNodeListHash}` )
           cycle.standbyNodeListHash = standbyNodeListHash
         }
       }
@@ -410,18 +412,17 @@ export function digestCycle(cycle: P2P.CycleCreatorTypes.CycleRecord, source: st
     return
   }
 
-  /* prettier-ignore */ if (logFlags.important_as_error)
-    info(
-      `digestCycle ${Utils.safeStringify(
-        cycle
-      )} from ${source}... note: CycleChain.newest.counter: ${Utils.safeStringify(
-        CycleChain.newest
-      )} CycleCreator.currentCycle: ${CycleCreator.currentCycle}`
-    )
+  info(
+    `digestCycle ${Utils.safeStringify(
+      cycle
+    )} from ${source}... note: CycleChain.newest.counter: ${Utils.safeStringify(
+      CycleChain.newest
+    )} CycleCreator.currentCycle: ${CycleCreator.currentCycle}`
+  )
 
   const changes = parse(cycle)
   applyNodeListChange(changes, true, cycle)
-
+  info(`digestCycle: nodelist hash after applyNodeListChange is ${crypto.hash(cycle)}`)
   // for join v2, also add any new standby nodes to the standy node list
   // and remove any standby nodes that have unjoined.
   if (config.p2p.useJoinProtocolV2) {
@@ -451,6 +452,13 @@ export function digestCycle(cycle: P2P.CycleCreatorTypes.CycleRecord, source: st
   // TODO: This seems like a possible location to inetvene if our node
   // is getting far behind on what it thinks the current cycle is
   // first would like to know how it is getting behind.
+
+  info(`
+    Digested C${cycle.counter}
+      cycle record: ${Utils.safeStringify(cycle)}
+      cycle changes: ${Utils.safeStringify(changes)}
+      node list: ${Utils.safeStringify([...NodeList.nodes.values()])}
+  `)
 
   let nodeLimit = 2 //todo set this to a higher number, but for now I want to make sure it works in a small test
   if (NodeList.activeByIdOrder.length <= nodeLimit) {
