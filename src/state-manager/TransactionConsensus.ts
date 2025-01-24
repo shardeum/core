@@ -299,6 +299,63 @@ class TransactionConsenus {
       res.json({ status: 'ok', produceBadChallenge: this.produceBadChallenge })
     })
 
+
+    Context.network.registerExternalGet('debug-profile-tx-timestamp-endpoint', isDebugModeMiddleware, async (req, res) => {
+      const {offset} = req.body
+
+      const randomTxId = Context.crypto.hash(randomUUID())
+
+      const cycleMarker = CycleChain.getCurrentCycleMarker()
+      const cycleCounter = CycleChain.newest.counter
+
+      const stats = new Map<string, number>()
+      const failed = new Map<string, number>()
+      for (const node of NodeList.nodes.values()) {
+        if (node.id === Self.id) {
+          continue
+        }
+        const start = Date.now()
+        try {
+          await this.p2p.askBinary<getTxTimestampReq, getTxTimestampResp>(
+              node,
+              InternalRouteEnum.binary_get_tx_timestamp,
+              {
+                cycleMarker,
+                cycleCounter,
+                txId: randomTxId,
+              },
+              serializeGetTxTimestampReq,
+              deserializeGetTxTimestampResp,
+              {},
+              '',
+              false,
+              offset ?? 30 * 1000 // 30 second default timeout
+          )
+          const  end = Date.now()
+          const diff = end - start
+          stats.set(`${node.externalIp}:${node.externalPort}`, diff)
+        } catch (e) {
+          const  end = Date.now()
+          const diff = end - start
+          failed.set(`${node.externalIp}:${node.externalPort}`, diff)
+        }
+      }
+
+      const medianResponseTime = Array.from(stats.values()).sort()[Math.floor(stats.size / 2)]
+      const averageResponseTime = Array.from(stats.values()).reduce((a, b) => a + b, 0) / stats.size
+      const failedNodes = Array.from(failed.keys())
+      const response = JSON.stringify({
+        report: {
+          medianResponseTime,
+          averageResponseTime,
+          failedNodes
+        },
+        stats: Array.from(stats.entries()),
+      }, null, 2)
+      res.write(response)
+      res.end()
+    })
+
     // this.p2p.registerInternal(
     //   'get_tx_timestamp',
     //   async (
