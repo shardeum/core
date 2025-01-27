@@ -22,7 +22,7 @@ jest.mock('../../../../src/p2p/Context', () => ({
 
 const baseMockNode = {
   id: 'node1',
-  refuteCycles: new Set<number>(),
+  refuteCycles: [],
   curvePublicKey: 'mockKey',
   status: P2P.P2PTypes.NodeStatus.SELECTED,
   cycleJoined: '0',
@@ -160,7 +160,7 @@ describe('ProblemNodeHandler', () => {
       expect(getRefutePercentage(refuteCycles, 100)).toBe(0.05) // 5/100 = 5%
     })
 
-    it('should handle empty refute set', () => {
+    it('should handle empty refute array', () => {
       const refuteCycles = []
       expect(getRefutePercentage(refuteCycles, 100)).toBe(0)
     })
@@ -211,19 +211,19 @@ describe('ProblemNodeHandler', () => {
       const node1: Node = {
         ...baseMockNode,
         id: 'node1',
-        refuteCycles: new Set([2, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100]), // 11% refute rate
+        refuteCycles: [2, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100], // 11% refute rate
       }
 
       const node2: Node = {
         ...baseMockNode,
         id: 'node2',
-        refuteCycles: new Set([90, 92, 94, 96, 98, 100]), // 6% refute rate
+        refuteCycles: [90, 92, 94, 96, 98, 100], // 6% refute rate
       }
 
       const node3: Node = {
         ...baseMockNode,
         id: 'node3',
-        refuteCycles: new Set([98, 99, 100]), // 3% refute rate but 3 consecutive
+        refuteCycles: [98, 99, 100], // 3% refute rate but 3 consecutive
       }
 
       // Add nodes to NodeList mock
