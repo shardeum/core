@@ -1145,6 +1145,12 @@ export interface ServerConfiguration {
     finishedSyncingDelay: number
     /** config for the minimum number of seconds a node must be in the ready state */
     readyNodeDelay: number
+    /** do-nothing config solely for testing purposes. */
+    qaTestBoolean: boolean
+    /** do-nothing config solely for testing purposes. */
+    qaTestNumber: number
+    /** do-nothing config solely for testing purposes. */
+    qaTestString: string
     /** chance to fail before state in sending tx receipt to archiver */
     beforeStateFailChance: number
   }
