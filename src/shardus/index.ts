@@ -34,7 +34,7 @@ import { config } from '../p2p/Context'
 import * as AutoScaling from '../p2p/CycleAutoScale'
 import * as CycleChain from '../p2p/CycleChain'
 import * as CycleCreator from '../p2p/CycleCreator'
-import { netConfig } from '../p2p/CycleCreator'
+import { getFakeCycleRecord, netConfig, registerFakeCycleRecordHandlers } from '../p2p/CycleCreator'
 import * as GlobalAccounts from '../p2p/GlobalAccounts'
 import * as ServiceQueue from '../p2p/ServiceQueue'
 import { scheduleLostReport, removeNodeWithCertificiate } from '../p2p/Lost'
@@ -568,7 +568,7 @@ class Shardus extends EventEmitter {
           //   mainLogger.error('Remote Archiver: ', socket.handshake.address)
           //   return false
           // }
-      
+
           return true
         } catch (error) {
           mainLogger.error('❌ Error in Archiver Socket-Connection Auth!')
@@ -596,7 +596,7 @@ class Shardus extends EventEmitter {
             JSON.stringify(Archivers.connectedSockets)
           )
         )
-        
+
 
         // The same archiver is connected with different stream, let's disconnect old and accept the current one.
         if(freezedList[archiverPublicKey]) {
@@ -606,7 +606,7 @@ class Shardus extends EventEmitter {
         Archivers.addArchiverConnection(archiverPublicKey, socket.id)
         socket.on('UNSUBSCRIBE', function (ARCHIVER_PUBLIC_KEY) {
           if(freezedList[ARCHIVER_PUBLIC_KEY] === socket.id) {
-          console.log(`Archive server with public key ${ARCHIVER_PUBLIC_KEY} has requested to Un-subscribe`)
+            console.log(`Archive server with public key ${ARCHIVER_PUBLIC_KEY} has requested to Un-subscribe`)
             Archivers.removeArchiverConnection(ARCHIVER_PUBLIC_KEY)
           }
         })
@@ -728,13 +728,13 @@ class Shardus extends EventEmitter {
     this.reporter =
       this.config.reporting.report && !isServiceMode()
         ? new Reporter(
-            this.config.reporting,
-            this.logger,
-            this.statistics,
-            this.stateManager,
-            this.profiler,
-            this.loadDetection
-          )
+          this.config.reporting,
+          this.logger,
+          this.statistics,
+          this.stateManager,
+          this.profiler,
+          this.loadDetection
+        )
         : null
     Context.setReporterContext(this.reporter)
 
@@ -1633,9 +1633,9 @@ class Shardus extends EventEmitter {
         // start of timestamp logging
         if (logFlags.important_as_error) {
           const txTimestamp = this.app.getTimestampFromTransaction(tx, appData);
-          const nowNodeTimestamp = shardusGetTime()    
-          const ntpOffset = getNetworkTimeOffset()        
-          /* prettier-ignore */ console.log(`TxnTS: shardus.put() txTimestamp=${txTimestamp}, nowNodeTimestamp=${nowNodeTimestamp}, ntpOffset=${ntpOffset}, txID=${txId}`) 
+          const nowNodeTimestamp = shardusGetTime()
+          const ntpOffset = getNetworkTimeOffset()
+          /* prettier-ignore */ console.log(`TxnTS: shardus.put() txTimestamp=${txTimestamp}, nowNodeTimestamp=${nowNodeTimestamp}, ntpOffset=${ntpOffset}, txID=${txId}`)
         }
         // end of timestamp logging.
 
@@ -3092,6 +3092,35 @@ class Shardus extends EventEmitter {
       }
     })
 
+    this.network.registerExternalPost('makeFakeCycleRecord', isDebugModeMiddleware, async (req, res) => {
+      try {
+        const scoreMap = new Map(req.body.score);
+        const certMap = new Map(req.body.cert);
+        if (req.body.marker && req.body.score && req.body.record && req.body.cert && req.body.score) {
+          registerFakeCycleRecordHandlers(req.body.record, req.body.marker, certMap, scoreMap);
+          res.json({ success: true });
+        }
+        res.json({ success: false });
+      } catch (ex) {
+        console.log('[my-log] makeFakeCycleRecord error: ', ex);
+      }
+    })
+
+    this.network.registerExternalGet('getFakeCycleRecord', isDebugModeMiddleware, async (req, res) => {
+      try {
+        const output = getFakeCycleRecord();
+        const serializedOutput = {
+          record: output.record,
+          marker: output.marker,
+          cert: Array.from(output.cert), // Convert Map to Array
+          score: Array.from(output.score)  // Convert Map to Array
+        };
+        res.json(serializedOutput);
+      } catch (ex) {
+        console.log('[my-log] getFakeCycleRecord error: ', ex);
+      }
+    })
+
     this.network.registerExternalPost('testGlobalAccountTXSet', isDebugModeMiddleware, async (req, res) => {
       try {
         this.mainLogger.debug(`testGlobalAccountTXSet: req:${utils.stringifyReduce(req.body)}`)
@@ -3352,20 +3381,20 @@ class Shardus extends EventEmitter {
       const groupPromiseResp = await groupResolvePromises(
         closestNodes.map((node) => {
           // if (this.config.p2p.useBinarySerializedEndpoints && this.config.p2p.signAppDataBinary) {
-            const request: SignAppDataReq = {
-              type,
-              hash,
-              nodesToSign,
-              appData,
-            }
-            return this.p2p.askBinary<SignAppDataReq, SignAppDataResp>(
-              node,
-              InternalRouteEnum.binary_sign_app_data,
-              request,
-              serializeSignAppDataReq,
-              deserializeSignAppDataResp,
-              {}
-            )
+          const request: SignAppDataReq = {
+            type,
+            hash,
+            nodesToSign,
+            appData,
+          }
+          return this.p2p.askBinary<SignAppDataReq, SignAppDataResp>(
+            node,
+            InternalRouteEnum.binary_sign_app_data,
+            request,
+            serializeSignAppDataReq,
+            deserializeSignAppDataResp,
+            {}
+          )
           // } else
           // return this.p2p.ask(node, 'sign-app-data', {
           //   type,
