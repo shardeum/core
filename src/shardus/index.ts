@@ -1310,7 +1310,7 @@ class Shardus extends EventEmitter {
         nestedCountersInstance.countEvent('syncAppData', `initialSyncMain event: fail and apop self. ${shardusGetTime()}`)
         apoptosizeSelf(
           `initialSyncMain-failed: ${err?.message}`,
-          'Node stopped due to initial app data sync failure.'
+          'Node stopped due to node performance or network issues during initial app data sync.'
         )
         return
       }

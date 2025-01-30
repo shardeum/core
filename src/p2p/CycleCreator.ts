@@ -838,7 +838,7 @@ async function fetchLatestRecord(): Promise<P2P.CycleCreatorTypes.CycleRecord> {
         nestedCountersInstance.countEvent('fetchLatestRecord', `fetchLatestRecord_A fail and apop self. ${shardusGetTime()}`)
         Apoptosis.apoptosizeSelf(
           'Apoptosized within fetchLatestRecord() => src/p2p/CycleCreator.ts',
-          'Node stopped. Unable to sync newest cycles.'
+          'Node stopped. Unable to sync newest cycles due to node performance or network issues.'
         )
       }
 
@@ -856,7 +856,7 @@ async function fetchLatestRecord(): Promise<P2P.CycleCreatorTypes.CycleRecord> {
       nestedCountersInstance.countEvent('fetchLatestRecord', `fetchLatestRecord_B fail and apop self. ${shardusGetTime()}`)
       Apoptosis.apoptosizeSelf(
         'Apoptosized within fetchLatestRecord() => src/p2p/CycleCreator.ts',
-        'Node stopped. Unable to sync newest cycles.'
+        'Node stopped. Unable to sync newest cycles due to node performance or network issues.'
       )
     }
     return null
