@@ -727,7 +727,10 @@ class AccountSync {
             this.clearSyncTrackers()
 
             /* prettier-ignore */ nestedCountersInstance.countRareEvent('sync', `RETRYSYNC: too many exceptions in accound data sync.  Init apop`)
-            this.stateManager.initApoptosisAndQuitSyncing('too many exceptions in accound data sync')
+            this.stateManager.initApoptosisAndQuitSyncing(
+              'too many exceptions in accound data sync',
+              'Node stopped syncing due to too many exceptions in account data sync.'
+            )
             return
           }
 
@@ -786,7 +789,10 @@ class AccountSync {
           running = false
 
           nestedCountersInstance.countRareEvent('sync', `initialSyncMain unhandledEX.  Init apop`)
-          this.stateManager.initApoptosisAndQuitSyncing('initialSyncMain unhandledEX')
+          this.stateManager.initApoptosisAndQuitSyncing(
+            'initialSyncMain unhandledEX',
+            'Node stopped syncing due to unhandled error during initial sync.'
+          )
         }
       }
     }

@@ -62,7 +62,7 @@ export class P2P extends EventEmitter {
     payload: any,
     tracker?: string,
     sender?: any,
-    inpNodes?:  Shardus.NodeWithRank[] | Shardus.Node[],
+    inpNodes?: Shardus.NodeWithRank[] | Shardus.Node[],
     isOrigin?: boolean,
     factor?: number,
     txId?: string
@@ -111,13 +111,13 @@ export class P2P extends EventEmitter {
     return Self.id
   }
 
-  initApoptosis(message: string) {
+  initApoptosis(message: string, userFriendlyMessage?: string) {
     // [TODO] - we need to change apoptosizeSelf
     //          currently it tell all the nodes in the network that it is leaving; not practical in large networks
     //          we should gossip this, but origninal gossip is only allowed in Q1 and the node cannot
     //          wait until then.
     //          Need to think about the best way to handle this.
-    apoptosizeSelf(message)
+    apoptosizeSelf(message, userFriendlyMessage)
   }
 
   allowTransactions() {

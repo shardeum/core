@@ -75,7 +75,10 @@ const stopExternalRoute: P2P.P2PTypes.Route<Handler> = {
   handler: (_req, res) => {
     if (isDebugMode()) {
       res.json({ status: 'goodbye cruel world' })
-      apoptosizeSelf('Apoptosis called at stopExternalRoute => src/p2p/Apoptosis.ts')
+      apoptosizeSelf(
+        'Apoptosis called at stopExternalRoute => src/p2p/Apoptosis.ts',
+        'Node stopped from `stop` route.'
+      )
     }
   },
 }
@@ -315,7 +318,7 @@ export function sendRequests() {
 
 // [TODO] - We don't need the caller to pass us the list of nodes
 //          remove this after changing references
-export async function apoptosizeSelf(message: string) {
+export async function apoptosizeSelf(message: string, userFriendlyMessage?: string) {
   /* prettier-ignore */ if (logFlags.important_as_fatal) warn(`In apoptosizeSelf. ${message}`)
   // [TODO] - maybe we should shuffle this array
   const activeNodes = activeByIdOrder
@@ -372,7 +375,7 @@ export async function apoptosizeSelf(message: string) {
     /* prettier-ignore */ if (logFlags.important_as_fatal) warn(`Sent apoptosize-self proposal: ${Utils.safeStringify(proposal)}   ${message}`)
   }
   // Omar - added the following line. Maybe we should emit an event when we apoptosize so other modules and app can clean up
-  Self.emitter.emit('invoke-exit', `In apoptosizeSelf. ${message}`, getCallstack(), message) // we can pass true as a parameter if we want to be restarted
+  Self.emitter.emit('invoke-exit', userFriendlyMessage, getCallstack(), message) // we can pass true as a parameter if we want to be restarted
   // Omar - we should not add any proposal since we are exiting; we already sent our proposal to some nodes
   //  addProposal(proposal)
   /* prettier-ignore */ if (logFlags.important_as_fatal) error(`We have been apoptosized. Exiting with status 1. Will not be restarted. ${message}`)

@@ -4050,7 +4050,7 @@ class StateManager {
    * initApoptosisAndQuitSyncing
    * stop syncing and init apoptosis
    */
-  initApoptosisAndQuitSyncing(logMsg: string) {
+  initApoptosisAndQuitSyncing(logMsg: string, userFriendlyMessage?: string) {
     const log = `initApoptosisAndQuitSyncing ${utils.getTime('s')}  ${logMsg}`
     if (logFlags.console) console.log(log)
     if (logFlags.error) this.mainLogger.error(log)
@@ -4060,7 +4060,8 @@ class StateManager {
 
     this.accountSync.failAndDontRestartSync()
     this.p2p.initApoptosis(
-      'Apoptosis being initialized by `p2p.initApoptosis` within initApoptosisAndQuitSyncing() at src/state-manager/index.ts'
+      'Apoptosis being initialized by `p2p.initApoptosis` within initApoptosisAndQuitSyncing() at src/state-manager/index.ts',
+      userFriendlyMessage
     )
   }
 
