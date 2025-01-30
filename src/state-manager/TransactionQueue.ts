@@ -8525,7 +8525,10 @@ class TransactionQueue {
 
     //in the future we could tell the node to go apop?
     if (this.config.stateManager.apopFromStuckProcessing === true) {
-      Apoptosis.apoptosizeSelf('Apoptosized due to stuck processing')
+      Apoptosis.apoptosizeSelf(
+        'Apoptosized due to stuck processing',
+        'Node stopped due to transactions stuck processing.'
+      )
     }
   }
 

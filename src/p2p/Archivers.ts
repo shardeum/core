@@ -139,7 +139,7 @@ export function init() {
               'checkNetworkStopped',
               `Network has stopped: apop self. ${shardusGetTime()}`
             )
-            apoptosizeSelf(msg)
+            apoptosizeSelf(msg, 'Node stopped due to the network shutting down.')
           }
         })
       }, 1000 * 60 * 5) // Check every 5 min

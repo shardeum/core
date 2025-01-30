@@ -665,7 +665,10 @@ class Storage {
           Utils.safeStringify(accountStates)
       )
       nestedCountersInstance.countEvent('addAccountStates', `addAccountStates fail and apop self. ${shardusGetTime()}`)
-      this.stateManager.initApoptosisAndQuitSyncing('addAccountStates')
+      this.stateManager.initApoptosisAndQuitSyncing(
+        'addAccountStates',
+        'Node stopped due to database failure during addAccountStates.'
+      )
     }
   }
 

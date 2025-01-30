@@ -807,7 +807,7 @@ class Shardus extends EventEmitter {
           utils.formatErrorMessage(err)
         )
         nestedCountersInstance.countEvent('restore', `restore event: fail and apop self. ${shardusGetTime()}`)
-        apoptosizeSelf(`restore-failed: ${err?.message}`)
+        apoptosizeSelf(`restore-failed: ${err?.message}`, 'Node stopped due to network restore failure.')
         return
       }
 
@@ -1308,7 +1308,10 @@ class Shardus extends EventEmitter {
           utils.formatErrorMessage(err)
         )
         nestedCountersInstance.countEvent('syncAppData', `initialSyncMain event: fail and apop self. ${shardusGetTime()}`)
-        apoptosizeSelf(`initialSyncMain-failed: ${err?.message}`)
+        apoptosizeSelf(
+          `initialSyncMain-failed: ${err?.message}`,
+          'Node stopped due to node performance or network issues during initial app data sync.'
+        )
         return
       }
     }
@@ -2928,7 +2931,7 @@ class Shardus extends EventEmitter {
     })
     // TODO elevate security beyond high when we get multi sig.  or is that too slow when needed?
     this.network.registerExternalPost('exit-apop', isDebugModeMiddlewareHigh, async (_req, res) => {
-      apoptosizeSelf('Apoptosis called at exit-apop route')
+      apoptosizeSelf('Apoptosis called at exit-apop route', 'Node stopped by call to exit-apop route.')
       res.json({ success: true })
     })
 
