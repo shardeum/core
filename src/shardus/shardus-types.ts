@@ -362,6 +362,7 @@ export interface App {
   ) => Promise<boolean>
 
   getNodeInfoAppData?: () => any
+  getNetworkAccountFromArchiver?: () => Promise<WrappedData>
   signAppData?: (type: string, hash: string, nodesToSign: number, appData: any) => Promise<SignAppDataResult>
   updateNetworkChangeQueue?: (account: WrappedData, appData: any) => Promise<WrappedData[]>
   pruneNetworkChangeQueue?: (account: WrappedData, cycle: number) => Promise<WrappedData[]>
@@ -984,6 +985,8 @@ export interface ServerConfiguration {
     networkTransactionsToProcessPerCycle: number
     useAjvCycleRecordValidation: boolean
     getTxTimestampTimeoutOffset?: number // default timeout is 5 seconds so this can be used to add or subtract time from that
+    /** enable fixes that allow us to sync and patch the network account so that we have correct config values at more places in the node lifecycle */
+    patchNetworkAccountSyncFixes?: boolean
   }
   /** Server IP configuration */
   ip?: {
