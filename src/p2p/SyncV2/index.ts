@@ -30,6 +30,8 @@ import { addStandbyJoinRequests } from '../Join/v2'
 import { logFlags } from '../../logger'
 import { makeCycleMarker } from '../CycleCreator'
 import { p2pLogger } from './queries'
+import { sleep } from '../../utils'
+import Shardus from '../../shardus'
 
 /** Initializes logging and endpoints for Sync V2. */
 export function init(): void {
@@ -49,7 +51,7 @@ export function init(): void {
  * @returns {ResultAsync<void, Error>} - A ResultAsync object. On success, it will contain void and on
  * error, it will contain an Error object. The function is asynchronous and can be awaited.
  */
-export function syncV2(activeNodes: P2P.SyncTypes.ActiveNode[]): ResultAsync<void, Error> {
+export function syncV2(activeNodes: P2P.SyncTypes.ActiveNode[], shardus:Shardus): ResultAsync<void, Error> {
   return syncValidValidatorList(activeNodes).andThen(([validatorList, validatorListHash]) =>
     syncArchiverList(activeNodes).andThen(([archiverList, archiverListHash]) =>
       syncStandbyNodeList(activeNodes).andThen((standbyNodeList) =>
@@ -91,23 +93,31 @@ export function syncV2(activeNodes: P2P.SyncTypes.ActiveNode[]): ResultAsync<voi
             // add latest cycle
             CycleChain.reset()
 
-            info('syncV2: cycle.counter ', cycle.counter)
-            info('syncV2: cycle.marker ', makeCycleMarker(cycle))
-            info('syncV2: nodelist hash ', cycle.nodeListHash)
-            info('syncV2: archiverList hash ', cycle.archiverListHash)
-            info('syncV2: standbyNodeList hash ', cycle.standbyNodeListHash)
-            info('syncV2: cycle ', Utils.safeStringify(cycle))
+            
+            // earlyConfigFetchAndPatch() is an async call so we have to do some 
+            // funky stuff to call it in this neverthow style code:
+            return ResultAsync.fromPromise(
+              shardus.earlyConfigFetchAndPatch(cycle.counter),
+              (error) => new Error(`Failed to fetch and patch config: ${error}`)
+            ).andThen(() => {
+              info('syncV2: cycle.counter ', cycle.counter)
+              info('syncV2: cycle.marker ', makeCycleMarker(cycle))
+              info('syncV2: nodelist hash ', cycle.nodeListHash)
+              info('syncV2: archiverList hash ', cycle.archiverListHash)
+              info('syncV2: standbyNodeList hash ', cycle.standbyNodeListHash)
+              info('syncV2: cycle ', Utils.safeStringify(cycle))
 
-            digestCycle(cycle, 'syncV2')
+              digestCycle(cycle, 'syncV2')
 
-            info('syncV2: CycleChain.newest.counter ', CycleChain.newest.counter)  
-            info('syncV2: CycleChain.newest.marker ', makeCycleMarker(CycleChain.newest))
-            info('syncV2: nodelist hash ', CycleChain.newest.nodeListHash)
-            info('syncV2: archiverList hash ', CycleChain.newest.archiverListHash)
-            info('syncV2: standbyNodeList hash ', CycleChain.newest.standbyNodeListHash)
-            info('syncV2: CycleChain.newest ', Utils.safeStringify(CycleChain.newest))
+              info('syncV2: CycleChain.newest.counter ', CycleChain.newest.counter)  
+              info('syncV2: CycleChain.newest.marker ', makeCycleMarker(CycleChain.newest))
+              info('syncV2: nodelist hash ', CycleChain.newest.nodeListHash)
+              info('syncV2: archiverList hash ', CycleChain.newest.archiverListHash)
+              info('syncV2: standbyNodeList hash ', CycleChain.newest.standbyNodeListHash)
+              info('syncV2: CycleChain.newest ', Utils.safeStringify(CycleChain.newest))
 
-            return okAsync(void 0)
+              return okAsync(void 0)
+            })
           })
         )
       )
