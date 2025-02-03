@@ -948,6 +948,7 @@ export function sendData() {
     //     recipient.curvePk
     //   )
     // }
+    console.log(`[my-log] taggedDataResponse:`, taggedDataResponse)
     try {
       // console.log('connected socketes', publicKey, connectedSockets)
       if (io.sockets.sockets[connectedSockets[publicKey]])

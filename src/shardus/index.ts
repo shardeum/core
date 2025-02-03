@@ -93,6 +93,7 @@ import SocketIO from 'socket.io'
 import { nodeListFromStates, queueFinishedSyncingRequest } from '../p2p/Join'
 import * as NodeList from '../p2p/NodeList'
 import { P2P } from '@shardeum-foundation/lib-types'
+import { safeStringify } from '@shardeum-foundation/lib-types/build/src/utils/functions/stringify'
 
 // the following can be removed now since we are not using the old p2p code
 //const P2P = require('../p2p')
@@ -3096,9 +3097,13 @@ class Shardus extends EventEmitter {
       try {
         const scoreMap = new Map(req.body.score);
         const certMap = new Map(req.body.cert);
+        console.log('[my-log] bestCycleCert before compareCycleCert', scoreMap)
+        console.log('[my-log] bestCycleScore before compareCycleCert', certMap)
         if (req.body.marker && req.body.score && req.body.record && req.body.cert && req.body.score) {
+          console.log('[my-log] setting fake data')
           registerFakeCycleRecordHandlers(req.body.record, req.body.marker, certMap, scoreMap);
           res.json({ success: true });
+          return
         }
         res.json({ success: false });
       } catch (ex) {

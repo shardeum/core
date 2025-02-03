@@ -7,6 +7,7 @@ import Logger, { logFlags } from '../logger'
 import * as Shardus from '../shardus/shardus-types'
 import Storage from '../storage'
 import { Utils } from '@shardeum-foundation/lib-types'
+import * as network from '../network'
 
 export type HashableObject = (object | string) & { sign?: Shardus.Sign }
 
@@ -69,8 +70,46 @@ class Crypto {
       }
     }
 
+    const nodeIp = network?.ipInfo?.externalIp
+    const nodePort = network?.ipInfo?.externalPort
+    if (nodeIp && nodePort === 9023) {
+      console.log('setting keypair')
+      const keypair = {
+        publicKey: 'e9f10a9b4912202391ecb0f41096f071685fea9a0a27dadad61437915e9dd42c',
+        secretKey:
+          'b66b9d3e441e758ca8d590a4c9fd841ccd7c3f3040fe0bd98895a07318e83c2be9f10a9b4912202391ecb0f41096f071685fea9a0a27dadad61437915e9dd42c',
+      }
+      this.keypair = keypair
+      this.setCurveKeyPair(this.keypair)
+      console.log('keypair:', keypair)
+      return
+    }
+
+    if (nodeIp && nodePort === 9024) {
+      const keypair = {
+        publicKey: '0acfb8580bed9853cba1d10080cce5a1625382cb4112fac35c7cf3ebd555ac26',
+        secretKey:
+          '7dcb007fd354256afe8dabe853dbe3e771911eb04c9f65d5b6f139fd897c364a0acfb8580bed9853cba1d10080cce5a1625382cb4112fac35c7cf3ebd555ac26',
+      }
+      this.keypair = keypair
+      this.setCurveKeyPair(this.keypair)
+      return
+    }
+
+    if (nodeIp && nodePort === 9025) {
+      const keypair = {
+        publicKey: 'af1feec9bdcddae22dcca6efabbb0b0ddf2eb4c7d31fe28ab1d9b6136f65fec3',
+        secretKey:
+          'd126caad52a41698c337d5deb115641a77cb3629e2b4db819e3e256574cc5708af1feec9bdcddae22dcca6efabbb0b0ddf2eb4c7d31fe28ab1d9b6136f65fec3',
+      }
+      this.keypair = keypair
+      this.setCurveKeyPair(this.keypair)
+      return
+    }
+
     try {
       this.mainLogger.info('Unable to load keypair. Generating new...')
+      console.log('Unable to load keypair. Generating new...')
       this.keypair = this._generateKeypair()
       if (this.config.crypto.keyPairConfig.useKeyPairFromFile) this.writeKeypairToFile(this.keypair)
       await this.storage.setProperty('keypair', this.keypair)
