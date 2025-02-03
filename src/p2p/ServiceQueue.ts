@@ -898,9 +898,9 @@ function verifyDebugDropNGT(reqParamsDropNGT, cycle): { success: boolean; messag
 
     const verified = crypto.verify(hashIncluded, hashIncluded.sign.owner)
     if (verified === true) {
-      reqParamsDropNGT.owner = ownerPk
       const authorized = ensureKeySecurity(ownerPk, DevSecurityLevel.High)
       if (authorized) {
+        reqParamsDropNGT.owner = ownerPk
         return {
           success: true,
           message: 'Signature is correct and signer is authorized'
