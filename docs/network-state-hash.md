@@ -1,4 +1,4 @@
-# Sharded-Hash-Trie System: Existing functionally
+# Sharded-Hash-Trie System: Existing functionality
 
 The sharded-hash-trie system use a custom distributed data structure that allows a dynamically sharded system to have consensus on data state.
 
