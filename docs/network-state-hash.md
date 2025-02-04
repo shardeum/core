@@ -195,7 +195,7 @@ interface HashTrieSyncConsensus {
 }
 ```
 
-## Sequence diagram for building netowrk state hash
+## Sequence diagram for building network state hash
 
 AI generated, a bit of mess
 
