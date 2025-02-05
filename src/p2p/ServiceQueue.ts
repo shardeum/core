@@ -852,11 +852,17 @@ function verifyDebugDropNGT(reqParamsDropNGT, cycle): { success: boolean; messag
       cycleCounter: payload.cycleCounter,
       requestHash: hash,
       sign,
-    } as SignedObject
+    }
 
     let verified = crypto.verify(hashIncluded, hashIncluded.sign.owner)
     if (verified === false) {
-      (hashIncluded.cycleCounter as number)--
+      delete hashIncluded.requestHash
+      delete hashIncluded.sign
+      hashIncluded.cycleCounter--
+      const hash = crypto.hash(Utils.safeStringify(hashIncluded))
+      hashIncluded.requestHash = hash
+      hashIncluded.sign = sign
+
       verified = crypto.verify(hashIncluded, hashIncluded.sign.owner)
     }
     if (verified === true) {
@@ -894,11 +900,16 @@ function verifyDebugDropNGT(reqParamsDropNGT, cycle): { success: boolean; messag
       cycleCounter: payload.cycleCounter,
       requestHash: hash,
       sign,
-    } as SignedObject
+    }
 
     let verified = crypto.verify(hashIncluded, hashIncluded.sign.owner)
     if (verified === false) {
-      (hashIncluded.cycleCounter as number)--
+      delete hashIncluded.requestHash
+      delete hashIncluded.sign
+      hashIncluded.cycleCounter--
+      const hash = crypto.hash(Utils.safeStringify(hashIncluded))
+      hashIncluded.requestHash = hash
+      hashIncluded.sign = sign
       verified = crypto.verify(hashIncluded, hashIncluded.sign.owner)
     }
     if (verified === true) {
