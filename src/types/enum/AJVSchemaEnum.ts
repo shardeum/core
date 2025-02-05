@@ -46,5 +46,6 @@ export enum AJVSchemaEnum {
   GetTxTimestampResp = 'GetTxTimestampResp',
   GetAccountDataByHashesResp = 'GetAccountDataByHashesResp',
   CycleRecords = 'CycleRecords',
-  JoinReq = 'JoinReq'
+  JoinReq = 'JoinReq',
+  AllowedArchiverResponse = 'AllowedArchiverResponse',
 }

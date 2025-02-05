@@ -34,6 +34,9 @@ import { ActiveNode } from '@shardeum-foundation/lib-types/build/src/p2p/SyncTyp
 import { Result, ResultAsync } from 'neverthrow'
 import { Utils } from '@shardeum-foundation/lib-types'
 import { DevSecurityLevel } from '../shardus/shardus-types'
+import { verifyPayload } from '../types/ajv/Helpers'
+import { AJVSchemaEnum } from '../types/enum/AJVSchemaEnum'
+
 
 const clone = rfdc()
 
@@ -60,6 +63,7 @@ let lastSentCycle = -1
 let lastTimeForwardedArchivers = []
 export const RECEIPT_FORWARD_INTERVAL_MS = 5000
 const ALLOWED_ARCHIVERS_UPDATE_INTERVAL_MS = process.env.ALLOWED_ARCHIVERS_UPDATE_INTERVAL_MS || 60000
+const MAX_BODY_LENGTH_ALLOWED_ARCHIVERS = 1024 * 1024 * 1 // 1MB
 
 export enum DataRequestTypes {
   SUBSCRIBE = 'SUBSCRIBE',
@@ -196,7 +200,22 @@ async function getAllowedArchivers(): Promise<Array<{
       if (!response.ok) {
         return null
       }
-      const data = await response.json() as ArchiverResponse
+      const bodyText = await response.text();
+
+      // Check if the body length exceeds the maximum allowed length
+      if (bodyText.length > MAX_BODY_LENGTH_ALLOWED_ARCHIVERS) {
+        p2pLogger.warn(`Response body for allowed archivers is too large: ${bodyText.length} bytes. Max allowed is ${MAX_BODY_LENGTH_ALLOWED_ARCHIVERS} bytes.`);
+        return null;
+      }
+
+      const data = Utils.safeJsonParse(bodyText);
+
+      // Validate the parsed JSON data against the AJV schema
+      const isValid = verifyPayload(data, AJVSchemaEnum.AllowedArchiverResponse);
+      if (!isValid) {
+        p2pLogger.warn('getAllowedArchivers: invalid allowed archivers response');
+        return null;
+      }
       if (data.allowedArchivers?.length > 0 && verifyArchiverData(data)) {
         return data
       } else {
