@@ -71,35 +71,36 @@ export function syncV2(activeNodes: P2P.SyncTypes.ActiveNode[], shardus:Shardus)
               )
             }
 
-            NodeList.reset('syncV2')
-
-            // log the counts of the nodes, archivers, and standby nodes
-            /* prettier-ignore */ if (logFlags.important_as_fatal) console.log( `syncV2: nodes: ${validatorList.length}, archivers: ${archiverList.length}, standby nodes: ${standbyNodeList.length}` )
-
-            // add validators
-            NodeList.addNodes(validatorList, 'syncV2', cycle)
-
-            // add archivers
-            for (const archiver of archiverList) {
-              Archivers.archivers.set(archiver.publicKey, archiver)
-            }
-
-            // add standby nodes
-            addStandbyJoinRequests(standbyNodeList, true)
-
-            // add txList
-            ServiceQueue.setTxList(txList)
-
-            // add latest cycle
-            CycleChain.reset()
-
-            
-            // earlyConfigFetchAndPatch() is an async call so we have to do some 
-            // funky stuff to call it in this neverthow style code:
             return ResultAsync.fromPromise(
               shardus.earlyConfigFetchAndPatch(cycle.counter),
               (error) => new Error(`Failed to fetch and patch config: ${error}`)
             ).andThen(() => {
+              NodeList.reset('syncV2')
+
+              // log the counts of the nodes, archivers, and standby nodes
+              /* prettier-ignore */ if (logFlags.important_as_fatal) console.log( `syncV2: nodes: ${validatorList.length}, archivers: ${archiverList.length}, standby nodes: ${standbyNodeList.length}` )
+
+              // add validators
+              NodeList.addNodes(validatorList, 'syncV2', cycle)
+
+              // add archivers
+              for (const archiver of archiverList) {
+                Archivers.archivers.set(archiver.publicKey, archiver)
+              }
+
+              // add standby nodes
+              addStandbyJoinRequests(standbyNodeList, true)
+
+              // add txList
+              ServiceQueue.setTxList(txList)
+
+              // add latest cycle
+              CycleChain.reset()
+
+              
+              // earlyConfigFetchAndPatch() is an async call so we have to do some 
+              // funky stuff to call it in this neverthow style code:
+            
               info('syncV2: cycle.counter ', cycle.counter)
               info('syncV2: cycle.marker ', makeCycleMarker(cycle))
               info('syncV2: nodelist hash ', cycle.nodeListHash)
