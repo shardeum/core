@@ -314,30 +314,33 @@ class TransactionConsenus {
         // Prepare all P2P requests concurrently
         const p2pPromises = Array.from(NodeList.nodes.values())
             .filter(node => node.id !== Self.id)
-            .map(async (node) => {
+            .map((node) => {
               const start = Date.now();
-              try {
-                await this.p2p.askBinary<getTxTimestampReq, getTxTimestampResp>(
-                    node,
-                    InternalRouteEnum.binary_get_tx_timestamp,
-                    {
-                      cycleMarker,
-                      cycleCounter,
-                      txId: randomTxId,
-                    },
-                    serializeGetTxTimestampReq,
-                    deserializeGetTxTimestampResp,
-                    {},
-                    '',
-                    false,
-                    offset ? parseInt(`${offset}`) : 10 * 1000 // 30-second default timeout
-                );
-                const end = Date.now();
-                stats.set(`${node.externalIp}:${node.externalPort}`, end - start);
-              } catch (e) {
-                const end = Date.now();
-                failed.set(`${node.externalIp}:${node.externalPort}`, end - start);
-              }
+
+              // Fire the request but do not await
+              return this.p2p.askBinary<getTxTimestampReq, getTxTimestampResp>(
+                  node,
+                  InternalRouteEnum.binary_get_tx_timestamp,
+                  {
+                    cycleMarker,
+                    cycleCounter,
+                    txId: randomTxId,
+                  },
+                  serializeGetTxTimestampReq,
+                  deserializeGetTxTimestampResp,
+                  {},
+                  '',
+                  false,
+                  offset ? parseInt(`${offset}`) : 30 * 1000 // Default timeout
+              )
+                  .then(() => {
+                    const end = Date.now();
+                    stats.set(`${node.externalIp}:${node.externalPort}`, end - start);
+                  })
+                  .catch(() => {
+                    const end = Date.now();
+                    failed.set(`${node.externalIp}:${node.externalPort}`, end - start);
+                  });
             });
 
         // Wait for all promises to settle
@@ -356,6 +359,7 @@ class TransactionConsenus {
           },
           stats: Array.from(stats.entries()),
         }, null, 2)
+        console.log('Stats result: ', response)
         res.setHeader('Content-Type', 'application/json');
         res.write(response);
         res.end();
@@ -576,7 +580,7 @@ class TransactionConsenus {
 
     // this.p2p.registerInternal(
     //   'get_applied_vote',
-    //   async (payload: AppliedVoteQuery, respond: (arg0: AppliedVoteQueryResponse) => unknown) => {        
+    //   async (payload: AppliedVoteQuery, respond: (arg0: AppliedVoteQueryResponse) => unknown) => {
     //     nestedCountersInstance.countEvent('consensus', 'get_applied_vote')
     //     const { txId } = payload
     //     let queueEntry = this.stateManager.transactionQueue.getQueueEntrySafe(txId)
@@ -1397,9 +1401,9 @@ class TransactionConsenus {
     //   'poqo-data-and-receipt',
     //   async (
     //     payload: {
-    //       finalState: { txid: string; stateList: Shardus.WrappedResponse[] }, 
+    //       finalState: { txid: string; stateList: Shardus.WrappedResponse[] },
     //       receipt: AppliedReceipt2
-    //     }, 
+    //     },
     //     _respond: unknown,
     //     _sender: string,
     //   ) => {
@@ -1802,7 +1806,7 @@ class TransactionConsenus {
       voteHash: receipt.proposalHash,
       voteTime: 0,
     }
-    
+
     if (
       receipt.proposalHash !==
       this.stateManager.transactionConsensus.calculateVoteHash(receipt.proposal)
@@ -1847,12 +1851,12 @@ class TransactionConsenus {
       }
       // Need to sign again with the new voteTime
       const newHash = this.crypto.sign(updatedVoteHash)
-      
+
       // Send vote to the selected aggregator in the priority list
       Comms.tellBinary<AppliedVoteHash>(
-        voteReceivers, 
-        InternalRouteEnum.binary_poqo_send_vote, 
-        newHash, 
+        voteReceivers,
+        InternalRouteEnum.binary_poqo_send_vote,
+        newHash,
         serializePoqoSendVoteReq,
         {}
       )
@@ -1918,7 +1922,7 @@ class TransactionConsenus {
       }
       // eslint-disable-next-line security/detect-object-injection
       this.txTimestampCacheByTxId.set(txId, signedTsReceipt)
-      this.seenTimestampRequests.add(txId) 
+      this.seenTimestampRequests.add(txId)
     }
     /* prettier-ignore */ this.mainLogger.debug(`Timestamp receipt cached for txId ${txId} in cycle ${signedTsReceipt.cycleCounter}: ${utils.stringifyReduce(signedTsReceipt)}`)
     return signedTsReceipt
@@ -2372,7 +2376,7 @@ class TransactionConsenus {
           // }
 
           queueEntry.signedReceipt = signedReceipt
-          
+
 
           //this is a temporary hack to reduce the ammount of refactor needed.
           // const appliedReceipt: AppliedReceipt = {
@@ -2387,7 +2391,7 @@ class TransactionConsenus {
           const payload = { ...signedReceipt, txGroupCycle: queueEntry.txGroupCycle }
           // tellx128 the receipt to the entire execution group
           // if (this.config.p2p.useBinarySerializedEndpoints && this.config.p2p.poqoSendReceiptBinary) {
-           
+
             Comms.tellBinary<PoqoSendReceiptReq>(
               votingGroup,
               InternalRouteEnum.binary_poqo_send_receipt,
@@ -2407,7 +2411,7 @@ class TransactionConsenus {
             // Corresponding tell of receipt+data to entire transaction group
             this.stateManager.transactionQueue.factTellCorrespondingNodesFinalData(queueEntry)
           } else {
-            // however if we have a missing preApplyTXResult but the result is false we should log a count 
+            // however if we have a missing preApplyTXResult but the result is false we should log a count
             // as this may be an error condition to look out for
             // note: appliedReceipt2.result comes from queueEntry.ourVote.transaction_result which comes from PreApplyAcceptedTransactionResult.passed
             // it will be false if the apply funciton throws an error to signal that it was not possible apply
@@ -2860,7 +2864,7 @@ class TransactionConsenus {
       return null
     } catch (e) {
       //if (logFlags.error) this.mainLogger.error(`tryProduceReceipt: error ${queueEntry.logID} error: ${e.message}`)
-      /* prettier-ignore */ if (logFlags.error) this.mainLogger.error(`tryProduceReceipt: error ${queueEntry.logID} error: ${utils.formatErrorMessage(e)}`)  
+      /* prettier-ignore */ if (logFlags.error) this.mainLogger.error(`tryProduceReceipt: error ${queueEntry.logID} error: ${utils.formatErrorMessage(e)}`)
     } finally {
       if (logFlags.profiling_verbose) this.profiler.scopedProfileSectionEnd('tryProduceReceipt')
       this.profiler.profileSectionEnd('tryProduceReceipt')
@@ -2982,7 +2986,7 @@ class TransactionConsenus {
             )
             return rBin
           // }
-          // return await Comms.ask(node, 'get_applied_vote', queryData)          
+          // return await Comms.ask(node, 'get_applied_vote', queryData)
         } catch (e) {
           this.mainLogger.error(`robustQueryBestVote: Failed query to node ${node.id} error: ${e.message}`)
           return {
@@ -3038,7 +3042,7 @@ class TransactionConsenus {
         const queryData = { txId: queueEntry.acceptedTx.txId }
         /* prettier-ignore */ if (logFlags.seqdiagram) this.seqLogger.info(`0x53455101 ${shardusGetTime()} tx:${queryData.txId} ${NodeList.activeIdToPartition.get(Self.id)}-->>${NodeList.activeIdToPartition.get(node.id)}: ${'get_confirm_or_challenge'}`)
         // return this.config.p2p.useBinarySerializedEndpoints && this.config.p2p.getConfirmOrChallengeBinary
-        //   ? 
+        //   ?
           const response = await Comms.askBinary<GetConfirmOrChallengeReq, GetConfirmOrChallengeResp>(
               node,
               InternalRouteEnum.binary_get_confirm_or_challenge,
@@ -3862,7 +3866,7 @@ class TransactionConsenus {
     }
     const accountsHash = this.crypto.hash(
       this.crypto.hash(proposal.accountIDs) +
-      this.crypto.hash(proposal.beforeStateHashes) + 
+      this.crypto.hash(proposal.beforeStateHashes) +
       this.crypto.hash(proposal.afterStateHashes)
     )
     const proposalHash = this.crypto.hash(
@@ -4342,7 +4346,7 @@ class TransactionConsenus {
     queueEntry.lastVoteReceivedTimestamp = shardusGetTime()
     return true
   }
-  
+
 }
 
 export default TransactionConsenus
