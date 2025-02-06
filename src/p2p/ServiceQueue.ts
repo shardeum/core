@@ -858,6 +858,7 @@ function verifyDebugDropNGT(reqParamsDropNGT, cycle): { success: boolean; messag
     if (verified === false) {
       delete hashIncluded.requestHash
       delete hashIncluded.sign
+      // decrementing counter to check the sig in case the sig was made on the object with the prev counter
       hashIncluded.cycleCounter--
       const hash = crypto.hash(Utils.safeStringify(hashIncluded))
       hashIncluded.requestHash = hash
@@ -906,6 +907,7 @@ function verifyDebugDropNGT(reqParamsDropNGT, cycle): { success: boolean; messag
     if (verified === false) {
       delete hashIncluded.requestHash
       delete hashIncluded.sign
+      // decrementing counter to check the sig in case the sig was made on the object with the prev counter
       hashIncluded.cycleCounter--
       const hash = crypto.hash(Utils.safeStringify(hashIncluded))
       hashIncluded.requestHash = hash
