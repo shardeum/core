@@ -303,6 +303,12 @@ class TransactionConsenus {
     Context.network.registerExternalGet('debug-profile-tx-timestamp-endpoint', isDebugModeMiddleware, async (req, res) => {
       try {
         const {offset} = req.query
+        res.setHeader('Content-Type', 'application/json');
+
+        // Immediately flush headers to signal the connection is live.
+        if (res.flushHeaders) {
+          res.flushHeaders();
+        }
 
         const randomTxId = Context.crypto.hash(randomUUID())
 
@@ -351,18 +357,16 @@ class TransactionConsenus {
         const medianResponseTime = responseTimes[Math.floor(responseTimes.length / 2)] || 0;
         const averageResponseTime = responseTimes.reduce((a, b) => a + b, 0) / (responseTimes.length || 1);
         const failedNodes = Array.from(failed.keys());
-        const response = JSON.stringify({
+        const response = {
           report: {
             medianResponseTime,
             averageResponseTime,
             failedNodes
           },
           stats: Array.from(stats.entries()),
-        }, null, 2)
+        };
         console.log('Stats result: ', response)
-        res.setHeader('Content-Type', 'application/json');
-        res.write(response);
-        res.end();
+        res.json(response);
 
       } catch (error) {
         console.error('Unexpected error:', error);
