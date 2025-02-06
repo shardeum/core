@@ -1061,8 +1061,9 @@ class Shardus extends EventEmitter {
       nestedCountersInstance.countEvent('sync', 'earlyConfigFetchAndPatch')
     }
 
+    this.mainLogger.info(`earlyConfigFetchAndPatch start`)
     this.updateConfigChangeQueue(account, lastCycle_counter, false)
-
+    this.mainLogger.info(`earlyConfigFetchAndPatch end`)
   }
 
   /**
