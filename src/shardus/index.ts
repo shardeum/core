@@ -772,6 +772,10 @@ class Shardus extends EventEmitter {
         // todo hook this up later cant deal with it now.
         // await this.storage.deleteOldDBPath()
 
+        this.mainLogger.info('sync-p2p synced waiting 4 min')
+        await utils.sleep(240000) //do not release this helps us have a chance
+        //to query /config before the node syncs data
+        this.mainLogger.info('sync-syncAppData')
         await this.syncAppData()
       }
     })
