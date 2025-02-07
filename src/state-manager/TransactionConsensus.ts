@@ -304,9 +304,7 @@ class TransactionConsenus {
       try {
         const { offset } = req.query;
 
-        res.setHeader('Content-Type', 'application/json');
-        res.setHeader('Transfer-Encoding', 'chunked');  // 🚀 Allows streaming data
-        res.write('{"status":"processing","details":"Fetching data..."}\n'); // Keep connection alive
+        res.write('Profiling tx timestamp endpoint of all network nodes\n')
 
         const randomTxId = Context.crypto.hash(randomUUID());
         const cycleMarker = CycleChain.getCurrentCycleMarker();
@@ -353,25 +351,22 @@ class TransactionConsenus {
         const averageResponseTime = responseTimes.reduce((a, b) => a + b, 0) / (responseTimes.length || 1);
         const failedNodes = Array.from(failed.keys());
 
-        const response = JSON.stringify({
-          report: {
-            medianResponseTime,
-            averageResponseTime,
-            failedNodes,
-          },
-          stats: Array.from(stats.entries()),
-        }, null, 2);
 
-        res.write(`\n${response}`); // Final response
-        res.end(); // End the response
+        res.write('Profiling results:\n');
+        res.write(`Median response time: ${medianResponseTime}ms\n`);
+        res.write(`Average response time: ${averageResponseTime}ms\n`);
+        res.write(`Failed nodes: ${failedNodes.join(', ')}\n`);
+        res.write('Detailed stats:\n');
+        res.write(`Node,Response Time\n`);
+        stats.forEach((responseTime, node) => {
+            res.write(`${node},${responseTime}\n`);
+        })
+        res.end()
 
       } catch (error) {
         console.error('Unexpected error:', error);
-
-        if (!res.headersSent) {
-          res.write(`\n{"error":"Internal Server Error","details":"${error.message}"}`);
-          res.end();
-        }
+        res.write(`\n{"error":"Internal Server Error","details":"${error.message}"}`);
+        res.end();
       }
     });
 
