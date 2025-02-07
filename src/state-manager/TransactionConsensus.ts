@@ -352,6 +352,12 @@ class TransactionConsenus {
         const failedNodes = Array.from(failed.keys());
 
 
+        console.log('Profiling results:', {
+            medianResponseTime,
+            averageResponseTime,
+            failedNodes,
+            stats,
+        });
         res.write('Profiling results:\n');
         res.write(`Median response time: ${medianResponseTime}ms\n`);
         res.write(`Average response time: ${averageResponseTime}ms\n`);
