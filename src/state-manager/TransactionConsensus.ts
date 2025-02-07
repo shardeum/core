@@ -302,28 +302,23 @@ class TransactionConsenus {
 
     Context.network.registerExternalGet('debug-profile-tx-timestamp-endpoint', isDebugModeMiddleware, async (req, res) => {
       try {
-        const {offset} = req.query
+        const { offset } = req.query;
+
         res.setHeader('Content-Type', 'application/json');
+        res.setHeader('Transfer-Encoding', 'chunked');  // 🚀 Allows streaming data
+        res.write('{"status":"processing","details":"Fetching data..."}\n'); // Keep connection alive
 
-        // Immediately flush headers to signal the connection is live.
-        if (res.flushHeaders) {
-          res.flushHeaders();
-        }
+        const randomTxId = Context.crypto.hash(randomUUID());
+        const cycleMarker = CycleChain.getCurrentCycleMarker();
+        const cycleCounter = CycleChain.newest.counter;
 
-        const randomTxId = Context.crypto.hash(randomUUID())
+        const stats = new Map<string, number>();
+        const failed = new Map<string, number>();
 
-        const cycleMarker = CycleChain.getCurrentCycleMarker()
-        const cycleCounter = CycleChain.newest.counter
-
-        const stats = new Map<string, number>()
-        const failed = new Map<string, number>()
-        // Prepare all P2P requests concurrently
         const p2pPromises = Array.from(NodeList.nodes.values())
             .filter(node => node.id !== Self.id)
             .map((node) => {
               const start = Date.now();
-
-              // Fire the request but do not await
               return this.p2p.askBinary<getTxTimestampReq, getTxTimestampResp>(
                   node,
                   InternalRouteEnum.binary_get_tx_timestamp,
@@ -337,7 +332,7 @@ class TransactionConsenus {
                   {},
                   '',
                   false,
-                  offset ? parseInt(`${offset}`) : 30 * 1000 // Default timeout
+                  offset ? parseInt(`${offset}`) : 30 * 1000
               )
                   .then(() => {
                     const end = Date.now();
@@ -349,30 +344,36 @@ class TransactionConsenus {
                   });
             });
 
-        // Wait for all promises to settle
+        // Wait for all requests to finish
         await Promise.allSettled(p2pPromises);
 
-        // Calculate stats
+        // Compute statistics
         const responseTimes = Array.from(stats.values()).sort((a, b) => a - b);
         const medianResponseTime = responseTimes[Math.floor(responseTimes.length / 2)] || 0;
         const averageResponseTime = responseTimes.reduce((a, b) => a + b, 0) / (responseTimes.length || 1);
         const failedNodes = Array.from(failed.keys());
-        const response = {
+
+        const response = JSON.stringify({
           report: {
             medianResponseTime,
             averageResponseTime,
-            failedNodes
+            failedNodes,
           },
           stats: Array.from(stats.entries()),
-        };
-        console.log('Stats result: ', response)
-        res.json(response);
+        }, null, 2);
+
+        res.write(`\n${response}`); // Final response
+        res.end(); // End the response
 
       } catch (error) {
         console.error('Unexpected error:', error);
-        res.status(500).json({ error: 'Internal Server Error', details: error.message });
+
+        if (!res.headersSent) {
+          res.write(`\n{"error":"Internal Server Error","details":"${error.message}"}`);
+          res.end();
+        }
       }
-    })
+    });
 
     // this.p2p.registerInternal(
     //   'get_tx_timestamp',
