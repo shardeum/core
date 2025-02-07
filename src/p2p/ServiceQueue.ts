@@ -203,10 +203,7 @@ const debugDropNGTGossipRoute: P2P.P2PTypes.GossipHandler<any> = async (payload,
     /* prettier-ignore */ if (logFlags.p2pNonFatal) info('debug-drop-network-tx: txHash already exists in txRemove')
     return
   }
-  let cycle = CycleChain.newest
-  if (payload.usePrevCycle) {
-    cycle = CycleChain.getCycleChain(cycle.counter - 1, cycle.counter - 1)[0]
-  }
+  const cycle = CycleChain.newest
   const verificationResult = verifyDebugDropNGT(payload, cycle)
   if (verificationResult.success === false) {
     if (logFlags.important_as_error) console.log(`debug-drop-ngt - ${verificationResult.message}`)
@@ -215,7 +212,7 @@ const debugDropNGTGossipRoute: P2P.P2PTypes.GossipHandler<any> = async (payload,
   }
   const unsignedRemoveNetworkTx = {
     txHash: payload.txHash,
-    cycle: cycle.counter,
+    cycle: currentCycle,
   }
 
   txRemove.push(unsignedRemoveNetworkTx)
@@ -284,7 +281,6 @@ export function init(): void {
         sigCounter: req.query.sig_counter,
         pubKeys: req.query.nodePubkeys,
         sig: req.query.sig,
-        usePrevCycle: q1SendRequests,
         owner: '',
       }
       const verificationResult = verifyDebugDropNGT(reqParamsDropNGT, CycleChain.newest)
@@ -511,7 +507,7 @@ export function sendRequests(): void {
   for (const dropNGTInfo of debugDropNGTs) {
     const unsignedRemoveNetworkTx = {
       txHash: dropNGTInfo.txHash,
-      cycle: dropNGTInfo.usePrevCycle ? CycleChain.newest.counter - 1 : CycleChain.newest.counter,
+      cycle: currentCycle
     }
     txRemove.push(unsignedRemoveNetworkTx)
 
@@ -856,9 +852,20 @@ function verifyDebugDropNGT(reqParamsDropNGT, cycle): { success: boolean; messag
       cycleCounter: payload.cycleCounter,
       requestHash: hash,
       sign,
-    } as SignedObject
+    }
 
-    const verified = crypto.verify(hashIncluded, hashIncluded.sign.owner)
+    let verified = crypto.verify(hashIncluded, hashIncluded.sign.owner)
+    if (verified === false) {
+      delete hashIncluded.requestHash
+      delete hashIncluded.sign
+      // decrementing counter to check the sig in case the sig was made on the object with the prev counter
+      hashIncluded.cycleCounter--
+      const hash = crypto.hash(Utils.safeStringify(hashIncluded))
+      hashIncluded.requestHash = hash
+      hashIncluded.sign = sign
+
+      verified = crypto.verify(hashIncluded, hashIncluded.sign.owner)
+    }
     if (verified === true) {
       const authorized = ensureKeySecurity(ownerPk, DevSecurityLevel.High)
       if (authorized) {
@@ -894,9 +901,19 @@ function verifyDebugDropNGT(reqParamsDropNGT, cycle): { success: boolean; messag
       cycleCounter: payload.cycleCounter,
       requestHash: hash,
       sign,
-    } as SignedObject
+    }
 
-    const verified = crypto.verify(hashIncluded, hashIncluded.sign.owner)
+    let verified = crypto.verify(hashIncluded, hashIncluded.sign.owner)
+    if (verified === false) {
+      delete hashIncluded.requestHash
+      delete hashIncluded.sign
+      // decrementing counter to check the sig in case the sig was made on the object with the prev counter
+      hashIncluded.cycleCounter--
+      const hash = crypto.hash(Utils.safeStringify(hashIncluded))
+      hashIncluded.requestHash = hash
+      hashIncluded.sign = sign
+      verified = crypto.verify(hashIncluded, hashIncluded.sign.owner)
+    }
     if (verified === true) {
       const authorized = ensureKeySecurity(ownerPk, DevSecurityLevel.High)
       if (authorized) {
