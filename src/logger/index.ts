@@ -120,6 +120,8 @@ export type LogFlags = {
   verboseNestedCounters: boolean // extra logging for nested counters
 
   node_rotation_debug: boolean // extra logging for node rotation math
+
+  p2pSyncDebug: boolean
 }
 
 export let logFlags: LogFlags = {
@@ -163,6 +165,8 @@ export let logFlags: LogFlags = {
   verboseNestedCounters: false,
 
   node_rotation_debug: false,
+
+  p2pSyncDebug: false,
 }
 
 const filePath1 = path.join(process.cwd(), 'data-logs', 'cycleRecords1.txt')
