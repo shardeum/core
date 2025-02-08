@@ -114,7 +114,12 @@ const isRefuteCyclesEnabled = (cycle: P2P.CycleCreatorTypes.CycleRecord | null) 
 
 const initRefuteCyclesForNode = (node: P2P.NodeListTypes.Node, cycle: P2P.CycleCreatorTypes.CycleRecord | null) => {
   if (isRefuteCyclesEnabled(cycle)) {
-    node.refuteCycles = []
+    // This if check is a critical fix.  This is because initRefuteCyclesForNode gets called
+    // as part of addNode and addNode gets called in syncV2 after we download the nodelist and then 
+    // pass it to addNodes.   having the check here will make sure we dont wipe out existing
+    // data in refuteCycles that we just downloaded.
+    if(node.refuteCycles == null)
+      node.refuteCycles = []
   }
 }
 
@@ -391,6 +396,26 @@ export function updateNodes(
   cycle: P2P.CycleCreatorTypes.CycleRecord | null
 ) {
   for (const update of updates) updateNode(update, raiseEvents, cycle)
+
+  /* //LOCAL_OOS_TEST_SUPPORT
+  let stats = {init:0, push:0}
+  const refuteCyclesEnabled = isRefuteCyclesEnabled(cycle)
+  // every cycle mess with every node 
+  for (const node of activeByIdOrder){
+    if (refuteCyclesEnabled) {
+      if(node.refuteCycles == null){
+        node.refuteCycles = []
+        stats.init++
+      } else {
+        node.refuteCycles.push(cycle.counter)
+        stats.push++
+      }
+    }
+  }
+
+  info(`NodeList.updateNodes: ${updates.length} ${Utils.safeStringify(stats)} enableProblematicNodeRemoval: ${config.p2p.enableProblematicNodeRemoval} cycle: ${cycle?.counter} refuteCyclesEnabled: ${refuteCyclesEnabled} enableProblematicNodeRemovalOnCycle: ${config.p2p.enableProblematicNodeRemovalOnCycle}`) 
+  */
+
 }
 
 export function updateProblematicNodeTracking(cycle: P2P.CycleCreatorTypes.CycleRecord | null) {

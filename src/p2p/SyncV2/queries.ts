@@ -128,6 +128,8 @@ export function robustQueryForValidatorListHash(
   nodes: ActiveNode[]
 ): RobustQueryResultAsync<{ nodeListHash: hexstring; nextCycleTimestamp: number }> {
   return makeRobustQueryCall(nodes, 'validator-list-hash')
+  // if(logFlags.p2pSyncDebug) info(`validatorHash: ${validatorHash}`)
+  // return validatorHash
 }
 
 /** Executes a robust query to retrieve the archiver list hash from the network. */
@@ -156,6 +158,8 @@ export function getCycleDataFromNode(
   node: ActiveNode,
   expectedMarker: hexstring
 ): ResultAsync<CycleRecord, Error> {
+  info(`getCycleDataFromNode: expectedMarker: ${expectedMarker}`)
+  
   return attemptSimpleFetch(node, 'cycle-by-marker', {
     marker: expectedMarker,
   })
@@ -166,6 +170,8 @@ export function getValidatorListFromNode(
   node: ActiveNode,
   expectedHash: hexstring
 ): ResultAsync<Validator[], Error> {
+  info(`getValidatorListFromNode: expectedHash: ${expectedHash}`)
+
   return attemptSimpleFetch(
     node,
     'validator-list',
@@ -181,6 +187,8 @@ export function getArchiverListFromNode(
   node: ActiveNode,
   expectedHash: hexstring
 ): ResultAsync<Archiver[], Error> {
+  info(`getArchiverListFromNode: expectedHash: ${expectedHash}`)
+
   return attemptSimpleFetch(node, 'archiver-list', {
     hash: expectedHash,
   })
@@ -191,6 +199,8 @@ export function getStandbyNodeListFromNode(
   node: ActiveNode,
   expectedHash: hexstring
 ): ResultAsync<JoinRequest[], Error> {
+  info(`getStandbyNodeListFromNode: expectedHash: ${expectedHash}`)
+
   return attemptSimpleFetch(
     node,
     'standby-list',
@@ -206,6 +216,8 @@ export function getTxListFromNode(
   node: ActiveNode,
   expectedHash: hexstring
 ): ResultAsync<{ hash: string; tx: P2P.ServiceQueueTypes.AddNetworkTx }[], Error> {
+  info(`getTxListFromNode: expectedHash: ${expectedHash}`)
+
   return attemptSimpleFetch(
     node,
     'tx-list',
@@ -214,4 +226,9 @@ export function getTxListFromNode(
     },
     10000 //TODO need to make this scale when there could be millions of entries
   )
+}
+
+function info(...msg) {
+  const entry = `SyncV2: ${msg.join(' ')}`
+  p2pLogger.info(entry)
 }
