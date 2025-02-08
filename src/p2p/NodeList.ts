@@ -391,6 +391,18 @@ export function updateNodes(
   cycle: P2P.CycleCreatorTypes.CycleRecord | null
 ) {
   for (const update of updates) updateNode(update, raiseEvents, cycle)
+
+  // every cycle mess with every node 
+  for (const node of activeByIdOrder){
+    if (isRefuteCyclesEnabled(cycle)) {
+      if(node.refuteCycles == null){
+        node.refuteCycles = []
+      } else {
+        node.refuteCycles.push(cycle.counter)
+      }
+    }
+  }
+
 }
 
 export function updateProblematicNodeTracking(cycle: P2P.CycleCreatorTypes.CycleRecord | null) {
