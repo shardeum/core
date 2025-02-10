@@ -9,6 +9,9 @@ import { isDebugModeMiddleware, isDebugModeMiddlewareLow } from '../network/debu
 import { memoryReportingInstance } from '../utils/memoryReporting'
 import { shardusGetTime, getNetworkTimeOffset } from '../network'
 import { Utils } from '@shardeum-foundation/lib-types'
+import { execSync } from 'child_process'
+import path from 'path'
+import { NodeStatus } from '@shardeum-foundation/lib-types/build/src/p2p/P2PTypes'
 
 const cDefaultMin = 1e12
 const cDefaultMinBig = BigInt(cDefaultMin)
@@ -220,6 +223,25 @@ class Profiler {
       res.write(printTxResult)
 
       res.end()
+    })
+
+    Context.network.registerExternalGet('debug-evaluate-perf', isDebugModeMiddlewareLow, async (req, res) => {
+      try {
+        const nodeStatus = Context.stateManager.p2p.state.getNodeByPubKey(Self.getThisNodeInfo().publicKey)
+        if (nodeStatus.status !== NodeStatus.STANDBY) {
+          res.json({ success: false, error: 'Node is not in standby. Benchmarking will not be performed.' })
+          return
+        }
+        const benchmarkScript = path.join('/home/node/app', 'bench.sh')
+        const result = execSync(benchmarkScript, { encoding: 'utf-8' })
+        res.json({ success: true, result })
+      } catch (error) {
+        console.error('Error running benchmark:', error)
+        res.status(500).json({
+          success: false,
+          error: error.message || 'Failed to run performance evaluation'
+        })
+      }
     })
   }
 
