@@ -420,8 +420,11 @@ export function digestCycle(cycle: P2P.CycleCreatorTypes.CycleRecord, source: st
     )
 
   const changes = parse(cycle)
-  applyNodeListChange(changes, true, cycle)
-
+  if(source != 'syncV2'){
+    applyNodeListChange(changes, true, cycle)
+  } else {
+    info('source is syncV2, not applying nodelist changes')
+  }
   const newNodeListHash = NodeList.computeNewNodeListHash()
   warn(`sync:digestCycle after applyNodeListChange source: ${source} cycle: ${cycle.counter} patching nodelisthash ${cycle.nodeListHash} -> ${newNodeListHash}`)
   cycle.nodeListHash = newNodeListHash
@@ -450,8 +453,10 @@ export function digestCycle(cycle: P2P.CycleCreatorTypes.CycleRecord, source: st
   }
 
   CycleChain.append(cycle)
-  info(`digestCycle: marker of cycle${cycle.counter} from ${source} after digest is ${CycleChain.computeCycleMarker(cycle)}`)
+  const digestedCycleMarker = CycleChain.computeCycleMarker(cycle)
+  info(`digestCycle: marker of cycle${cycle.counter} from ${source} after digest is ${digestedCycleMarker}`)
 
+  info(`digestCycle: cycle: ${JSON.stringify(cycle)}`)
   // TODO: This seems like a possible location to inetvene if our node
   // is getting far behind on what it thinks the current cycle is
   // first would like to know how it is getting behind.
