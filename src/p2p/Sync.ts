@@ -456,7 +456,7 @@ export function digestCycle(cycle: P2P.CycleCreatorTypes.CycleRecord, source: st
   const digestedCycleMarker = CycleChain.computeCycleMarker(cycle)
   info(`digestCycle: marker of cycle${cycle.counter} from ${source} after digest is ${digestedCycleMarker}`)
 
-  info(`digestCycle: cycle: ${JSON.stringify(cycle)}`)
+  info(`digestCycle: cycle: ${Utils.safeStringify(cycle)}`)
   // TODO: This seems like a possible location to inetvene if our node
   // is getting far behind on what it thinks the current cycle is
   // first would like to know how it is getting behind.

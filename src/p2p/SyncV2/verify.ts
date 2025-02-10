@@ -9,6 +9,7 @@ import { HashableObject } from '../../crypto'
 import { crypto } from '../Context'
 import { makeCycleMarker } from '../CycleCreator'
 import { Utils } from '@shardus/types'
+import { p2pLogger } from './queries'
 
 /**
  * Verifies if the hash of a given object matches the expected hash.
@@ -39,6 +40,7 @@ export function verifyValidatorList(
   validatorList: P2P.NodeListTypes.Node[],
   expectedHash: hexstring
 ): Result<boolean, Error> {
+  info(`verifyValidatorList ${expectedHash}  ${Utils.safeStringify(validatorList)} `);
   return verify(validatorList, expectedHash, 'validator list')
 }
 
@@ -75,4 +77,9 @@ export function verifyTxList(
     return err(new Error(`hash mismatch for txList: expected ${expectedHash}, got ${actualHash}`))
 
   return ok(true)
+}
+
+function info(...msg) {
+  const entry = `SyncV2: ${msg.join(' ')}`
+  p2pLogger.info(entry)
 }

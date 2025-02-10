@@ -114,7 +114,8 @@ const isRefuteCyclesEnabled = (cycle: P2P.CycleCreatorTypes.CycleRecord | null) 
 
 const initRefuteCyclesForNode = (node: P2P.NodeListTypes.Node, cycle: P2P.CycleCreatorTypes.CycleRecord | null) => {
   if (isRefuteCyclesEnabled(cycle)) {
-    node.refuteCycles = []
+    if(node.refuteCycles == null)
+      node.refuteCycles = []
   }
 }
 
@@ -406,7 +407,7 @@ export function updateNodes(
     }
   }
 
-  info(`NodeList.updateNodes: ${updates.length} ${JSON.stringify(stats)}`) 
+  info(`NodeList.updateNodes: ${updates.length} ${Utils.safeStringify(stats)}`) 
 
 }
 
