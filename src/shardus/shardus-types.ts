@@ -991,6 +991,7 @@ export interface ServerConfiguration {
     removedNodeIDCacheSize: number
     timestampCacheFixSize: number
     stuckNGTInQueueFix: boolean
+    nerfNonFoundationCertScores: boolean
   }
   /** Server IP configuration */
   ip?: {

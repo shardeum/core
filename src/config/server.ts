@@ -178,6 +178,7 @@ const SERVER_CONFIG: StrictServerConfiguration = {
     timestampCacheFixSize: 10000,
     removedNodeIDCacheSize: 1000,
     stuckNGTInQueueFix: false,
+    nerfNonFoundationCertScores: false
   },
   ip: {
     externalIp: '0.0.0.0',

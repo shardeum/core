@@ -968,6 +968,11 @@ function scoreCert(cert: P2P.CycleCreatorTypes.CycleCert): number {
     // I am partial to this, but I have done the previous cycle marker for now since that is what the ticket asked for
     const prevMarker = makeCycleMarker(CycleChain.newest)
     const out = utils.XOR(prevMarker, hid)
+
+    if (NodeList.byPubKey.get(cert.sign.owner).foundationNode === false) {
+      return out & 0x0FFFFFFF
+    }
+
     return out
   } catch (err) {
     error('scoreCert ERR:', err)
