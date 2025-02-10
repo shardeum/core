@@ -81,6 +81,9 @@ export function validate(
   info('validate: prev.standbylist', prev.standbyNodeListHash)
   info('validate: next.standbylist', next.standbyNodeListHash)
 
+  info('validate: prev.nodelist', prev.nodeListHash)
+  info('validate: next.nodelist', next.nodeListHash)
+
   if (next.previous !== prevMarker) {
     info('validate: ERROR: next.previous !== prevMarker')
     return false

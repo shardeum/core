@@ -392,16 +392,21 @@ export function updateNodes(
 ) {
   for (const update of updates) updateNode(update, raiseEvents, cycle)
 
+  let stats = {init:0, push:0}
   // every cycle mess with every node 
   for (const node of activeByIdOrder){
     if (isRefuteCyclesEnabled(cycle)) {
       if(node.refuteCycles == null){
         node.refuteCycles = []
+        stats.init++
       } else {
         node.refuteCycles.push(cycle.counter)
+        stats.push++
       }
     }
   }
+
+  info(`NodeList.updateNodes: ${updates.length} ${JSON.stringify(stats)}`) 
 
 }
 

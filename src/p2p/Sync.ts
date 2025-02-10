@@ -366,7 +366,7 @@ export function digestCycle(cycle: P2P.CycleCreatorTypes.CycleRecord, source: st
     // standby list, but not with the validator and archivers lists
 
     const newNodeListHash = NodeList.computeNewNodeListHash()
-    if (source === 'syncV2' && newNodeListHash !== cycle.nodeListHash) warn(`sync:digestCycle source: ${source} cycle: ${cycle.counter} patching nodelisthash ${cycle.nodeListHash} -> ${newNodeListHash}`)
+    warn(`sync:digestCycle source: ${source} cycle: ${cycle.counter} patching nodelisthash ${cycle.nodeListHash} -> ${newNodeListHash}`)
     cycle.nodeListHash = newNodeListHash
 
     const newArchiverListHash = Archivers.computeNewArchiverListHash()
@@ -421,6 +421,10 @@ export function digestCycle(cycle: P2P.CycleCreatorTypes.CycleRecord, source: st
 
   const changes = parse(cycle)
   applyNodeListChange(changes, true, cycle)
+
+  const newNodeListHash = NodeList.computeNewNodeListHash()
+  warn(`sync:digestCycle after applyNodeListChange source: ${source} cycle: ${cycle.counter} patching nodelisthash ${cycle.nodeListHash} -> ${newNodeListHash}`)
+  cycle.nodeListHash = newNodeListHash
 
   // for join v2, also add any new standby nodes to the standy node list
   // and remove any standby nodes that have unjoined.
