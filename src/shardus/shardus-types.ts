@@ -1153,6 +1153,8 @@ export interface ServerConfiguration {
     qaTestString: string
     /** chance to fail before state in sending tx receipt to archiver */
     beforeStateFailChance: number
+    /** write bad node perf events to a csv file. */
+    logCSVPerfEvents: boolean
   }
   /** Options for the statistics module */
   statistics?: {

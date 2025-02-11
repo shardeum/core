@@ -100,6 +100,8 @@ const allZeroes64 = '0'.repeat(64)
 
 const defaultConfigs: ShardusTypes.StrictShardusConfiguration = SHARDUS_CONFIG
 
+export let logDir_global
+
 Context.setDefaultConfigs(defaultConfigs)
 
 type RouteHandlerRegister = (route: string, authHandler: Handler, responseHandler?: Handler) => void
@@ -188,6 +190,7 @@ class Shardus extends EventEmitter {
     Snapshot.initLogger()
 
     const logDir = path.join(config.baseDir, logsConfig.dir)
+    logDir_global = logDir
     if (logsConfig.saveConsoleOutput) {
       startSaving(logDir)
     }
