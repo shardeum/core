@@ -490,7 +490,7 @@ export function updateRecord(txs: P2P.JoinTypes.Txs, record: P2P.CycleCreatorTyp
       const { nodeInfo, cycleMarker: cycleJoined } = standbyInfo
       const id = computeNodeId(nodeInfo.publicKey, standbyInfo.cycleMarker)
       const counterRefreshed = record.counter
-      if (config.p2p.nerfNonFoundationCertScores) {
+      if (config.p2p.addFoundationNodeAttribute) {
         const foundationNode = standbyInfo.appJoinData.adminCert !== null && standbyInfo.appJoinData.stakeCert === null ? true : false
         record.joinedConsensors.push({ ...nodeInfo, cycleJoined, counterRefreshed, id, foundationNode })
       } else {

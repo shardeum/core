@@ -969,7 +969,7 @@ function scoreCert(cert: P2P.CycleCreatorTypes.CycleCert): number {
     const prevMarker = makeCycleMarker(CycleChain.newest)
     const out = utils.XOR(prevMarker, hid)
 
-    if (NodeList.byPubKey.get(cert.sign.owner).foundationNode === false) {
+    if (config.p2p.nerfNonFoundationCertScores && NodeList.byPubKey.get(cert.sign.owner).foundationNode === false) {
       return out & 0x0FFFFFFF
     }
 
