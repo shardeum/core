@@ -1943,6 +1943,9 @@ class TransactionQueue {
         }
       }
 
+      const INIT_REWARD_TX = 8
+      const CLAIM_REWARD_TX = 9
+      const NGT_TYPES = [INIT_REWARD_TX, CLAIM_REWARD_TX]
 
       this.queueEntryCounter++
       const txQueueEntry: QueueEntry = {
@@ -2047,7 +2050,8 @@ class TransactionQueue {
         hasRobustConfirmation: false,
         sharedCompleteData: false,
         correspondingGlobalOffset: 0,
-        isSenderWrappedTxGroup: {}
+        isSenderWrappedTxGroup: {},
+        isNGT: NGT_TYPES.includes(acceptedTx.data?.tx?.['internalTXType']),
       } // age comes from timestamp
       this.txDebugMarkStartTime(txQueueEntry, 'total_queue_time')
       this.txDebugMarkStartTime(txQueueEntry, 'aging')
@@ -6845,6 +6849,17 @@ class TransactionQueue {
                   }
                 } else {
                   //just keep waiting for a reciept
+                  if (queueEntry.isNGT && txAge > timeM * 5) {
+                    // entry is an NGT so we want to remove it if consensing fails to prevent from getting stuck
+                    nestedCountersInstance.countEvent(
+                      `consensus`,
+                      'removing NGT from queue after failed consensing'
+                    )
+                    this.updateTxState(queueEntry, 'fail')
+                    this.removeFromQueue(queueEntry, currentIndex)
+                    this.processQueue_clearAccountsSeen(seenAccounts, queueEntry)
+                    continue
+                  }
                 }
 
                 // we got a receipt but did not match it.
