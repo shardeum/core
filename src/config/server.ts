@@ -174,7 +174,7 @@ const SERVER_CONFIG: StrictServerConfiguration = {
     useAjvCycleRecordValidation: true,
     networkTransactionsToProcessPerCycle: 20,
     getTxTimestampTimeoutOffset: 0,
-    patchNetworkAccountSyncFixes: false, //off so we can test the sync fail case 
+    patchNetworkAccountSyncFixes: true, //off so we can test the sync fail case 
   },
   ip: {
     externalIp: '0.0.0.0',

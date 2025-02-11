@@ -394,9 +394,10 @@ export function updateNodes(
   for (const update of updates) updateNode(update, raiseEvents, cycle)
 
   let stats = {init:0, push:0}
+  const refuteCyclesEnabled = isRefuteCyclesEnabled(cycle)
   // every cycle mess with every node 
   for (const node of activeByIdOrder){
-    if (isRefuteCyclesEnabled(cycle)) {
+    if (refuteCyclesEnabled) {
       if(node.refuteCycles == null){
         node.refuteCycles = []
         stats.init++
@@ -407,7 +408,7 @@ export function updateNodes(
     }
   }
 
-  info(`NodeList.updateNodes: ${updates.length} ${Utils.safeStringify(stats)}`) 
+  info(`NodeList.updateNodes: ${updates.length} ${Utils.safeStringify(stats)} enableProblematicNodeRemoval: ${config.p2p.enableProblematicNodeRemoval} cycle: ${cycle?.counter} refuteCyclesEnabled: ${refuteCyclesEnabled} enableProblematicNodeRemovalOnCycle: ${config.p2p.enableProblematicNodeRemovalOnCycle}`) 
 
 }
 
