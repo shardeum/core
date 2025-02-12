@@ -591,6 +591,7 @@ class StateManager {
     cycleShardData.nodeShardDataMap = new Map()
     cycleShardData.parititionShardDataMap = new Map()
     cycleShardData.nodes = this.getNodesForCycleShard(mode)
+    cycleShardData.activeFoundationNodes = activeByIdOrder.filter((node) => node.foundationNode)
     cycleShardData.cycleNumber = cycleNumber
     cycleShardData.partitionsToSkip = new Map()
     cycleShardData.hasCompleteData = false

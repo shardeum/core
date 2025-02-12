@@ -13,7 +13,7 @@ import * as Shardus from '../shardus/shardus-types'
 import { TimestampReceipt } from '../shardus/shardus-types'
 import Storage from '../storage'
 import * as utils from '../utils'
-import { Ordering } from '../utils'
+import { Ordering, pickIndexBasedOnHash } from '../utils'
 import { nestedCountersInstance } from '../utils/nestedCounters'
 import Profiler, { cUninitializedSize, profilerInstance } from '../utils/profiler'
 import ShardFunctions from './shardFunctions'
@@ -443,6 +443,10 @@ class TransactionConsenus {
           if (Context.config.p2p.timestampCacheFix && this.seenTimestampRequests.has(readableReq.txId) && !this.txTimestampCacheByTxId.has(readableReq.txId)) {
               nestedCountersInstance.countEvent('consensus', 'get_tx_timestamp seen txId but found no timestamp')
             return respond(BadRequest('get_tx_timestamp seen txId but found no timestamp'), serializeResponseError)
+          }
+          if (this.getTxTimestampGeneratingNode(readableReq.txId).id !== Self.id) {
+            nestedCountersInstance.countEvent('consensus', 'get_tx_timestamp not generating node')
+            return respond(BadRequest('get_tx_timestamp not generating node'), serializeResponseError)
           }
           this.seenTimestampRequests.add(readableReq.txId)
           tsReceipt = this.getOrGenerateTimestampReceiptFromCache(
@@ -1958,26 +1962,7 @@ class TransactionConsenus {
   }
 
   async askTxnTimestampFromNode(txId: string): Promise<Shardus.TimestampReceipt | null> {
-    // todo: don't always recreate the activeFoundationNodes list here. just do it at the start of every cycle
-    const activeFoundationNodes = NodeList.activeByIdOrder.filter((node) => node.foundationNode)
-    let tsReceiptGenerator: P2PTypes.NodeListTypes.Node
-    if (this.config.p2p.preferFoundationNodesForTimestamp && this.config.p2p.foundationNodeThreshold <= activeFoundationNodes.length) {
-      const groupSize = activeFoundationNodes.length
-      const txIdBigInt = BigInt(txId)
-      const offset = Number(txIdBigInt % BigInt(groupSize))
-      const pickedIndex = (groupSize - offset) % groupSize
-      // eslint-disable-next-line security/detect-object-injection
-      tsReceiptGenerator = activeFoundationNodes[pickedIndex]
-    }
-    if (!tsReceiptGenerator) {
-      const homeNode = ShardFunctions.findHomeNode(
-          Context.stateManager.currentCycleShardData.shardGlobals,
-          txId,
-          Context.stateManager.currentCycleShardData.parititionShardDataMap
-      )
-      tsReceiptGenerator = homeNode.node
-    }
-
+    const tsReceiptGenerator = this.getTxTimestampGeneratingNode(txId)
     const cycleMarker = CycleChain.getCurrentCycleMarker()
     const cycleCounter = CycleChain.newest.counter
     /* prettier-ignore */ if (logFlags.verbose) this.mainLogger.debug('Asking timestamp from node', tsReceiptGenerator)
@@ -2023,6 +2008,24 @@ class TransactionConsenus {
         return null
       }
     }
+  }
+
+  private getTxTimestampGeneratingNode(txId: string): P2PTypes.NodeListTypes.Node {
+    const activeFoundationNodes = Context.stateManager.currentCycleShardData.activeFoundationNodes
+    if (
+        this.config.p2p.preferFoundationNodesForTimestamp &&
+        this.config.p2p.foundationNodeThreshold <= activeFoundationNodes.length
+    ) {
+      const pickedIndex = pickIndexBasedOnHash(activeFoundationNodes.length, txId)
+      // eslint-disable-next-line security/detect-object-injection
+      return activeFoundationNodes[pickedIndex]
+    }
+    const homeNode = ShardFunctions.findHomeNode(
+        Context.stateManager.currentCycleShardData.shardGlobals,
+        txId,
+        Context.stateManager.currentCycleShardData.parititionShardDataMap
+    )
+    return homeNode.node
   }
 
   /**
