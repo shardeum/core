@@ -444,10 +444,6 @@ class TransactionConsenus {
               nestedCountersInstance.countEvent('consensus', 'get_tx_timestamp seen txId but found no timestamp')
             return respond(BadRequest('get_tx_timestamp seen txId but found no timestamp'), serializeResponseError)
           }
-          if (this.getTxTimestampGeneratingNode(readableReq.txId).id !== Self.id) {
-            nestedCountersInstance.countEvent('consensus', 'get_tx_timestamp not generating node')
-            return respond(BadRequest('get_tx_timestamp not generating node'), serializeResponseError)
-          }
           this.seenTimestampRequests.add(readableReq.txId)
           tsReceipt = this.getOrGenerateTimestampReceiptFromCache(
             readableReq.txId,
