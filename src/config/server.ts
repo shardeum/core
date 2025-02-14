@@ -254,6 +254,8 @@ const SERVER_CONFIG: StrictServerConfiguration = {
     finishedSyncingDelay: 0,
     readyNodeDelay: 0,
     beforeStateFailChance: 0,
+    logCSVPerfEvents: false,
+    numOfPerfEventsNeededForLogging: 10,
   },
   statistics: { save: true, interval: 1 },
   loadDetection: {

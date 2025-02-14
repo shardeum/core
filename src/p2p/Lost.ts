@@ -43,6 +43,7 @@ import { getStreamWithTypeCheck, requestErrorHandler } from '../types/Helpers'
 import { TypeIdentifierEnum } from '../types/enum/TypeIdentifierEnum'
 import { LostReportReq, deserializeLostReportReq, serializeLostReportReq } from '../types/LostReportReq'
 import { isDebugModeMiddlewareHigh } from '../network/debugMiddleware'
+import { logPerfEvents } from '../logger/csvPerfEvents'
 
 /** TYPES */
 
@@ -548,6 +549,8 @@ export function parseRecord(record: P2P.CycleCreatorTypes.CycleRecord): P2P.Cycl
       sendRefute = record.counter + 1
       warn(`self-schedule refute currentC:${currentCycle} inCycle:${record.counter} refuteat:${sendRefute}`)
       /* prettier-ignore */ nestedCountersInstance.countEvent('p2p', `self-schedule refute currentC:${currentCycle} inCycle:${record.counter}`, 1)
+
+      logPerfEvents("node_refute")
     }
   }
 
