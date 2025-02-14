@@ -212,7 +212,7 @@ const debugDropNGTGossipRoute: P2P.P2PTypes.GossipHandler<any> = async (payload,
   }
   const unsignedRemoveNetworkTx = {
     txHash: payload.txHash,
-    cycle: currentCycle,
+    cycle: verificationResult.cycle,
   }
 
   txRemove.push(unsignedRemoveNetworkTx)
@@ -288,7 +288,7 @@ export function init(): void {
         res.send({ status: 'fail', error: verificationResult.message })
         return
       }
-      debugDropNGTs.push(reqParamsDropNGT)
+      debugDropNGTs.push({ ...reqParamsDropNGT, cycle: verificationResult.cycle})
       res.json({ status: 'ok', message: verificationResult.message })
     } else {
       txList.splice(index, 1)
@@ -507,9 +507,11 @@ export function sendRequests(): void {
   for (const dropNGTInfo of debugDropNGTs) {
     const unsignedRemoveNetworkTx = {
       txHash: dropNGTInfo.txHash,
-      cycle: currentCycle
+      cycle: dropNGTInfo.cycle
     }
     txRemove.push(unsignedRemoveNetworkTx)
+
+    delete dropNGTInfo.cycle
 
     Comms.sendGossip(
       'debug-drop-ngt',
@@ -829,7 +831,7 @@ function sortedInsert(
   }
 }
 
-function verifyDebugDropNGT(reqParamsDropNGT, cycle): { success: boolean; message: string } {
+function verifyDebugDropNGT(reqParamsDropNGT, cycle): { success: boolean; message: string; cycle?: number } {
   const payload = {
     route: stripQueryParams(reqParamsDropNGT.url, ['sig', 'sig_counter', 'nodePubkeys']), //<- we're gonna hash, these query artificats need to be excluded from the hash
     count: reqParamsDropNGT.sigCounter,
@@ -871,7 +873,8 @@ function verifyDebugDropNGT(reqParamsDropNGT, cycle): { success: boolean; messag
       if (authorized) {
         return {
           success: true,
-          message: 'Signature is correct and signer is authorized'
+          message: 'Signature is correct and signer is authorized',
+          cycle: hashIncluded.cycleCounter
         }
       } else {
         /* prettier-ignore */ if (logFlags.verbose) console.log('Authorization failed for security level HIGH')
