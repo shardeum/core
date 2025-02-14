@@ -1155,6 +1155,8 @@ export interface ServerConfiguration {
     beforeStateFailChance: number
     /** write bad node perf events to a csv file. */
     logCSVPerfEvents: boolean
+    /** controls how many perfEvents needs to accumulate before we log them */
+    numOfPerfEventsNeededForLogging: number
   }
   /** Options for the statistics module */
   statistics?: {

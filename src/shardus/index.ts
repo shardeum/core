@@ -93,6 +93,7 @@ import SocketIO from 'socket.io'
 import { nodeListFromStates, queueFinishedSyncingRequest } from '../p2p/Join'
 import * as NodeList from '../p2p/NodeList'
 import { P2P } from '@shardeum-foundation/lib-types'
+import * as csvPerfEvents from './../logger/csvPerfEvents'
 
 // the following can be removed now since we are not using the old p2p code
 //const P2P = require('../p2p')
@@ -326,6 +327,7 @@ class Shardus extends EventEmitter {
     this.exitHandler.registerAsync('logger', async () => {
       this.mainLogger.info('Shutting down logs...')
       await this.logger.shutdown()
+      csvPerfEvents.writeBufferToCSV()
     })
 
     this.profiler.registerEndpoints()

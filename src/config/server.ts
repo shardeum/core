@@ -256,6 +256,7 @@ const SERVER_CONFIG: StrictServerConfiguration = {
     qaTestString: '',
     beforeStateFailChance: 0,
     logCSVPerfEvents: false,
+    numOfPerfEventsNeededForLogging: 10,
   },
   statistics: { save: true, interval: 1 },
   loadDetection: {
