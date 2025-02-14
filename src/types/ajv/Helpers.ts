@@ -48,6 +48,7 @@ import { initWrappedDataFromQueueSerializable } from './WrappedDataFromQueueSeri
 import { initWrappedDataResponse } from './WrappedDataResponse'
 import { initCycleRecords } from './CycleRecordSchema'
 import { initJoinReq } from './JoinReq'
+import { initAllowedArchiverResponse } from './AllowedArchiverResponse'
 
 export function initAjvSchemas(): void {
   initGetAccountData3Req()
@@ -97,6 +98,7 @@ export function initAjvSchemas(): void {
   initSendCachedAppDataReq()
   initCycleRecords()
   initJoinReq()
+  initAllowedArchiverResponse()
 }
 
 export function verifyPayload<T>(name: string, payload: T): string[] | null {
