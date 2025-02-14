@@ -235,6 +235,8 @@ export type QueueEntry = {
   }
 
   isSenderWrappedTxGroup: { [nodeId: string]: number }
+
+  isNGT: boolean
 }
 
 // export type SyncTracker = {

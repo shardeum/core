@@ -176,7 +176,8 @@ const SERVER_CONFIG: StrictServerConfiguration = {
     getTxTimestampTimeoutOffset: 0,
     dropNGTByGossipEnabled: false,
     timestampCacheFixSize: 10000,
-    removedNodeIDCacheSize: 1000
+    removedNodeIDCacheSize: 1000,
+    stuckNGTInQueueFix: false,
   },
   ip: {
     externalIp: '0.0.0.0',
