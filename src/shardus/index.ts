@@ -2911,6 +2911,9 @@ class Shardus extends EventEmitter {
           return true
         }
       }
+      if (typeof application.isNGT === 'function') {
+        applicationInterfaceImpl.isNGT = (tx) => application.isNGT(tx)
+      }
     } catch (ex) {
       this.shardus_fatal(
         `getAppInterface_ex`,

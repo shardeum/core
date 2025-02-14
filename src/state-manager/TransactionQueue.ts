@@ -1943,10 +1943,6 @@ class TransactionQueue {
         }
       }
 
-      const INIT_REWARD_TX = 8
-      const CLAIM_REWARD_TX = 9
-      const NGT_TYPES = [INIT_REWARD_TX, CLAIM_REWARD_TX]
-
       this.queueEntryCounter++
       const txQueueEntry: QueueEntry = {
         gossipedCompleteData: false,
@@ -2051,7 +2047,7 @@ class TransactionQueue {
         sharedCompleteData: false,
         correspondingGlobalOffset: 0,
         isSenderWrappedTxGroup: {},
-        isNGT: NGT_TYPES.includes(acceptedTx.data?.tx?.['internalTXType']),
+        isNGT: this.app.isNGT(acceptedTx.data?.tx?.['internalTXType']),
       } // age comes from timestamp
       this.txDebugMarkStartTime(txQueueEntry, 'total_queue_time')
       this.txDebugMarkStartTime(txQueueEntry, 'aging')
@@ -5501,6 +5497,7 @@ class TransactionQueue {
       const timeM2 = timeM * 2
       const timeM2_5 = timeM * 2.5
       const timeM3 = timeM * 3
+      const timeM5 = timeM * 5
       let currentTime = shardusGetTime()
 
       const app = this.app
@@ -6849,7 +6846,7 @@ class TransactionQueue {
                   }
                 } else {
                   //just keep waiting for a reciept
-                  if (queueEntry.isNGT && txAge > timeM * 5) {
+                  if (this.config.p2p.stuckNGTInQueueFix && queueEntry.isNGT && txAge > timeM5) {
                     // entry is an NGT so we want to remove it if consensing fails to prevent from getting stuck
                     nestedCountersInstance.countEvent(
                       `consensus`,
@@ -6884,7 +6881,10 @@ class TransactionQueue {
                   if (queueEntry.signedReceiptForRepair.proposal.applied === true) {
                     // need to start repair process and wait
                     //await note: it is best to not await this.  it should be an async operation.
-                    if (configContext.stateManager.noRepairIfDataAttached && configContext.stateManager.attachDataToReceipt) {
+                    if (
+                      configContext.stateManager.noRepairIfDataAttached &&
+                      configContext.stateManager.attachDataToReceipt
+                    ) {
                       // we have received the final data, so we can just go to "await final data" and commit the accounts
                       this.updateTxState(queueEntry, 'await final data')
                     } else {

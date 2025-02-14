@@ -376,6 +376,7 @@ export interface App {
     minSigRequired: number,
     requiredSecurityLevel: DevSecurityLevel
   ) => boolean
+  isNGT(txType: number): boolean
 }
 
 export interface TransactionKeys {
@@ -989,6 +990,7 @@ export interface ServerConfiguration {
     // cache size for mapping of nodeId to pubKey for the `n` last removed nodes
     removedNodeIDCacheSize: number
     timestampCacheFixSize: number
+    stuckNGTInQueueFix: boolean
   }
   /** Server IP configuration */
   ip?: {
