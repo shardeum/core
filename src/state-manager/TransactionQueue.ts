@@ -2047,7 +2047,7 @@ class TransactionQueue {
         sharedCompleteData: false,
         correspondingGlobalOffset: 0,
         isSenderWrappedTxGroup: {},
-        isNGT: this.app.isNGT(acceptedTx.data?.tx?.['internalTXType']),
+        isNGT: this.app.isNGT(acceptedTx),
       } // age comes from timestamp
       this.txDebugMarkStartTime(txQueueEntry, 'total_queue_time')
       this.txDebugMarkStartTime(txQueueEntry, 'aging')
