@@ -376,7 +376,7 @@ export interface App {
     minSigRequired: number,
     requiredSecurityLevel: DevSecurityLevel
   ) => boolean
-  isNGT(acceptedTx: any): boolean
+  isNGT(acceptedTx: OpaqueTransaction): boolean
 }
 
 export interface TransactionKeys {
