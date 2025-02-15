@@ -180,7 +180,6 @@ const SERVER_CONFIG: StrictServerConfiguration = {
     stuckNGTInQueueFix: false,
     nerfNonFoundationCertScores: false,
     addFoundationNodeAttribute: false
-
   },
   ip: {
     externalIp: '0.0.0.0',
