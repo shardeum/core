@@ -7,10 +7,16 @@ const csvFilePath = '/nodePerfEvents.csv'
 const perfEventBuffer = []
 let numOfEvents = 0
 
+/* eslint-disable security/detect-non-literal-fs-filename */
 export function logPerfEvents(eventName: string): void {
   if (config.debug.logCSVPerfEvents) {
-    // eslint-disable-next-line security/detect-non-literal-fs-filename
-    if (fs.existsSync(logDir_global + csvFilePath) === false) {
+    if (fs.existsSync(logDir_global + csvFilePath)) {
+      const fileSize = fs.statSync(logDir_global + csvFilePath)?.size
+      if (fileSize > 10_485_760) {
+        console.log('perf events csv file size is > 10MB!')
+        return
+      }
+    } else {
       const columns = ['timestamp', 'eventName', 'cycleNumber']
       appendToCSV(columns)
     }
@@ -36,9 +42,9 @@ export function logPerfEvents(eventName: string): void {
 
 function appendToCSV(data: string[]): void {
   const csvRow = data.join(',') + '\n'
-  // eslint-disable-next-line security/detect-non-literal-fs-filename
   fs.appendFileSync(logDir_global + csvFilePath, csvRow, 'utf8')
 }
+/* eslint-enable security/detect-non-literal-fs-filename */
 
 export function writeBufferToCSV(): void {
   for (const event of perfEventBuffer) {
