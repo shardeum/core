@@ -124,6 +124,8 @@ let record: P2P.CycleCreatorTypes.CycleRecord
 let marker: P2P.CycleCreatorTypes.CycleMarker
 let cert: P2P.CycleCreatorTypes.CycleCert
 
+let prevMarker: P2P.CycleCreatorTypes.CycleMarker
+
 let bestRecord: P2P.CycleCreatorTypes.CycleRecord
 let bestMarker: P2P.CycleCreatorTypes.CycleMarker
 let bestCycleCert: Map<P2P.CycleCreatorTypes.CycleMarker, P2P.CycleCreatorTypes.CycleCert[]>
@@ -537,6 +539,9 @@ function runQ2() {
   currentQuarter = 2
   Self.emitter.emit('cycle_q2_start')
   /* prettier-ignore */ if (logFlags.p2pNonFatal) info(`C${currentCycle} Q${currentQuarter}`)
+
+  // making the prevMarker now since it should ready before we start scoring certs, which happens in Q3
+  prevMarker = makeCycleMarker(CycleChain.newest)
 }
 
 /**
@@ -951,12 +956,17 @@ function cycleQuarterChanged(cycle: number, quarter: number) {
   return cycle !== currentCycle || quarter !== currentQuarter
 }
 
-function scoreCert(cert: P2P.CycleCreatorTypes.CycleCert): number {
+function scoreCert(cert: P2P.CycleCreatorTypes.CycleCert, prevMarker: P2P.CycleCreatorTypes.CycleMarker): number {
   try {
     const id = NodeList.byPubKey.get(cert.sign.owner).id // get node id from cert pub key
     const obj = { id }
     const hid = crypto.hash(obj) // Omar - use hash of id so the cert is not made by nodes that are near based on node id
     const out = utils.XOR(cert.marker, hid)
+
+    if (config.p2p.nerfNonFoundationCertScores && NodeList.byPubKey.get(cert.sign.owner).foundationNode === false) {
+      return out & 0x0FFFFFFF
+    }
+
     return out
   } catch (err) {
     error('scoreCert ERR:', err)
@@ -1106,7 +1116,7 @@ function improveBestCert(inpCerts: P2P.CycleCreatorTypes.CycleCert[], inpRecord)
   for (const cert of inpCerts) {
     // make sure we don't store more than one cert from the same owner with the same marker
     if (have[cert.sign.owner]) continue
-    cert.score = scoreCert(cert)
+    cert.score = scoreCert(cert, prevMarker)
     if (!bestCycleCert.get(cert.marker)) {
       bestCycleCert.set(cert.marker, [cert])
     } else {
