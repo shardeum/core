@@ -56,6 +56,7 @@ export let allowConnectionToFirstNode = false
 export let ip: string
 export let port: number
 export let isRestartNetwork = false
+export let isFoundationNode = false
 
 export let p2pJoinTime = 0
 export let p2pSyncStart = 0
@@ -647,6 +648,8 @@ async function joinNetworkV2(activeNodes): Promise<void> {
   // Create join request from latest cycle
   const request = await Join.createJoinRequest(latestCycle)
   joinRequestCounter = request.nodeInfo.refreshedCounter
+
+  isFoundationNode = request.appJoinData.adminCert != null && request.appJoinData.stakeCert == null ? true : false
 
   //we can't use allowBogon lag yet because its value is detected later.
   //it is possible to throw out any invalid IPs at this point
