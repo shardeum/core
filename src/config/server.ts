@@ -176,7 +176,9 @@ const SERVER_CONFIG: StrictServerConfiguration = {
     getTxTimestampTimeoutOffset: 0,
     patchNetworkAccountSyncFixes: true,
     nerfNonFoundationCertScores: false,
-    addFoundationNodeAttribute: false
+    addFoundationNodeAttribute: false,
+    preferFoundationNodesForTimestamp: false,
+    foundationNodeThreshold: 50
   },
   ip: {
     externalIp: '0.0.0.0',

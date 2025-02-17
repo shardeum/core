@@ -453,6 +453,23 @@ export function fastIsPicked(ourIndex: number, groupSize: number, numToPick: num
   return isPicked
 }
 
+/**
+ * Returns a random index based on a hash and group size.
+ * This is useful for picking a random index from a group of nodes based on txId or similar,
+ * to ensure all nodes in the group pick the same index.
+ * @param groupSize
+ * @param hash
+ */
+export function pickIndexBasedOnHash(groupSize: number, hash: string): number {
+  if (!hash.startsWith('0x')) {
+    hash = '0x' + hash
+  }
+  const hashAsBigInt = BigInt(hash)
+  const offset = Number(hashAsBigInt % BigInt(groupSize))
+  return (groupSize - offset) % groupSize
+}
+
+
 //Write a function that uses fastIsPicked to return an arrray of all the indexes that are picked
 export function getIndexesPicked(groupSize: number, numToPick: number, offset = 0): number[] {
   const indexesPicked = []

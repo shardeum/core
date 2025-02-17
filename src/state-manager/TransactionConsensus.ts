@@ -13,7 +13,7 @@ import * as Shardus from '../shardus/shardus-types'
 import { TimestampReceipt } from '../shardus/shardus-types'
 import Storage from '../storage'
 import * as utils from '../utils'
-import { Ordering } from '../utils'
+import { Ordering, pickIndexBasedOnHash } from '../utils'
 import { nestedCountersInstance } from '../utils/nestedCounters'
 import Profiler, { cUninitializedSize, profilerInstance } from '../utils/profiler'
 import ShardFunctions from './shardFunctions'
@@ -1938,25 +1938,19 @@ class TransactionConsenus {
   }
 
   async askTxnTimestampFromNode(txId: string): Promise<Shardus.TimestampReceipt | null> {
-    const homeNode = ShardFunctions.findHomeNode(
-      Context.stateManager.currentCycleShardData.shardGlobals,
-      txId,
-      Context.stateManager.currentCycleShardData.parititionShardDataMap
-    )
+    const tsReceiptGenerator = this.getTxTimestampGeneratingNode(txId)
     const cycleMarker = CycleChain.getCurrentCycleMarker()
     const cycleCounter = CycleChain.newest.counter
-    /* prettier-ignore */ if (logFlags.verbose) this.mainLogger.debug('Asking timestamp from node', homeNode.node)
-
-    if (homeNode.node.id === Self.id) {
+    /* prettier-ignore */ if (logFlags.verbose) this.mainLogger.debug('Asking timestamp from node', tsReceiptGenerator)
+    if (tsReceiptGenerator.id === Self.id) {
       // we generate the tx timestamp by ourselves
       return this.getOrGenerateTimestampReceiptFromCache(txId, cycleMarker, cycleCounter)
     } else {
       let timestampReceipt
       try {
-        // if (this.config.p2p.useBinarySerializedEndpoints && this.config.p2p.getTxTimestampBinary) {
-          /* prettier-ignore */ if (logFlags.seqdiagram) this.seqLogger.info(`0x53455101 ${shardusGetTime()} tx:${txId} ${NodeList.activeIdToPartition.get(Self.id)}-->>${NodeList.activeIdToPartition.get(homeNode.node.id)}: ${'get_tx_timestamp'}`)
+          /* prettier-ignore */ if (logFlags.seqdiagram) this.seqLogger.info(`0x53455101 ${shardusGetTime()} tx:${txId} ${NodeList.activeIdToPartition.get(Self.id)}-->>${NodeList.activeIdToPartition.get(tsReceiptGenerator.id)}: ${'get_tx_timestamp'}`)
           const serialized_res = await this.p2p.askBinary<getTxTimestampReq, getTxTimestampResp>(
-            homeNode.node,
+            tsReceiptGenerator,
             InternalRouteEnum.binary_get_tx_timestamp,
             {
               cycleMarker,
@@ -1972,15 +1966,8 @@ class TransactionConsenus {
           )
 
           timestampReceipt = serialized_res
-        // } else {
-          // timestampReceipt = await Comms.ask(homeNode.node, 'get_tx_timestamp', {
-          //   cycleMarker,
-          //   cycleCounter,
-          //   txId,
-          // })
-        // }
       } catch (e) {
-        /* prettier-ignore */ if (logFlags.error) this.mainLogger.error(`Error asking timestamp from node ${homeNode.node.publicKey}: ${e.message}`)
+        /* prettier-ignore */ if (logFlags.error) this.mainLogger.error(`Error asking timestamp from node ${tsReceiptGenerator.publicKey}: ${e.message}`)
         return null
       }
 
@@ -1988,15 +1975,34 @@ class TransactionConsenus {
       // This line will remove the isResponse property from timestampReceipt if it exists. If it doesn't exist, nothing happens, and the program continues to run without any issues.
       delete timestampReceipt.isResponse
 
-      const isValid = this.crypto.verify(timestampReceipt, homeNode.node.publicKey)
+      const isValid = this.crypto.verify(timestampReceipt, tsReceiptGenerator.publicKey)
       if (isValid) {
         /* prettier-ignore */ if (logFlags.debug) this.mainLogger.debug(`Timestamp receipt received from home node. TxId: ${txId} isValid: ${isValid}, timestampReceipt: ${Utils.safeStringify(timestampReceipt)}`)
         return timestampReceipt
       } else {
-        /* prettier-ignore */ if (logFlags.fatal) this.mainLogger.fatal(`Timestamp receipt received from home node ${homeNode.node.publicKey} is not valid. ${utils.stringifyReduce(timestampReceipt)}`)
+        /* prettier-ignore */ if (logFlags.fatal) this.mainLogger.fatal(`Timestamp receipt received from home node ${tsReceiptGenerator.publicKey} is not valid. ${utils.stringifyReduce(timestampReceipt)}`)
         return null
       }
     }
+  }
+
+  private getTxTimestampGeneratingNode(txId: string): P2PTypes.NodeListTypes.Node {
+    const activeFoundationNodes = Context.stateManager.currentCycleShardData.activeFoundationNodes
+    if (
+        this.config.p2p.preferFoundationNodesForTimestamp &&
+        this.config.p2p.foundationNodeThreshold <= activeFoundationNodes.length
+    ) {
+      const pickedIndex = pickIndexBasedOnHash(activeFoundationNodes.length, txId)
+      // eslint-disable-next-line security/detect-object-injection
+      return activeFoundationNodes[pickedIndex]
+    }
+    const homeNode = ShardFunctions.findHomeNode(
+        Context.stateManager.currentCycleShardData.shardGlobals,
+        txId,
+        Context.stateManager.currentCycleShardData.parititionShardDataMap
+    )
+    /* prettier-ignore */ nestedCountersInstance.countEvent('consensus', 'get_tx_timestamp: using non-foundation nodes')
+    return homeNode.node
   }
 
   /**
