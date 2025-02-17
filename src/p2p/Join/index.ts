@@ -237,6 +237,7 @@ export function validateRecordTypes(rec: P2P.JoinTypes.Record): string {
       cycleJoined: 's',
       counterRefreshed: 'n',
       id: 's',
+      foundationNode: 'b',
     })
     if (err) return 'in joinedConsensors array ' + err
   }
@@ -489,8 +490,12 @@ export function updateRecord(txs: P2P.JoinTypes.Txs, record: P2P.CycleCreatorTyp
       const { nodeInfo, cycleMarker: cycleJoined } = standbyInfo
       const id = computeNodeId(nodeInfo.publicKey, standbyInfo.cycleMarker)
       const counterRefreshed = record.counter
-
-      record.joinedConsensors.push({ ...nodeInfo, cycleJoined, counterRefreshed, id })
+      if (config.p2p.addFoundationNodeAttribute) {
+        const foundationNode = standbyInfo.appJoinData.adminCert?.goldenTicket === true ? true : false
+        record.joinedConsensors.push({ ...nodeInfo, cycleJoined, counterRefreshed, id, foundationNode })
+      } else {
+        record.joinedConsensors.push({ ...nodeInfo, cycleJoined, counterRefreshed, id })
+      }
     }
 
     /* prettier-ignore */ if (logFlags.p2pNonFatal) console.log( `standbyRemoved_Age: ${standbyRemoved_Age} standbyRemoved_App: ${standbyRemoved_App}` )
@@ -530,7 +535,8 @@ export function updateRecord(txs: P2P.JoinTypes.Txs, record: P2P.CycleCreatorTyp
         const { nodeInfo, cycleMarker: cycleJoined } = joinRequest
         const id = computeNodeId(nodeInfo.publicKey, cycleJoined)
         const counterRefreshed = record.counter
-        return { ...nodeInfo, cycleJoined, counterRefreshed, id }
+        const foundationNode = false
+        return { ...nodeInfo, cycleJoined, counterRefreshed, id, foundationNode }
       })
       .sort()
     /* prettier-ignore */ if (logFlags && logFlags.verbose) console.log("new desired count: ", record.desired)

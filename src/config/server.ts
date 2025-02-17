@@ -175,6 +175,8 @@ const SERVER_CONFIG: StrictServerConfiguration = {
     networkTransactionsToProcessPerCycle: 20,
     getTxTimestampTimeoutOffset: 0,
     patchNetworkAccountSyncFixes: true,
+    nerfNonFoundationCertScores: false,
+    addFoundationNodeAttribute: false
   },
   ip: {
     externalIp: '0.0.0.0',
