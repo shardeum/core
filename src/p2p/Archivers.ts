@@ -223,6 +223,7 @@ async function getAllowedArchivers(): Promise<Array<{
         return null
       }
     } catch (err) {
+      console.error('getAllowedArchivers: Failed to get archiver data from ', ip, ':', port, err)
       p2pLogger.warn(`Failed to get archiver data from ${ip}:${port}`)
     }
     return null
