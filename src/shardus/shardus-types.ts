@@ -991,6 +991,9 @@ export interface ServerConfiguration {
     removedNodeIDCacheSize: number
     timestampCacheFixSize: number
     stuckNGTInQueueFix: boolean
+    nerfNonFoundationCertScores: boolean
+    /** add boolean to joinedConsensor object that shows whether a node is foundation or not */
+    addFoundationNodeAttribute: boolean
   }
   /** Server IP configuration */
   ip?: {
