@@ -211,8 +211,8 @@ async function getAllowedArchivers(): Promise<Array<{
       const data = Utils.safeJsonParse(bodyText);
 
       // Validate the parsed JSON data against the AJV schema
-      const isValid = verifyPayload(AJVSchemaEnum.AllowedArchiverResponse, data);
-      if (!isValid) {
+      const inValidResponse = verifyPayload(AJVSchemaEnum.AllowedArchiverResponse, data);
+      if (inValidResponse) {
         p2pLogger.warn('getAllowedArchivers: invalid allowed archivers response');
         return null;
       }
@@ -223,6 +223,7 @@ async function getAllowedArchivers(): Promise<Array<{
         return null
       }
     } catch (err) {
+      console.error('getAllowedArchivers: Failed to get archiver data from ', ip, ':', port, err)
       p2pLogger.warn(`Failed to get archiver data from ${ip}:${port}`)
     }
     return null
