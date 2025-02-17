@@ -988,6 +988,10 @@ export interface ServerConfiguration {
     /** enable fixes that allow us to sync and patch the network account so that we have correct config values at more places in the node lifecycle */
     patchNetworkAccountSyncFixes?: boolean
     nerfNonFoundationCertScores: boolean
+    // wheather to use the new foundation nodes over others for creating tx timestamp receipts
+    preferFoundationNodesForTimestamp: boolean
+    // if `preferFoundationNodesForTimestamp` is set to true we don't want to DDoS those foundation nodes in case the number of them drop below a certain threshold
+    foundationNodeThreshold: number
     /** add boolean to joinedConsensor object that shows whether a node is foundation or not */
     addFoundationNodeAttribute: boolean
   }
