@@ -33,6 +33,7 @@ import { getNumArchivers } from './Archivers'
 import { currentQuarter } from './CycleCreator'
 import { Utils } from '@shardeum-foundation/lib-types'
 import * as ServiceQueue from './ServiceQueue'
+import Shardus from '../shardus'
 
 /** STATE */
 
@@ -124,7 +125,7 @@ export function init(): void {
   updateNodeState(P2P.P2PTypes.NodeStatus.INITIALIZING) // requires p2pLogger through warn()
 }
 
-export function startupV2(): Promise<boolean> {
+export function startupV2(shardus: Shardus): Promise<boolean> {
   const promise = new Promise<boolean>((resolve, reject) => {
     if (isServiceMode()) {
       info('p2p/Self/startup disabled: Starting in service mode.')
@@ -188,7 +189,7 @@ export function startupV2(): Promise<boolean> {
 
         nestedCountersInstance.countEvent('p2p', 'joined')
         // Sync cycle chain from network
-        await syncCycleChain(id)
+        await syncCycleChain(id, shardus)
         await Join.queueStartedSyncingRequest()
 
         // Enable internal routes
@@ -776,7 +777,7 @@ async function joinNetworkV2(activeNodes): Promise<void> {
 //   }
 // }
 
-async function syncCycleChain(selfId: string): Promise<void> {
+async function syncCycleChain(selfId: string, shardus: Shardus): Promise<void> {
   // You're already synced if you're first
   if (isFirst) {
     // If you're the first node in a restart network, you only need to sync the network generated tx list
@@ -804,7 +805,7 @@ async function syncCycleChain(selfId: string): Promise<void> {
         // callback will run if the result is `Ok`, the second if it is `Err`
         // TODO this can be very very expensive.  In a local test it was getting called repeatedly due to
         // a local error.  we may need some limits on how many times we try to sync
-        await SyncV2.syncV2(activeNodes).match(
+        await SyncV2.syncV2(activeNodes, shardus).match(
           () => (synced = true),
           (err) => {
             throw err
