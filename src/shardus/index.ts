@@ -1024,11 +1024,15 @@ class Shardus extends EventEmitter {
     })
 
     // Start P2P
-    await Self.startupV2()
+    await Self.startupV2(this)
 
     // handle config queue changes and debug logic updates
     this._registerListener(this.p2p.state, 'cycle_q1_start', async () => {
       let lastCycle = CycleChain.getNewest()
+
+      if (lastCycle === null) {
+        return
+      }
 
       // need to make sure sync is finish or we may not have the global account
       // even worse, the dapp may not have initialized storage yet
@@ -1036,7 +1040,7 @@ class Shardus extends EventEmitter {
         //query network account from the app for changes
         const account = await this.app.getNetworkAccount()
 
-        this.updateConfigChangeQueue(account, lastCycle)
+        this.updateConfigChangeQueue(account, lastCycle.counter, true)
       }
 
       this.updateDebug(lastCycle)
@@ -1044,6 +1048,31 @@ class Shardus extends EventEmitter {
 
     //setup debug endpoints
     this.setupDebugEndpoints()
+  }
+
+  /**
+   * This function designed to help fetch the network account and
+   * call updateConfigChangeQueue before our node has finished syncing
+   * This is needed as a node will be sensitive to config changes
+   * happening around the time it is syncing
+   * @param {*} account
+   * @param {*} lastCycle
+   */
+  async earlyConfigFetchAndPatch(lastCycle_counter: number) {
+    if (this.config.p2p.patchNetworkAccountSyncFixes === false) {
+      return
+    }
+
+    //this funciton is for getting the network account early (i.e. from archivers)
+    const account = await this.app.getNetworkAccountFromArchiver()
+    if (account == null) {
+      nestedCountersInstance.countEvent('sync', 'earlyConfigFetchAndPatch is null')
+      return
+    } else {
+      nestedCountersInstance.countEvent('sync', 'earlyConfigFetchAndPatch')
+    }
+
+    this.updateConfigChangeQueue(account, lastCycle_counter, false)
   }
 
   /**
@@ -2912,8 +2941,19 @@ class Shardus extends EventEmitter {
           return true
         }
       }
+
       if (typeof application.isNGT === 'function') {
         applicationInterfaceImpl.isNGT = (tx) => application.isNGT(tx)
+      }
+
+      if (typeof application.getNetworkAccountFromArchiver === 'function') {
+        applicationInterfaceImpl.getNetworkAccountFromArchiver = async () =>
+          application.getNetworkAccountFromArchiver()
+      } else {
+        // If the app doesn't provide getNetworkAccountFromArchiver, assume it returns empty obj
+        applicationInterfaceImpl.getNetworkAccountFromArchiver = async () => {
+          return null
+        }
       }
     } catch (ex) {
       this.shardus_fatal(
@@ -3195,8 +3235,12 @@ class Shardus extends EventEmitter {
   //   return transactionExpired
   // }
 
-  async updateConfigChangeQueue(account: ShardusTypes.WrappedData, lastCycle: ShardusTypes.Cycle) {
-    if (account == null || lastCycle == null) return
+  async updateConfigChangeQueue(
+    account: ShardusTypes.WrappedData,
+    lastCycle_counter: number,
+    updateNetworkAccount: boolean
+  ) {
+    if (account == null) return
 
     // @ts-ignore // TODO where is listOfChanges coming from here? I don't think it should exist on data
     let changes = account.data.listOfChanges as {
@@ -3215,7 +3259,7 @@ class Shardus extends EventEmitter {
     const activeConfigChanges = new Set<string>()
     for (let change of changes) {
       //skip future changes
-      if (change.cycle > lastCycle.counter) {
+      if (change.cycle > lastCycle_counter) {
         continue
       }
       const changeHash = this.crypto.hash(change)
@@ -3231,20 +3275,30 @@ class Shardus extends EventEmitter {
       let appData = change.appData
 
       // If there is initShutdown change, if the latest cycle is greater than the cycle of the change, then skip it
-      if (changeObj['p2p'] && changeObj['p2p']['initShutdown'] && change.cycle !== lastCycle.counter) continue
+      if (changeObj['p2p'] && changeObj['p2p']['initShutdown'] && change.cycle !== lastCycle_counter) continue
 
+      //safe for early path
       this.patchObject(this.config, changeObj, appData)
 
-      const prunedData: WrappedData[] = await this.app.pruneNetworkChangeQueue(account, lastCycle.counter)
-      await this.stateManager.checkAndSetAccountData(prunedData, 'global network account update', true)
+      // should avoid using this early if we dont want to commit archiver state
+      if (updateNetworkAccount) {
+        const prunedData: WrappedData[] = await this.app.pruneNetworkChangeQueue(account, lastCycle_counter)
+        await this.stateManager.checkAndSetAccountData(prunedData, 'global network account update', true)
+      }
 
       if (appData) {
         const data: WrappedData[] = await this.app.updateNetworkChangeQueue(account, appData)
-        await this.stateManager.checkAndSetAccountData(data, 'global network account update', true)
+        // should avoid using this early if we dont want to commit archiver state
+        if (updateNetworkAccount) {
+          await this.stateManager.checkAndSetAccountData(data, 'global network account update', true)
+        }
       }
 
+      //safe for early path
       this.p2p.configUpdated()
+      //safe for early path
       this.loadDetection.configUpdated()
+      //safe for early path
       this.rateLimiting.configUpdated()
     }
     if (activeConfigChanges.size > 0) {
