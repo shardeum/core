@@ -1992,7 +1992,10 @@ class TransactionConsenus {
         this.config.p2p.preferFoundationNodesForTimestamp &&
         this.config.p2p.foundationNodeThreshold <= activeFoundationNodes.length
     ) {
+      /* prettier-ignore */ nestedCountersInstance.countEvent('consensus', 'get_tx_timestamp: using foundation nodes')
       const pickedIndex = pickIndexBasedOnHash(activeFoundationNodes.length, txId)
+      // eslint-disable-next-line security/detect-object-injection
+      if (logFlags.debug) this.mainLogger.debug(`Using foundation nodes for timestamp generation for txId: ${txId} using ${activeFoundationNodes[pickedIndex].publicKey}`)
       // eslint-disable-next-line security/detect-object-injection
       return activeFoundationNodes[pickedIndex]
     }
