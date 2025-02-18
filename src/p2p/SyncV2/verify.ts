@@ -9,6 +9,8 @@ import { HashableObject } from '../../crypto'
 import { crypto } from '../Context'
 import { makeCycleMarker } from '../CycleCreator'
 import { Utils } from '@shardeum-foundation/lib-types'
+import { p2pLogger } from './queries'
+import { logFlags } from '../../logger'
 
 /**
  * Verifies if the hash of a given object matches the expected hash.
@@ -26,9 +28,9 @@ function verify(
   expectedHash: hexstring,
   objectName = 'some object'
 ): Result<boolean, Error> {
-  console.log(`hashing ${objectName}:`, Utils.safeStringify(object));
+  console.log(`hashing ${objectName}:`, Utils.safeStringify(object))
   const newHash = crypto.hash(object)
-  console.log(`got ${newHash}`);
+  console.log(`got ${newHash}`)
   return newHash === expectedHash
     ? ok(true)
     : err(new Error(`hash mismatch for ${objectName}: expected ${expectedHash}, got ${newHash}`))
@@ -39,6 +41,8 @@ export function verifyValidatorList(
   validatorList: P2P.NodeListTypes.Node[],
   expectedHash: hexstring
 ): Result<boolean, Error> {
+  if (logFlags.p2pSyncDebug)
+    info(`verifyValidatorList ${expectedHash}  ${Utils.safeStringify(validatorList)} `)
   return verify(validatorList, expectedHash, 'validator list')
 }
 
@@ -75,4 +79,9 @@ export function verifyTxList(
     return err(new Error(`hash mismatch for txList: expected ${expectedHash}, got ${actualHash}`))
 
   return ok(true)
+}
+
+function info(...msg) {
+  const entry = `SyncV2: ${msg.join(' ')}`
+  p2pLogger.info(entry)
 }
