@@ -22,7 +22,7 @@ import {
   verifyJoinRequestTypes,
   nodeListFromStates
 } from '.'
-import { config } from '../Context'
+import { config, shardus } from '../Context'
 import { isBogonIP } from '../../utils/functions/checkIP'
 import { isPortReachable } from '../../utils/isPortReachable'
 import { nestedCountersInstance } from '../../utils/nestedCounters'
@@ -79,10 +79,9 @@ const joinRoute: P2P.P2PTypes.Route<Handler> = {
   
 
   try {
-      const joinRequest: JoinRequest = Utils.safeJsonParse(Utils.safeStringify(req.body))
-
-      // Validate the joinReq against the ajv schema
-      const errors = verifyPayload(AJVSchemaEnum.JoinReq, joinRequest);
+      const requestBody = req.body;
+      // Validate the joinReq against the ajv schema]
+      const errors = verifyPayload(AJVSchemaEnum.JoinReq, requestBody)
       if (errors) {
         res.status(400).json({
           success: false,
@@ -92,6 +91,17 @@ const joinRoute: P2P.P2PTypes.Route<Handler> = {
         return
       }
 
+      const appJoinDataErrors = shardus.app.verifyAppJoinData(requestBody.appJoinData)
+      if (appJoinDataErrors) {
+        res.status(400).json({
+          success: false,
+          fatal: true,
+          reason: 'Validation error: ' + appJoinDataErrors.join('; ')
+        });
+        return
+      }
+
+      const joinRequest: JoinRequest = Utils.safeJsonParse(Utils.safeStringify(requestBody))
 
       if (!isActive && !Self.isRestartNetwork) {
         /* prettier-ignore */ nestedCountersInstance.countEvent('p2p', `join-reject: not-active`)
