@@ -51,7 +51,7 @@ import { CachedAppData, NonceQueueItem, QueueCountsResult } from '../state-manag
 import { DebugComplete } from '../state-manager/TransactionQueue'
 import Statistics from '../statistics'
 import Storage from '../storage'
-import { initAjvSchemas } from '../types/ajv/Helpers'
+import { initAjvSchemas, verifyPayload } from '../types/ajv/Helpers'
 import * as utils from '../utils'
 import {
   fastIsPicked,
@@ -94,6 +94,7 @@ import { nodeListFromStates, queueFinishedSyncingRequest } from '../p2p/Join'
 import * as NodeList from '../p2p/NodeList'
 import { P2P } from '@shardeum-foundation/lib-types'
 import * as csvPerfEvents from './../logger/csvPerfEvents'
+import { AJVSchemaEnum } from '../types/enum/AJVSchemaEnum'
 
 // the following can be removed now since we are not using the old p2p code
 //const P2P = require('../p2p')
@@ -3084,6 +3085,10 @@ class Shardus extends EventEmitter {
             appData
           )
           const response = { success: success, signature: signature } as SignAppDataResp
+          const errors = verifyPayload(AJVSchemaEnum.SignAppDataResp, response)
+          if (errors) {
+            throw new Error('AJV verification for SignAppDataResp failed')
+          }
           respond(response, serializeSignAppDataResp)
         } catch (err) {
           nestedCountersInstance.countEvent('internal', `${route}-exception`)
