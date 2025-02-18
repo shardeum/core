@@ -299,25 +299,28 @@ class TransactionConsenus {
       res.json({ status: 'ok', produceBadChallenge: this.produceBadChallenge })
     })
 
+    Context.network.registerExternalGet(
+      'debug-profile-tx-timestamp-endpoint',
+      isDebugModeMiddleware,
+      async (req, res) => {
+        try {
+          const { offset } = req.query
 
-    Context.network.registerExternalGet('debug-profile-tx-timestamp-endpoint', isDebugModeMiddleware, async (req, res) => {
-      try {
-        const { offset } = req.query;
+          res.write('Profiling tx timestamp endpoint of all network nodes\n')
 
-        res.write('Profiling tx timestamp endpoint of all network nodes\n')
+          const randomTxId = Context.crypto.hash(randomUUID())
+          const cycleMarker = CycleChain.getCurrentCycleMarker()
+          const cycleCounter = CycleChain.newest.counter
 
-        const randomTxId = Context.crypto.hash(randomUUID());
-        const cycleMarker = CycleChain.getCurrentCycleMarker();
-        const cycleCounter = CycleChain.newest.counter;
+          const stats = new Map<string, number>()
+          const failed = new Map<string, number>()
 
-        const stats = new Map<string, number>();
-        const failed = new Map<string, number>();
-
-        const p2pPromises = Array.from(NodeList.nodes.values())
-            .filter(node => node.id !== Self.id)
+          const p2pPromises = Array.from(NodeList.nodes.values())
+            .filter((node) => node.id !== Self.id)
             .map((node) => {
-              const start = Date.now();
-              return this.p2p.askBinary<getTxTimestampReq, getTxTimestampResp>(
+              const start = Date.now()
+              return this.p2p
+                .askBinary<getTxTimestampReq, getTxTimestampResp>(
                   node,
                   InternalRouteEnum.binary_get_tx_timestamp,
                   {
@@ -331,51 +334,49 @@ class TransactionConsenus {
                   '',
                   false,
                   offset ? parseInt(`${offset}`) : 30 * 1000
-              )
-                  .then(() => {
-                    const end = Date.now();
-                    stats.set(`${node.externalIp}:${node.externalPort}`, end - start);
-                  })
-                  .catch(() => {
-                    const end = Date.now();
-                    failed.set(`${node.externalIp}:${node.externalPort}`, end - start);
-                  });
-            });
+                )
+                .then(() => {
+                  const end = Date.now()
+                  stats.set(`${node.externalIp}:${node.externalPort}`, end - start)
+                })
+                .catch(() => {
+                  const end = Date.now()
+                  failed.set(`${node.externalIp}:${node.externalPort}`, end - start)
+                })
+            })
 
-        // Wait for all requests to finish
-        await Promise.allSettled(p2pPromises);
+          // Wait for all requests to finish
+          await Promise.allSettled(p2pPromises)
 
-        // Compute statistics
-        const responseTimes = Array.from(stats.values()).sort((a, b) => a - b);
-        const medianResponseTime = responseTimes[Math.floor(responseTimes.length / 2)] || 0;
-        const averageResponseTime = responseTimes.reduce((a, b) => a + b, 0) / (responseTimes.length || 1);
-        const failedNodes = Array.from(failed.keys());
+          // Compute statistics
+          const responseTimes = Array.from(stats.values()).sort((a, b) => a - b)
+          const medianResponseTime = responseTimes[Math.floor(responseTimes.length / 2)] || 0
+          const averageResponseTime = responseTimes.reduce((a, b) => a + b, 0) / (responseTimes.length || 1)
+          const failedNodes = Array.from(failed.keys())
 
-
-        console.log('Profiling results:', {
+          console.log('Profiling results:', {
             medianResponseTime,
             averageResponseTime,
             failedNodes,
             stats,
-        });
-        res.write('Profiling results:\n');
-        res.write(`Median response time: ${medianResponseTime}ms\n`);
-        res.write(`Average response time: ${averageResponseTime}ms\n`);
-        res.write(`Failed nodes: ${failedNodes.join(', ')}\n`);
-        res.write('Detailed stats:\n');
-        res.write(`Node,Response Time\n`);
-        stats.forEach((responseTime, node) => {
-            res.write(`${node},${responseTime}\n`);
-        })
-        res.end()
-
-      } catch (error) {
-        console.error('Unexpected error:', error);
-        res.write(`\n{"error":"Internal Server Error","details":"${error.message}"}`);
-        res.end();
+          })
+          res.write('Profiling results:\n')
+          res.write(`Median response time: ${medianResponseTime}ms\n`)
+          res.write(`Average response time: ${averageResponseTime}ms\n`)
+          res.write(`Failed nodes: ${failedNodes.join(', ')}\n`)
+          res.write('Detailed stats:\n')
+          res.write(`Node,Response Time\n`)
+          stats.forEach((responseTime, node) => {
+            res.write(`${node},${responseTime}\n`)
+          })
+          res.end()
+        } catch (error) {
+          console.error('Unexpected error:', error)
+          res.write(`\n{"error":"Internal Server Error","details":"${error.message}"}`)
+          res.end()
+        }
       }
-    });
-
+    )
     // this.p2p.registerInternal(
     //   'get_tx_timestamp',
     //   async (
