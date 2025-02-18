@@ -1063,16 +1063,20 @@ class Shardus extends EventEmitter {
       return
     }
 
-    //this funciton is for getting the network account early (i.e. from archivers)
-    const account = await this.app.getNetworkAccountFromArchiver()
-    if (account == null) {
-      nestedCountersInstance.countEvent('sync', 'earlyConfigFetchAndPatch is null')
-      return
-    } else {
-      nestedCountersInstance.countEvent('sync', 'earlyConfigFetchAndPatch')
-    }
+    try {
+      //this funciton is for getting the network account early (i.e. from archivers)
+      const account = await this.app.getNetworkAccountFromArchiver()
+      if (account == null) {
+        nestedCountersInstance.countEvent('sync', 'earlyConfigFetchAndPatch is null')
+        return
+      } else {
+        nestedCountersInstance.countEvent('sync', 'earlyConfigFetchAndPatch')
+      }
 
-    this.updateConfigChangeQueue(account, lastCycle_counter, false)
+      this.updateConfigChangeQueue(account, lastCycle_counter, false)
+    } catch (e) {
+      nestedCountersInstance.countEvent('sync', 'earlyConfigFetchAndPatch failed: ' + e?.message)
+    }
   }
 
   /**
