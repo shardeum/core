@@ -378,6 +378,7 @@ export interface App {
     requiredSecurityLevel: DevSecurityLevel
   ) => boolean
   isNGT(acceptedTx: OpaqueTransaction): boolean
+  verifyAppJoinData?: (data: unknown) => string[] | null
 }
 
 export interface TransactionKeys {

@@ -2957,6 +2957,10 @@ class Shardus extends EventEmitter {
         applicationInterfaceImpl.isNGT = (tx) => application.isNGT(tx)
       }
 
+      if (typeof application.verifyAppJoinData === 'function') {
+        applicationInterfaceImpl.verifyAppJoinData = (data) => application.verifyAppJoinData(data)
+      }
+
       if (typeof application.getNetworkAccountFromArchiver === 'function') {
         applicationInterfaceImpl.getNetworkAccountFromArchiver = async () =>
           application.getNetworkAccountFromArchiver()
