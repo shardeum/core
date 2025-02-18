@@ -109,6 +109,26 @@ export function reset(caller: string) {
   selectedById = new Map()
 }
 
+const isRefuteCyclesEnabled = (cycle: P2P.CycleCreatorTypes.CycleRecord | null) => {
+  if (cycle === null) {
+    nestedCountersInstance.countEvent('p2p', `initRefuteCycles: cycle is null when initializing refute cycles`)
+    /* prettier-ignore */ if (logFlags.p2pNonFatal) console.log('initRefuteCycles: cycle is null when initializing refute cycles')
+    return false;
+  }
+
+  if (config.p2p.enableProblematicNodeRemoval && cycle.counter >= config.p2p.enableProblematicNodeRemovalOnCycle) {
+    return true
+  }
+
+  return false
+}
+
+const initRefuteCyclesForNode = (node: P2P.NodeListTypes.Node, cycle: P2P.CycleCreatorTypes.CycleRecord | null) => {
+  if (isRefuteCyclesEnabled(cycle)) {
+    node.refuteCycles = []
+  }
+}
+
 export function addNode(node: P2P.NodeListTypes.Node, caller: string, cycle: P2P.CycleCreatorTypes.CycleRecord | null) {
   if (node == null) {
     //warn(`NodeList.addNode: tried to add null node ${caller}`)
@@ -119,15 +139,10 @@ export function addNode(node: P2P.NodeListTypes.Node, caller: string, cycle: P2P
   // Don't add duplicates
   if (nodes.has(node.id)) {
     warn(`NodeList.addNode: tried to add duplicate ${node.externalPort}: ${Utils.safeStringify(node)}\n` + `${caller}`)
-
     return
   }
 
-  if (config.p2p.enableProblematicNodeRemoval && cycle && cycle.counter >= config.p2p.enableProblematicNodeRemovalOnCycle) {
-    if (!node.refuteCycles) {
-      node.refuteCycles = [];
-    }
-  }
+  initRefuteCyclesForNode(node, cycle)
 
   nodes.set(node.id, node)
   byPubKey.set(node.publicKey, node)
@@ -343,6 +358,8 @@ export function updateNode(
 ) {
   const node = nodes.get(update.id)
   if (node) {
+    initRefuteCyclesForNode(node, cycle)
+
     // Update node properties
     for (const key of Object.keys(update)) {
       node[key] = update[key]
@@ -400,26 +417,33 @@ export function updateNodes(
 }
 
 export function updateProblematicNodeTracking(cycle: P2P.CycleCreatorTypes.CycleRecord | null) {
-  for (const node of nodes.values()) {
-    if (config.p2p.enableProblematicNodeRemoval) {
-      // note: first cut of this had refuteCycles as a set. We need to switch to array, this makes it rotation-safe.
-      // Remove the instanceof check after this is deployed/after itn4 is over.
-      // its also very likely not even necessary.
-      if (!node.refuteCycles || node.refuteCycles instanceof Set) {
+  if (isRefuteCyclesEnabled(cycle)) {
+    if (logFlags.p2pNonFatal) console.log('p2p: updating refute cycles')
+   
+    for (const node of nodes.values()) {
+      if (!node.refuteCycles) {
+        nestedCountersInstance.countEvent('p2p', `updateProblematicNodeTracking: initializing refute cycles for node`)
+        if (logFlags.p2pNonFatal) console.log('p2p: initializing refute cycles for node', node.id)
         node.refuteCycles = [];
       }
 
-      if (cycle.counter >= config.p2p.enableProblematicNodeRemovalOnCycle) {
-        // Track refutes if this update is from a cycle record
-        if (cycle && cycle.refuted?.includes(node.id)) {
-          if (!node.refuteCycles.includes(cycle.counter)) {
-            node.refuteCycles.push(cycle.counter);
-          }
+      // Track refutes if this update is from a cycle record
+      if (cycle && cycle.refuted?.includes(node.id)) {
+        if (!node.refuteCycles.includes(cycle.counter)) {
+          nestedCountersInstance.countEvent('p2p', `updateProblematicNodeTracking: tracking refute cycle for node`)
+          if (logFlags.p2pNonFatal) console.log(`p2p: tracking refute cycle for node ${node.id} - ${cycle.counter}`)
+          node.refuteCycles.push(cycle.counter);
         }
-        
-        // Clean up old refutes using sliding window
-        const windowStart = Math.max(1, cycle.counter - config.p2p.problematicNodeHistoryLength);
-        node.refuteCycles = node.refuteCycles.filter(c => c >= windowStart);
+      }
+      
+      const numRefuteCyclesBeforeClean = node.refuteCycles.length;
+      // Clean up old refutes using sliding window
+      const windowStart = Math.max(1, cycle.counter - config.p2p.problematicNodeHistoryLength);
+      node.refuteCycles = node.refuteCycles.filter(c => c >= windowStart);
+      const numRefuteCyclesAfterClean = node.refuteCycles.length;
+      if (numRefuteCyclesBeforeClean > numRefuteCyclesAfterClean) {
+        nestedCountersInstance.countEvent('p2p', `updateProblematicNodeTracking: cleaned up refute cycles for node`)
+        if (logFlags.p2pNonFatal) console.log(`p2p: cleaned up refute cycles for node ${node.id} - ${numRefuteCyclesBeforeClean} -> ${numRefuteCyclesAfterClean}`)
       }
     }
   }
