@@ -4,7 +4,7 @@ import util from 'util'
 import * as http from '../http'
 import { P2P } from '@shardeum-foundation/lib-types'
 import { reversed, validateTypes } from '../utils'
-import { config, logger, network } from './Context'
+import { config, crypto, logger, network } from './Context'
 import * as Archivers from './Archivers'
 import * as CycleChain from './CycleChain'
 import * as CycleCreator from './CycleCreator'
@@ -366,11 +366,11 @@ export function digestCycle(cycle: P2P.CycleCreatorTypes.CycleRecord, source: st
     // standby list, but not with the validator and archivers lists
 
     const newNodeListHash = NodeList.computeNewNodeListHash()
-    if (source === 'syncV2' && newNodeListHash !== cycle.nodeListHash) warn(`sync:digestCycle source: ${source} cycle: ${cycle.counter} patching nodelisthash ${cycle.nodeListHash} -> ${newNodeListHash}`)
+    if (newNodeListHash !== cycle.nodeListHash) warn(`sync:digestCycle source: ${source} cycle: ${cycle.counter} patching nodelisthash ${cycle.nodeListHash} -> ${newNodeListHash}`)
     cycle.nodeListHash = newNodeListHash
 
     const newArchiverListHash = Archivers.computeNewArchiverListHash()
-    if (source === 'syncV2' && newArchiverListHash !== cycle.archiverListHash) warn(`sync:digestCycle source: ${source} cycle: ${cycle.counter} patching archiverlisthash ${cycle.archiverListHash} -> ${newArchiverListHash}`)
+    if (newArchiverListHash !== cycle.archiverListHash) warn(`sync:digestCycle source: ${source} cycle: ${cycle.counter} patching archiverlisthash ${cycle.archiverListHash} -> ${newArchiverListHash}`)
     cycle.archiverListHash = newArchiverListHash
 
     // for join v2, also get the standby node list hash
@@ -419,8 +419,15 @@ export function digestCycle(cycle: P2P.CycleCreatorTypes.CycleRecord, source: st
       )} CycleCreator.currentCycle: ${CycleCreator.currentCycle}`
     )
 
+  
   const changes = parse(cycle)
+
   applyNodeListChange(changes, true, cycle)
+
+  if (logFlags.important_as_error) {
+    const newNodeListHash = crypto.hash(NodeList.byJoinOrder) //computeNewNodeListHash not safe due to side effects
+    warn(`sync:digestCycle after applyNodeListChange source: ${source} cycle: ${cycle.counter} prev nodelisthash ${cycle.nodeListHash} next ${newNodeListHash}`)
+  }
 
   // for join v2, also add any new standby nodes to the standy node list
   // and remove any standby nodes that have unjoined.
@@ -446,7 +453,10 @@ export function digestCycle(cycle: P2P.CycleCreatorTypes.CycleRecord, source: st
   }
 
   CycleChain.append(cycle)
-  info(`digestCycle: marker of cycle${cycle.counter} from ${source} after digest is ${CycleChain.computeCycleMarker(cycle)}`)
+  const digestedCycleMarker = CycleChain.computeCycleMarker(cycle)
+  info(`digestCycle: marker of cycle${cycle.counter} from ${source} after digest is ${digestedCycleMarker}`)
+
+  /* prettier-ignore */ if (logFlags.important_as_error) info(`digestCycle: cycle: ${Utils.safeStringify(cycle)}`)
 
   // TODO: This seems like a possible location to inetvene if our node
   // is getting far behind on what it thinks the current cycle is
