@@ -109,7 +109,7 @@ export function reset(caller: string) {
   selectedById = new Map()
 }
 
-export function addNode(node: P2P.NodeListTypes.Node, caller: string) {
+export function addNode(node: P2P.NodeListTypes.Node, caller: string, cycle: P2P.CycleCreatorTypes.CycleRecord | null) {
   if (node == null) {
     //warn(`NodeList.addNode: tried to add null node ${caller}`)
     nestedCountersInstance.countEvent('p2p', `addNode rejecting null node from: ${caller}`)
@@ -123,7 +123,7 @@ export function addNode(node: P2P.NodeListTypes.Node, caller: string) {
     return
   }
 
-  if (config.p2p.enableProblematicNodeRemoval) {
+  if (config.p2p.enableProblematicNodeRemoval && cycle && cycle.counter >= config.p2p.enableProblematicNodeRemovalOnCycle) {
     if (!node.refuteCycles) {
       node.refuteCycles = [];
     }
@@ -184,9 +184,9 @@ export function addNode(node: P2P.NodeListTypes.Node, caller: string) {
     removeReadyNode(node.id)
   }
 }
-export function addNodes(newNodes: P2P.NodeListTypes.Node[], caller: string) {
+export function addNodes(newNodes: P2P.NodeListTypes.Node[], caller: string, cycle: P2P.CycleCreatorTypes.CycleRecord | null) {
   for (const node of newNodes) {
-    addNode(node, caller)
+    addNode(node, caller, cycle)
   }
 }
 
