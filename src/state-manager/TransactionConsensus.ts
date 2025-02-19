@@ -3878,11 +3878,12 @@ class TransactionConsenus {
     const applyStatus = {
       applied: proposal.applied,
       cantApply: proposal.cant_preApply,
+      txId: proposal.txid,
     }
     const accountsHash = this.crypto.hash(
       this.crypto.hash(proposal.accountIDs) +
-      this.crypto.hash(proposal.beforeStateHashes) +
-      this.crypto.hash(proposal.afterStateHashes)
+        this.crypto.hash(proposal.beforeStateHashes) +
+        this.crypto.hash(proposal.afterStateHashes)
     )
     const proposalHash = this.crypto.hash(
       this.crypto.hash(applyStatus) + accountsHash + proposal.appReceiptDataHash
