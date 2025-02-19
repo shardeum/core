@@ -2001,6 +2001,7 @@ class TransactionConsenus {
         txId,
         Context.stateManager.currentCycleShardData.parititionShardDataMap
     )
+    /* prettier-ignore */ nestedCountersInstance.countEvent('consensus', 'get_tx_timestamp: using non-foundation nodes')
     return homeNode.node
   }
 
