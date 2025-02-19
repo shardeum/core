@@ -836,18 +836,26 @@ async function checkNodeId(nodeMatch: (node: any) => boolean, selfId: string): P
   // query the archiver for the latest cycles if we can't find the node in the current cycle
   if (!node) {
     //check the latest 4 cycles from the archiver
-    if (logFlags.p2pNonFatal) info('Getting latest cycles from archiver check node id')
+    info('syncCycleChain: checkNodeId: Getting last 4 cycles from archiver check node id')
     const latestCycles = await getLatestCyclesFromArchiver(4)
     for (const cycle of latestCycles) {
       node = cycle.joinedConsensors.find(nodeMatch)
+      info(`syncCycleChain: checkNodeId: cycle ${cycle.counter} node ${node?.id}`)
       if (node) {
         break
       }
     }
   }
 
-  if (!node || node.id !== selfId) {
-    /* prettier-ignore */ nestedCountersInstance.countEvent('p2p', `syncCycleChain: ${idErrorMessage}`)
+  if (node == null) {
+    info(`syncCycleChain: checkNodeId: checkNodeId node not found in joinedConsensors ${newestCycle.joinedConsensors.length}`)
+    /* prettier-ignore */ nestedCountersInstance.countEvent('p2p', `syncCycleChain: checkNodeId: checkNodeId node not found in joinedConsensors for a recent cycle`)
+    // throw new Error(`checkNodeId node not found in joinedConsensors for a recent cycle`)
+    throw new Error(idErrorMessage)  //keeping the same basic error as it is used in control flow, and do not have time to redo that part
+  }
+  if (node.id !== selfId) {
+    info(`syncCycleChain: checkNodeId: ${idErrorMessage} ${node.id} != ${selfId}`)
+    /* prettier-ignore */ nestedCountersInstance.countEvent('p2p', `syncCycleChain: checkNodeId: ${idErrorMessage} ${node.id} != ${selfId}`)
     throw new Error(idErrorMessage)
   }
 
