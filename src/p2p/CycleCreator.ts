@@ -310,7 +310,10 @@ function reset() {
 
   // Reset CycleCreator
   txs = collectCycleTxs()
+  const oldMarker = marker
   ;({ record, marker, cert } = makeCycleData(txs, CycleChain.newest || undefined))
+  info(`updateMarker: reset C${currentCycle} Q${currentQuarter} counter: ${record.counter} oldMarker: ${oldMarker} marker: ${marker} prevMarker: ${prevMarker}`)
+
 
   //todo some logging here.
 
@@ -582,7 +585,10 @@ async function runQ3() {
   profilerInstance.profileSectionStart('CycleCreator-runQ3')
   // Get txs and create this cycle's record, marker, and cert
   txs = collectCycleTxs()
+  const oldMarker = marker
   ;({ record, marker, cert } = makeCycleData(txs, CycleChain.newest))
+  info(`updateMarker: runQ3 C${currentCycle} Q${currentQuarter} counter: ${record.counter} oldMarker: ${oldMarker} marker: ${marker} prevMarker: ${prevMarker}`)
+  //prevMarker = oldMarker
 
   if (config.debug.enableCycleRecordDebugTool || config.debug.localEnableCycleRecordDebugTool) {
     if (currentQuarter === 3 && Self.isActive) {
@@ -1123,8 +1129,9 @@ function improveBestCert(inpCerts: P2P.CycleCreatorTypes.CycleCert[], inpRecord)
 
   if(prevMarkerLastUpdate < CycleChain.newest.counter) {
     prevMarkerLastUpdate = CycleChain.newest.counter
+    const lastPrevMarker = prevMarker
     prevMarker = makeCycleMarker(CycleChain.newest)
-    info(`improveBestCert: updated prevMarker:${prevMarker}`)
+    info(`improveBestCert: newest.counter:${CycleChain.newest.counter} updated prevMarker:${prevMarker} lastPrevMarker:${lastPrevMarker}`)
   }
 
   //  warn(`improveBestCert: have:${JSON.stringify(have)}`)
