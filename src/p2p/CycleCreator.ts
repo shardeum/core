@@ -124,7 +124,8 @@ let record: P2P.CycleCreatorTypes.CycleRecord
 let marker: P2P.CycleCreatorTypes.CycleMarker
 let cert: P2P.CycleCreatorTypes.CycleCert
 
-let prevMarker: P2P.CycleCreatorTypes.CycleMarker
+let prevMarkerCached: P2P.CycleCreatorTypes.CycleMarker
+let prevMarkerLastUpdate: number = -1
 
 let bestRecord: P2P.CycleCreatorTypes.CycleRecord
 let bestMarker: P2P.CycleCreatorTypes.CycleMarker
@@ -541,7 +542,7 @@ function runQ2() {
   /* prettier-ignore */ if (logFlags.p2pNonFatal) info(`C${currentCycle} Q${currentQuarter}`)
 
   // making the prevMarker now since it should ready before we start scoring certs, which happens in Q3
-  prevMarker = makeCycleMarker(CycleChain.newest)
+  // prevMarker = makeCycleMarker(CycleChain.newest)
 }
 
 /**
@@ -961,7 +962,21 @@ function scoreCert(cert: P2P.CycleCreatorTypes.CycleCert, prevMarker: P2P.CycleC
     const id = NodeList.byPubKey.get(cert.sign.owner).id // get node id from cert pub key
     const obj = { id }
     const hid = crypto.hash(obj) // Omar - use hash of id so the cert is not made by nodes that are near based on node id
-    const out = utils.XOR(cert.marker, hid)
+    
+    //const out = utils.XOR(cert.marker, hid)    
+    const certMarker = cert.marker
+
+    // since we dont have the prev cycle marker stored in the cycle record, we need to hash it each time. Alternatively, we
+    // can just use CycleChain.newest.previous, which is the cycle marker of the cycle two cycles before the current one
+    // I am partial to this, but I have done the previous cycle marker for now since that is what the ticket asked for
+    const jitPrevMarker = makeCycleMarker(CycleChain.newest)
+    
+    info(`scoreCert cycle:${CycleChain?.newest?.counter}  scoreCert: calcPrevMarker: ${jitPrevMarker} prevMarker: ${prevMarker} certMarker: ${certMarker}  id: ${id} `)
+    if(jitPrevMarker != prevMarker){  
+      info(`scoreCert error: jitPrevMarker != prevMarker: ${jitPrevMarker} != ${prevMarker} `)
+    }
+
+    const out = utils.XOR(certMarker, hid)
 
     if (config.p2p.nerfNonFoundationCertScores && NodeList.byPubKey.get(cert.sign.owner).foundationNode === false) {
       return out & 0x0FFFFFFF
@@ -1112,11 +1127,19 @@ function improveBestCert(inpCerts: P2P.CycleCreatorTypes.CycleCert[], inpRecord)
       have[cert.sign.owner] = true
     }
   }
+
+  if(prevMarkerLastUpdate < CycleChain.newest.counter) {
+    prevMarkerLastUpdate = CycleChain.newest.counter
+    const lastPrevMarker = prevMarkerCached
+    prevMarkerCached = makeCycleMarker(CycleChain.newest)
+    info(`improveBestCert: newest.counter:${CycleChain.newest.counter} updated prevMarker:${prevMarkerCached} lastPrevMarker:${lastPrevMarker}`)
+  }
+
   //  warn(`improveBestCert: have:${JSON.stringify(have)}`)
   for (const cert of inpCerts) {
     // make sure we don't store more than one cert from the same owner with the same marker
     if (have[cert.sign.owner]) continue
-    cert.score = scoreCert(cert, prevMarker)
+    cert.score = scoreCert(cert, prevMarkerCached)
     if (!bestCycleCert.get(cert.marker)) {
       bestCycleCert.set(cert.marker, [cert])
     } else {
