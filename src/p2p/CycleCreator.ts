@@ -50,6 +50,7 @@ import { BadRequest, InternalError, NotFound, serializeResponseError } from '../
 import { Utils } from '@shardus/types'
 import { nodeListFromStates } from './Join'
 import { AJVSchemaEnum } from '../types/enum/AJVSchemaEnum'
+import { log } from 'console'
 
 /** CONSTANTS */
 
@@ -310,7 +311,10 @@ function reset() {
 
   // Reset CycleCreator
   txs = collectCycleTxs()
+  const oldMarker = marker
   ;({ record, marker, cert } = makeCycleData(txs, CycleChain.newest || undefined))
+  info(`updateMarker: reset C${currentCycle} Q${currentQuarter} counter: ${record.counter} oldMarker: ${oldMarker} marker: ${marker} prevMarker: ${prevMarkerCached}`)
+
 
   //todo some logging here.
 
@@ -582,7 +586,10 @@ async function runQ3() {
   profilerInstance.profileSectionStart('CycleCreator-runQ3')
   // Get txs and create this cycle's record, marker, and cert
   txs = collectCycleTxs()
+  const oldMarker = marker
   ;({ record, marker, cert } = makeCycleData(txs, CycleChain.newest))
+  info(`updateMarker: runQ3 C${currentCycle} Q${currentQuarter} counter: ${record.counter} oldMarker: ${oldMarker} marker: ${marker} prevMarker: ${prevMarkerCached}`)
+  //prevMarker = oldMarker
 
   if (config.debug.enableCycleRecordDebugTool || config.debug.localEnableCycleRecordDebugTool) {
     if (currentQuarter === 3 && Self.isActive) {
@@ -962,31 +969,36 @@ function scoreCert(cert: P2P.CycleCreatorTypes.CycleCert, prevMarker: P2P.CycleC
     const id = NodeList.byPubKey.get(cert.sign.owner).id // get node id from cert pub key
     const obj = { id }
     const hid = crypto.hash(obj) // Omar - use hash of id so the cert is not made by nodes that are near based on node id
-    
+
     // This is what scoring has used for the marker for years:
     const inProgressCertMarker = cert.marker
 
-    //// Some test code to compare JIT marker creation with the prevMarker
-    if(logFlags.important_as_error) {
+    //// Some test code to compare JIT marker creation with the prevMarker.
+    if (logFlags.p2pSyncDebug && logFlags.verbose) {
       const jitPrevMarker = makeCycleMarker(CycleChain.newest)
-      info(`scoreCert cycle:${CycleChain?.newest?.counter}  scoreCert: calcPrevMarker: ${jitPrevMarker} prevMarker: ${prevMarker} inProgressCertMarker: ${inProgressCertMarker}  id: ${id} `)
-      if(jitPrevMarker != prevMarker){  
+      info(
+        `scoreCert cycle:${CycleChain?.newest?.counter}  scoreCert: calcPrevMarker: ${jitPrevMarker} prevMarker: ${prevMarker} inProgressCertMarker: ${inProgressCertMarker}  id: ${id} `
+      )
+      if (jitPrevMarker != prevMarker) {
         info(`scoreCert error: jitPrevMarker != prevMarker: ${jitPrevMarker} != ${prevMarker} `)
       }
     }
 
     let markerToScore = inProgressCertMarker
-    if(config.p2p.newCycleCertScoring) {
+    if (config.p2p.newCycleCertScoring) {
       //this is an update to use the prevMarker instead of the inProgressCertMarker
       markerToScore = prevMarker
-    } 
+    }
 
     // take the marker we want to use and XOR it with the hid
     const out = utils.XOR(markerToScore, hid)
 
     // if the cert is from a non-foundation node, reduce the potential score
-    if (config.p2p.nerfNonFoundationCertScores && NodeList.byPubKey.get(cert.sign.owner).foundationNode === false) {
-      return out & 0x0FFFFFFF
+    if (
+      config.p2p.nerfNonFoundationCertScores &&
+      NodeList.byPubKey.get(cert.sign.owner).foundationNode === false
+    ) {
+      return out & 0x0fffffff
     }
 
     return out
