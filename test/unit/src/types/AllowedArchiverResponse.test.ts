@@ -1,12 +1,10 @@
 import { verifyPayload } from '../../../../src/types/ajv/Helpers';
 import { AJVSchemaEnum } from '../../../../src/types/enum/AJVSchemaEnum';
 import { initAjvSchemas } from '../../../../src/types/ajv/Helpers'
-import { initAllowedArchiverResponse } from '../../../../src/types/ajv/AllowedArchiverResponse'
 
 describe('AllowedArchiverResponse Validation', () => {
     beforeAll(() => {
         initAjvSchemas();
-        initAllowedArchiverResponse();
     });
 
     test('should validate a correct AllowedArchiverResponse', () => {
