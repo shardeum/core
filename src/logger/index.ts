@@ -121,7 +121,9 @@ export type LogFlags = {
 
   node_rotation_debug: boolean // extra logging for node rotation math
 
-  p2pSyncDebug: boolean
+  p2pSyncDebug: boolean // extra logging for debugging sync issues
+
+  p2pExtraHeavyLogs: boolean // extra heavy logs to use with caution
 }
 
 export let logFlags: LogFlags = {
@@ -167,6 +169,8 @@ export let logFlags: LogFlags = {
   node_rotation_debug: false,
 
   p2pSyncDebug: false,
+
+  p2pExtraHeavyLogs: false,
 }
 
 const filePath1 = path.join(process.cwd(), 'data-logs', 'cycleRecords1.txt')

@@ -534,8 +534,15 @@ export function updateRecord(txs: P2P.JoinTypes.Txs, record: P2P.CycleCreatorTyp
         const { nodeInfo, cycleMarker: cycleJoined } = joinRequest
         const id = computeNodeId(nodeInfo.publicKey, cycleJoined)
         const counterRefreshed = record.counter
-        const foundationNode = false
-        return { ...nodeInfo, cycleJoined, counterRefreshed, id, foundationNode }
+        // const foundationNode = false
+        // return { ...nodeInfo, cycleJoined, counterRefreshed, id, foundationNode }
+
+        if (config.p2p.addFoundationNodeAttribute) {
+          const foundationNode = false
+          return { ...nodeInfo, cycleJoined, counterRefreshed, id, foundationNode }
+        } else {
+          return { ...nodeInfo, cycleJoined, counterRefreshed, id }
+        }
       })
       .sort()
     /* prettier-ignore */ if (logFlags && logFlags.verbose) console.log("new desired count: ", record.desired)
