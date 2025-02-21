@@ -237,7 +237,6 @@ export function validateRecordTypes(rec: P2P.JoinTypes.Record): string {
       cycleJoined: 's',
       counterRefreshed: 'n',
       id: 's',
-      foundationNode: 'b',
     })
     if (err) return 'in joinedConsensors array ' + err
   }
