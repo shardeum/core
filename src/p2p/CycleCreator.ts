@@ -963,21 +963,28 @@ function scoreCert(cert: P2P.CycleCreatorTypes.CycleCert, prevMarker: P2P.CycleC
     const obj = { id }
     const hid = crypto.hash(obj) // Omar - use hash of id so the cert is not made by nodes that are near based on node id
     
-    //const out = utils.XOR(cert.marker, hid)    
-    const certMarker = cert.marker
+    // This is what scoring has used for the marker for years:
+    const inProgressCertMarker = cert.marker
 
-    // since we dont have the prev cycle marker stored in the cycle record, we need to hash it each time. Alternatively, we
-    // can just use CycleChain.newest.previous, which is the cycle marker of the cycle two cycles before the current one
-    // I am partial to this, but I have done the previous cycle marker for now since that is what the ticket asked for
-    const jitPrevMarker = makeCycleMarker(CycleChain.newest)
-    
-    info(`scoreCert cycle:${CycleChain?.newest?.counter}  scoreCert: calcPrevMarker: ${jitPrevMarker} prevMarker: ${prevMarker} certMarker: ${certMarker}  id: ${id} `)
-    if(jitPrevMarker != prevMarker){  
-      info(`scoreCert error: jitPrevMarker != prevMarker: ${jitPrevMarker} != ${prevMarker} `)
+    //// Some test code to compare JIT marker creation with the prevMarker
+    if(logFlags.important_as_error) {
+      const jitPrevMarker = makeCycleMarker(CycleChain.newest)
+      info(`scoreCert cycle:${CycleChain?.newest?.counter}  scoreCert: calcPrevMarker: ${jitPrevMarker} prevMarker: ${prevMarker} inProgressCertMarker: ${inProgressCertMarker}  id: ${id} `)
+      if(jitPrevMarker != prevMarker){  
+        info(`scoreCert error: jitPrevMarker != prevMarker: ${jitPrevMarker} != ${prevMarker} `)
+      }
     }
 
-    const out = utils.XOR(certMarker, hid)
+    let markerToScore = inProgressCertMarker
+    if(config.p2p.newCycleCertScoring) {
+      //this is an update to use the prevMarker instead of the inProgressCertMarker
+      markerToScore = prevMarker
+    } 
 
+    // take the marker we want to use and XOR it with the hid
+    const out = utils.XOR(markerToScore, hid)
+
+    // if the cert is from a non-foundation node, reduce the potential score
     if (config.p2p.nerfNonFoundationCertScores && NodeList.byPubKey.get(cert.sign.owner).foundationNode === false) {
       return out & 0x0FFFFFFF
     }

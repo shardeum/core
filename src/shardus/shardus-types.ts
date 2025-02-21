@@ -994,6 +994,8 @@ export interface ServerConfiguration {
     foundationNodeThreshold: number
     /** add boolean to joinedConsensor object that shows whether a node is foundation or not */
     addFoundationNodeAttribute: boolean
+    // score cycle certs based on prevMarker instead of the cycle we are running consensus on
+    newCycleCertScoring: boolean
   }
   /** Server IP configuration */
   ip?: {

@@ -178,7 +178,8 @@ const SERVER_CONFIG: StrictServerConfiguration = {
     nerfNonFoundationCertScores: false,
     addFoundationNodeAttribute: false,
     preferFoundationNodesForTimestamp: false,
-    foundationNodeThreshold: 50
+    foundationNodeThreshold: 50,
+    newCycleCertScoring: false,
   },
   ip: {
     externalIp: '0.0.0.0',
