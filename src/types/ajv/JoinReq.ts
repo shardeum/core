@@ -14,10 +14,10 @@ const schemaP2PNode = {
         internalIp: { type: 'string', pattern: ipv4Regex.source  },
         internalPort: { type: 'integer', minimum: 1, maximum: 65535 },
         address: { type: 'string' },
-        joinRequestTimestamp: { type: 'integer' },
-        activeTimestamp: { type: 'integer' },
-        syncingTimestamp: { type: 'integer' },
-        readyTimestamp: { type: 'integer' },
+        joinRequestTimestamp: { type: 'integer', minimum: 0 },
+        activeTimestamp: { type: 'integer', minimum: 0 },
+        syncingTimestamp: { type: 'integer', minimum: 0 },
+        readyTimestamp: { type: 'integer', minimum: 0 },
         refreshedCounter: { type: 'integer', minimum: 0 }
     },
     required: ['publicKey', 'externalIp', 'externalPort', 'internalIp', 'internalPort', 'address', 'joinRequestTimestamp', 'activeTimestamp', 'syncingTimestamp', 'readyTimestamp']
