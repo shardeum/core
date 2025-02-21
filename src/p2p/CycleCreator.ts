@@ -124,7 +124,7 @@ let record: P2P.CycleCreatorTypes.CycleRecord
 let marker: P2P.CycleCreatorTypes.CycleMarker
 let cert: P2P.CycleCreatorTypes.CycleCert
 
-let prevMarker: P2P.CycleCreatorTypes.CycleMarker
+let prevMarkerCached: P2P.CycleCreatorTypes.CycleMarker
 let prevMarkerLastUpdate: number = -1
 
 let bestRecord: P2P.CycleCreatorTypes.CycleRecord
@@ -312,7 +312,7 @@ function reset() {
   txs = collectCycleTxs()
   const oldMarker = marker
   ;({ record, marker, cert } = makeCycleData(txs, CycleChain.newest || undefined))
-  info(`updateMarker: reset C${currentCycle} Q${currentQuarter} counter: ${record.counter} oldMarker: ${oldMarker} marker: ${marker} prevMarker: ${prevMarker}`)
+  info(`updateMarker: reset C${currentCycle} Q${currentQuarter} counter: ${record.counter} oldMarker: ${oldMarker} marker: ${marker} prevMarker: ${prevMarkerCached}`)
 
 
   //todo some logging here.
@@ -587,7 +587,7 @@ async function runQ3() {
   txs = collectCycleTxs()
   const oldMarker = marker
   ;({ record, marker, cert } = makeCycleData(txs, CycleChain.newest))
-  info(`updateMarker: runQ3 C${currentCycle} Q${currentQuarter} counter: ${record.counter} oldMarker: ${oldMarker} marker: ${marker} prevMarker: ${prevMarker}`)
+  info(`updateMarker: runQ3 C${currentCycle} Q${currentQuarter} counter: ${record.counter} oldMarker: ${oldMarker} marker: ${marker} prevMarker: ${prevMarkerCached}`)
   //prevMarker = oldMarker
 
   if (config.debug.enableCycleRecordDebugTool || config.debug.localEnableCycleRecordDebugTool) {
@@ -1136,16 +1136,16 @@ function improveBestCert(inpCerts: P2P.CycleCreatorTypes.CycleCert[], inpRecord)
 
   if(prevMarkerLastUpdate < CycleChain.newest.counter) {
     prevMarkerLastUpdate = CycleChain.newest.counter
-    const lastPrevMarker = prevMarker
-    prevMarker = makeCycleMarker(CycleChain.newest)
-    info(`improveBestCert: newest.counter:${CycleChain.newest.counter} updated prevMarker:${prevMarker} lastPrevMarker:${lastPrevMarker}`)
+    const lastPrevMarker = prevMarkerCached
+    prevMarkerCached = makeCycleMarker(CycleChain.newest)
+    info(`improveBestCert: newest.counter:${CycleChain.newest.counter} updated prevMarker:${prevMarkerCached} lastPrevMarker:${lastPrevMarker}`)
   }
 
   //  warn(`improveBestCert: have:${JSON.stringify(have)}`)
   for (const cert of inpCerts) {
     // make sure we don't store more than one cert from the same owner with the same marker
     if (have[cert.sign.owner]) continue
-    cert.score = scoreCert(cert, prevMarker)
+    cert.score = scoreCert(cert, prevMarkerCached)
     if (!bestCycleCert.get(cert.marker)) {
       bestCycleCert.set(cert.marker, [cert])
     } else {
