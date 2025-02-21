@@ -529,14 +529,14 @@ export function getAgeIndexForNodeId(nodeId: string): { idx: number; total: numb
 }
 
 /** Returns the validator list hash. It is a hash of the NodeList sorted by join order. This will also update the recorded `lastHashedList` of nodes, which can be retrieved via `getLastHashedNodeList`. */
-export function computeNewNodeListHash(): hexstring {
+export function computeNewNodeListHash(log:boolean = false): hexstring {
   // set the lastHashedList to the current list by join order, then hash.
   // deep cloning is necessary as validator information may be mutated by
   // reference.
   lastHashedList = clone(byJoinOrder)
-  /* prettier-ignore */ if (logFlags.verbose) info('hashing validator list:', Utils.safeStringify(lastHashedList))
+  /* prettier-ignore */ if (logFlags.verbose || log) info('hashing validator list:', Utils.safeStringify(lastHashedList))
   let hash = crypto.hash(lastHashedList)
-  /* prettier-ignore */ if (logFlags.verbose) info('the new validator list hash is', hash)
+  /* prettier-ignore */ if (logFlags.verbose || log) info('the new validator list hash is', hash)
   return hash
 }
 

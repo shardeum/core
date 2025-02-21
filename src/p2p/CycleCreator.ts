@@ -46,6 +46,7 @@ import { BadRequest, InternalError, NotFound, serializeResponseError } from '../
 import { Utils } from '@shardeum-foundation/lib-types'
 import { nodeListFromStates } from './Join'
 import { AJVSchemaEnum } from '../types/enum/AJVSchemaEnum'
+import { log } from 'console'
 
 /** CONSTANTS */
 
@@ -120,7 +121,8 @@ let record: P2P.CycleCreatorTypes.CycleRecord
 let marker: P2P.CycleCreatorTypes.CycleMarker
 let cert: P2P.CycleCreatorTypes.CycleCert
 
-let prevMarker: P2P.CycleCreatorTypes.CycleMarker
+let prevMarkerCached: P2P.CycleCreatorTypes.CycleMarker
+let prevMarkerLastUpdate: number = -1
 
 let bestRecord: P2P.CycleCreatorTypes.CycleRecord
 let bestMarker: P2P.CycleCreatorTypes.CycleMarker
@@ -305,7 +307,10 @@ function reset() {
 
   // Reset CycleCreator
   txs = collectCycleTxs()
+  const oldMarker = marker
   ;({ record, marker, cert } = makeCycleData(txs, CycleChain.newest || undefined))
+  /* prettier-ignore */ if (logFlags.p2pSyncDebug) info(`updateMarker: reset C${currentCycle} Q${currentQuarter} counter: ${record.counter} oldMarker: ${oldMarker} marker: ${marker} prevMarker: ${prevMarkerCached}`)
+
 
   //todo some logging here.
 
@@ -537,7 +542,7 @@ function runQ2() {
   /* prettier-ignore */ if (logFlags.p2pNonFatal) info(`C${currentCycle} Q${currentQuarter}`)
 
   // making the prevMarker now since it should ready before we start scoring certs, which happens in Q3
-  prevMarker = makeCycleMarker(CycleChain.newest)
+  prevMarkerCached = makeCycleMarker(CycleChain.newest)
 }
 
 /**
@@ -577,7 +582,10 @@ async function runQ3() {
   profilerInstance.profileSectionStart('CycleCreator-runQ3')
   // Get txs and create this cycle's record, marker, and cert
   txs = collectCycleTxs()
+  const oldMarker = marker
   ;({ record, marker, cert } = makeCycleData(txs, CycleChain.newest))
+  /* prettier-ignore */ if (logFlags.p2pSyncDebug) info(`updateMarker: runQ3 C${currentCycle} Q${currentQuarter} counter: ${record.counter} oldMarker: ${oldMarker} marker: ${marker} prevMarker: ${prevMarkerCached}`)
+  //prevMarker = oldMarker
 
   if (config.debug.enableCycleRecordDebugTool || config.debug.localEnableCycleRecordDebugTool) {
     if (currentQuarter === 3 && Self.isActive) {
@@ -967,11 +975,34 @@ function scoreCert(cert: P2P.CycleCreatorTypes.CycleCert, prevMarker: P2P.CycleC
     const obj = { id }
     const hid = crypto.hash(obj) // Omar - use hash of id so the cert is not made by nodes that are near based on node id
 
-    const out = utils.XOR(prevMarker, hid)
+    // This is what scoring has used for the marker for years:
+    const inProgressCertMarker = cert.marker
 
-    // will also nerf if foundationNode is undefined, which is will be for already active nodes when we
-    // first turn on the addFoundationNodeAttribute flag under the current implementation
-    if (config.p2p.nerfNonFoundationCertScores && !NodeList.byPubKey.get(cert.sign.owner).foundationNode) {
+    //// Some test code to compare JIT marker creation with the prevMarker.
+    if (logFlags.p2pSyncDebug && logFlags.verbose) {
+      const jitPrevMarker = makeCycleMarker(CycleChain.newest)
+      info(
+        `scoreCert cycle:${CycleChain?.newest?.counter}  scoreCert: calcPrevMarker: ${jitPrevMarker} prevMarker: ${prevMarker} inProgressCertMarker: ${inProgressCertMarker}  id: ${id} `
+      )
+      if (jitPrevMarker != prevMarker) {
+        info(`scoreCert error: jitPrevMarker != prevMarker: ${jitPrevMarker} != ${prevMarker} `)
+      }
+    }
+
+    let markerToScore = inProgressCertMarker
+    if (config.p2p.newCycleCertScoring) {
+      //this is an update to use the prevMarker instead of the inProgressCertMarker
+      markerToScore = prevMarker
+    }
+
+    // take the marker we want to use and XOR it with the hid
+    const out = utils.XOR(markerToScore, hid)
+
+    // if the cert is from a non-foundation node, reduce the potential score
+    if (
+      config.p2p.nerfNonFoundationCertScores &&
+      NodeList.byPubKey.get(cert.sign.owner).foundationNode === false
+    ) {
       return out & 0x0fffffff
     }
 
@@ -1120,11 +1151,20 @@ function improveBestCert(inpCerts: P2P.CycleCreatorTypes.CycleCert[], inpRecord)
       have[cert.sign.owner] = true
     }
   }
+
+  //// logic moved back to q2 for now
+  // if(prevMarkerLastUpdate < CycleChain.newest.counter) {
+  //   prevMarkerLastUpdate = CycleChain.newest.counter
+  //   const lastPrevMarker = prevMarkerCached
+  //   prevMarkerCached = makeCycleMarker(CycleChain.newest)
+  //   info(`improveBestCert: newest.counter:${CycleChain.newest.counter} updated prevMarker:${prevMarkerCached} lastPrevMarker:${lastPrevMarker}`)
+  // }
+
   //  warn(`improveBestCert: have:${JSON.stringify(have)}`)
   for (const cert of inpCerts) {
     // make sure we don't store more than one cert from the same owner with the same marker
     if (have[cert.sign.owner]) continue
-    cert.score = scoreCert(cert, prevMarker)
+    cert.score = scoreCert(cert, prevMarkerCached)
     if (!bestCycleCert.get(cert.marker)) {
       bestCycleCert.set(cert.marker, [cert])
     } else {

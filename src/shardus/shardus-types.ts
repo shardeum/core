@@ -1005,6 +1005,8 @@ export interface ServerConfiguration {
     maxResponseSize: number
     // control if non-internal txs should be allowed to be injected
     allowEndUserTxnInjections: boolean
+    // score cycle certs based on prevMarker instead of the cycle we are running consensus on
+    newCycleCertScoring: boolean
   }
   /** Server IP configuration */
   ip?: {
