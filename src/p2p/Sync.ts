@@ -424,8 +424,9 @@ export function digestCycle(cycle: P2P.CycleCreatorTypes.CycleRecord, source: st
 
   applyNodeListChange(changes, true, cycle)
 
+  let newNodeListHash
   if (logFlags.important_as_error) {
-    const newNodeListHash = crypto.hash(NodeList.byJoinOrder) //computeNewNodeListHash not safe due to side effects
+    newNodeListHash = crypto.hash(NodeList.byJoinOrder) //computeNewNodeListHash not safe due to side effects
     warn(`sync:digestCycle after applyNodeListChange source: ${source} cycle: ${cycle.counter} prev nodelisthash ${cycle.nodeListHash} next ${newNodeListHash}`)
   }
 
@@ -466,9 +467,11 @@ export function digestCycle(cycle: P2P.CycleCreatorTypes.CycleRecord, source: st
   if (NodeList.activeByIdOrder.length <= nodeLimit) {
     /* prettier-ignore */ if (logFlags.important_as_error) {
       info(`
-      Digested C${cycle.counter}
+      Digested C${cycle.counter}   marker: ${digestedCycleMarker}
         cycle record: ${Utils.safeStringify(cycle)}
         cycle changes: ${Utils.safeStringify(changes)}
+        cycle.nodeListHash: ${cycle.nodeListHash}
+        node list hash: ${newNodeListHash}
         node list: ${Utils.safeStringify([...NodeList.nodes.values()])}
         active nodes: ${Utils.safeStringify(NodeList.activeByIdOrder)}
     `)
@@ -476,9 +479,11 @@ export function digestCycle(cycle: P2P.CycleCreatorTypes.CycleRecord, source: st
   } else {
     /* prettier-ignore */ if (logFlags.important_as_error) {
       info(`
-    Digested C${cycle.counter}
+    Digested C${cycle.counter}    marker: ${digestedCycleMarker}
       cycle record: ${Utils.safeStringify(cycle)}
       cycle changes: ${Utils.safeStringify(changes)}
+      cycle.nodeListHash: ${cycle.nodeListHash}
+      node list hash: ${newNodeListHash}
       node list: too many to list: ${NodeList.nodes.size}
       active nodes: too many to list: ${NodeList.activeByIdOrder.length}
     `)
