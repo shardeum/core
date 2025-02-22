@@ -54,7 +54,7 @@
     "@mapbox/node-pre-gyp": "1.0.10",
     "@shardus/crypto-utils": "git+https://github.com/shardeum/lib-crypto-utils#itn4",
     "@shardus/net": "git+https://github.com/shardeum/lib-net#itn4",
-    "@shardus/types": "git+https://github.com/shardeum/lib-types#itn4-1.16.3",
+    "@shardus/types": "git+https://github.com/shardeum/lib-types#itn4-1.16.5rc1",
     "@types/better-sqlite3": "7.6.3",
     "body-parser": "1.18.3",
     "bytenode": "1.3.4",
@@ -110,7 +110,7 @@
   },
   "overrides": {
     "@shardus/crypto-utils": {
-      "@shardus/types": "git+https://github.com/shardeum/lib-types#itn4-1.16.3"
+      "@shardus/types": "git+https://github.com/shardeum/lib-types#itn4-1.16.5rc1"
     },
     "qs": "6.11.2",
     "ip": "2.0.1",
