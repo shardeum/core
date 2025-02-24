@@ -11,6 +11,7 @@ export type ProposalSerializable = {
   afterStateHashes: string[]
   appReceiptDataHash: string
   txid: string
+  executionShardKey: string
 }
 
 export function serializeProposal(stream: VectorBufferStream, obj: ProposalSerializable, root = false): void {
@@ -38,6 +39,7 @@ export function serializeProposal(stream: VectorBufferStream, obj: ProposalSeria
   }
   stream.writeString(obj.appReceiptDataHash)
   stream.writeString(obj.txid)
+  stream.writeString(obj.executionShardKey)
 }
 
 export function deserializeProposal(stream: VectorBufferStream): ProposalSerializable {
@@ -64,6 +66,7 @@ export function deserializeProposal(stream: VectorBufferStream): ProposalSeriali
   }
   const appReceiptDataHash = stream.readString()
   const txid = stream.readString()
+  const executionShardKey = stream.readString()
   return {
     applied,
     cant_preApply,
@@ -72,5 +75,6 @@ export function deserializeProposal(stream: VectorBufferStream): ProposalSeriali
     afterStateHashes,
     appReceiptDataHash,
     txid,
+    executionShardKey,
   }
 }

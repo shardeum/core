@@ -3645,6 +3645,8 @@ class TransactionConsenus {
         beforeStateHashes: [],
         cant_preApply: queueEntry.preApplyTXResult.applied === false,
         appReceiptDataHash: '',
+        executionShardKey: queueEntry.txKeys.allKeys[0], 
+        // TODO : const fromKey = queueEntry.executionShardKey ? queueEntry.executionShardKey : queueEntry.txKeys.allKeys[0]
       }
 
       proposal.appReceiptDataHash = queueEntry?.preApplyTXResult?.applyResponse?.appReceiptDataHash || ''
@@ -3882,11 +3884,11 @@ class TransactionConsenus {
     }
     const accountsHash = this.crypto.hash(
       this.crypto.hash(proposal.accountIDs) +
-      this.crypto.hash(proposal.beforeStateHashes) +
-      this.crypto.hash(proposal.afterStateHashes)
+        this.crypto.hash(proposal.beforeStateHashes) +
+        this.crypto.hash(proposal.afterStateHashes)
     )
     const proposalHash = this.crypto.hash(
-      this.crypto.hash(applyStatus) + accountsHash + proposal.appReceiptDataHash
+      this.crypto.hash(applyStatus) + accountsHash + proposal.appReceiptDataHash + proposal.executionShardKey
     )
     return proposalHash
     // } else if (this.stateManager.transactionQueue.usePOQo) {

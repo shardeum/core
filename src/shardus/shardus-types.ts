@@ -1002,6 +1002,8 @@ export interface ServerConfiguration {
     addFoundationNodeAttribute: boolean
     /** enable fixes that allow us to sync and patch the network account so that we have correct config values at more places in the node lifecycle */
     patchNetworkAccountSyncFixes?: boolean
+    // enable shard key refactoring changes as part of SHARD-1892 sec fixes
+    enableShardKeyChanges : boolean
   }
   /** Server IP configuration */
   ip?: {
