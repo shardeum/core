@@ -683,6 +683,7 @@ export type Proposal = {
   afterStateHashes: string[]
   appReceiptDataHash: string
   txid: string
+  executionShardKey: string
 }
 
 export type SignedReceipt = {
@@ -710,7 +711,6 @@ export type ArchiverReceipt = {
   beforeStates?: Shardus.AccountsCopy[]
   afterStates?: Shardus.AccountsCopy[]
   cycle: number
-  executionShardKey: string
   globalModification: boolean
 }
 

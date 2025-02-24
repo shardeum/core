@@ -144,7 +144,7 @@ const SERVER_CONFIG: StrictServerConfiguration = {
     rotationPercentActive: 0.001, //rotate 0.1% of active nodes per cycle when in a steady processing state
     rotationMaxAddPercent: 0.1,
     rotationMaxRemovePercent: 0.05,
-    syncFloorEnabled: false,  //DEBUG=true, ITN initially false for rotation safety
+    syncFloorEnabled: false, //DEBUG=true, ITN initially false for rotation safety
     syncingMaxAddPercent: 0.2,
     syncingDesiredMinCount: 50, //Debug=5, ITN = 50
     allowActivePerCycle: 7,
@@ -183,6 +183,7 @@ const SERVER_CONFIG: StrictServerConfiguration = {
     preferFoundationNodesForTimestamp: false,
     foundationNodeThreshold: 50,
     patchNetworkAccountSyncFixes: true,
+    enableShardKeyChanges: true,
   },
   ip: {
     externalIp: '0.0.0.0',
@@ -375,10 +376,8 @@ const SERVER_CONFIG: StrictServerConfiguration = {
     enableRIAccountsCache: true,
     tickets: {
       updateTicketListTimeInMs: 60000 * 10,
-      ticketTypes: [
-        { type: 'silver', enabled: false }
-      ]
-    }
+      ticketTypes: [{ type: 'silver', enabled: false }],
+    },
   },
 }
 export default SERVER_CONFIG
