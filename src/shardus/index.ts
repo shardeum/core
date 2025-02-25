@@ -2062,7 +2062,7 @@ class Shardus extends EventEmitter {
       const node = closestNodesByPubKey.get(nodePublicKey)
       const isValid = this.crypto.verify(appData, nodePublicKey)
       if (node && isValid) {
-        validSigners.add(nodePublicKey)
+        validSigners.add(nodePublicKey.toLowerCase())
       }
       // early break loop
       if (validSigners.size >= minRequired) {
