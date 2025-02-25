@@ -2038,7 +2038,6 @@ class Shardus extends EventEmitter {
     nodesToSign: number,
     allowedBackupNodes: number
   ): { success: boolean; reason: string } {
-    // let validNodes = []
     let appData = { ...signedAppData }
     if (appData.signs) delete appData.signs
     if (appData.sign) delete appData.sign
@@ -2051,7 +2050,7 @@ class Shardus extends EventEmitter {
         closestNodesByPubKey.set(node.publicKey, node)
       }
     }
-    const validSigns = new Set<string>()
+    const validSigners = new Set<string>()
     for (let i = 0; i < signs.length; i++) {
       const sign = signs[i]
       const nodePublicKey = sign.owner
@@ -2063,11 +2062,10 @@ class Shardus extends EventEmitter {
       const node = closestNodesByPubKey.get(nodePublicKey)
       const isValid = this.crypto.verify(appData, nodePublicKey)
       if (node && isValid) {
-        validSigns.add(sign.sig)
+        validSigners.add(nodePublicKey.toLowerCase())
       }
       // early break loop
-      if (validSigns.size >= minRequired) {
-        // if (validNodes.length >= minRequired) {
+      if (validSigners.size >= minRequired) {
         return {
           success: true,
           reason: `Validated by ${minRequired} valid nodes!`,
