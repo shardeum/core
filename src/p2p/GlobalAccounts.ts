@@ -111,8 +111,8 @@ export function setGlobal(address, addressHash, value, when, source) {
   }
 
   // Create a tx for setting a global account
-  const tx: P2P.GlobalAccountsTypes.SetGlobalTx = { address, addressHash, value, when, source }
-  const txHash = Context.shardus.app.calculateTxId(tx.value as OpaqueTransaction)
+  const txHash = Context.shardus.app.calculateTxId(value as OpaqueTransaction)
+  const tx: P2P.GlobalAccountsTypes.SetGlobalTx = { address, addressHash, value, when, source, txId: txHash }
 
   // Sign tx
   const signedTx: P2P.GlobalAccountsTypes.SignedSetGlobalTx = Context.crypto.sign(tx)
