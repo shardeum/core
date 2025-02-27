@@ -54,6 +54,7 @@ describe('RepairMissingAccountReq Serialization', () => {
               beforeStateHashes: ['b1', 'b2', 'b3'],
               afterStateHashes: ['a1', 'a2', 'a3'],
               appReceiptDataHash: 'hash',
+              executionShardKey: 'shardKey',
             },
             signaturePack: [
               {
@@ -121,6 +122,7 @@ describe('RepairMissingAccountReq Serialization', () => {
               beforeStateHashes: ['b1', 'b2', 'b3'],
               afterStateHashes: ['a1', 'a2', 'a3'],
               appReceiptDataHash: 'hash',
+              executionShardKey: 'shardKey',
             },
             signaturePack: [
               {
@@ -156,6 +158,7 @@ describe('RepairMissingAccountReq Serialization', () => {
               beforeStateHashes: ['b1', 'b2', 'b3'],
               afterStateHashes: ['a1', 'a2', 'a3'],
               appReceiptDataHash: 'hash',
+              executionShardKey: 'shardKey',
             },
             signaturePack: [
               {
@@ -220,6 +223,7 @@ describe('RepairMissingAccountReq Serialization', () => {
               beforeStateHashes: ['b1', 'b2', 'b3'],
               afterStateHashes: ['a1', 'a2', 'a3'],
               appReceiptDataHash: 'hash',
+              executionShardKey: 'shardKey',
             },
             signaturePack: [
               {
@@ -255,6 +259,7 @@ describe('RepairMissingAccountReq Serialization', () => {
               beforeStateHashes: ['b1', 'b2', 'b3'],
               afterStateHashes: ['a1', 'a2', 'a3'],
               appReceiptDataHash: 'hash',
+              executionShardKey: 'shardKey',
             },
             signaturePack: [
               {
@@ -319,6 +324,7 @@ describe('RepairMissingAccountReq Serialization', () => {
               beforeStateHashes: ['b1', 'b2', 'b3'],
               afterStateHashes: ['a1', 'a2', 'a3'],
               appReceiptDataHash: 'hash',
+              executionShardKey: 'shardKey',
             },
             signaturePack: [
               {
@@ -350,6 +356,7 @@ describe('RepairMissingAccountReq Serialization', () => {
               beforeStateHashes: ['b1', 'b2', 'b3'],
               afterStateHashes: ['a1', 'a2', 'a3'],
               appReceiptDataHash: 'hash',
+              executionShardKey: 'shardKey',
             },
             signaturePack: [
               {
@@ -418,6 +425,7 @@ describe('RepairMissingAccountReq Deserialization', () => {
               beforeStateHashes: ['b1', 'b2', 'b3'],
               afterStateHashes: ['a1', 'a2', 'a3'],
               appReceiptDataHash: 'hash',
+              executionShardKey: 'shardKey',
             },
             signaturePack: [
               {
@@ -474,6 +482,7 @@ describe('RepairMissingAccountReq Deserialization', () => {
               beforeStateHashes: ['b1', 'b2', 'b3'],
               afterStateHashes: ['a1', 'a2', 'a3'],
               appReceiptDataHash: 'hash',
+              executionShardKey: 'shardKey',
             },
             signaturePack: [
               {
@@ -505,6 +514,7 @@ describe('RepairMissingAccountReq Deserialization', () => {
               beforeStateHashes: ['b1', 'b2', 'b3'],
               afterStateHashes: ['a1', 'a2', 'a3'],
               appReceiptDataHash: 'hash',
+              executionShardKey: 'shardKey',
             },
             signaturePack: [
               {
