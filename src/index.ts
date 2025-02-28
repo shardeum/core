@@ -12,6 +12,13 @@ export { nestedCountersInstance } from './utils/nestedCounters'
 
 export { DevSecurityLevel } from './shardus/shardus-types'
 
+// Export version-related functionality
+export {
+  meetsMinimumVersion,
+  isWithinMaximumVersion,
+  VersionValidationResult,
+} from './utils/functions/version'
+
 export { VectorBufferStream } from './utils/serialization/VectorBufferStream'
 
 //export { JoinRequest } from './shardus/shardus-types'
