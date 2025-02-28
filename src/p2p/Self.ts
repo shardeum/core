@@ -837,7 +837,20 @@ async function checkNodeId(nodeMatch: (node: any) => boolean, selfId: string): P
   if (!node) {
     //check the latest 4 cycles from the archiver
     info('syncCycleChain: checkNodeId: Getting last 4 cycles from archiver check node id')
-    const latestCycles = await getLatestCyclesFromArchiver(4)
+    let latestCycles = undefined
+    for(let i = 0; i < 30; i++){
+      try {
+        nestedCountersInstance.countEvent('p2p', `syncCycleChain: checkNodeId: getting latest cycles from archiver`)
+        latestCycles = await getLatestCyclesFromArchiver(4)
+        nestedCountersInstance.countEvent('p2p', `syncCycleChain: checkNodeId: got latest cycles from archiver: ${i}`)
+        break
+      }
+      catch(e){
+        nestedCountersInstance.countEvent('p2p', `syncCycleChain: checkNodeId: getting latest cycles from archiver failed:${i}`)
+        info(`syncCycleChain: checkNodeId: error getting latest cycles from archiver ${e.message}`)
+        await utils.sleep(1000)
+      }
+    }
     for (const cycle of latestCycles) {
       node = cycle.joinedConsensors.find(nodeMatch)
       info(`syncCycleChain: checkNodeId: cycle ${cycle.counter} node ${node?.id}`)
