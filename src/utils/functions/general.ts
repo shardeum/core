@@ -412,24 +412,6 @@ export function compareObjectShape(
   return { isValid, error }
 }
 
-// version checker
-export function isEqualOrNewerVersion(oldVer: string, newVer: string): boolean {
-  if (oldVer === newVer) {
-    return true
-  }
-  const oldParts = oldVer.split('.')
-  const newParts = newVer.split('.')
-  for (let i = 0; i < newParts.length; i++) {
-    // eslint-disable-next-line security/detect-object-injection
-    const a = ~~newParts[i] // parse int
-    if (oldParts.length <= i) return false
-    // eslint-disable-next-line security/detect-object-injection
-    const b = ~~oldParts[i] // parse int
-    if (a > b) return true
-    if (a < b) return false
-  }
-  return false
-}
 
 // adapted from stack overflow post
 export function humanFileSize(size: number): string {

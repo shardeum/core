@@ -4,7 +4,7 @@ import * as http from '../../http'
 import { logFlags } from '../../logger'
 import { hexstring, P2P } from '@shardeum-foundation/lib-types'
 import * as utils from '../../utils'
-import { validateTypes, isEqualOrNewerVersion } from '../../utils'
+import { validateTypes } from '../../utils'
 import * as Comms from '../Comms'
 import { config, crypto, logger, network, shardus } from '../Context'
 import * as CycleChain from '../CycleChain'
@@ -1391,17 +1391,47 @@ function verifyNotIPv6(joinRequest: P2P.JoinTypes.JoinRequest): JoinRequestRespo
  *
  * If the `joinRequestVersion` is not older than the current version of the
  * node, it returns `null`.
+ * 
+ * Note: 'null' means the version is valid to join or that we are not checking versions.
+ * Note: As we have updated version logic to use semVer but not the underlying stgring versions,
+ * we need to parse the version string to a semVer object and then validate the semVer object.
  */
 function validateVersion(joinRequestVersion: string): JoinRequestResponse | null {
-  if (config.p2p.checkVersion && !isEqualOrNewerVersion(version, joinRequestVersion)) {
-    /* prettier-ignore */ warn(`version number is old. Our node version is ${version}. Join request node version is ${joinRequestVersion}`)
-    nestedCountersInstance.countEvent('p2p', `join-reject-version ${joinRequestVersion}`)
-    return {
-      success: false,
-      reason: `Old shardus core version, please statisfy at least ${version}`,
-      fatal: true,
-    }
+  // If version checking is not enabled, return null
+  if (config.p2p.checkVersion !== true) {
+    return null
   }
+
+  const versionValidationResult = utils.meetsMinimumVersion(version, joinRequestVersion)
+  if (versionValidationResult === utils.VersionValidationResult.Success) {
+    return null
+  }
+
+  let errorMessage = '' 
+  switch (versionValidationResult) {
+    case utils.VersionValidationResult.ComparisonFailed:
+      errorMessage = `Version too old - Core: ${version}, Join Request: ${joinRequestVersion}`
+      break
+    case utils.VersionValidationResult.ControlVersionParseFailure:
+      errorMessage = `Error parsing core version - Core: ${version}, Join Request: ${joinRequestVersion}`
+      break
+    case utils.VersionValidationResult.InvalidControlVersion:
+      errorMessage = `Invalid core version - Core: ${version}, Join Request: ${joinRequestVersion}`
+      break
+    case utils.VersionValidationResult.TestVersionParseFailure:
+      errorMessage = `Error parsing join request version - Core: ${version}, Join Request: ${joinRequestVersion}`
+      break
+    case utils.VersionValidationResult.InvalidTestVersion:
+      errorMessage = `Invalid join request version - Core: ${version}, Join Request: ${joinRequestVersion}`
+      break
+    default:
+      errorMessage = `Unexpected validation result (${versionValidationResult}) - Core: ${version}, Join Request: ${joinRequestVersion}`
+      break
+  }
+
+  warn(errorMessage)
+  nestedCountersInstance.countEvent('p2p', `join-reject-version-validation`)
+  return { success: false, reason: errorMessage, fatal: true }
 }
 
 /**
