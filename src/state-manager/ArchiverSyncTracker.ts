@@ -489,7 +489,10 @@ export default class ArchiverSyncTracker implements SyncTrackerInterface {
           receivedBusyMessageTimes = 0
           await utils.sleep(10000)
         } else { 
-          throw new Error(errorString)
+          //this throw made no sense... the else case here is the happy path, as in 
+          //we have not run out of attempts to keep asking archivers
+          //perhaps it would have even broken the restore if there was more than two archivers
+          //throw new Error(errorString)
         }
       }
     }
@@ -568,14 +571,14 @@ export default class ArchiverSyncTracker implements SyncTrackerInterface {
         if (askRetriesLeft > 0) {
           askRetriesLeft--
         } else {
-          retryWithNextArchiver('syncAccountData1', 'out of archiver account sync retries')
+          await retryWithNextArchiver('syncAccountData1', 'out of archiver account sync retries')
         }
         continue
       }
 
       if (result == null) {
         /* prettier-ignore */ if (logFlags.verbose) if (logFlags.error) this.accountSync.mainLogger.error(`ASK FAIL syncAccountData result == null archiver:${this.archiverDataSourceHelper.dataSourceArchiver.publicKey}`)
-        retryWithNextArchiver('syncAccountData2', 'out of account archivers to ask: syncAccountData2')
+        await retryWithNextArchiver('syncAccountData2', 'out of account archivers to ask: syncAccountData2')
         continue
       }
 
@@ -585,14 +588,14 @@ export default class ArchiverSyncTracker implements SyncTrackerInterface {
         //interpret timeout as a busy archiver, so that we can keep try retrying
         if(result?.error != null && result.error.includes('Timeout') ){
           receivedBusyMessageTimes++
-          retryWithNextArchiver('archiver success:false', 'Archiver is busy serving other validators: Timeout')
+          await retryWithNextArchiver('archiver success:false', 'Archiver is busy serving other validators: Timeout')
           /* prettier-ignore */ nestedCountersInstance.countEvent(`archiver_sync`, `archiver is busy: Timeout`)
         } else if (result.error === 'Archiver is busy serving other validators at the moment!') {
           receivedBusyMessageTimes++
-          retryWithNextArchiver('archiver success:false', 'Archiver is busy serving other validators')
+          await retryWithNextArchiver('archiver success:false', 'Archiver is busy serving other validators')
           /* prettier-ignore */ nestedCountersInstance.countEvent(`archiver_sync`, `archiver is busy`)
         } else {
-          retryWithNextArchiver('archiver success:false', result.error)
+          await retryWithNextArchiver('archiver success:false', result.error)
           /* prettier-ignore */ nestedCountersInstance.countEvent(`archiver_sync`, `archiver is other error: ${result.error}`)
         }
         continue
@@ -602,7 +605,7 @@ export default class ArchiverSyncTracker implements SyncTrackerInterface {
 
       if (result.data == null) {
         /* prettier-ignore */ if (logFlags.verbose) if (logFlags.error) this.accountSync.mainLogger.error(`ASK FAIL syncAccountData result.data == null archiver:${this.archiverDataSourceHelper.dataSourceArchiver.publicKey}`)
-        retryWithNextArchiver('syncAccountData3', 'out of account archivers to ask: syncAccountData3')
+        await retryWithNextArchiver('syncAccountData3', 'out of account archivers to ask: syncAccountData3')
         continue
       }
       // accountData is in the form [{accountId, stateId, data}] for n accounts.
