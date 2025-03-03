@@ -44,6 +44,7 @@ describe('Version Management', () => {
       expect(() => parseSemVersion(null)).toThrow()
       expect(() => parseSemVersion(undefined)).toThrow()
       expect(() => parseSemVersion('')).toThrow()
+      expect(() => parseSemVersion('1')).toThrow()
       expect(() => parseSemVersion('1.2')).toThrow()
       expect(() => parseSemVersion('1.2.3.4')).toThrow()
       expect(() => parseSemVersion('a.b.c')).toThrow()
@@ -321,5 +322,35 @@ describe('Version Management', () => {
       expect(isWithinMaximumVersion('1.0.0', '1.0.0-prerelease.1')).toBe(VersionValidationResult.Success)
       expect(isWithinMaximumVersion('1.0.0-prerelease.1', '1.0.0')).toBe(VersionValidationResult.ComparisonFailed)
     })
+  })
+
+  describe('POC', () => {
+    it('Tests all POC cases for proper acceptance or rejection of versions', () => {
+      expect(meetsMinimumVersion('1.2.0', '1.2')).toBe(VersionValidationResult.TestVersionParseFailure)
+      expect(meetsMinimumVersion('1.2.0', '1.3.0')).toBe(VersionValidationResult.Success)
+      expect(meetsMinimumVersion('1.2.0', '1.10')).toBe(VersionValidationResult.TestVersionParseFailure)
+      expect(meetsMinimumVersion('1.2.0', '1.2.0')).toBe(VersionValidationResult.Success)
+      expect(meetsMinimumVersion('1.2.0', '1.2beta')).toBe(VersionValidationResult.TestVersionParseFailure)
+      expect(meetsMinimumVersion('1.2.0', '1.1')).toBe(VersionValidationResult.TestVersionParseFailure)
+      expect(meetsMinimumVersion('1.2.0', '1.2.5')).toBe(VersionValidationResult.Success)
+      expect(meetsMinimumVersion('1.2.0', '1.2.3')).toBe(VersionValidationResult.Success)   
+      expect(meetsMinimumVersion('1.2.0', '1.10.0')).toBe(VersionValidationResult.Success)
+      expect(meetsMinimumVersion('1.2.0', '1.2')).toBe(VersionValidationResult.TestVersionParseFailure)
+    })    
+  })
+
+  describe('POC2', () => {
+    it('Tests all POC cases for proper acceptance or rejection of versions', () => {
+      expect(meetsMinimumVersion('1.2', '1.2.0')).toBe(VersionValidationResult.ControlVersionParseFailure)
+      expect(meetsMinimumVersion('1.3.0', '1.2.0')).toBe(VersionValidationResult.ComparisonFailed)
+      expect(meetsMinimumVersion('1.10', '1.2.0')).toBe(VersionValidationResult.ControlVersionParseFailure)
+      expect(meetsMinimumVersion('1.2.0', '1.2.0')).toBe(VersionValidationResult.Success)
+      expect(meetsMinimumVersion('1.2beta', '1.2.0')).toBe(VersionValidationResult.ControlVersionParseFailure)
+      expect(meetsMinimumVersion('1.1', '1.2.0')).toBe(VersionValidationResult.ControlVersionParseFailure)
+      expect(meetsMinimumVersion('1.2.5', '1.2.0')).toBe(VersionValidationResult.ComparisonFailed)
+      expect(meetsMinimumVersion('1.2.3', '1.2.0')).toBe(VersionValidationResult.ComparisonFailed)   
+      expect(meetsMinimumVersion('1.10.0', '1.2.0')).toBe(VersionValidationResult.ComparisonFailed)
+      expect(meetsMinimumVersion('1.2', '1.2.0')).toBe(VersionValidationResult.ControlVersionParseFailure)
+    })    
   })
 }) 
