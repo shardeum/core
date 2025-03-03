@@ -1393,8 +1393,6 @@ function verifyNotIPv6(joinRequest: P2P.JoinTypes.JoinRequest): JoinRequestRespo
  * node, it returns `null`.
  * 
  * Note: 'null' means the version is valid to join or that we are not checking versions.
- * Note: As we have updated version logic to use semVer but not the underlying stgring versions,
- * we need to parse the version string to a semVer object and then validate the semVer object.
  */
 function validateVersion(joinRequestVersion: string): JoinRequestResponse | null {
   // If version checking is not enabled, return null
