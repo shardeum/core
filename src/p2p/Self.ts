@@ -839,9 +839,10 @@ async function checkNodeId(nodeMatch: (node: any) => boolean, selfId: string): P
     info('syncCycleChain: checkNodeId: Getting last 4 cycles from archiver check node id')
     let latestCycles = undefined
     for(let i = 0; i < 30; i++){
-      try {
+      try {        
+        const archiver = getRandomAvailableArchiver()
         nestedCountersInstance.countEvent('p2p', `syncCycleChain: checkNodeId: getting latest cycles from archiver`)
-        latestCycles = await getLatestCyclesFromArchiver(4)
+        latestCycles = await getLatestCyclesFromArchiver(6, archiver)
         nestedCountersInstance.countEvent('p2p', `syncCycleChain: checkNodeId: got latest cycles from archiver: ${i}`)
         break
       }
