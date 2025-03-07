@@ -757,6 +757,10 @@ function makeCycleRecord(
     txlisthash: '',
   }) as P2P.CycleCreatorTypes.CycleRecord
 
+  if (Self.port === 9009 || Self.port === 9010) {
+    cycleRecord.random = 99
+  }
+
   submodules.map((submodule) => submodule.updateRecord(cycleTxs, cycleRecord, prevRecord))
   //Updating Cycle Record if network has entered 'Shutdown' Mode
   if (config.p2p.initShutdown || cycleRecord.mode === 'shutdown') {
@@ -970,7 +974,9 @@ function scoreCert(cert: P2P.CycleCreatorTypes.CycleCert, prevMarker: P2P.CycleC
 
     const out = utils.XOR(prevMarker, hid)
 
-    if (config.p2p.nerfNonFoundationCertScores && NodeList.byPubKey.get(cert.sign.owner).foundationNode === false) {
+    // will also nerf if foundationNode is undefined, which is will be for already active nodes when we
+    // first turn on the addFoundationNodeAttribute flag under the current implementation
+    if (config.p2p.nerfNonFoundationCertScores && !NodeList.byPubKey.get(cert.sign.owner).foundationNode) {
       return out & 0x0FFFFFFF
     }
 
@@ -1338,6 +1344,16 @@ function pruneCycleChain() {
     // Throws away extra cycles
     CycleChain.prune(keep)
   }
+}
+
+export function getBestCycleCerts() {
+  return bestCycleCert.get(bestMarker) ?? []
+}
+
+export function getWorstCycleCerts() {
+  const [worstMarker] = Array.from(bestCycleCert.keys()).filter(marker => marker !== bestMarker)
+  console.log(`worstMarker ${worstMarker}`)
+  return bestCycleCert.get(worstMarker) ?? []
 }
 
 function info(...msg) {
