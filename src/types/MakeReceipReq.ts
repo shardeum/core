@@ -17,6 +17,7 @@ export type MakeReceiptReq = {
   when: number
   source: string
   txId: string
+  afterStateHash: string
 }
 
 export function serializeMakeReceiptReq(stream: VectorBufferStream, obj: MakeReceiptReq, root = false): void {
@@ -32,6 +33,7 @@ export function serializeMakeReceiptReq(stream: VectorBufferStream, obj: MakeRec
   stream.writeBigUInt64(BigInt(obj.when))
   stream.writeString(obj.source)
   stream.writeString(obj.txId)
+  stream.writeString(obj.afterStateHash)
 }
 
 export function deserializeMakeReceiptReq(stream: VectorBufferStream): MakeReceiptReq {
@@ -50,6 +52,7 @@ export function deserializeMakeReceiptReq(stream: VectorBufferStream): MakeRecei
     when: Number(stream.readBigUInt64()),
     source: stream.readString(),
     txId: stream.readString(),
+    afterStateHash: stream.readString(),
   }
   const errors = verifyPayload(AJVSchemaEnum.MakeReceiptReq, obj)
   if (errors && errors.length > 0) {

@@ -7647,11 +7647,14 @@ class TransactionQueue {
       const isGlobal = this.stateManager.accountGlobals.isGlobalAccount(account.accountId)
       const accountCopy = {
         accountId: account.accountId,
-        data: account.data.data,
+        data: account.data,
         timestamp: account.timestamp,
         hash: account.data.stateId,
-        isGlobal
+        isGlobal,
       } as Shardus.AccountsCopy
+      console.log('[1926a] The account copy here is', accountCopy)
+      console.log('[1926b] The account.data object here is', account.data)
+      console.log('[1926c] The account.data.data object here is', account.data.data)
       accountsToAdd[account.accountId] = accountCopy
     }
     
