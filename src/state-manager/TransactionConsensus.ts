@@ -3700,7 +3700,6 @@ class TransactionConsenus {
           // note this is going to stomp the hash value for the account
           // this used to happen in dapp.updateAccountFull  we now have to save off prevStateId on the wrappedResponse
           //We have to update the hash now! Not sure if this is the greatest place but it needs to be done
-          console.log("[1926d] The wrappedState object here is", wrappedState.data)
           const updatedHash = this.app.calculateAccountHash(wrappedState.data)
           wrappedState.stateId = updatedHash
 
