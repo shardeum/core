@@ -7647,7 +7647,7 @@ class TransactionQueue {
       const isGlobal = this.stateManager.accountGlobals.isGlobalAccount(account.accountId)
       const accountCopy = {
         accountId: account.accountId,
-        data: account.data,
+        data: account.data.data,
         timestamp: account.timestamp,
         hash: account.data.stateId,
         isGlobal,
