@@ -757,10 +757,6 @@ function makeCycleRecord(
     txlisthash: '',
   }) as P2P.CycleCreatorTypes.CycleRecord
 
-  if (Self.port === 9009 || Self.port === 9010) {
-    cycleRecord.random = 99
-  }
-
   submodules.map((submodule) => submodule.updateRecord(cycleTxs, cycleRecord, prevRecord))
   //Updating Cycle Record if network has entered 'Shutdown' Mode
   if (config.p2p.initShutdown || cycleRecord.mode === 'shutdown') {
@@ -1348,12 +1344,6 @@ function pruneCycleChain() {
 
 export function getBestCycleCerts() {
   return bestCycleCert.get(bestMarker) ?? []
-}
-
-export function getWorstCycleCerts() {
-  const [worstMarker] = Array.from(bestCycleCert.keys()).filter(marker => marker !== bestMarker)
-  console.log(`worstMarker ${worstMarker}`)
-  return bestCycleCert.get(worstMarker) ?? []
 }
 
 function info(...msg) {

@@ -851,19 +851,11 @@ export function sendData() {
     for (let i = 0; i < cycleRecords.length; i++) {
       if (logFlags.console)
         console.log('cycleRecords counter to sent to the archiver', cycleRecords[i].counter)
-      console.log('cycleRecords[i]', cycleRecords[i])
       cyclesWithMarker.push({
         ...cycleRecords[i],
         marker: computeCycleMarker(cycleRecords[i]),
         certificates: CycleCreator.getBestCycleCerts(),
       })
-    }
-    if (Self.port === 9009 || Self.port === 9010) {
-      delete cyclesWithMarker[0].marker
-      delete cyclesWithMarker[0].certificates
-      cyclesWithMarker[0].random = 99
-      cyclesWithMarker[0].marker = computeCycleMarker(cyclesWithMarker[0])
-      cyclesWithMarker[0].certificates = CycleCreator.getWorstCycleCerts()
     }
     // Update lastSentCycle
     if (cyclesWithMarker.length > 0) {
@@ -879,8 +871,6 @@ export function sendData() {
       }
       // Tag dataResponse
       const taggedDataResponse = crypto.tag(dataResponse, recipient.curvePk)
-      console.log('cyclesWithMarker', cyclesWithMarker[0])
-      console.log('certificates', cyclesWithMarker[0].certificates)
       try {
         // console.log('connected socketes', publicKey, connectedSockets)
         if (io.sockets.sockets[connectedSockets[publicKey]])
