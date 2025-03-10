@@ -19,6 +19,7 @@ import * as Nodelist from './NodeList'
 import { ensureKeySecurity, getDevPublicKeys } from '../debug'
 import { DevSecurityLevel } from '../shardus/shardus-types'
 import { SignedObject } from '@shardeum-foundation/lib-types/build/src/p2p/P2PTypes'
+import { timingSafeEqual } from 'crypto'
 
 /** STATE */
 
@@ -288,7 +289,7 @@ export function init(): void {
         res.send({ status: 'fail', error: verificationResult.message })
         return
       }
-      debugDropNGTs.push({ ...reqParamsDropNGT, cycle: verificationResult.cycle})
+      debugDropNGTs.push({ ...reqParamsDropNGT, cycle: verificationResult.cycle })
       res.json({ status: 'ok', message: verificationResult.message })
     } else {
       txList.splice(index, 1)
@@ -610,6 +611,17 @@ async function _addNetworkTx(addTx: P2P.ServiceQueueTypes.AddNetworkTx): Promise
       return false
     }
 
+    const hash = crypto.hash(addTx.txData)
+    const hashBuffer = Buffer.from(hash)
+    const txHashBuffer = Buffer.from(addTx.hash)
+
+    // Compare lengths first to avoid timing attacks
+    if (hashBuffer.length !== txHashBuffer.length
+      || !timingSafeEqual(Buffer.from(addTx.hash), Buffer.from(hash))) {
+      /* prettier-ignore */ if (logFlags.p2pNonFatal) warn('Hash mismatch', addTx.hash, hash)
+      return false
+    }
+
     if (addTx.cycle < currentCycle - 1 || addTx.cycle > currentCycle) {
       /* prettier-ignore */ if (logFlags.p2pNonFatal) warn(`Invalid cycle ${addTx.cycle} for current cycle ${currentCycle}`)
       return false
@@ -635,18 +647,18 @@ async function _addNetworkTx(addTx: P2P.ServiceQueueTypes.AddNetworkTx): Promise
 
     if (!(await verifyFunction(addTx))) {
       /* prettier-ignore */ if (logFlags.p2pNonFatal) error(
-        `Failed add network tx verification of type ${addTx.type} \n tx: ${stringifyReduce(addTx.txData)}`
-      )
+      `Failed add network tx verification of type ${addTx.type} \n tx: ${stringifyReduce(addTx.txData)}`
+    )
       return false
     }
     /* prettier-ignore */ if (logFlags.p2pNonFatal) console.log('add network tx', addTx.type, addTx.txData.publicKey, addTx)
     return true
   } catch (e) {
     /* prettier-ignore */ if (logFlags.p2pNonFatal) error(
-      `Failed add network tx verification of type ${addTx.type} \n tx: ${stringifyReduce(
-        addTx.txData
-      )}\n error: ${e instanceof Error ? e.stack : e}`
-    )
+    `Failed add network tx verification of type ${addTx.type} \n tx: ${stringifyReduce(
+      addTx.txData
+    )}\n error: ${e instanceof Error ? e.stack : e}`
+  )
     return false
   }
 }
@@ -878,7 +890,7 @@ function verifyDebugDropNGT(reqParamsDropNGT, cycle): { success: boolean; messag
         }
       } else {
         /* prettier-ignore */ if (logFlags.verbose) console.log('Authorization failed for security level HIGH')
-        /* prettier-ignore */ nestedCountersInstance.countEvent( 'security', 'Authorization failed for security level HIGH' )
+        /* prettier-ignore */ nestedCountersInstance.countEvent('security', 'Authorization failed for security level HIGH')
         return {
           success: false,
           message: 'Authorization failed for security level HIGH'
@@ -927,7 +939,7 @@ function verifyDebugDropNGT(reqParamsDropNGT, cycle): { success: boolean; messag
         }
       } else {
         /* prettier-ignore */ if (logFlags.verbose) console.log('Authorization failed for security level HIGH')
-        /* prettier-ignore */ nestedCountersInstance.countEvent( 'security', 'Authorization failed for security level HIGH' )
+        /* prettier-ignore */ nestedCountersInstance.countEvent('security', 'Authorization failed for security level HIGH')
         return {
           success: false,
           message: 'Authorization failed for security level HIGH'
