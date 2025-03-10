@@ -37,7 +37,6 @@ import { DevSecurityLevel } from '../shardus/shardus-types'
 import { verifyPayload } from '../types/ajv/Helpers'
 import { AJVSchemaEnum } from '../types/enum/AJVSchemaEnum'
 
-
 const clone = rfdc()
 
 /** STATE */
@@ -855,6 +854,7 @@ export function sendData() {
       cyclesWithMarker.push({
         ...cycleRecords[i],
         marker: computeCycleMarker(cycleRecords[i]),
+        certificates: CycleCreator.getBestCycleCerts(),
       })
     }
     // Update lastSentCycle

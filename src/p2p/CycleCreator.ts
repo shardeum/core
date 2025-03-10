@@ -970,7 +970,9 @@ function scoreCert(cert: P2P.CycleCreatorTypes.CycleCert, prevMarker: P2P.CycleC
 
     const out = utils.XOR(prevMarker, hid)
 
-    if (config.p2p.nerfNonFoundationCertScores && NodeList.byPubKey.get(cert.sign.owner).foundationNode === false) {
+    // will also nerf if foundationNode is undefined, which is will be for already active nodes when we
+    // first turn on the addFoundationNodeAttribute flag under the current implementation
+    if (config.p2p.nerfNonFoundationCertScores && !NodeList.byPubKey.get(cert.sign.owner).foundationNode) {
       return out & 0x0FFFFFFF
     }
 
@@ -1338,6 +1340,10 @@ function pruneCycleChain() {
     // Throws away extra cycles
     CycleChain.prune(keep)
   }
+}
+
+export function getBestCycleCerts() {
+  return bestCycleCert.get(bestMarker) ?? []
 }
 
 function info(...msg) {
