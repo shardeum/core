@@ -168,6 +168,7 @@ describe('MakeReceiptReq Tests', () => {
       stream.writeBigUInt64(BigInt(obj.when))
       stream.writeString(obj.source)
       stream.writeString(obj.txId)
+      stream.writeString(obj.afterStateHash)
       stream.position = 0 // Reset stream position to read from the beginning
       const result = deserializeMakeReceiptReq(stream)
       expect(result).toEqual(obj)
@@ -196,6 +197,7 @@ describe('MakeReceiptReq Tests', () => {
       stream.writeBigUInt64(BigInt(obj.when))
       stream.writeString(obj.source)
       stream.writeString(obj.txId)
+      stream.writeString(obj.afterStateHash)
       stream.position = 0 // Reset stream position to read from the beginning
       const result = deserializeMakeReceiptReq(stream)
       expect(result).toEqual(obj)
@@ -224,6 +226,7 @@ describe('MakeReceiptReq Tests', () => {
       stream.writeBigUInt64(BigInt(obj.when))
       stream.writeString(obj.source)
       stream.writeString(obj.txId)
+      stream.writeString(obj.afterStateHash)
       stream.position = 0 // Reset stream position to read from the beginning
       const result = deserializeMakeReceiptReq(stream)
       expect(result).toEqual(obj)
