@@ -612,7 +612,12 @@ async function _addNetworkTx(addTx: P2P.ServiceQueueTypes.AddNetworkTx): Promise
     }
 
     const hash = crypto.hash(addTx.txData)
-    if (!timingSafeEqual(Buffer.from(addTx.hash), Buffer.from(hash))) {
+    const hashBuffer = Buffer.from(hash)
+    const txHashBuffer = Buffer.from(addTx.hash)
+
+    // Compare lengths first to avoid timing attacks
+    if (hashBuffer.length !== txHashBuffer.length
+      || !timingSafeEqual(Buffer.from(addTx.hash), Buffer.from(hash))) {
       /* prettier-ignore */ if (logFlags.p2pNonFatal) warn('Hash mismatch', addTx.hash, hash)
       return false
     }
