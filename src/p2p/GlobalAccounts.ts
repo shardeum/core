@@ -101,7 +101,29 @@ export function init() {
   Comms.registerGossipHandler(setGlobalGossipRoute.name, setGlobalGossipRoute.handler)
 }
 
-export function setGlobal(address, addressHash, value, when, source) {
+/**
+ * Sets a global account by creating and broadcasting a transaction.
+ *
+ * This function performs the following steps:
+ * 1. Logs the initiation of the setGlobal process if console logging is enabled.
+ * 2. Checks if the current node is active. If not, logs a message and returns.
+ * 3. Creates a transaction (`tx`) for setting a global account with the provided parameters.
+ * 4. Signs the transaction (`signedTx`).
+ * 5. Checks if the state manager is available and logs the state.
+ * 6. Determines the nodes to which the transaction will be broadcasted.
+ * 7. Finds the home node and consensus group for the current node.
+ * 8. Removes the current node from the consensus group.
+ * 9. Sets up a timeout and receipt handling mechanism to process receipts or handle timeouts.
+ * 10. Broadcasts the transaction to the consensus group to trigger the creation of a receipt collection.
+ *
+ * @param address - The address of the global account to set.
+ * @param addressHash - The hash of the address.
+ * @param value - The value to set for the global account.
+ * @param when - The timestamp or condition when the value should be set.
+ * @param source - The source node initiating the transaction.
+ * @param afterStateHash - The state hash after the transaction is applied.
+ */
+export function setGlobal(address, addressHash, value, when, source, afterStateHash) {
   if (logFlags.console) console.log(`SETGLOBAL: WE ARE: ${Self.id.substring(0, 5)}`)
 
   // Only do this if you're active
@@ -112,7 +134,15 @@ export function setGlobal(address, addressHash, value, when, source) {
 
   // Create a tx for setting a global account
   const txHash = Context.shardus.app.calculateTxId(value as OpaqueTransaction)
-  const tx: P2P.GlobalAccountsTypes.SetGlobalTx = { address, addressHash, value, when, source, txId: txHash }
+  const tx: P2P.GlobalAccountsTypes.SetGlobalTx = {
+    address,
+    addressHash,
+    value,
+    when,
+    source,
+    txId: txHash,
+    afterStateHash,
+  }
 
   // Sign tx
   const signedTx: P2P.GlobalAccountsTypes.SignedSetGlobalTx = Context.crypto.sign(tx)

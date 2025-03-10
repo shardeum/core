@@ -3378,8 +3378,18 @@ class Shardus extends EventEmitter {
     }
   }
 
-  setGlobal(address, addressHash, value, when, source) {
-    GlobalAccounts.setGlobal(address, addressHash, value, when, source)
+  /**
+   * Sets a global account value using the GlobalAccont Class' setGlobal function.
+   *
+   * @param address - The address of the account.
+   * @param addressHash - The hash of the address.
+   * @param value - The value to set for the account.
+   * @param when - The timestamp or condition when the value should be set.
+   * @param source - The source of the value.
+   * @param afterStateHash - The state hash after setting the value.
+   */
+  setGlobal(address, addressHash, value, when, source, afterStateHash) {
+    GlobalAccounts.setGlobal(address, addressHash, value, when, source, afterStateHash)
   }
 
   getDebugModeMiddleware() {

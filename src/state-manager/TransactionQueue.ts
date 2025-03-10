@@ -7650,7 +7650,7 @@ class TransactionQueue {
         data: account.data.data,
         timestamp: account.timestamp,
         hash: account.data.stateId,
-        isGlobal
+        isGlobal,
       } as Shardus.AccountsCopy
       accountsToAdd[account.accountId] = accountCopy
     }

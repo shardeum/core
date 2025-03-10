@@ -32,6 +32,7 @@ describe('MakeReceiptReq Tests', () => {
         when: 1234567890,
         source: 'source123',
         txId: 'txId123',
+        afterStateHash: 'afterStateHash123',
       }
       serializeMakeReceiptReq(stream, obj, false)
       stream.position = 0 // Reset stream position to read from the beginning
@@ -57,6 +58,7 @@ describe('MakeReceiptReq Tests', () => {
         when: 1234567890,
         source: 'source123',
         txId: 'txId123',
+        afterStateHash: 'afterStateHash123',
       }
       serializeMakeReceiptReq(stream, obj, true)
       stream.position = 0 // Reset stream position to read from the beginning
@@ -83,6 +85,7 @@ describe('MakeReceiptReq Tests', () => {
         when: 0,
         source: '',
         txId: '',
+        afterStateHash: '',
       }
       serializeMakeReceiptReq(stream, obj, false)
       stream.position = 0 // Reset stream position to read from the beginning
@@ -108,6 +111,7 @@ describe('MakeReceiptReq Tests', () => {
         when: Number.MAX_SAFE_INTEGER,
         source: 'source123',
         txId: 'txId123',
+        afterStateHash: 'afterStateHash123',
       }
       serializeMakeReceiptReq(stream, obj, false)
       stream.position = 0 // Reset stream position to read from the beginning
@@ -153,6 +157,7 @@ describe('MakeReceiptReq Tests', () => {
         when: 1234567890,
         source: 'source123',
         txId: 'txId123',
+        afterStateHash: 'afterStateHash123',
       }
       stream.writeUInt8(1) // Version
       stream.writeString(obj.sign.owner)
@@ -163,6 +168,7 @@ describe('MakeReceiptReq Tests', () => {
       stream.writeBigUInt64(BigInt(obj.when))
       stream.writeString(obj.source)
       stream.writeString(obj.txId)
+      stream.writeString(obj.afterStateHash)
       stream.position = 0 // Reset stream position to read from the beginning
       const result = deserializeMakeReceiptReq(stream)
       expect(result).toEqual(obj)
@@ -180,6 +186,7 @@ describe('MakeReceiptReq Tests', () => {
         when: 0,
         source: '',
         txId: '',
+        afterStateHash: '',
       }
       stream.writeUInt8(1) // Version
       stream.writeString(obj.sign.owner)
@@ -190,6 +197,7 @@ describe('MakeReceiptReq Tests', () => {
       stream.writeBigUInt64(BigInt(obj.when))
       stream.writeString(obj.source)
       stream.writeString(obj.txId)
+      stream.writeString(obj.afterStateHash)
       stream.position = 0 // Reset stream position to read from the beginning
       const result = deserializeMakeReceiptReq(stream)
       expect(result).toEqual(obj)
@@ -207,6 +215,7 @@ describe('MakeReceiptReq Tests', () => {
         when: Number.MAX_SAFE_INTEGER,
         source: 'source123',
         txId: 'txId123',
+        afterStateHash: 'afterStateHash123',
       }
       stream.writeUInt8(1) // Version
       stream.writeString(obj.sign.owner)
@@ -217,6 +226,7 @@ describe('MakeReceiptReq Tests', () => {
       stream.writeBigUInt64(BigInt(obj.when))
       stream.writeString(obj.source)
       stream.writeString(obj.txId)
+      stream.writeString(obj.afterStateHash)
       stream.position = 0 // Reset stream position to read from the beginning
       const result = deserializeMakeReceiptReq(stream)
       expect(result).toEqual(obj)
