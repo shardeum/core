@@ -34,6 +34,8 @@ import { currentQuarter } from './CycleCreator'
 import { Utils } from '@shardeum-foundation/lib-types'
 import * as ServiceQueue from './ServiceQueue'
 import Shardus from '../shardus'
+import path from "path";
+import fs from "fs/promises";
 
 /** STATE */
 
@@ -291,10 +293,36 @@ export function startupV2(shardus: Shardus): Promise<boolean> {
         // If we see and id with a real value then our node has been selected to go active
         // start the syncing process and stop looping the attemptJoining function
         if (resp?.id) {
+
+          // check if file exists first
+          let fileExists = false
+          const filePath = path.join(Context.config.p2p.verticalScalingMode.path, '.sync-request')
+          if (Context.config.p2p.verticalScalingMode.enabled) {
+            info('verticalScalingMode: enabled')
+            // eslint-disable-next-line security/detect-non-literal-fs-filename
+            fileExists = await fs.stat(filePath)
+                .then(() => true)
+                .catch(() => false)
+
+            if (!fileExists) {
+              info('verticalScalingMode: sync-request file does not exist')
+              // write a file to FS
+              try {
+                // eslint-disable-next-line security/detect-non-literal-fs-filename
+                await fs.writeFile(filePath, resp.id)
+                process.exit(1) // exiting with status 1 causes our modified PM2 to not restart the process
+              } catch (err) {
+                console.error('The file could not be saved:', err)
+              }
+            }
+          }
+
           //detect if we are a zombie node (bounce and network think we are still active)
           //if we never even tried to join yet but the network thinks we are active
           //then we are a zombie node
-          if (firstTimeJoiningLoop === true) {
+          const skipSyncingState = Context.config.p2p.verticalScalingMode.enabled && fileExists
+          info(`startupV2: skipSyncingState ${skipSyncingState}`)
+          if (firstTimeJoiningLoop === true && !skipSyncingState) {
             isFailed = true
 
             /* prettier-ignore */ nestedCountersInstance.countEvent('p2p', `detected self as zombie ${latestCycle.counter} waiting ${Context.config.p2p.delayZombieRestartSec} before exiting`, 1)
@@ -317,6 +345,16 @@ export function startupV2(shardus: Shardus): Promise<boolean> {
 
             attemptJoiningRunning = false
             return
+          }
+
+          // cleanup the file for the next run
+          if (Context.config.p2p.verticalScalingMode.enabled && fileExists) {
+            try {
+              // eslint-disable-next-line security/detect-non-literal-fs-filename
+              await fs.unlink(filePath)
+            } catch (err) {
+              console.error('The file could not be deleted:', err)
+            }
           }
 
           id = resp.id

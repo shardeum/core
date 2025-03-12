@@ -1003,6 +1003,11 @@ export interface ServerConfiguration {
     enableShardKeyChanges: boolean
     // control the max content size for http responses
     maxResponseSize: number
+    // settings for verical scaling by shutting down nodes after syncing is done and restarting them on better provisioned machines
+    verticalScalingMode: {
+      enabled: boolean,
+      path: string
+    }
   }
   /** Server IP configuration */
   ip?: {
