@@ -36,6 +36,8 @@ import * as ServiceQueue from './ServiceQueue'
 import Shardus from '../shardus'
 import path from "path";
 import fs from "fs/promises";
+import {localConfig} from "@src/config/localConfig";
+import {sleep} from "../utils";
 
 /** STATE */
 
@@ -296,8 +298,8 @@ export function startupV2(shardus: Shardus): Promise<boolean> {
 
           // check if file exists first
           let fileExists = false
-          const filePath = path.join(Context.config.p2p.verticalScalingMode.path, '.sync-request')
-          if (Context.config.p2p.verticalScalingMode.enabled) {
+          const filePath = path.join(localConfig.verticalScalingMode_path, '.sync-request')
+          if (localConfig.verticalScalingMode_enabled) {
             info('verticalScalingMode: enabled')
             // eslint-disable-next-line security/detect-non-literal-fs-filename
             fileExists = await fs.stat(filePath)
@@ -310,7 +312,11 @@ export function startupV2(shardus: Shardus): Promise<boolean> {
               try {
                 // eslint-disable-next-line security/detect-non-literal-fs-filename
                 await fs.writeFile(filePath, resp.id)
-                process.exit(1) // exiting with status 1 causes our modified PM2 to not restart the process
+                if (localConfig.verticalScalingMode_shutdown_mode === 'shutdown') {
+                  process.exit(1) // exiting with status 1 causes our modified PM2 to not restart the process
+                } else {
+                  await sleep(10 * 10000) // sleep for 10 seconds
+                }
               } catch (err) {
                 console.error('The file could not be saved:', err)
               }
@@ -320,7 +326,7 @@ export function startupV2(shardus: Shardus): Promise<boolean> {
           //detect if we are a zombie node (bounce and network think we are still active)
           //if we never even tried to join yet but the network thinks we are active
           //then we are a zombie node
-          const skipSyncingState = Context.config.p2p.verticalScalingMode.enabled && fileExists
+          const skipSyncingState = localConfig.verticalScalingMode_enabled && fileExists
           info(`startupV2: skipSyncingState ${skipSyncingState}`)
           if (firstTimeJoiningLoop === true && !skipSyncingState) {
             isFailed = true
@@ -348,7 +354,7 @@ export function startupV2(shardus: Shardus): Promise<boolean> {
           }
 
           // cleanup the file for the next run
-          if (Context.config.p2p.verticalScalingMode.enabled && fileExists) {
+          if (localConfig.verticalScalingMode_enabled && fileExists) {
             try {
               // eslint-disable-next-line security/detect-non-literal-fs-filename
               await fs.unlink(filePath)
