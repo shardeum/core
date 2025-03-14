@@ -315,7 +315,7 @@ export function startupV2(shardus: Shardus): Promise<boolean> {
                 if (localConfig.verticalScalingMode_shutdown_mode === 'shutdown') {
                   process.exit(1) // exiting with status 1 causes our modified PM2 to not restart the process
                 } else {
-                  await sleep(10 * 10000) // sleep for 10 seconds
+                  await sleep(10 * 60 * 1000) // sleep for 10 seconds
                 }
               } catch (err) {
                 console.error('The file could not be saved:', err)
