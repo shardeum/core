@@ -1,21 +1,20 @@
-import assert from 'assert';
 import { TypeIdentifierEnum } from '../../../../../src/types/enum/TypeIdentifierEnum';
 
 describe('TypeIdentifierEnum', () => {
   it('should exist as an enum', () => {
-    assert(TypeIdentifierEnum !== undefined);
-    assert(typeof TypeIdentifierEnum === 'object');
+    expect(TypeIdentifierEnum).toBeDefined();
+    expect(typeof TypeIdentifierEnum).toBe('object');
   });
 
   it('should contain expected enum values with correct numeric values', () => {
     // Test a sample of enum values to ensure they exist and have correct values
-    assert.strictEqual(TypeIdentifierEnum.cApoptosisProposalReq, 1);
-    assert.strictEqual(TypeIdentifierEnum.cApoptosisProposalResp, 2);
-    assert.strictEqual(TypeIdentifierEnum.cWrappedReq, 3);
-    assert.strictEqual(TypeIdentifierEnum.cWrappedDataResponse, 5);
-    assert.strictEqual(TypeIdentifierEnum.cBroadcastStateReq, 7);
-    assert.strictEqual(TypeIdentifierEnum.cCachedAppData, 9);
-    assert.strictEqual(TypeIdentifierEnum.cProposalVersion, 66);
+    expect(TypeIdentifierEnum.cApoptosisProposalReq).toBe(1);
+    expect(TypeIdentifierEnum.cApoptosisProposalResp).toBe(2);
+    expect(TypeIdentifierEnum.cWrappedReq).toBe(3);
+    expect(TypeIdentifierEnum.cWrappedDataResponse).toBe(5);
+    expect(TypeIdentifierEnum.cBroadcastStateReq).toBe(7);
+    expect(TypeIdentifierEnum.cCachedAppData).toBe(9);
+    expect(TypeIdentifierEnum.cProposalVersion).toBe(66);
   });
 
   it('should have sequential numeric values starting from 1', () => {
@@ -27,18 +26,18 @@ describe('TypeIdentifierEnum', () => {
       const value = TypeIdentifierEnum[key as keyof typeof TypeIdentifierEnum];
       
       if (typeof value === 'number') {
-        assert.strictEqual(value, i + 1, `Expected ${key} to have value ${i + 1}, but got ${value}`);
+        expect(value).toBe(i + 1);
       }
     }
   });
 
   it('should have bidirectional mapping for numeric enums', () => {
     // Test a sample of reverse mappings
-    assert.strictEqual(TypeIdentifierEnum[1], 'cApoptosisProposalReq');
-    assert.strictEqual(TypeIdentifierEnum[7], 'cBroadcastStateReq');
-    assert.strictEqual(TypeIdentifierEnum[20], 'cSyncTrieHashesReq');
-    assert.strictEqual(TypeIdentifierEnum[48], 'cRequestStateForTxReq');
-    assert.strictEqual(TypeIdentifierEnum[66], 'cProposalVersion');
+    expect(TypeIdentifierEnum[1]).toBe('cApoptosisProposalReq');
+    expect(TypeIdentifierEnum[7]).toBe('cBroadcastStateReq');
+    expect(TypeIdentifierEnum[20]).toBe('cSyncTrieHashesReq');
+    expect(TypeIdentifierEnum[48]).toBe('cRequestStateForTxReq');
+    expect(TypeIdentifierEnum[66]).toBe('cProposalVersion');
   });
 
   it('should be usable as a type', () => {
@@ -48,7 +47,7 @@ describe('TypeIdentifierEnum', () => {
     }
 
     const result = processTypeIdentifier(TypeIdentifierEnum.cBroadcastStateReq);
-    assert.strictEqual(result, 'Processing type identifier: 7');
+    expect(result).toBe('Processing type identifier: 7');
   });
 
   it('should be usable in a switch statement', () => {
@@ -65,16 +64,16 @@ describe('TypeIdentifierEnum', () => {
       }
     }
 
-    assert.strictEqual(getTypeDescription(TypeIdentifierEnum.cApoptosisProposalReq), 'Apoptosis proposal request');
-    assert.strictEqual(getTypeDescription(TypeIdentifierEnum.cBroadcastStateReq), 'Broadcast state request');
-    assert.strictEqual(getTypeDescription(TypeIdentifierEnum.cGetAccountDataReq), 'Get account data request');
-    assert.strictEqual(getTypeDescription(TypeIdentifierEnum.cWrappedReq), 'Unknown type identifier');
+    expect(getTypeDescription(TypeIdentifierEnum.cApoptosisProposalReq)).toBe('Apoptosis proposal request');
+    expect(getTypeDescription(TypeIdentifierEnum.cBroadcastStateReq)).toBe('Broadcast state request');
+    expect(getTypeDescription(TypeIdentifierEnum.cGetAccountDataReq)).toBe('Get account data request');
+    expect(getTypeDescription(TypeIdentifierEnum.cWrappedReq)).toBe('Unknown type identifier');
   });
 
   it('should not contain invalid enum values', () => {
     // @ts-expect-error - Testing runtime behavior with invalid value
-    assert.strictEqual(TypeIdentifierEnum.NonExistentType, undefined);
-    assert.strictEqual(TypeIdentifierEnum[100], undefined);
+    expect(TypeIdentifierEnum.NonExistentType).toBeUndefined();
+    expect(TypeIdentifierEnum[100]).toBeUndefined();
   });
 
   it('should handle type checking correctly', () => {
@@ -89,24 +88,24 @@ describe('TypeIdentifierEnum', () => {
     }
 
     // Positive cases
-    assert.strictEqual(isTypeIdentifier(TypeIdentifierEnum.cApoptosisProposalReq), true);
-    assert.strictEqual(isTypeIdentifier(1), true);
-    assert.strictEqual(isTypeIdentifier(TypeIdentifierEnum.cProposalVersion), true);
+    expect(isTypeIdentifier(TypeIdentifierEnum.cApoptosisProposalReq)).toBe(true);
+    expect(isTypeIdentifier(1)).toBe(true);
+    expect(isTypeIdentifier(TypeIdentifierEnum.cProposalVersion)).toBe(true);
     
     // Negative cases
-    assert.strictEqual(isTypeIdentifier(0), false);
-    assert.strictEqual(isTypeIdentifier(highestValue + 1), false);
-    assert.strictEqual(isTypeIdentifier('cBroadcastStateReq'), false);
-    assert.strictEqual(isTypeIdentifier(null), false);
-    assert.strictEqual(isTypeIdentifier(undefined), false);
+    expect(isTypeIdentifier(0)).toBe(false);
+    expect(isTypeIdentifier(highestValue + 1)).toBe(false);
+    expect(isTypeIdentifier('cBroadcastStateReq')).toBe(false);
+    expect(isTypeIdentifier(null)).toBe(false);
+    expect(isTypeIdentifier(undefined)).toBe(false);
   });
 
   it('should group related types correctly', () => {
     // Test that request/response pairs have sequential IDs
-    assert.strictEqual(TypeIdentifierEnum.cApoptosisProposalReq + 1, TypeIdentifierEnum.cApoptosisProposalResp);
-    assert.strictEqual(TypeIdentifierEnum.cWrappedReq + 1, TypeIdentifierEnum.cWrappedResp);
-    assert.strictEqual(TypeIdentifierEnum.cGetAccountDataReq + 1, TypeIdentifierEnum.cGetAccountDataResp);
-    assert.strictEqual(TypeIdentifierEnum.cCompareCertReq + 1, TypeIdentifierEnum.cCompareCertResp);
+    expect(TypeIdentifierEnum.cApoptosisProposalReq + 1).toBe(TypeIdentifierEnum.cApoptosisProposalResp);
+    expect(TypeIdentifierEnum.cWrappedReq + 1).toBe(TypeIdentifierEnum.cWrappedResp);
+    expect(TypeIdentifierEnum.cGetAccountDataReq + 1).toBe(TypeIdentifierEnum.cGetAccountDataResp);
+    expect(TypeIdentifierEnum.cCompareCertReq + 1).toBe(TypeIdentifierEnum.cCompareCertResp);
   });
 
   it('should be usable for type mapping', () => {
@@ -123,19 +122,16 @@ describe('TypeIdentifierEnum', () => {
       return requestResponseMap[requestType];
     }
 
-    assert.strictEqual(
-      getResponseTypeForRequest(TypeIdentifierEnum.cApoptosisProposalReq),
-      TypeIdentifierEnum.cApoptosisProposalResp
-    );
+    expect(
+      getResponseTypeForRequest(TypeIdentifierEnum.cApoptosisProposalReq)
+    ).toBe(TypeIdentifierEnum.cApoptosisProposalResp);
     
-    assert.strictEqual(
-      getResponseTypeForRequest(TypeIdentifierEnum.cGetAccountDataReq),
-      TypeIdentifierEnum.cGetAccountDataResp
-    );
+    expect(
+      getResponseTypeForRequest(TypeIdentifierEnum.cGetAccountDataReq)
+    ).toBe(TypeIdentifierEnum.cGetAccountDataResp);
     
-    assert.strictEqual(
-      getResponseTypeForRequest(TypeIdentifierEnum.cBroadcastStateReq),
-      undefined
-    );
+    expect(
+      getResponseTypeForRequest(TypeIdentifierEnum.cBroadcastStateReq)
+    ).toBeUndefined();
   });
 }); 
