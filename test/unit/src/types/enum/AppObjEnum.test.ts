@@ -1,23 +1,22 @@
-import assert from 'assert';
 import { AppObjEnum } from '../../../../../src/types/enum/AppObjEnum';
 
 describe('AppObjEnum', () => {
   it('should exist as an enum', () => {
-    assert(AppObjEnum !== undefined);
-    assert(typeof AppObjEnum === 'object');
+    expect(AppObjEnum).toBeDefined();
+    expect(typeof AppObjEnum).toBe('object');
   });
 
   it('should contain all expected enum values', () => {
     // Test all enum values to ensure they exist and have correct values
-    assert.strictEqual(AppObjEnum.AppData, 'AppData');
-    assert.strictEqual(AppObjEnum.CachedAppData, 'CachedAppData');
+    expect(AppObjEnum.AppData).toBe('AppData');
+    expect(AppObjEnum.CachedAppData).toBe('CachedAppData');
   });
 
   it('should have matching key-value pairs', () => {
     // Verify that each enum key matches its string value
     Object.keys(AppObjEnum).forEach(key => {
       const value = AppObjEnum[key as keyof typeof AppObjEnum];
-      assert.strictEqual(key, value);
+      expect(key).toBe(value);
     });
   });
 
@@ -28,7 +27,7 @@ describe('AppObjEnum', () => {
     }
 
     const result = processAppObj(AppObjEnum.AppData);
-    assert.strictEqual(result, 'Processing app object: AppData');
+    expect(result).toBe('Processing app object: AppData');
   });
 
   it('should be usable in a switch statement', () => {
@@ -43,20 +42,20 @@ describe('AppObjEnum', () => {
       }
     }
 
-    assert.strictEqual(getObjectDescription(AppObjEnum.AppData), 'Application data object');
-    assert.strictEqual(getObjectDescription(AppObjEnum.CachedAppData), 'Cached application data object');
+    expect(getObjectDescription(AppObjEnum.AppData)).toBe('Application data object');
+    expect(getObjectDescription(AppObjEnum.CachedAppData)).toBe('Cached application data object');
   });
 
   it('should not contain invalid enum values', () => {
     // @ts-expect-error - Testing runtime behavior with invalid value
-    assert.strictEqual(AppObjEnum.InvalidEnumValue, undefined);
-    assert.strictEqual(AppObjEnum['NonExistentValue'], undefined);
+    expect(AppObjEnum.InvalidEnumValue).toBeUndefined();
+    expect(AppObjEnum['NonExistentValue']).toBeUndefined();
   });
 
-  it('should reject invalid assignments at compile time', () => {
+  it('should validate enum values at runtime', () => {
     // This is valid and should compile
     const validAssignment: AppObjEnum = AppObjEnum.AppData;
-    assert.strictEqual(validAssignment, 'AppData');
+    expect(validAssignment).toBe('AppData');
     
     // Test runtime type checking
     function acceptsOnlyValidEnum(value: AppObjEnum): boolean {
@@ -64,14 +63,14 @@ describe('AppObjEnum', () => {
     }
     
     // Valid cases should return true
-    assert.strictEqual(acceptsOnlyValidEnum(AppObjEnum.AppData), true);
+    expect(acceptsOnlyValidEnum(AppObjEnum.AppData)).toBe(true);
     
     // Invalid cases - these would fail at compile time, but we can test runtime behavior
     // @ts-expect-error - Intentionally passing invalid value for testing
-    assert.strictEqual(acceptsOnlyValidEnum('InvalidValue'), false);
+    expect(acceptsOnlyValidEnum('InvalidValue')).toBe(false);
     
     // @ts-expect-error - Intentionally passing wrong type for testing
-    assert.strictEqual(acceptsOnlyValidEnum(123), false);
+    expect(acceptsOnlyValidEnum(123)).toBe(false);
   });
 
   it('should handle type checking correctly', () => {
@@ -80,13 +79,13 @@ describe('AppObjEnum', () => {
     }
 
     // Positive cases
-    assert.strictEqual(isValidAppObjType(AppObjEnum.AppData), true);
-    assert.strictEqual(isValidAppObjType('AppData'), true);
+    expect(isValidAppObjType(AppObjEnum.AppData)).toBe(true);
+    expect(isValidAppObjType('AppData')).toBe(true);
     
     // Negative cases
-    assert.strictEqual(isValidAppObjType('InvalidValue'), false);
-    assert.strictEqual(isValidAppObjType(123), false);
-    assert.strictEqual(isValidAppObjType(null), false);
-    assert.strictEqual(isValidAppObjType(undefined), false);
+    expect(isValidAppObjType('InvalidValue')).toBe(false);
+    expect(isValidAppObjType(123)).toBe(false);
+    expect(isValidAppObjType(null)).toBe(false);
+    expect(isValidAppObjType(undefined)).toBe(false);
   });
 }); 
