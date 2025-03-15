@@ -1,18 +1,17 @@
-import assert from 'assert';
 import { InternalRouteEnum, isAskRoute, isTellRoute } from '../../../../../src/types/enum/InternalRouteEnum';
 
 describe('InternalRouteEnum', () => {
   it('should exist as an enum', () => {
-    assert(InternalRouteEnum !== undefined);
-    assert(typeof InternalRouteEnum === 'object');
+    expect(InternalRouteEnum).toBeDefined();
+    expect(typeof InternalRouteEnum).toBe('object');
   });
 
   it('should contain all expected enum values', () => {
     // Test a sample of enum values to ensure they exist and have correct values
-    assert.strictEqual(InternalRouteEnum.apoptosize, 'apoptosize');
-    assert.strictEqual(InternalRouteEnum.binary_broadcast_state, 'binary/broadcast_state');
-    assert.strictEqual(InternalRouteEnum.binary_get_account_data, 'binary/get_account_data');
-    assert.strictEqual(InternalRouteEnum.binary_poqo_send_vote, 'binary/poqo_send_vote');
+    expect(InternalRouteEnum.apoptosize).toBe('apoptosize');
+    expect(InternalRouteEnum.binary_broadcast_state).toBe('binary/broadcast_state');
+    expect(InternalRouteEnum.binary_get_account_data).toBe('binary/get_account_data');
+    expect(InternalRouteEnum.binary_poqo_send_vote).toBe('binary/poqo_send_vote');
   });
 
   it('should have matching key-value pairs', () => {
@@ -57,55 +56,55 @@ describe('InternalRouteEnum', () => {
     Object.keys(expectedValues).forEach(key => {
       const enumKey = key as keyof typeof InternalRouteEnum;
       const expectedValue = expectedValues[key as keyof typeof expectedValues];
-      assert.strictEqual(InternalRouteEnum[enumKey], expectedValue);
+      expect(InternalRouteEnum[enumKey]).toBe(expectedValue);
     });
   });
 
   describe('isAskRoute function', () => {
     it('should correctly identify ask routes', () => {
       // Test known ask routes
-      assert.strictEqual(isAskRoute(InternalRouteEnum.binary_get_account_data), true);
-      assert.strictEqual(isAskRoute(InternalRouteEnum.binary_compare_cert), true);
-      assert.strictEqual(isAskRoute(InternalRouteEnum.binary_request_state_for_tx), true);
-      assert.strictEqual(isAskRoute(InternalRouteEnum.apoptosize), true);
+      expect(isAskRoute(InternalRouteEnum.binary_get_account_data)).toBe(true);
+      expect(isAskRoute(InternalRouteEnum.binary_compare_cert)).toBe(true);
+      expect(isAskRoute(InternalRouteEnum.binary_request_state_for_tx)).toBe(true);
+      expect(isAskRoute(InternalRouteEnum.apoptosize)).toBe(true);
     });
 
     it('should correctly identify non-ask routes', () => {
       // Test known tell routes
-      assert.strictEqual(isAskRoute(InternalRouteEnum.binary_broadcast_state), false);
-      assert.strictEqual(isAskRoute(InternalRouteEnum.binary_lost_report), false);
-      assert.strictEqual(isAskRoute(InternalRouteEnum.binary_gossip), false);
+      expect(isAskRoute(InternalRouteEnum.binary_broadcast_state)).toBe(false);
+      expect(isAskRoute(InternalRouteEnum.binary_lost_report)).toBe(false);
+      expect(isAskRoute(InternalRouteEnum.binary_gossip)).toBe(false);
     });
 
     it('should handle unknown routes', () => {
-      assert.strictEqual(isAskRoute('unknown/route'), false);
-      assert.strictEqual(isAskRoute(''), false);
+      expect(isAskRoute('unknown/route')).toBe(false);
+      expect(isAskRoute('')).toBe(false);
     });
   });
 
   describe('isTellRoute function', () => {
     it('should correctly identify tell routes', () => {
       // Test known tell routes
-      assert.strictEqual(isTellRoute(InternalRouteEnum.binary_broadcast_state), true);
-      assert.strictEqual(isTellRoute(InternalRouteEnum.binary_lost_report), true);
-      assert.strictEqual(isTellRoute(InternalRouteEnum.binary_gossip), true);
+      expect(isTellRoute(InternalRouteEnum.binary_broadcast_state)).toBe(true);
+      expect(isTellRoute(InternalRouteEnum.binary_lost_report)).toBe(true);
+      expect(isTellRoute(InternalRouteEnum.binary_gossip)).toBe(true);
     });
 
     it('should correctly identify apoptosize as both ask and tell route', () => {
-      assert.strictEqual(isAskRoute(InternalRouteEnum.apoptosize), true);
-      assert.strictEqual(isTellRoute(InternalRouteEnum.apoptosize), true);
+      expect(isAskRoute(InternalRouteEnum.apoptosize)).toBe(true);
+      expect(isTellRoute(InternalRouteEnum.apoptosize)).toBe(true);
     });
 
     it('should correctly identify non-tell routes', () => {
       // All ask routes except apoptosize should not be tell routes
-      assert.strictEqual(isTellRoute(InternalRouteEnum.binary_get_account_data), false);
-      assert.strictEqual(isTellRoute(InternalRouteEnum.binary_compare_cert), false);
-      assert.strictEqual(isTellRoute(InternalRouteEnum.binary_request_state_for_tx), false);
+      expect(isTellRoute(InternalRouteEnum.binary_get_account_data)).toBe(false);
+      expect(isTellRoute(InternalRouteEnum.binary_compare_cert)).toBe(false);
+      expect(isTellRoute(InternalRouteEnum.binary_request_state_for_tx)).toBe(false);
     });
 
     it('should handle unknown routes', () => {
-      assert.strictEqual(isTellRoute('unknown/route'), true);
-      assert.strictEqual(isTellRoute(''), true);
+      expect(isTellRoute('unknown/route')).toBe(true);
+      expect(isTellRoute('')).toBe(true);
     });
   });
 
@@ -116,7 +115,7 @@ describe('InternalRouteEnum', () => {
     }
 
     const result = processRoute(InternalRouteEnum.binary_get_account_data);
-    assert.strictEqual(result, 'Processing route: binary/get_account_data');
+    expect(result).toBe('Processing route: binary/get_account_data');
   });
 
   it('should be usable in a switch statement', () => {
@@ -133,15 +132,15 @@ describe('InternalRouteEnum', () => {
       }
     }
 
-    assert.strictEqual(getRouteType(InternalRouteEnum.apoptosize), 'Both ask and tell route');
-    assert.strictEqual(getRouteType(InternalRouteEnum.binary_broadcast_state), 'Tell route');
-    assert.strictEqual(getRouteType(InternalRouteEnum.binary_get_account_data), 'Ask route');
+    expect(getRouteType(InternalRouteEnum.apoptosize)).toBe('Both ask and tell route');
+    expect(getRouteType(InternalRouteEnum.binary_broadcast_state)).toBe('Tell route');
+    expect(getRouteType(InternalRouteEnum.binary_get_account_data)).toBe('Ask route');
   });
 
   it('should not contain invalid enum values', () => {
     // @ts-expect-error - Testing runtime behavior with invalid value
-    assert.strictEqual(InternalRouteEnum.InvalidEnumValue, undefined);
-    assert.strictEqual(InternalRouteEnum['NonExistentValue'], undefined);
+    expect(InternalRouteEnum.InvalidEnumValue).toBeUndefined();
+    expect(InternalRouteEnum['NonExistentValue']).toBeUndefined();
   });
 
   it('should handle type checking correctly', () => {
@@ -150,13 +149,13 @@ describe('InternalRouteEnum', () => {
     }
 
     // Positive cases
-    assert.strictEqual(isValidRouteType(InternalRouteEnum.binary_get_account_data), true);
-    assert.strictEqual(isValidRouteType('binary/get_account_data'), true);
+    expect(isValidRouteType(InternalRouteEnum.binary_get_account_data)).toBe(true);
+    expect(isValidRouteType('binary/get_account_data')).toBe(true);
     
     // Negative cases
-    assert.strictEqual(isValidRouteType('invalid/route'), false);
-    assert.strictEqual(isValidRouteType(123), false);
-    assert.strictEqual(isValidRouteType(null), false);
-    assert.strictEqual(isValidRouteType(undefined), false);
+    expect(isValidRouteType('invalid/route')).toBe(false);
+    expect(isValidRouteType(123)).toBe(false);
+    expect(isValidRouteType(null)).toBe(false);
+    expect(isValidRouteType(undefined)).toBe(false);
   });
 }); 
