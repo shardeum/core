@@ -1,36 +1,35 @@
-import assert from 'assert';
 import { ResponseErrorEnum } from '../../../../../src/types/enum/ResponseErrorEnum';
 
 describe('ResponseErrorEnum', () => {
   it('should exist as an enum', () => {
-    assert(ResponseErrorEnum !== undefined);
-    assert(typeof ResponseErrorEnum === 'object');
+    expect(ResponseErrorEnum).toBeDefined();
+    expect(typeof ResponseErrorEnum).toBe('object');
   });
 
   it('should contain all expected enum values with correct numeric values', () => {
     // Test all enum values to ensure they exist and have correct values
-    assert.strictEqual(ResponseErrorEnum.InternalError, 1);
-    assert.strictEqual(ResponseErrorEnum.BadRequest, 2);
-    assert.strictEqual(ResponseErrorEnum.Unauthorized, 3);
-    assert.strictEqual(ResponseErrorEnum.Forbidden, 4);
-    assert.strictEqual(ResponseErrorEnum.NotFound, 5);
+    expect(ResponseErrorEnum.InternalError).toBe(1);
+    expect(ResponseErrorEnum.BadRequest).toBe(2);
+    expect(ResponseErrorEnum.Unauthorized).toBe(3);
+    expect(ResponseErrorEnum.Forbidden).toBe(4);
+    expect(ResponseErrorEnum.NotFound).toBe(5);
   });
 
   it('should have sequential numeric values starting from 1', () => {
     // Verify that enum values are sequential
     const values = Object.values(ResponseErrorEnum).filter(v => typeof v === 'number');
     for (let i = 0; i < values.length; i++) {
-      assert.strictEqual(values[i], i + 1);
+      expect(values[i]).toBe(i + 1);
     }
   });
 
   it('should have bidirectional mapping for numeric enums', () => {
     // Numeric enums in TypeScript have reverse mappings
-    assert.strictEqual(ResponseErrorEnum[1], 'InternalError');
-    assert.strictEqual(ResponseErrorEnum[2], 'BadRequest');
-    assert.strictEqual(ResponseErrorEnum[3], 'Unauthorized');
-    assert.strictEqual(ResponseErrorEnum[4], 'Forbidden');
-    assert.strictEqual(ResponseErrorEnum[5], 'NotFound');
+    expect(ResponseErrorEnum[1]).toBe('InternalError');
+    expect(ResponseErrorEnum[2]).toBe('BadRequest');
+    expect(ResponseErrorEnum[3]).toBe('Unauthorized');
+    expect(ResponseErrorEnum[4]).toBe('Forbidden');
+    expect(ResponseErrorEnum[5]).toBe('NotFound');
   });
 
   it('should be usable as a type', () => {
@@ -40,7 +39,7 @@ describe('ResponseErrorEnum', () => {
     }
 
     const result = handleResponseError(ResponseErrorEnum.BadRequest);
-    assert.strictEqual(result, 'Response error code: 2');
+    expect(result).toBe('Response error code: 2');
   });
 
   it('should be usable in a switch statement', () => {
@@ -61,17 +60,17 @@ describe('ResponseErrorEnum', () => {
       }
     }
 
-    assert.strictEqual(getErrorMessage(ResponseErrorEnum.InternalError), 'Internal server error occurred');
-    assert.strictEqual(getErrorMessage(ResponseErrorEnum.BadRequest), 'Bad request');
-    assert.strictEqual(getErrorMessage(ResponseErrorEnum.Unauthorized), 'Unauthorized access');
-    assert.strictEqual(getErrorMessage(ResponseErrorEnum.Forbidden), 'Access forbidden');
-    assert.strictEqual(getErrorMessage(ResponseErrorEnum.NotFound), 'Resource not found');
+    expect(getErrorMessage(ResponseErrorEnum.InternalError)).toBe('Internal server error occurred');
+    expect(getErrorMessage(ResponseErrorEnum.BadRequest)).toBe('Bad request');
+    expect(getErrorMessage(ResponseErrorEnum.Unauthorized)).toBe('Unauthorized access');
+    expect(getErrorMessage(ResponseErrorEnum.Forbidden)).toBe('Access forbidden');
+    expect(getErrorMessage(ResponseErrorEnum.NotFound)).toBe('Resource not found');
   });
 
   it('should not contain invalid enum values', () => {
     // @ts-expect-error - Testing runtime behavior with invalid value
-    assert.strictEqual(ResponseErrorEnum.NonExistentError, undefined);
-    assert.strictEqual(ResponseErrorEnum[10], undefined);
+    expect(ResponseErrorEnum.NonExistentError).toBeUndefined();
+    expect(ResponseErrorEnum[10]).toBeUndefined();
   });
 
   it('should handle type checking correctly', () => {
@@ -82,16 +81,16 @@ describe('ResponseErrorEnum', () => {
     }
 
     // Positive cases
-    assert.strictEqual(isResponseError(ResponseErrorEnum.InternalError), true);
-    assert.strictEqual(isResponseError(1), true);
-    assert.strictEqual(isResponseError(5), true);
+    expect(isResponseError(ResponseErrorEnum.InternalError)).toBe(true);
+    expect(isResponseError(1)).toBe(true);
+    expect(isResponseError(5)).toBe(true);
     
     // Negative cases
-    assert.strictEqual(isResponseError(0), false);
-    assert.strictEqual(isResponseError(6), false);
-    assert.strictEqual(isResponseError('BadRequest'), false);
-    assert.strictEqual(isResponseError(null), false);
-    assert.strictEqual(isResponseError(undefined), false);
+    expect(isResponseError(0)).toBe(false);
+    expect(isResponseError(6)).toBe(false);
+    expect(isResponseError('BadRequest')).toBe(false);
+    expect(isResponseError(null)).toBe(false);
+    expect(isResponseError(undefined)).toBe(false);
   });
 
   it('should map to HTTP status codes', () => {
@@ -108,11 +107,11 @@ describe('ResponseErrorEnum', () => {
       return statusMap[error];
     }
 
-    assert.strictEqual(getHttpStatusCode(ResponseErrorEnum.InternalError), 500);
-    assert.strictEqual(getHttpStatusCode(ResponseErrorEnum.BadRequest), 400);
-    assert.strictEqual(getHttpStatusCode(ResponseErrorEnum.Unauthorized), 401);
-    assert.strictEqual(getHttpStatusCode(ResponseErrorEnum.Forbidden), 403);
-    assert.strictEqual(getHttpStatusCode(ResponseErrorEnum.NotFound), 404);
+    expect(getHttpStatusCode(ResponseErrorEnum.InternalError)).toBe(500);
+    expect(getHttpStatusCode(ResponseErrorEnum.BadRequest)).toBe(400);
+    expect(getHttpStatusCode(ResponseErrorEnum.Unauthorized)).toBe(401);
+    expect(getHttpStatusCode(ResponseErrorEnum.Forbidden)).toBe(403);
+    expect(getHttpStatusCode(ResponseErrorEnum.NotFound)).toBe(404);
   });
 
   it('should be usable in error handling scenarios', () => {
@@ -133,7 +132,7 @@ describe('ResponseErrorEnum', () => {
     }
 
     const response = createErrorResponse(ResponseErrorEnum.Forbidden);
-    assert.strictEqual(response.code, 4);
-    assert.strictEqual(response.message, 'You do not have permission');
+    expect(response.code).toBe(4);
+    expect(response.message).toBe('You do not have permission');
   });
 }); 
