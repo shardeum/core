@@ -1,27 +1,26 @@
-import assert from 'assert';
 import { AJVSchemaEnum } from '../../../../../src/types/enum/AJVSchemaEnum';
 
 describe('AJVSchemaEnum', () => {
   it('should exist as an enum', () => {
-    assert(AJVSchemaEnum !== undefined);
-    assert(typeof AJVSchemaEnum === 'object');
+    expect(AJVSchemaEnum).toBeDefined();
+    expect(typeof AJVSchemaEnum).toBe('object');
   });
 
   it('should contain all expected enum values', () => {
     // Test a sample of enum values to ensure they exist and have correct values
-    assert.strictEqual(AJVSchemaEnum.CompareCertReq, 'CompareCertReq');
-    assert.strictEqual(AJVSchemaEnum.RepairOOSAccountsReq, 'RepairOOSAccountsReq');
-    assert.strictEqual(AJVSchemaEnum.RequestStateForTxReq, 'RequestStateForTxReq');
-    assert.strictEqual(AJVSchemaEnum.GetAccountDataResp, 'GetAccountDataResp');
-    assert.strictEqual(AJVSchemaEnum.JoinReq, 'JoinReq');
-    assert.strictEqual(AJVSchemaEnum.AllowedArchiverResponse, 'AllowedArchiverResponse');
+    expect(AJVSchemaEnum.CompareCertReq).toBe('CompareCertReq');
+    expect(AJVSchemaEnum.RepairOOSAccountsReq).toBe('RepairOOSAccountsReq');
+    expect(AJVSchemaEnum.RequestStateForTxReq).toBe('RequestStateForTxReq');
+    expect(AJVSchemaEnum.GetAccountDataResp).toBe('GetAccountDataResp');
+    expect(AJVSchemaEnum.JoinReq).toBe('JoinReq');
+    expect(AJVSchemaEnum.AllowedArchiverResponse).toBe('AllowedArchiverResponse');
   });
 
   it('should have matching key-value pairs', () => {
     // Verify that each enum key matches its string value
     Object.keys(AJVSchemaEnum).forEach(key => {
       const value = AJVSchemaEnum[key as keyof typeof AJVSchemaEnum];
-      assert.strictEqual(key, value);
+      expect(key).toBe(value);
     });
   });
 
@@ -32,7 +31,7 @@ describe('AJVSchemaEnum', () => {
     }
 
     const result = processSchema(AJVSchemaEnum.CompareCertReq);
-    assert.strictEqual(result, 'Processing schema: CompareCertReq');
+    expect(result).toBe('Processing schema: CompareCertReq');
   });
 
   it('should be usable in a switch statement', () => {
@@ -47,21 +46,21 @@ describe('AJVSchemaEnum', () => {
       }
     }
 
-    assert.strictEqual(getSchemaDescription(AJVSchemaEnum.CompareCertReq), 'Certificate comparison request');
-    assert.strictEqual(getSchemaDescription(AJVSchemaEnum.JoinReq), 'Join request');
-    assert.strictEqual(getSchemaDescription(AJVSchemaEnum.GetAccountDataReq), 'Unknown schema');
+    expect(getSchemaDescription(AJVSchemaEnum.CompareCertReq)).toBe('Certificate comparison request');
+    expect(getSchemaDescription(AJVSchemaEnum.JoinReq)).toBe('Join request');
+    expect(getSchemaDescription(AJVSchemaEnum.GetAccountDataReq)).toBe('Unknown schema');
   });
 
   it('should not contain invalid enum values', () => {
     // @ts-expect-error - Testing runtime behavior with invalid value
-    assert.strictEqual(AJVSchemaEnum.InvalidEnumValue, undefined);
-    assert.strictEqual(AJVSchemaEnum['NonExistentValue'], undefined);
+    expect(AJVSchemaEnum.InvalidEnumValue).toBeUndefined();
+    expect(AJVSchemaEnum['NonExistentValue']).toBeUndefined();
   });
 
   it('should reject invalid assignments at compile time', () => {
     // This is valid and should compile
     const validAssignment: AJVSchemaEnum = AJVSchemaEnum.CompareCertReq;
-    assert.strictEqual(validAssignment, 'CompareCertReq');
+    expect(validAssignment).toBe('CompareCertReq');
     
     // Test runtime type checking
     function acceptsOnlyValidEnum(value: AJVSchemaEnum): boolean {
@@ -69,14 +68,14 @@ describe('AJVSchemaEnum', () => {
     }
     
     // Valid cases should return true
-    assert.strictEqual(acceptsOnlyValidEnum(AJVSchemaEnum.CompareCertReq), true);
+    expect(acceptsOnlyValidEnum(AJVSchemaEnum.CompareCertReq)).toBe(true);
     
     // Invalid cases - these would fail at compile time, but we can test runtime behavior
     // @ts-expect-error - Intentionally passing invalid value for testing
-    assert.strictEqual(acceptsOnlyValidEnum('InvalidValue'), false);
+    expect(acceptsOnlyValidEnum('InvalidValue')).toBe(false);
     
     // @ts-expect-error - Intentionally passing wrong type for testing
-    assert.strictEqual(acceptsOnlyValidEnum(123), false);
+    expect(acceptsOnlyValidEnum(123)).toBe(false);
   });
 
   it('should handle type checking correctly', () => {
@@ -85,13 +84,13 @@ describe('AJVSchemaEnum', () => {
     }
 
     // Positive cases
-    assert.strictEqual(isValidSchemaType(AJVSchemaEnum.CompareCertReq), true);
-    assert.strictEqual(isValidSchemaType('CompareCertReq'), true);
+    expect(isValidSchemaType(AJVSchemaEnum.CompareCertReq)).toBe(true);
+    expect(isValidSchemaType('CompareCertReq')).toBe(true);
     
     // Negative cases
-    assert.strictEqual(isValidSchemaType('InvalidValue'), false);
-    assert.strictEqual(isValidSchemaType(123), false);
-    assert.strictEqual(isValidSchemaType(null), false);
-    assert.strictEqual(isValidSchemaType(undefined), false);
+    expect(isValidSchemaType('InvalidValue')).toBe(false);
+    expect(isValidSchemaType(123)).toBe(false);
+    expect(isValidSchemaType(null)).toBe(false);
+    expect(isValidSchemaType(undefined)).toBe(false);
   });
 }); 
