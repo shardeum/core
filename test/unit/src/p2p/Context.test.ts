@@ -1,5 +1,4 @@
 import * as Context from '../../../../src/p2p/Context'
-import { expect } from '@jest/globals'
 import { EventEmitter } from 'events'
 
 // Create mock objects with minimal implementation needed for tests
