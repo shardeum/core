@@ -1,4 +1,3 @@
-import { strict as assert } from 'assert'
 import * as SchemaHelpers from '../../../../../src/utils/serialization/SchemaHelpers'
 
 // Helper function to reset module state between tests
@@ -23,16 +22,16 @@ describe('SchemaHelpers', () => {
       const schema = { type: 'object', properties: { test: { type: 'string' } } }
 
       // Act & Assert - if no error is thrown, the schema was added successfully
-      assert.doesNotThrow(() => {
+      expect(() => {
         freshModule.addSchema(schemaName, schema)
-      })
+      }).not.toThrow()
 
       // Verify the schema was added by trying to get a verify function for it
-      assert.doesNotThrow(() => {
+      expect(() => {
         const verifyFn = freshModule.getVerifyFunction(schemaName)
-        assert.ok(verifyFn)
-        assert.equal(typeof verifyFn, 'function')
-      })
+        expect(verifyFn).toBeDefined()
+        expect(typeof verifyFn).toBe('function')
+      }).not.toThrow()
     })
 
     it('should throw an error when adding a duplicate schema', () => {
@@ -44,9 +43,9 @@ describe('SchemaHelpers', () => {
       freshModule.addSchema(schemaName, schema)
 
       // Assert - Adding it again should throw
-      assert.throws(() => {
+      expect(() => {
         freshModule.addSchema(schemaName, schema)
-      }, /error already registered duplicateSchema/)
+      }).toThrow(/error already registered duplicateSchema/)
     })
   })
 
@@ -62,9 +61,9 @@ describe('SchemaHelpers', () => {
       freshModule.addSchemaDependency(dependencyName, requiredByName)
 
       // Assert - initialization should succeed if dependency was properly registered
-      assert.doesNotThrow(() => {
+      expect(() => {
         freshModule.initializeSerialization()
-      })
+      }).not.toThrow()
     })
 
     it('should overwrite an existing dependency', () => {
@@ -86,9 +85,9 @@ describe('SchemaHelpers', () => {
       freshModule.addSchemaDependency(dependencyName2, requiredByName)
 
       // Assert - initialization should succeed with the second dependency
-      assert.doesNotThrow(() => {
+      expect(() => {
         freshModule.initializeSerialization()
-      })
+      }).not.toThrow()
     })
   })
 
@@ -103,9 +102,9 @@ describe('SchemaHelpers', () => {
       freshModule.addSchemaDependency(dependencyName, requiredByName)
 
       // Act & Assert
-      assert.doesNotThrow(() => {
+      expect(() => {
         freshModule.initializeSerialization()
-      })
+      }).not.toThrow()
     })
 
     it('should throw an error on missing schema', () => {
@@ -117,9 +116,9 @@ describe('SchemaHelpers', () => {
       freshModule.addSchemaDependency(dependencyName, requiredByName)
 
       // Assert
-      assert.throws(() => {
+      expect(() => {
         freshModule.initializeSerialization()
-      }, /error missing schema missingSchema required by requiringSchema/)
+      }).toThrow(/error missing schema missingSchema required by requiringSchema/)
     })
 
     it('should handle multiple dependencies', () => {
@@ -134,9 +133,9 @@ describe('SchemaHelpers', () => {
       freshModule.addSchemaDependency('schema2', 'requiring2')
 
       // Act & Assert
-      assert.doesNotThrow(() => {
+      expect(() => {
         freshModule.initializeSerialization()
-      })
+      }).not.toThrow()
     })
   })
 
@@ -155,7 +154,7 @@ describe('SchemaHelpers', () => {
       const secondCall = freshModule.getVerifyFunction(schemaName)
 
       // Assert
-      assert.strictEqual(firstCall, secondCall, 'Should return the same function instance on cache hit')
+      expect(firstCall).toBe(secondCall)
     })
 
     it('should create a new function (cache miss)', () => {
@@ -169,8 +168,8 @@ describe('SchemaHelpers', () => {
       const verifyFn = freshModule.getVerifyFunction(schemaName)
 
       // Assert
-      assert.ok(verifyFn)
-      assert.equal(typeof verifyFn, 'function')
+      expect(verifyFn).toBeDefined()
+      expect(typeof verifyFn).toBe('function')
     })
 
     it('should throw an error on missing schema', () => {
@@ -178,9 +177,9 @@ describe('SchemaHelpers', () => {
       const nonExistentSchema = 'nonExistentSchema'
 
       // Act & Assert
-      assert.throws(() => {
+      expect(() => {
         freshModule.getVerifyFunction(nonExistentSchema)
-      }, /error missing schema nonExistentSchema/)
+      }).toThrow(/error missing schema nonExistentSchema/)
     })
 
     it('should return a function that validates according to the schema', () => {
@@ -202,15 +201,15 @@ describe('SchemaHelpers', () => {
 
       // Assert - Valid data
       const validData = { requiredProp: 'test', optionalProp: 123 }
-      assert.equal(verifyFn(validData), true)
+      expect(verifyFn(validData)).toBe(true)
 
       // Assert - Invalid data (missing required property)
       const invalidData = { optionalProp: 123 }
-      assert.equal(verifyFn(invalidData), false)
+      expect(verifyFn(invalidData)).toBe(false)
 
       // Assert - Invalid data (wrong type)
       const wrongTypeData = { requiredProp: 123 }
-      assert.equal(verifyFn(wrongTypeData), false)
+      expect(verifyFn(wrongTypeData)).toBe(false)
     })
   })
 
@@ -244,16 +243,16 @@ describe('SchemaHelpers', () => {
       const childVerifyFn = freshModule.getVerifyFunction('child')
 
       // Assert
-      assert.ok(parentVerifyFn)
-      assert.ok(childVerifyFn)
+      expect(parentVerifyFn).toBeDefined()
+      expect(childVerifyFn).toBeDefined()
 
       // Verify parent schema validation
-      assert.equal(parentVerifyFn({ id: '123' }), true)
-      assert.equal(parentVerifyFn({ id: 123 }), false)
+      expect(parentVerifyFn({ id: '123' })).toBe(true)
+      expect(parentVerifyFn({ id: 123 })).toBe(false)
 
       // Verify child schema validation
-      assert.equal(childVerifyFn({ parentId: '123', name: 'Test' }), true)
-      assert.equal(childVerifyFn({ parentId: 123, name: 'Test' }), false)
+      expect(childVerifyFn({ parentId: '123', name: 'Test' })).toBe(true)
+      expect(childVerifyFn({ parentId: 123, name: 'Test' })).toBe(false)
     })
   })
 })
