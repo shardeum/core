@@ -1004,6 +1004,8 @@ export interface ServerConfiguration {
     patchNetworkAccountSyncFixes?: boolean
     // enable shard key refactoring changes as part of SHARD-1892 sec fixes
     enableShardKeyChanges : boolean
+    // control the max content size for http responses
+    maxResponseSize: number
   }
   /** Server IP configuration */
   ip?: {
