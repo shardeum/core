@@ -18,6 +18,7 @@ module.exports = {
     "^@test/(.*)$": "<rootDir>/test/$1"
   },
   clearMocks: true,
+  resetMocks: true,
   testPathIgnorePatterns: [
     "/node_modules/",
     "/dist/",
