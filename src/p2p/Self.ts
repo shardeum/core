@@ -34,10 +34,10 @@ import { currentQuarter } from './CycleCreator'
 import { Utils } from '@shardeum-foundation/lib-types'
 import * as ServiceQueue from './ServiceQueue'
 import Shardus from '../shardus'
-import path from "path";
-import fs from "fs/promises";
-import {localConfig} from "@src/config/localConfig";
-import {sleep} from "../utils";
+import path from 'path'
+import fs from 'fs/promises'
+import { localConfig } from '../../src/config/localConfig'
+import { sleep } from '../utils'
 
 /** STATE */
 
