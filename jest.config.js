@@ -17,6 +17,7 @@ module.exports = {
     "^@utils/(.*)$": "<rootDir>/src/utils/$1",
     "^@test/(.*)$": "<rootDir>/test/$1"
   },
+  clearMocks: true,
   testPathIgnorePatterns: [
     "/node_modules/",
     "/dist/",
