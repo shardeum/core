@@ -36,7 +36,7 @@ import * as ServiceQueue from './ServiceQueue'
 import Shardus from '../shardus'
 import path from 'path'
 import fs from 'fs/promises'
-import { localConfig } from '../../src/config/localConfig'
+import { localConfig } from '../config/localConfig'
 import { sleep } from '../utils'
 
 /** STATE */
