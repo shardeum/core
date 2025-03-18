@@ -8,25 +8,25 @@ import {
 import { serializeWrappedData } from '../../../../src/types/WrappedData'
 import { initAjvSchemas } from '../../../../src/types/ajv/Helpers'
 import { TypeIdentifierEnum } from '../../../../src/types/enum/TypeIdentifierEnum'
-import { Utils } from '@shardeum-foundation/lib-types'
+import { beforeEachHandler } from './stateManagerSerializeMocks'
 
-// Mock the Context module and its nested structure
 jest.mock('../../../../src/p2p/Context', () => ({
-  setDefaultConfigs: jest.fn(),
   stateManager: {
-    app: {
-      binarySerializeObject: jest.fn((enumType, data) => Buffer.from(Utils.safeStringify(data), 'utf8')),
-      binaryDeserializeObject: jest.fn((enumType, buffer) => Utils.safeJsonParse(buffer.toString('utf8'))),
-    },
+      app: {
+      binarySerializeObject: jest.fn(),
+      binaryDeserializeObject: jest.fn(),
+      }
   },
+  setDefaultConfigs: jest.fn(),
 }))
 
 describe('GetAccountDataByListResp Serialization and Deserialization', () => {
+  beforeEach(() => {
+    beforeEachHandler()
+  })
+
   beforeAll(() => {
     initAjvSchemas()
-  })
-  beforeEach(() => {
-    jest.clearAllMocks()
   })
 
   describe('Serialization', () => {

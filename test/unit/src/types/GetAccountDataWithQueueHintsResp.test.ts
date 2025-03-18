@@ -13,26 +13,23 @@ import { initAjvSchemas } from '../../../../src/types/ajv/Helpers'
 
 const cGetAccountDataWithQueueHintsRespVersion = 1 // taken from GetAccountDataWithQueueHintsResp
 
-// Mocking the WrappedDataFromQueue methods to serialize and deserialize to
-jest.mock('../../../../src/types/WrappedDataFromQueue', () => ({
+import { beforeEachHandler } from './stateManagerSerializeMocks'
+
+jest.mock('../../../../src/p2p/Context', () => ({
+  stateManager: {
+      app: {
+      binarySerializeObject: jest.fn(),
+      binaryDeserializeObject: jest.fn(),
+      }
+  },
   setDefaultConfigs: jest.fn(),
-  serializeWrappedDataFromQueue: jest.fn((stream, item) => {
-    stream.writeUInt8(1) // Serialize the entire object to 1
-  }),
-  deserializeWrappedDataFromQueue: jest.fn((stream) => {
-    stream.readUInt8() // Deserialize the entire object from 1
-    return {
-      accountId: 'mockAccountId',
-      stateId: 'mockStateId',
-      data: { mockData: true },
-      timestamp: 1234567890,
-      seenInQueue: true,
-      syncData: { mockSyncData: true },
-    }
-  }),
 }))
 
 describe('GetAccountDataWithQueueHintsResp Serialization and Deserialization', () => {
+  beforeEach(() => {
+    beforeEachHandler()
+  })
+
   beforeAll(() => {
     initAjvSchemas()
   })
@@ -163,25 +160,27 @@ describe('GetAccountDataWithQueueHintsResp Serialization and Deserialization', (
       stream.writeUInt8(1) // Indicates accountData is present
       stream.writeUInt16(2) // Length of accountData array
 
-      serializeWrappedDataFromQueue(stream, {
+      const testData1 = {
         accountId: 'acc123',
         stateId: 'state456',
         data: { detail: 'info', hash: 'abc' },
         timestamp: 123456,
         seenInQueue: true,
-      })
-      serializeWrappedDataFromQueue(stream, {
+      }
+      const testData2 = {
         accountId: 'acc789',
         stateId: 'state101112',
         data: { detail: 'moreInfo', hash: 'def' },
         timestamp: 654321,
         seenInQueue: false,
-      })
+      }
+      serializeWrappedDataFromQueue(stream, testData1)
+      serializeWrappedDataFromQueue(stream, testData2)
       stream.position = 0 // Reset position for reading
 
       const deserializedObj = deserializeGetAccountDataWithQueueHintsResp(stream)
       const expectedObj: GetAccountDataWithQueueHintsRespSerializable = {
-        accountData: [mockWrappedData, mockWrappedData],
+        accountData: [testData1, testData2],
       }
 
       // Validate that the deserialized object matches the expected object
@@ -276,18 +275,8 @@ describe('GetAccountDataWithQueueHintsResp Serialization and Deserialization', (
       // Deserialize the stream back to an object
       const deserializedObj = deserializeGetAccountDataWithQueueHintsResp(stream)
 
-      let expectedObj: GetAccountDataWithQueueHintsRespSerializable
-
-      // Update the deserialized object with mock data to match original data
-      // eslint-disable-next-line prefer-const
-      if (originalObj.accountData) {
-        expectedObj = {
-          accountData: originalObj.accountData.map(() => mockWrappedData),
-        }
-      }
-
       // Validate that the deserialized object matches the updated expected object
-      expect(deserializedObj).toEqual(expectedObj)
+      expect(deserializedObj).toEqual(originalObj)
     })
   })
 })

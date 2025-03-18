@@ -7,22 +7,24 @@ import {
 } from '../../../../src/types/SignAppDataReq'
 import { TypeIdentifierEnum } from '../../../../src/types/enum/TypeIdentifierEnum'
 import { initSignAppDataReq } from '../../../../src/types/ajv/SignAppDataReq'
-import { Utils } from '@shardeum-foundation/lib-types'
-import { AppObjEnum } from '../../../../src/shardus/shardus-types'
-import { stateManager } from '../../../../src/p2p/Context'
+import { stateManager } from '@src/p2p/Context'
+import { AppObjEnum } from '../../../../src/types/enum/AppObjEnum'
+import { beforeEachHandler } from './stateManagerSerializeMocks'
 
-// Mock the Context module and its nested structure
 jest.mock('../../../../src/p2p/Context', () => ({
-  setDefaultConfigs: jest.fn(),
   stateManager: {
     app: {
-      binarySerializeObject: jest.fn((enumType, data) => Buffer.from(Utils.safeStringify(data), 'utf8')),
-      binaryDeserializeObject: jest.fn((enumType, buffer) => Utils.safeJsonParse(buffer.toString('utf8'))),
-    },
+      binarySerializeObject: jest.fn(),
+      binaryDeserializeObject: jest.fn(),
+    }
   },
+  setDefaultConfigs: jest.fn(),
 }))
-
 describe('SignAppDataReq Tests', () => {
+  beforeEach(() => {
+    beforeEachHandler()
+  })
+
   beforeAll(() => {
     initSignAppDataReq()
   })
