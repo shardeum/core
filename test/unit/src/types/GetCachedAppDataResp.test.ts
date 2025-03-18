@@ -6,24 +6,26 @@ import {
   serializeGetCachedAppDataResp,
 } from '../../../../src/types/GetCachedAppDataResp'
 import { VectorBufferStream } from '../../../../src'
+import { stateManager } from '@src/p2p/Context'
 
-jest.mock('../../../../src/p2p/Context', () => ({
-  setDefaultConfigs: jest.fn(),
-  stateManager: {
-    app: {
-      binarySerializeObject: jest.fn((enumType, data) => Buffer.from(Utils.safeStringify(data), 'utf8')),
-      binaryDeserializeObject: jest.fn((enumType, buffer) => Utils.safeJsonParse(buffer.toString('utf8'))),
-    },
-  },
-}))
+
 
 describe('GetCachedAppDataResp serialization and deserialization', () => {
-  beforeAll(() => {
-    initAjvSchemas()
+  beforeEach(() => {
+    (stateManager as any) = {
+      app: {
+        binarySerializeObject: jest.fn((_, data: any) =>
+          Buffer.from(Utils.safeStringify(data), 'utf8')
+        ),
+        binaryDeserializeObject: jest.fn((_, buffer: Buffer) =>
+          Utils.safeJsonParse(buffer.toString('utf8'))
+        ),
+      },
+    }
   })
 
-  beforeEach(() => {
-    jest.clearAllMocks()
+  beforeAll(() => {
+    initAjvSchemas()
   })
 
   test('combined serialization and deserialization happy case', () => {

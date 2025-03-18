@@ -10,19 +10,22 @@ import { serializeWrappedDataResponse } from '../../../../src/types/WrappedDataR
 import { initAjvSchemas } from '../../../../src/types/ajv/Helpers'
 import { TypeIdentifierEnum } from '../../../../src/types/enum/TypeIdentifierEnum'
 import { WrappedDataResponse } from '../../../../src/types/WrappedDataResponse'
-
-// Mock the Context module and its nested structure
-jest.mock('../../../../src/p2p/Context', () => ({
-  setDefaultConfigs: jest.fn(),
-  stateManager: {
-    app: {
-      binarySerializeObject: jest.fn((enumType, data) => Buffer.from(Utils.safeStringify(data), 'utf8')),
-      binaryDeserializeObject: jest.fn((enumType, buffer) => Utils.safeJsonParse(buffer.toString('utf8'))),
-    },
-  },
-}))
+import { stateManager } from '@src/p2p/Context'
 
 describe('RequestStateForTxPostResp Tests', () => {
+  beforeEach(() => {
+    (stateManager as any) = {
+      app: {
+        binarySerializeObject: jest.fn((_, data: any) =>
+          Buffer.from(Utils.safeStringify(data), 'utf8')
+        ),
+        binaryDeserializeObject: jest.fn((_, buffer: Buffer) =>
+          Utils.safeJsonParse(buffer.toString('utf8'))
+        ),
+      },
+    }
+  })
+
   beforeAll(() => {
     initAjvSchemas()
   })

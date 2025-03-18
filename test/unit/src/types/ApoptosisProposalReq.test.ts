@@ -7,7 +7,6 @@ import {
 import { initAjvSchemas } from '../../../../src/types/ajv/Helpers'
 import { TypeIdentifierEnum } from '../../../../src/types/enum/TypeIdentifierEnum'
 import { VectorBufferStream } from '../../../../src/utils/serialization/VectorBufferStream'
-import { Utils } from '@shardeum-foundation/lib-types'
 
 describe('ApoptosisProposalReq Serialization', () => {
   test('should serialize with root true', () => {
