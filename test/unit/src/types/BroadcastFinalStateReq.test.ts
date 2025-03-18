@@ -10,22 +10,24 @@ import {
   serializeBroadcastFinalStateReq,
 } from '../../../../src/types/BroadcastFinalStateReq'
 import { stateManager } from '@src/p2p/Context'
+import { beforeEachHandler } from './stateManagerSerializeMocks'
+
+jest.mock('../../../../src/p2p/Context', () => ({
+  stateManager: {
+      app: {
+      binarySerializeObject: jest.fn(),
+      binaryDeserializeObject: jest.fn(),
+      }
+  },
+  setDefaultConfigs: jest.fn(),
+}))
 
 describe('BroadcastFinalStateReq', () => {
   beforeAll(() => {
     initAjvSchemas()
   })
   beforeEach(() => {
-    (stateManager as any) = {
-      app: {
-        binarySerializeObject: jest.fn((_, data: any) =>
-          Buffer.from(Utils.safeStringify(data), 'utf8')
-        ),
-        binaryDeserializeObject: jest.fn((_, buffer: Buffer) =>
-          Utils.safeJsonParse(buffer.toString('utf8'))
-        ),
-      },
-    }
+    beforeEachHandler()
   })
 
   describe('BroadcastFinalStateReq Serialization Tests', () => {

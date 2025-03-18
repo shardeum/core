@@ -11,29 +11,24 @@ import {
 } from '../../../../src/types/RequestStateForTxResp'
 import { VectorBufferStream } from '../../../../src/utils/serialization/VectorBufferStream'
 import { AJVSchemaEnum } from '../../../../src/types/enum/AJVSchemaEnum'
+import { beforeEachHandler } from './stateManagerSerializeMocks'
 
-import { stateManager } from '@src/p2p/Context'
-
+jest.mock('../../../../src/p2p/Context', () => ({
+  stateManager: {
+    app: {
+      binarySerializeObject: jest.fn(),
+      binaryDeserializeObject: jest.fn(),
+    }
+  },
+  setDefaultConfigs: jest.fn(),
+}))
 describe('RequestStateForTx Serialization', () => {
   beforeEach(() => {
-    (stateManager as any) = {
-      app: {
-        binarySerializeObject: jest.fn((_, data: any) =>
-          Buffer.from(Utils.safeStringify(data), 'utf8')
-        ),
-        binaryDeserializeObject: jest.fn((_, buffer: Buffer) =>
-          Utils.safeJsonParse(buffer.toString('utf8'))
-        ),
-      },
-    }
+    beforeEachHandler()
   })
 
   beforeAll(() => {
     initAjvSchemas()
-  })
-
-  beforeEach(() => {
-    jest.clearAllMocks()
   })
 
   test('Should serialize/desrialize with root true', () => {
