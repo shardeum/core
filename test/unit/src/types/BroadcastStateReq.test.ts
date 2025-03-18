@@ -11,6 +11,8 @@ import { serializeWrappedDataResponse } from '../../../../src/types/WrappedDataR
 import { VectorBufferStream } from '../../../../src'
 import { stateManager } from '@src/p2p/Context'
 
+jest.mock('../../../../src/p2p/Context')
+
 describe('BroadcastStateReq', () => {
   beforeEach(() => {
     (stateManager as any) = {
