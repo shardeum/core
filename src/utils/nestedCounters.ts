@@ -4,7 +4,6 @@ import * as utils from '../utils'
 import Crypto from '../crypto'
 import { isDebugModeMiddleware, isDebugModeMiddlewareLow } from '../network/debugMiddleware'
 import { getNetworkTimeOffset, shardusGetTime } from '../network'
-import { Utils } from '@shardeum-foundation/lib-types'
 
 type CounterMap = Map<string, CounterNode>
 interface CounterNode {
