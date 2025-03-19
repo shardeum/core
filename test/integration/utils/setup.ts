@@ -113,7 +113,7 @@ export async function setupTestEnvironment(): Promise<{
     id: crypto.hashObj({ publicKey: keyPair.publicKey, cycleMarker: 'madeupcyclemarker' }),
     syncingTimestamp: Date.now(),
     readyTimestamp: 0,
-    activeCycle: 0  
+    activeCycle: 0,
   }
 
   const targetNode: ShardusTypes.Node = {
@@ -132,7 +132,7 @@ export async function setupTestEnvironment(): Promise<{
     id: nodeInfo.id,
     syncingTimestamp: Date.now(),
     readyTimestamp: 0,
-    activeCycle: 0
+    activeCycle: 0,
   }
 
   return { dummyNode, networkContext, targetNode }

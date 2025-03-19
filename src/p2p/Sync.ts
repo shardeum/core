@@ -206,7 +206,7 @@ export async function sync(activeNodes: P2P.SyncTypes.ActiveNode[]) {
   } while (
     squasher.final.updated.length < activeNodeCount(cycleToSyncTo) ||
     squasher.final.added.length < totalNodeCount(cycleToSyncTo)
-    )
+  )
 
   // Now that our node list is synced, validate the anchor cycle's cert
   // [TODO] [AS]
@@ -284,7 +284,6 @@ export async function syncNewCycles(activeNodes: SyncNode[]) {
       info(`syncNewCycles: nextCycle=${nextCycle.counter}`)
       //      CycleChain.validate(CycleChain.newest, newestCycle)
 
-
       // for join v2, also get the standby node list hash
       // if (config.p2p.useJoinProtocolV2) {
       //   const standbyNodeListHash = JoinV2.computeNewStandbyListHash()
@@ -315,10 +314,12 @@ export async function syncNewCycles(activeNodes: SyncNode[]) {
           const port = responder.port ? responder.port : responder.externalPort
           const data = {
             start: CycleChain.newest.counter,
-            end: CycleChain.newest.counter
+            end: CycleChain.newest.counter,
           }
           const resp = await http.post(`${ip}:${port}/sync-cycles`, data)
-          info(`syncNewCycles: responder ${ip}:${port} cycle ${CycleChain.newest.counter} ${Utils.safeStringify(resp[0])}`)
+          info(
+            `syncNewCycles: responder ${ip}:${port} cycle ${CycleChain.newest.counter} ${Utils.safeStringify(resp[0])}`
+          )
         }
 
         //20230730: comment below is from 3 years ago, is it something that needs to be handled.
@@ -355,32 +356,42 @@ export async function syncNewCycles(activeNodes: SyncNode[]) {
 }
 
 export function digestCycle(cycle: P2P.CycleCreatorTypes.CycleRecord, source: string) {
-  info(`digestCycle: c${CycleCreator.currentCycle}q${CycleCreator.currentQuarter} marker of cycle${cycle.counter} from ${source} before digest is ${CycleChain.computeCycleMarker(cycle)}`)
+  info(
+    `digestCycle: c${CycleCreator.currentCycle}q${CycleCreator.currentQuarter} marker of cycle${
+      cycle.counter
+    } from ${source} before digest is ${CycleChain.computeCycleMarker(cycle)}`
+  )
   // get the node list hashes *before* applying node changes
   if (config.p2p.useSyncProtocolV2 || config.p2p.writeSyncProtocolV2) {
     // would this cause issues if called from syncV2?
     // suppose a node syncs the latest cycle from the network which will already have the ndoelist hashes filled in,
     // but now we re-calculate them. what if the nodelists that we synced(and are calculating hashes based off of) is different
-    // than the nodelists were when the active nodes originally calculated the hashes and put it in the cycle record that we 
+    // than the nodelists were when the active nodes originally calculated the hashes and put it in the cycle record that we
     // already synced. we would end up with a different hash than the other nodes. this seems to be handled in the case of the
     // standby list, but not with the validator and archivers lists
 
     const newNodeListHash = NodeList.computeNewNodeListHash()
-    if (newNodeListHash !== cycle.nodeListHash) warn(`sync:digestCycle source: ${source} cycle: ${cycle.counter} patching nodelisthash ${cycle.nodeListHash} -> ${newNodeListHash}`)
+    if (newNodeListHash !== cycle.nodeListHash)
+      warn(
+        `sync:digestCycle source: ${source} cycle: ${cycle.counter} patching nodelisthash ${cycle.nodeListHash} -> ${newNodeListHash}`
+      )
     cycle.nodeListHash = newNodeListHash
 
     const newArchiverListHash = Archivers.computeNewArchiverListHash()
-    if (newArchiverListHash !== cycle.archiverListHash) warn(`sync:digestCycle source: ${source} cycle: ${cycle.counter} patching archiverlisthash ${cycle.archiverListHash} -> ${newArchiverListHash}`)
+    if (newArchiverListHash !== cycle.archiverListHash)
+      warn(
+        `sync:digestCycle source: ${source} cycle: ${cycle.counter} patching archiverlisthash ${cycle.archiverListHash} -> ${newArchiverListHash}`
+      )
     cycle.archiverListHash = newArchiverListHash
 
     // for join v2, also get the standby node list hash
     if (config.p2p.useJoinProtocolV2) {
       const standbyNodeListHash = JoinV2.computeNewStandbyListHash()
       /* prettier-ignore */ if (logFlags.important_as_error) info( `sync:digestCycle source: ${source} cycle: ${cycle.counter} standbyNodeListHash: ${standbyNodeListHash} cycle.standbyNodeListHash: ${cycle.standbyNodeListHash}` )
-      
+
       // [TODO] We can remove `source !== 'syncV2'` once we shut down ITN2
-      if (source !== 'syncV2'){
-        if( standbyNodeListHash !== cycle.standbyNodeListHash){
+      if (source !== 'syncV2') {
+        if (standbyNodeListHash !== cycle.standbyNodeListHash) {
           /* prettier-ignore */ if (logFlags.important_as_error) info( `sync:digestCycle source:${source} cycle: ${cycle.counter} patching standbylisthash ${cycle.counter} standbyNodeListHash: ${standbyNodeListHash} -> cycle.standbyNodeListHash: ${cycle.standbyNodeListHash}` )
           cycle.standbyNodeListHash = standbyNodeListHash
         }
@@ -419,14 +430,15 @@ export function digestCycle(cycle: P2P.CycleCreatorTypes.CycleRecord, source: st
       )} CycleCreator.currentCycle: ${CycleCreator.currentCycle}`
     )
 
-  
   const changes = parse(cycle)
 
   applyNodeListChange(changes, true, cycle)
 
   if (logFlags.important_as_error) {
     const newNodeListHash = crypto.hash(NodeList.byJoinOrder) //computeNewNodeListHash not safe due to side effects
-    warn(`sync:digestCycle after applyNodeListChange source: ${source} cycle: ${cycle.counter} prev nodelisthash ${cycle.nodeListHash} next ${newNodeListHash}`)
+    warn(
+      `sync:digestCycle after applyNodeListChange source: ${source} cycle: ${cycle.counter} prev nodelisthash ${cycle.nodeListHash} next ${newNodeListHash}`
+    )
   }
 
   // for join v2, also add any new standby nodes to the standy node list
@@ -546,7 +558,12 @@ async function getCycles(
   activeNodes: SyncNode[],
   start: number,
   end?: number
-): Promise<{ cycles: P2P.CycleCreatorTypes.CycleRecord[], responders: Partial<Pick<P2P.SyncTypes.ActiveNode, "ip" | "port"> & Pick<P2P.NodeListTypes.Node, "externalIp" | "externalPort">>[]}> {
+): Promise<{
+  cycles: P2P.CycleCreatorTypes.CycleRecord[]
+  responders: Partial<
+    Pick<P2P.SyncTypes.ActiveNode, 'ip' | 'port'> & Pick<P2P.NodeListTypes.Node, 'externalIp' | 'externalPort'>
+  >[]
+}> {
   if (start < 0) start = 0
   if (end !== undefined) {
     if (start > end) start = end
@@ -580,7 +597,7 @@ async function getCycles(
   const cycles = response as P2P.CycleCreatorTypes.CycleRecord[]
 
   const valid = validateCycles(cycles)
-  if (valid) return  { cycles, responders: _responders }
+  if (valid) return { cycles, responders: _responders }
 }
 
 export function activeNodeCount(cycle: P2P.CycleCreatorTypes.CycleRecord) {
@@ -615,8 +632,8 @@ export function totalNodeCount(cycle: P2P.CycleCreatorTypes.CycleRecord) {
     cycle.active +
     //    cycle.activated.length -      // don't count activated because it was already counted in syncing
     -cycle.apoptosized.length +
-    -cycle.removed.length
-    -cycle.appRemoved.length
+    -cycle.removed.length -
+    cycle.appRemoved.length
     // -cycle.lost.length
   )
 }
@@ -781,7 +798,7 @@ function validateCycles(cycles: P2P.CycleCreatorTypes.CycleRecord[]) {
         }
       }
     }
-  }  catch (e) {
+  } catch (e) {
     if (e instanceof Error) {
       warn('Validation failed for cycleRecord: ' + e.message)
     } else {

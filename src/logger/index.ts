@@ -342,9 +342,7 @@ class Logger {
       )
     }
     if (logFlags.playback_debug) {
-      this._playbackLogger.debug(
-        `\t${ts}\t${this._playbackOwner}\t${from}\t${to}\t${type}\t${endpoint}\t${id}`
-      )
+      this._playbackLogger.debug(`\t${ts}\t${this._playbackOwner}\t${from}\t${to}\t${type}\t${endpoint}\t${id}`)
     }
   }
   playbackLogState(newState, id, desc) {
@@ -458,63 +456,51 @@ class Logger {
       }
       res.end()
     })
-    Context.network.registerExternalGet(
-      'debug-cycle-recording-enable',
-      isDebugModeMiddlewareMedium,
-      (req, res) => {
-        const enable = req.query.enable
-        if (enable === 'true') {
-          config.debug.localEnableCycleRecordDebugTool = true
-        } else if (enable === 'false') {
-          config.debug.localEnableCycleRecordDebugTool = false
+    Context.network.registerExternalGet('debug-cycle-recording-enable', isDebugModeMiddlewareMedium, (req, res) => {
+      const enable = req.query.enable
+      if (enable === 'true') {
+        config.debug.localEnableCycleRecordDebugTool = true
+      } else if (enable === 'false') {
+        config.debug.localEnableCycleRecordDebugTool = false
+      }
+      res.write(`localEnableCycleRecordDebugTool = ${config.debug.localEnableCycleRecordDebugTool}`)
+      res.end()
+    })
+    Context.network.registerExternalGet('debug-cycle-recording-clear', isDebugModeMiddlewareMedium, (req, res) => {
+      fs.unlink(filePath1, (err) => {
+        if (err) {
+          console.error(`Failed to delete ${filePath1}: ${err.message}`)
+        } else {
+          console.log(`${filePath1} was deleted successfully.`)
         }
-        res.write(`localEnableCycleRecordDebugTool = ${config.debug.localEnableCycleRecordDebugTool}`)
-        res.end()
-      }
-    )
-    Context.network.registerExternalGet(
-      'debug-cycle-recording-clear',
-      isDebugModeMiddlewareMedium,
-      (req, res) => {
-        fs.unlink(filePath1, (err) => {
+
+        // Attempt to delete the second file after the first completion
+        fs.unlink(filePath2, (err) => {
           if (err) {
-            console.error(`Failed to delete ${filePath1}: ${err.message}`)
+            console.error(`Failed to delete ${filePath2}: ${err.message}`)
           } else {
-            console.log(`${filePath1} was deleted successfully.`)
+            console.log(`${filePath2} was deleted successfully.`)
           }
-
-          // Attempt to delete the second file after the first completion
-          fs.unlink(filePath2, (err) => {
-            if (err) {
-              console.error(`Failed to delete ${filePath2}: ${err.message}`)
-            } else {
-              console.log(`${filePath2} was deleted successfully.`)
-            }
-            // End the response after attempting to delete both files
-            res.end('Cycle recording data cleared.')
-          })
+          // End the response after attempting to delete both files
+          res.end('Cycle recording data cleared.')
         })
-      }
-    )
-    Context.network.registerExternalGet(
-      'debug-cycle-recording-download',
-      isDebugModeMiddlewareMedium,
-      (req, res) => {
-        // Use async read for non-blocking operation
-        fs.readFile(filePath1, 'utf8', (err, data) => {
-          if (err) {
-            // Handle error (e.g., file not found)
-            console.error('Error reading file:', err)
-            res.status(500).json({ error: 'Error reading file' })
-            return
-          }
+      })
+    })
+    Context.network.registerExternalGet('debug-cycle-recording-download', isDebugModeMiddlewareMedium, (req, res) => {
+      // Use async read for non-blocking operation
+      fs.readFile(filePath1, 'utf8', (err, data) => {
+        if (err) {
+          // Handle error (e.g., file not found)
+          console.error('Error reading file:', err)
+          res.status(500).json({ error: 'Error reading file' })
+          return
+        }
 
-          // Return data from filePath1 only
-          res.setHeader('Content-Type', 'text/plain')
-          res.json({ response: true, data: data })
-        })
-      }
-    )
+        // Return data from filePath1 only
+        res.setHeader('Content-Type', 'text/plain')
+        res.json({ response: true, data: data })
+      })
+    })
     Context.network.registerExternalGet('debug-clearlog', isDebugModeMiddlewareMedium, async (req, res) => {
       const requestedFileName = req?.query?.file
       let filesToClear = []
@@ -691,13 +677,13 @@ class Logger {
     console.log(`base logFlags: ` + Utils.safeStringify(logFlags))
   }
 
-  mainLog(level, key: string,  message:string ): void {
+  mainLog(level, key: string, message: string): void {
     //initially this will just go to a main log but we could but this in
     //a json blob with the key and send it to a different logging service
     this._mainLogger[level](key + ' ' + message)
   }
 
-  mainLog_debug(key: string,  message:string ): void {
+  mainLog_debug(key: string, message: string): void {
     //note will change the key to be an array later and remove the DBG prefix
     this.mainLog('debug', 'DBG_' + key, message)
   }
@@ -713,8 +699,6 @@ class Logger {
       })
       .join(' ')
   }
-
-  
 }
 
 export default Logger

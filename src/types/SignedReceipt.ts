@@ -13,11 +13,7 @@ export type SignedReceiptSerializable = {
   sign?: SignSerializable
 }
 
-export function serializeSignedReceipt(
-  stream: VectorBufferStream,
-  obj: SignedReceiptSerializable,
-  root = false
-): void {
+export function serializeSignedReceipt(stream: VectorBufferStream, obj: SignedReceiptSerializable, root = false): void {
   if (root) {
     stream.writeUInt16(TypeIdentifierEnum.cSignedReceipt)
   }

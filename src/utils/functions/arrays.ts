@@ -41,7 +41,6 @@ export function insertSorted<T>(arr: T[], item: T, comparator?: Comparator<T>): 
   return i
 }
 
-
 export function linearInsertSorted<T>(arr: T[], item: T, comparator: Comparator<T>): void {
   let i = 0
   while (i < arr.length) {
@@ -127,11 +126,7 @@ export function binaryLowest<T>(ar: T[], comparator?: Comparator<T>): number {
  * @param el
  * @param comparator
  */
-export function binarySearch<T, E = Partial<T>>(
-  arr: T[],
-  el: E,
-  comparator?: Comparator<T, typeof el>
-): number {
+export function binarySearch<T, E = Partial<T>>(arr: T[], el: E, comparator?: Comparator<T, typeof el>): number {
   if (comparator == null) {
     // Emulate the default Array.sort() comparator
     comparator = (a, b) => {

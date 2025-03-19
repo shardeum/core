@@ -5,11 +5,7 @@ export type PoqoSendReceiptReq = SignedReceiptSerializable & { txGroupCycle: num
 
 const cPoqoSendReceiptReqVersion = 1
 
-export function serializePoqoSendReceiptReq(
-  stream: VectorBufferStream,
-  obj: PoqoSendReceiptReq,
-  root = false
-): void {
+export function serializePoqoSendReceiptReq(stream: VectorBufferStream, obj: PoqoSendReceiptReq, root = false): void {
   if (root) {
     stream.writeUInt16(TypeIdentifierEnum.cPoqoSendReceiptReq)
   }

@@ -58,7 +58,7 @@ class Debug {
             nestedCountersInstance.countEvent('debug', 'error: No valid entry found for header')
             this.main.logger.error('debug: No valid entry found for header:', header.name)
           }
-          return header 
+          return header
         }
         // Remove srcRel from header.name
         header.name = path.relative(entry, header.name)
@@ -69,7 +69,7 @@ class Debug {
             nestedCountersInstance.countEvent('debug', 'error: Destination not found for entry')
             this.main.logger.error('debug: Destination not found for entry:', entry)
           }
-          return header 
+          return header
         }
         header.name = path.normalize(path.join(dest, header.name))
         return header
@@ -120,8 +120,7 @@ class Debug {
     })
     this.network.registerExternalGet('debug-network-delay', isDebugModeMiddleware, (req, res) => {
       try {
-        const delay =
-          req.query.delay && typeof req.query.delay === 'string' ? parseInt(req.query.delay) : 120 * 1000
+        const delay = req.query.delay && typeof req.query.delay === 'string' ? parseInt(req.query.delay) : 120 * 1000
         this.network.setDebugNetworkDelay(delay)
       } catch (e) {
         res.json({ success: false, error: e.message })
@@ -158,12 +157,12 @@ class Debug {
               stats: {
                 refutePercentage: ProblemNodeHandler.getRefutePercentage(node.refuteCycles, lastCycle.counter),
                 consecutiveRefutes: ProblemNodeHandler.getConsecutiveRefutes(refuteCycles, lastCycle.counter),
-                isProblematic: ProblemNodeHandler.isNodeProblematic(node, lastCycle.counter)
-              }
+                isProblematic: ProblemNodeHandler.isNodeProblematic(node, lastCycle.counter),
+              },
             }
           }
         }
-        
+
         res.json({ success: true, data: { cycle: lastCycle.counter, nodeHistories: dump } })
       } catch (e) {
         res.json({ success: false, error: e.message })

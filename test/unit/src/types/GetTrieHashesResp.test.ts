@@ -288,9 +288,7 @@ describe('GetTrieHashesResponse Serialization & Deserialization', () => {
       stream.writeUInt32(0)
 
       stream.position = 0 // Reset position for reading
-      expect(() => deserializeGetTrieHashesResp(stream)).toThrow(
-        'Unsupported version in deserializeGetTrieHashesResp'
-      )
+      expect(() => deserializeGetTrieHashesResp(stream)).toThrow('Unsupported version in deserializeGetTrieHashesResp')
     })
   })
 

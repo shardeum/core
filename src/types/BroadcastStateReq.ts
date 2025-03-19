@@ -15,11 +15,7 @@ export interface BroadcastStateReq {
   stateList: WrappedDataResponse[]
 }
 
-export function serializeBroadcastStateReq(
-  stream: VectorBufferStream,
-  obj: BroadcastStateReq,
-  root = false
-): void {
+export function serializeBroadcastStateReq(stream: VectorBufferStream, obj: BroadcastStateReq, root = false): void {
   if (root) {
     stream.writeUInt16(TypeIdentifierEnum.cBroadcastStateReq)
   }

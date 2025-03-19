@@ -67,9 +67,7 @@ describe('GetAccountDataByListReq Tests', () => {
       stream.writeUInt8(cGetAccountDataByListReqVersion + 1) // incorrect version
       stream.position = 0
 
-      expect(() => deserializeGetAccountDataByListReq(stream)).toThrow(
-        'GetAccountDataByListReq version mismatch'
-      )
+      expect(() => deserializeGetAccountDataByListReq(stream)).toThrow('GetAccountDataByListReq version mismatch')
     })
   })
 

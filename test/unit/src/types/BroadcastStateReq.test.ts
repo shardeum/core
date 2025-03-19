@@ -13,10 +13,10 @@ import { beforeEachHandler } from './stateManagerSerializeMocks'
 
 jest.mock('../../../../src/p2p/Context', () => ({
   stateManager: {
-      app: {
+    app: {
       binarySerializeObject: jest.fn(),
       binaryDeserializeObject: jest.fn(),
-      }
+    },
   },
   setDefaultConfigs: jest.fn(),
 }))
@@ -29,9 +29,8 @@ describe('BroadcastStateReq', () => {
   beforeAll(() => {
     initAjvSchemas()
   })
- 
-  describe('BroadcastStateReq Serialization Tests', () => {
 
+  describe('BroadcastStateReq Serialization Tests', () => {
     test('Serialize BroadcastStateReq with Valid Input Correctly, root true', () => {
       const stream = new VectorBufferStream(0)
       const obj: BroadcastStateReq = {
@@ -158,7 +157,6 @@ describe('BroadcastStateReq', () => {
 
       expect(() => deserializeBroadcastStateReq(alteredStream)).toThrow('BroadcastStateReq version mismatch')
     })
-
   })
 
   describe('BroadcastStateReq Round-trip Tests', () => {

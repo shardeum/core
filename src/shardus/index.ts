@@ -44,7 +44,7 @@ import * as Wrapper from '../p2p/Wrapper'
 import RateLimiting from '../rate-limiting'
 import Reporter from '../reporter'
 import * as ShardusTypes from '../shardus/shardus-types'
-import { AppObjEnum, DevSecurityLevel, OpaqueTransaction, WrappedData } from "../shardus/shardus-types";
+import { AppObjEnum, DevSecurityLevel, OpaqueTransaction, WrappedData } from '../shardus/shardus-types'
 import * as Snapshot from '../snapshot'
 import StateManager from '../state-manager'
 import { CachedAppData, NonceQueueItem, QueueCountsResult } from '../state-manager/state-manager-types'
@@ -53,12 +53,7 @@ import Statistics from '../statistics'
 import Storage from '../storage'
 import { initAjvSchemas, verifyPayload } from '../types/ajv/Helpers'
 import * as utils from '../utils'
-import {
-  fastIsPicked,
-  groupResolvePromises,
-  inRangeOfCurrentTime,
-  isValidShardusAddress,
-} from '../utils'
+import { fastIsPicked, groupResolvePromises, inRangeOfCurrentTime, isValidShardusAddress } from '../utils'
 import { getSocketReport } from '../utils/debugUtils'
 import MemoryReporting from '../utils/memoryReporting'
 import NestedCounters, { nestedCountersInstance } from '../utils/nestedCounters'
@@ -81,11 +76,7 @@ import { RequestErrorEnum } from '../types/enum/RequestErrorEnum'
 import { getStreamWithTypeCheck, requestErrorHandler } from '../types/Helpers'
 import { TypeIdentifierEnum } from '../types/enum/TypeIdentifierEnum'
 import { SignAppDataReq, deserializeSignAppDataReq, serializeSignAppDataReq } from '../types/SignAppDataReq'
-import {
-  SignAppDataResp,
-  deserializeSignAppDataResp,
-  serializeSignAppDataResp,
-} from '../types/SignAppDataResp'
+import { SignAppDataResp, deserializeSignAppDataResp, serializeSignAppDataResp } from '../types/SignAppDataResp'
 import { Utils } from '@shardeum-foundation/lib-types'
 import { getOurNodeIndex, isNodeInRotationBounds } from '../p2p/Utils'
 import ShardFunctions from '../state-manager/shardFunctions'
@@ -163,9 +154,7 @@ interface Shardus {
  * The main module that is used by the app developer to interact with the shardus api
  */
 class Shardus extends EventEmitter {
-  constructor(
-    { server: config, logs: logsConfig, storage: storageConfig }: ShardusTypes.StrictShardusConfiguration,
-  ) {
+  constructor({ server: config, logs: logsConfig, storage: storageConfig }: ShardusTypes.StrictShardusConfiguration) {
     super()
     this.debugForeverLoopsEnabled = true
     this.debugForeverLoopCounter = 0
@@ -278,7 +267,7 @@ class Shardus extends EventEmitter {
       containsTxData: ServiceQueue.containsTxData,
       containsTx: ServiceQueue.containsTx,
       addNetworkTx: ServiceQueue.addNetworkTx,
-      getLatestNetworkTxEntryForSubqueueKey: ServiceQueue.getLatestNetworkTxEntryForSubqueueKey
+      getLatestNetworkTxEntryForSubqueueKey: ServiceQueue.getLatestNetworkTxEntryForSubqueueKey,
     }
 
     this.exitHandler.addSigListeners()
@@ -492,12 +481,12 @@ class Shardus extends EventEmitter {
       Context.setIOContext(this.io)
 
       /*
-        * The old middleware is deleted and repurpose into a function
-        * It was causing problem because as nature of middlewares are expected to run in each events.
-        *   But the authentication payload is only needed to be checked and only supplied once at the socket.io handshake
-        *   This caused the archiver to be able to connect on the first handshake stuck.
-        *   redundant crypto.verify calls were made.
-        */
+       * The old middleware is deleted and repurpose into a function
+       * It was causing problem because as nature of middlewares are expected to run in each events.
+       *   But the authentication payload is only needed to be checked and only supplied once at the socket.io handshake
+       *   This caused the archiver to be able to connect on the first handshake stuck.
+       *   redundant crypto.verify calls were made.
+       */
       function validateSocketHandshake(socket: SocketIO.Socket, crypto: Crypto, mainLogger: Log4js.Logger): boolean {
         // `this` is not binded
         // calling `this` in the function will not be the same `this` as the outer LOC were referencing to
@@ -505,20 +494,24 @@ class Shardus extends EventEmitter {
           if (!Self || !Self.isActive) {
             if (!Self.allowConnectionToFirstNode) {
               mainLogger.error(`❌ This node is not active yet and kill the socket connection!`)
-              return false;
+              return false
             }
           }
           // Check if the archiver module is initialized; this is unlikely to happen because of the above Self.isActive check
           if (!Archivers.recipients || !Archivers.connectedSockets) {
-            mainLogger.error(
-              `❌ Seems Archiver module isn't initialized yet, dropping the Socket connection!`
-            )
+            mainLogger.error(`❌ Seems Archiver module isn't initialized yet, dropping the Socket connection!`)
             return false
           }
 
           nestedCountersInstance.countEvent('debug-archiverConnections', `ourIP: ${Self.ip}`)
-          nestedCountersInstance.countEvent('debug-archiverConnections', `socket.handshake.address: ${socket.handshake.address.split('::ffff:').pop()}`)
-          nestedCountersInstance.countEvent('debug-archiverConnections', `socket.handshake.headers.host: ${socket.handshake.headers.host.split(':')[0]}`)
+          nestedCountersInstance.countEvent(
+            'debug-archiverConnections',
+            `socket.handshake.address: ${socket.handshake.address.split('::ffff:').pop()}`
+          )
+          nestedCountersInstance.countEvent(
+            'debug-archiverConnections',
+            `socket.handshake.headers.host: ${socket.handshake.headers.host.split(':')[0]}`
+          )
 
           // And we've encountered issues with it in the earthnet
           // Plus the archiver is already authenticated by the signature.
@@ -529,15 +522,24 @@ class Shardus extends EventEmitter {
           //   return false
           // }
 
-          const archiverCreds = JSON.parse(socket.handshake.query.data) as { publicKey: string, timestamp: number, intendedConsensor: string, sign: ShardusTypes.Sign }
+          const archiverCreds = JSON.parse(socket.handshake.query.data) as {
+            publicKey: string
+            timestamp: number
+            intendedConsensor: string
+            sign: ShardusTypes.Sign
+          }
           // +/- 5sec tolerance
           if (Math.abs(archiverCreds.timestamp - shardusGetTime()) > 5000) {
             mainLogger.error(`❌ Old signature from Archiver @ ${archiverCreds.publicKey}`)
             return false
           }
 
-          if(archiverCreds.intendedConsensor !== Self.getThisNodeInfo().publicKey) {
-            mainLogger.error(`❌ The signature is targeted for consensor @ ${archiverCreds.intendedConsensor} but this node is ${Self.getThisNodeInfo().publicKey}`)
+          if (archiverCreds.intendedConsensor !== Self.getThisNodeInfo().publicKey) {
+            mainLogger.error(
+              `❌ The signature is targeted for consensor @ ${archiverCreds.intendedConsensor} but this node is ${
+                Self.getThisNodeInfo().publicKey
+              }`
+            )
             return false
           }
 
@@ -548,7 +550,6 @@ class Shardus extends EventEmitter {
             return false
           }
 
-
           if (Object.keys(Archivers.connectedSockets).length >= config.p2p.maxArchiversSubscriptionPerNode) {
             /* prettier-ignore */ console.log( `There are already ${config.p2p.maxArchiversSubscriptionPerNode} archivers connected for data transfer!` )
             return false
@@ -558,11 +559,11 @@ class Shardus extends EventEmitter {
           // nothing to check against.
           // In practice genesis node is accompanied with a genesis archiver by the same party at launch
           // so this is ok.
-          if(Self && Self.isFirst) return true
+          if (Self && Self.isFirst) return true
 
           // specifically this map here to get archiver list is chose because the map is populated by cycle parsing.
           // The one like `recipients` map is weaker because they're populated at joinReq
-          const archiver = Archivers.archivers.get(archiverCreds.publicKey);
+          const archiver = Archivers.archivers.get(archiverCreds.publicKey)
 
           // bypass this check when this is genesis node
           if (!archiver) {
@@ -580,7 +581,7 @@ class Shardus extends EventEmitter {
           //   mainLogger.error('Remote Archiver: ', socket.handshake.address)
           //   return false
           // }
-      
+
           return true
         } catch (error) {
           mainLogger.error('❌ Error in Archiver Socket-Connection Auth!')
@@ -590,7 +591,7 @@ class Shardus extends EventEmitter {
       }
 
       this.io.on('connection', (socket: any) => {
-        if(!validateSocketHandshake(socket, this.crypto, this.mainLogger)){
+        if (!validateSocketHandshake(socket, this.crypto, this.mainLogger)) {
           socket.disconnect()
           return
         }
@@ -602,23 +603,18 @@ class Shardus extends EventEmitter {
 
         // prototype pollution mitigation
         // best case is to use the Map<>
-        // going with local fix atm. Deep copy, freeze. read-only. 
-        let freezedList = Object.freeze(
-          JSON.parse(
-            JSON.stringify(Archivers.connectedSockets)
-          )
-        )
-        
+        // going with local fix atm. Deep copy, freeze. read-only.
+        let freezedList = Object.freeze(JSON.parse(JSON.stringify(Archivers.connectedSockets)))
 
         // The same archiver is connected with different stream, let's disconnect old and accept the current one.
-        if(freezedList[archiverPublicKey]) {
+        if (freezedList[archiverPublicKey]) {
           Archivers.removeArchiverConnection(archiverPublicKey)
         }
 
         Archivers.addArchiverConnection(archiverPublicKey, socket.id)
         socket.on('UNSUBSCRIBE', function (ARCHIVER_PUBLIC_KEY) {
-          if(freezedList[ARCHIVER_PUBLIC_KEY] === socket.id) {
-          console.log(`Archive server with public key ${ARCHIVER_PUBLIC_KEY} has requested to Un-subscribe`)
+          if (freezedList[ARCHIVER_PUBLIC_KEY] === socket.id) {
+            console.log(`Archive server with public key ${ARCHIVER_PUBLIC_KEY} has requested to Un-subscribe`)
             Archivers.removeArchiverConnection(ARCHIVER_PUBLIC_KEY)
           }
         })
@@ -679,8 +675,7 @@ class Shardus extends EventEmitter {
             'lostNodeTimeout',
           ],
           watchers: {
-            queueLength: () =>
-              this.stateManager ? this.stateManager.transactionQueue._transactionQueue.length : 0,
+            queueLength: () => (this.stateManager ? this.stateManager.transactionQueue._transactionQueue.length : 0),
             executeQueueLength: () =>
               this.stateManager ? this.stateManager.transactionQueue.getExecuteQueueLength() : 0,
             serverLoad: () => (this.loadDetection ? this.loadDetection.getCurrentLoad() : 0),
@@ -726,11 +721,7 @@ class Shardus extends EventEmitter {
       this._createAndLinkStateManager()
       this._attemptCreateAppliedListener()
 
-      let disableSnapshots = !!(
-        this.config &&
-        this.config.debug &&
-        this.config.debug.disableSnapshots === true
-      )
+      let disableSnapshots = !!(this.config && this.config.debug && this.config.debug.disableSnapshots === true)
       if (disableSnapshots != true) {
         // Start state snapshotting once you go active with an app
         this.once('active', Snapshot.startSnapshotting)
@@ -791,7 +782,6 @@ class Shardus extends EventEmitter {
         */
         this.mainLogger.info('sync-syncAppData')
         await this.syncAppData()
-
       }
     })
     Self.emitter.on('restore', async (cycleNumber: number) => {
@@ -809,16 +799,10 @@ class Shardus extends EventEmitter {
         this.stateManager.renewState()
         await this.stateManager.accountSync.initialSyncMain(3)
         console.log('restore - initialSyncMain finished')
-        nestedCountersInstance.countEvent(
-          'restore',
-          `restore event: syncAppData finished. ${shardusGetTime()}`
-        )
+        nestedCountersInstance.countEvent('restore', `restore event: syncAppData finished. ${shardusGetTime()}`)
       } catch (err) {
         console.log()
-        this.fatalLogger.fatal(
-          'restore-failed with Error: ' +
-          utils.formatErrorMessage(err)
-        )
+        this.fatalLogger.fatal('restore-failed with Error: ' + utils.formatErrorMessage(err))
         nestedCountersInstance.countEvent('restore', `restore event: fail and apop self. ${shardusGetTime()}`)
         apoptosizeSelf(`restore-failed: ${err?.message}`, 'Node stopped due to network restore failure.')
         return
@@ -856,10 +840,7 @@ class Shardus extends EventEmitter {
       console.log(e.message + ' at ' + e.stack)
       if (logFlags.debug) this.mainLogger.debug('shardus.start() ' + e.message + ' at ' + e.stack)
       // normally fatal error keys should not be variable ut this seems like an ok exception for now
-      this.shardus_fatal(
-        `onError_ex` + e.message + ' at ' + e.stack,
-        'shardus.start() ' + e.message + ' at ' + e.stack
-      )
+      this.shardus_fatal(`onError_ex` + e.message + ' at ' + e.stack, 'shardus.start() ' + e.message + ' at ' + e.stack)
       throw new Error(e)
     })
     Self.emitter.on('removed', async () => {
@@ -900,13 +881,11 @@ class Shardus extends EventEmitter {
       }
       this.exitHandler.exitCleanly(`removed`, `removed from network requested by app`) // exits with status 0 so that
     })
-    Self.emitter.on(
-      'invoke-exit',
-      async (tag: string, callstack: string, message: string, restart: boolean) => {
-        // Omar - Why are we trying to call the functions in modules directly before exiting.
-        //        The modules have already registered shutdown functions with the exitHandler.
-        //        We should let exitHandler handle the shutdown process.
-        /*
+    Self.emitter.on('invoke-exit', async (tag: string, callstack: string, message: string, restart: boolean) => {
+      // Omar - Why are we trying to call the functions in modules directly before exiting.
+      //        The modules have already registered shutdown functions with the exitHandler.
+      //        We should let exitHandler handle the shutdown process.
+      /*
       this.fatalLogger.fatal('Shardus: caught apoptosized event; cleaning up')
       if (this.statistics) {
         this.statistics.stopSnapshots()
@@ -926,24 +905,20 @@ class Shardus extends EventEmitter {
         'Shardus: caught apoptosized event; finished clean up'
       )
 */
-        const exitType = restart ? 'exitCleanly' : 'exitUncleanly'
-        nestedCountersInstance.countRareEvent('fatal', `invoke-exit: ${tag} ${exitType}`)
-        this.mainLogger.error(`invoke-exit: ${tag} ${exitType}`)
-        this.mainLogger.error(message)
-        this.mainLogger.error(callstack)
-        if (this.reporter) {
-          this.reporter.stopReporting()
-          await this.reporter.reportRemoved(Self.id)
-        }
-        if (restart)
-          this.exitHandler.exitCleanly(
-            `invoke-exit: ${tag}`,
-            `invoke-exit: ${tag}. but exiting cleanly for a restart`
-          )
-        // exits with status 0 so that PM2 can restart the process
-        else this.exitHandler.exitUncleanly(`invoke-exit: ${tag}`, `invoke-exit: ${tag} ${exitType}`) // exits with status 1 so that PM2 CANNOT restart the process
+      const exitType = restart ? 'exitCleanly' : 'exitUncleanly'
+      nestedCountersInstance.countRareEvent('fatal', `invoke-exit: ${tag} ${exitType}`)
+      this.mainLogger.error(`invoke-exit: ${tag} ${exitType}`)
+      this.mainLogger.error(message)
+      this.mainLogger.error(callstack)
+      if (this.reporter) {
+        this.reporter.stopReporting()
+        await this.reporter.reportRemoved(Self.id)
       }
-    )
+      if (restart)
+        this.exitHandler.exitCleanly(`invoke-exit: ${tag}`, `invoke-exit: ${tag}. but exiting cleanly for a restart`)
+      // exits with status 0 so that PM2 can restart the process
+      else this.exitHandler.exitUncleanly(`invoke-exit: ${tag}`, `invoke-exit: ${tag} ${exitType}`) // exits with status 1 so that PM2 CANNOT restart the process
+    })
     Self.emitter.on('node-activated', async ({ ...params }) => {
       if (networkMode === 'shutdown') return
       try {
@@ -1003,8 +978,7 @@ class Shardus extends EventEmitter {
     Self.emitter.on('node-sync-timeout', async ({ ...params }) => {
       try {
         if (!this.stateManager.currentCycleShardData) throw new Error('No current cycle data')
-        if (params.publicKey == null)
-          throw new Error('No node publicKey provided for node-sync-timeout event')
+        if (params.publicKey == null) throw new Error('No node publicKey provided for node-sync-timeout event')
         const consensusNodes = this.getConsenusGroupForAccount(params.publicKey)
         for (let node of consensusNodes) {
           if (node.id === Self.id) {
@@ -1026,7 +1000,9 @@ class Shardus extends EventEmitter {
           await result
         }
       } catch (e) {
-        this.mainLogger.error(`Error: while processing try-network-transaction event stack: ${utils.formatErrorMessage(e)}`)
+        this.mainLogger.error(
+          `Error: while processing try-network-transaction event stack: ${utils.formatErrorMessage(e)}`
+        )
       }
     })
 
@@ -1094,11 +1070,7 @@ class Shardus extends EventEmitter {
    */
   _registerListener(emitter, event, callback) {
     if (this._listeners[event]) {
-      this.shardus_fatal(
-        `_registerListener_dupe`,
-        'Shardus can only register one listener per event! EVENT: ',
-        event
-      )
+      this.shardus_fatal(`_registerListener_dupe`, 'Shardus can only register one listener per event! EVENT: ', event)
       return
     }
     emitter.on(event, callback)
@@ -1129,7 +1101,13 @@ class Shardus extends EventEmitter {
     }
   }
 
-  async _timestampAndQueueTransaction(tx: ShardusTypes.OpaqueTransaction, appData: any, global = false, noConsensus = false, loggingContext = '') {
+  async _timestampAndQueueTransaction(
+    tx: ShardusTypes.OpaqueTransaction,
+    appData: any,
+    global = false,
+    noConsensus = false,
+    loggingContext = ''
+  ) {
     // Give the dapp an opportunity to do some up front work and generate
     // appData metadata for the applied TX
     const { status: preCrackSuccess, reason } = await this.app.txPreCrackData(tx, appData)
@@ -1141,54 +1119,51 @@ class Shardus extends EventEmitter {
       }
     }
 
-    const injectedTimestamp = this.app.getTimestampFromTransaction(tx, appData);
+    const injectedTimestamp = this.app.getTimestampFromTransaction(tx, appData)
 
-    const txId = this.app.calculateTxId(tx);
-    let timestampReceipt: ShardusTypes.TimestampReceipt;
+    const txId = this.app.calculateTxId(tx)
+    let timestampReceipt: ShardusTypes.TimestampReceipt
     let isMissingInjectedTimestamp = !injectedTimestamp || injectedTimestamp === -1
     if (isMissingInjectedTimestamp) {
       if (injectedTimestamp === -1) {
         /* prettier-ignore */
         if (logFlags.p2pNonFatal && logFlags.console) console.log("Dapp request to generate a new timestmap for the tx");
       }
-      timestampReceipt = await this.stateManager.transactionConsensus.askTxnTimestampFromNode(txId);
+      timestampReceipt = await this.stateManager.transactionConsensus.askTxnTimestampFromNode(txId)
       /* prettier-ignore */
       if (logFlags.p2pNonFatal && logFlags.console) console.log("Network generated a" +
         " timestamp", txId, timestampReceipt);
     }
     if (isMissingInjectedTimestamp && !timestampReceipt) {
-      this.shardus_fatal(
-        "put_noTimestamp",
-        `Transaction timestamp cannot be determined ${utils.stringifyReduce(tx)} `
-      );
-      this.statistics.incrementCounter("txRejected");
-      nestedCountersInstance.countEvent("rejected", `_timestampNotDetermined-${loggingContext}`);
+      this.shardus_fatal('put_noTimestamp', `Transaction timestamp cannot be determined ${utils.stringifyReduce(tx)} `)
+      this.statistics.incrementCounter('txRejected')
+      nestedCountersInstance.countEvent('rejected', `_timestampNotDetermined-${loggingContext}`)
       return {
         success: false,
-        reason: "Transaction timestamp cannot be determined.",
-        status: 500
-      };
+        reason: 'Transaction timestamp cannot be determined.',
+        status: 500,
+      }
     }
     let timestampedTx: ShardusTypes.TimestampedTx
     if (timestampReceipt && timestampReceipt.timestamp) {
       timestampedTx = {
         tx,
-        timestampReceipt
-      };
+        timestampReceipt,
+      }
     } else {
-      timestampedTx = { tx };
+      timestampedTx = { tx }
     }
 
     // Perform fast validation of the transaction fields
-    const validateResult = this.app.validate(timestampedTx, appData);
+    const validateResult = this.app.validate(timestampedTx, appData)
     if (validateResult.success === false) {
       // 400 is a code for bad tx or client faulty
-      validateResult.status = validateResult.status ? validateResult.status : 400;
-      return validateResult;
+      validateResult.status = validateResult.status ? validateResult.status : 400
+      return validateResult
     }
 
     // Ask App to crack open tx and return timestamp, id (hash), and keys
-    const { timestamp, id, keys, shardusMemoryPatterns } = this.app.crack(timestampedTx, appData);
+    const { timestamp, id, keys, shardusMemoryPatterns } = this.app.crack(timestampedTx, appData)
     // console.log('app.crack results', timestamp, id, keys)
 
     // Validate the transaction's sourceKeys & targetKeys
@@ -1196,27 +1171,27 @@ class Shardus extends EventEmitter {
       this.shardus_fatal(
         `put_invalidAddress`,
         `Invalid Shardus Address found: allKeys:${keys.allKeys} ${utils.stringifyReduce(tx)}`
-      );
-      this.statistics.incrementCounter("txRejected");
-      nestedCountersInstance.countEvent("rejected", "_hasInvalidShardusAddresses");
-      return { success: false, reason: "Invalid Shardus Addresses", status: 400 };
+      )
+      this.statistics.incrementCounter('txRejected')
+      nestedCountersInstance.countEvent('rejected', '_hasInvalidShardusAddresses')
+      return { success: false, reason: 'Invalid Shardus Addresses', status: 400 }
     }
     // Validate the transaction timestamp
-    let txExpireTimeMs = this.config.transactionExpireTime * 1000;
+    let txExpireTimeMs = this.config.transactionExpireTime * 1000
 
     if (global) {
-      txExpireTimeMs = 2 * 10 * 1000; //todo consider if this should be a config.
+      txExpireTimeMs = 2 * 10 * 1000 //todo consider if this should be a config.
     }
 
     if (inRangeOfCurrentTime(timestamp, txExpireTimeMs, txExpireTimeMs) === false) {
       /* prettier-ignore */
       this.shardus_fatal(`tx_outofrange`, `Transaction timestamp out of range: timestamp:${timestamp} now:${shardusGetTime()} diff(now-ts):${shardusGetTime() - timestamp}  ${utils.stringifyReduce(tx)} our offset: ${getNetworkTimeOffset()} loggingContext: ${loggingContext}`);
-      this.statistics.incrementCounter("txRejected");
-      nestedCountersInstance.countEvent("rejected", "transaction timestamp out of range");
-      return { success: false, reason: "Transaction timestamp out of range", status: 400 };
+      this.statistics.incrementCounter('txRejected')
+      nestedCountersInstance.countEvent('rejected', 'transaction timestamp out of range')
+      return { success: false, reason: 'Transaction timestamp out of range', status: 400 }
     }
 
-    this.profiler.profileSectionStart("put");
+    this.profiler.profileSectionStart('put')
 
     //as ShardusMemoryPatternsInput
     // Pack into acceptedTx, and pass to StateManager
@@ -1226,35 +1201,31 @@ class Shardus extends EventEmitter {
       keys,
       data: timestampedTx,
       appData,
-      shardusMemoryPatterns: shardusMemoryPatterns
-    };
-    if (logFlags.verbose) this.mainLogger.debug("Transaction validated");
+      shardusMemoryPatterns: shardusMemoryPatterns,
+    }
+    if (logFlags.verbose) this.mainLogger.debug('Transaction validated')
     if (global === false) {
       //temp way to make global modifying TXs not over count
-      this.statistics.incrementCounter("txInjected");
+      this.statistics.incrementCounter('txInjected')
     }
-    this.logger.playbackLogNote(
-      "tx_injected",
-      `${txId}`,
-      `Transaction: ${utils.stringifyReduce(timestampedTx)}`
-    );
+    this.logger.playbackLogNote('tx_injected', `${txId}`, `Transaction: ${utils.stringifyReduce(timestampedTx)}`)
     let added = this.stateManager.transactionQueue.routeAndQueueAcceptedTransaction(
       acceptedTX,
       /*send gossip*/ true,
       null,
       global,
       noConsensus
-    );
+    )
     if (logFlags.verbose) {
-      this.mainLogger.debug(`End of injectTransaction ${utils.stringifyReduce(tx)}, added: ${added}`);
+      this.mainLogger.debug(`End of injectTransaction ${utils.stringifyReduce(tx)}, added: ${added}`)
     }
 
     return {
       success: true,
-      reason: "Transaction queued, poll for results.",
+      reason: 'Transaction queued, poll for results.',
       status: 200, // 200 status code means transaction is generally successful
-      txId
-    };
+      txId,
+    }
   }
 
   /**
@@ -1349,11 +1320,11 @@ class Shardus extends EventEmitter {
         await this.stateManager.accountSync.initialSyncMain(3)
         console.log('syncAppData - initialSyncMain finished')
       } catch (err) {
-        this.fatalLogger.fatal(
-          'initialSyncMain-failed with Error: ' +
-          utils.formatErrorMessage(err)
+        this.fatalLogger.fatal('initialSyncMain-failed with Error: ' + utils.formatErrorMessage(err))
+        nestedCountersInstance.countEvent(
+          'syncAppData',
+          `initialSyncMain event: fail and apop self. ${shardusGetTime()}`
         )
-        nestedCountersInstance.countEvent('syncAppData', `initialSyncMain event: fail and apop self. ${shardusGetTime()}`)
         apoptosizeSelf(
           `initialSyncMain-failed: ${err?.message}`,
           'Node stopped due to node performance or network issues during initial app data sync.'
@@ -1455,14 +1426,13 @@ class Shardus extends EventEmitter {
     set = false,
     global = false,
     inputAppData = null
-  ): Promise<{ success: boolean; reason: string; status: number, txId?: string }> {
+  ): Promise<{ success: boolean; reason: string; status: number; txId?: string }> {
     const noConsensus = set || global
-    const txId = this.app.calculateTxId(tx);
+    const txId = this.app.calculateTxId(tx)
     /* prettier-ignore */ if (logFlags.seqdiagram) this.seqLogger.info(`0x53455106 ${shardusGetTime()} tx:${txId} Note over ${activeIdToPartition.get(Self.id)}: inject:${shardusGetTime()}`)
 
     // Check if Consensor is ready to receive txs before processing it further
-    if (!this.appProvided)
-      throw new Error('Please provide an App object to Shardus.setup before calling Shardus.put')
+    if (!this.appProvided) throw new Error('Please provide an App object to Shardus.setup before calling Shardus.put')
     if (logFlags.verbose)
       this.mainLogger.debug(`Start of injectTransaction ${Utils.safeStringify(tx)} set:${set} global:${global}`) // not reducing tx here so we can get the long hashes
     if (!this.stateManager.accountSync.dataSyncMainPhaseComplete) {
@@ -1543,7 +1513,7 @@ class Shardus extends EventEmitter {
         }
       }
 
-      const senderAddress = this.app.getTxSenderAddress(tx);
+      const senderAddress = this.app.getTxSenderAddress(tx)
       /* prettier-ignore */ if (logFlags.seqdiagram) this.seqLogger.info(`0x53455106 ${shardusGetTime()} tx:${txId} Note over ${activeIdToPartition.get(Self.id)}: sender:${senderAddress}`)
       // Forward transaction to a node that has the account data locally if we don't have it
       if (global === false) {
@@ -1551,35 +1521,48 @@ class Shardus extends EventEmitter {
           return {
             success: false,
             reason: `Sender address is not available.`,
-            status: 500
-          };
+            status: 500,
+          }
         }
         const consensusGroup = this.getConsenusGroupForAccount(senderAddress)
         const isConsensusNode = consensusGroup.some((node) => node.id === Self.id)
 
-        if(Context.config.stateManager.forwardToLuckyNodes) {
+        if (Context.config.stateManager.forwardToLuckyNodes) {
           if (isConsensusNode === false) {
             // send transaction to lucky consensus group node
-            const result = await this.forwardTransactionToLuckyNodes(senderAddress, tx, 'non-consensus to consensus', '1')
-            return result as Promise<{ success: boolean; reason: string; status: number, txId?: string }>;
+            const result = await this.forwardTransactionToLuckyNodes(
+              senderAddress,
+              tx,
+              'non-consensus to consensus',
+              '1'
+            )
+            return result as Promise<{ success: boolean; reason: string; status: number; txId?: string }>
           }
           // careful we may be consensus node but if we are not lucky we should forward to lucky nodes
-          let luckyNodeIds = this.getClosestNodes(senderAddress, Context.config.stateManager.numberOfReInjectNodes, false)
+          let luckyNodeIds = this.getClosestNodes(
+            senderAddress,
+            Context.config.stateManager.numberOfReInjectNodes,
+            false
+          )
           let isLuckyNode = luckyNodeIds.some((nodeId) => nodeId === Self.id)
           if (isLuckyNode === false) {
-            const result = await this.forwardTransactionToLuckyNodes(senderAddress, tx, 'non-lucky consensus to lucky' +
-              ' consensus', '2')
-            return result as Promise<{ success: boolean; reason: string; status: number, txId?: string }>;
+            const result = await this.forwardTransactionToLuckyNodes(
+              senderAddress,
+              tx,
+              'non-lucky consensus to lucky' + ' consensus',
+              '2'
+            )
+            return result as Promise<{ success: boolean; reason: string; status: number; txId?: string }>
           }
         }
       }
 
       // we are consensus lucky node for this tx
-      let shouldAddToNonceQueue = false;
-      let txNonce;
+      let shouldAddToNonceQueue = false
+      let txNonce
       if (internalTx === false) {
-        let senderAccountNonce = await this.app.getAccountNonce(senderAddress);
-        txNonce = await this.app.getNonceFromTx(tx);
+        let senderAccountNonce = await this.app.getAccountNonce(senderAddress)
+        txNonce = await this.app.getNonceFromTx(tx)
         /* prettier-ignore */ if (logFlags.seqdiagram) this.seqLogger.info(`0x53455106 ${shardusGetTime()} tx:${txId} Note over ${activeIdToPartition.get(Self.id)}: sNonce:${senderAccountNonce}`)
         /* prettier-ignore */ if (logFlags.seqdiagram) this.seqLogger.info(`0x53455106 ${shardusGetTime()} tx:${txId} Note over ${activeIdToPartition.get(Self.id)}: txNonce:${txNonce}`)
 
@@ -1588,22 +1571,24 @@ class Shardus extends EventEmitter {
             return {
               success: false,
               reason: `Sender account nonce is not available. ${utils.stringifyReduce(tx)}`,
-              status: 500
-            };
+              status: 500,
+            }
           }
-          senderAccountNonce = BigInt(0);
+          senderAccountNonce = BigInt(0)
         }
 
         // app layer should return -1 if the account or tx does not have a nonce field
         if (txNonce >= 0 && senderAccountNonce >= 0) {
           if (txNonce < senderAccountNonce) {
-            if (logFlags.debug) this.mainLogger.debug(`txNonce < senderAccountNonce ${txNonce} < ${senderAccountNonce}`);
+            if (logFlags.debug) this.mainLogger.debug(`txNonce < senderAccountNonce ${txNonce} < ${senderAccountNonce}`)
             nestedCountersInstance.countEvent('rejected', 'txNonce < senderAccountNonce')
             return {
               success: false,
-              reason: `Transaction nonce is less than the account nonce. ${txNonce} < ${senderAccountNonce} ${utils.stringifyReduce(tx)}  `,
-              status: 500
-            };
+              reason: `Transaction nonce is less than the account nonce. ${txNonce} < ${senderAccountNonce} ${utils.stringifyReduce(
+                tx
+              )}  `,
+              status: 500,
+            }
           } else if (txNonce > senderAccountNonce) {
             // if the tx is already in the nonceQueue (based on txid not nonce), return an accepted response
             const txInNonceQueue = this.stateManager.transactionQueue.isTxInPendingNonceQueue(senderAddress, txId)
@@ -1611,24 +1596,31 @@ class Shardus extends EventEmitter {
               return {
                 success: true,
                 reason: `Transaction is already in pending nonce queue.`,
-                status: 200
+                status: 200,
               }
             }
-            if (logFlags.debug) this.mainLogger.debug(`txNonce > senderAccountNonce ${txNonce} > ${senderAccountNonce} but txId is not in nonce queue yet`)
+            if (logFlags.debug)
+              this.mainLogger.debug(
+                `txNonce > senderAccountNonce ${txNonce} > ${senderAccountNonce} but txId is not in nonce queue yet`
+              )
 
             // decide whether to put it in the nonce queue or not
             const maxAllowedPendingNonce = senderAccountNonce + BigInt(Context.config.stateManager.maxPendingNonceTxs)
-            if ( txNonce <= maxAllowedPendingNonce) {
-              shouldAddToNonceQueue = true;
-              if (logFlags.debug) this.mainLogger.debug(`txNonce > senderAccountNonce ${txNonce} > ${senderAccountNonce}`);
+            if (txNonce <= maxAllowedPendingNonce) {
+              shouldAddToNonceQueue = true
+              if (logFlags.debug)
+                this.mainLogger.debug(`txNonce > senderAccountNonce ${txNonce} > ${senderAccountNonce}`)
             } else {
-              if (logFlags.debug) this.mainLogger.debug(`txNonce > senderAccountNonce ${txNonce} > ${senderAccountNonce} + ${Context.config.stateManager.maxPendingNonceTxs}`);
+              if (logFlags.debug)
+                this.mainLogger.debug(
+                  `txNonce > senderAccountNonce ${txNonce} > ${senderAccountNonce} + ${Context.config.stateManager.maxPendingNonceTxs}`
+                )
               nestedCountersInstance.countEvent('rejected', 'txNonce > senderAccountNonce + maxPendingNonceTxs')
               return {
                 success: false,
                 reason: `Transaction nonce ${txNonce.toString()} is greater than max allowed pending nonce of ${maxAllowedPendingNonce.toString()}`,
-                status: 500
-              };
+                status: 500,
+              }
             }
           }
         }
@@ -1636,10 +1628,10 @@ class Shardus extends EventEmitter {
 
       const shouldQueueNonceButPoolIsFull =
         shouldAddToNonceQueue &&
-        this.config.stateManager.maxNonceQueueSize <= this.stateManager.transactionQueue.nonceQueue.size;
+        this.config.stateManager.maxNonceQueueSize <= this.stateManager.transactionQueue.nonceQueue.size
 
       //ITN fix. There will be separate effort to protect the pool more intelligently for mainnet.
-      if(shouldQueueNonceButPoolIsFull) {
+      if (shouldQueueNonceButPoolIsFull) {
         /* prettier-ignore */ if (logFlags.seqdiagram) this.seqLogger.info(`0x53455106 ${shardusGetTime()} tx:${txId} Note over ${activeIdToPartition.get(Self.id)}: reject_nonce_full`)
         nestedCountersInstance.countEvent('rejected', `Nonce pool is full, try again later`)
         return {
@@ -1658,18 +1650,23 @@ class Shardus extends EventEmitter {
           global,
           noConsensus,
         }
-        let nonceQueueAddResult =
-          this.stateManager.transactionQueue.addTransactionToNonceQueue(nonceQueueEntry)
+        let nonceQueueAddResult = this.stateManager.transactionQueue.addTransactionToNonceQueue(nonceQueueEntry)
 
-        if(Context.config.stateManager.forwardToLuckyNodesNonceQueue){
+        if (Context.config.stateManager.forwardToLuckyNodesNonceQueue) {
           // if we ever support cancellation by using replacment for a TX that will change how we
           // need to handle this run-away protection.  may need to re-evaluate later
-          if(nonceQueueAddResult?.alreadyAdded === true && Context.config.stateManager.forwardToLuckyNodesNonceQueueLimitFix){
-            nestedCountersInstance.countEvent('statistics', `forwardTxToConsensusGroup: nonce queue skipped. we already have it`)
+          if (
+            nonceQueueAddResult?.alreadyAdded === true &&
+            Context.config.stateManager.forwardToLuckyNodesNonceQueueLimitFix
+          ) {
+            nestedCountersInstance.countEvent(
+              'statistics',
+              `forwardTxToConsensusGroup: nonce queue skipped. we already have it`
+            )
             return {
               success: true,
               reason: `Transaction already added to pending nonce queue.`,
-              status: 200
+              status: 200,
             }
           }
           let result = this.forwardTransactionToLuckyNodes(senderAddress, tx, txId, 'consensus to consensus', '3') // don't wait here
@@ -1678,7 +1675,7 @@ class Shardus extends EventEmitter {
           return {
             success: true,
             reason: `Transaction added to pending nonce queue.`,
-            status: 200
+            status: 200,
           }
         }
       } else {
@@ -1687,10 +1684,10 @@ class Shardus extends EventEmitter {
 
         // start of timestamp logging
         if (logFlags.important_as_error) {
-          const txTimestamp = this.app.getTimestampFromTransaction(tx, appData);
-          const nowNodeTimestamp = shardusGetTime()    
-          const ntpOffset = getNetworkTimeOffset()        
-          /* prettier-ignore */ console.log(`TxnTS: shardus.put() txTimestamp=${txTimestamp}, nowNodeTimestamp=${nowNodeTimestamp}, ntpOffset=${ntpOffset}, txID=${txId}`) 
+          const txTimestamp = this.app.getTimestampFromTransaction(tx, appData)
+          const nowNodeTimestamp = shardusGetTime()
+          const ntpOffset = getNetworkTimeOffset()
+          /* prettier-ignore */ console.log(`TxnTS: shardus.put() txTimestamp=${txTimestamp}, nowNodeTimestamp=${nowNodeTimestamp}, ntpOffset=${ntpOffset}, txID=${txId}`)
         }
         // end of timestamp logging.
 
@@ -1711,12 +1708,14 @@ class Shardus extends EventEmitter {
     }
   }
 
-  async forwardTransactionToLuckyNodes(senderAddress: string, tx: ShardusTypes.OpaqueTransaction, txId: string, message = '', context = ''): Promise<unknown> {
-    let closetNodeIds = this.getClosestNodes(
-      senderAddress,
-      Context.config.stateManager.numberOfReInjectNodes,
-      false
-    )
+  async forwardTransactionToLuckyNodes(
+    senderAddress: string,
+    tx: ShardusTypes.OpaqueTransaction,
+    txId: string,
+    message = '',
+    context = ''
+  ): Promise<unknown> {
+    let closetNodeIds = this.getClosestNodes(senderAddress, Context.config.stateManager.numberOfReInjectNodes, false)
     const cycleShardData = this.stateManager.currentCycleShardData
     const homeNode = ShardFunctions.findHomeNode(
       cycleShardData.shardGlobals,
@@ -1738,13 +1737,13 @@ class Shardus extends EventEmitter {
       })
     /* prettier-ignore */ if (logFlags.seqdiagram) this.seqLogger.info(`0x53455106 ${shardusGetTime()} tx:${txId} Note over ${activeIdToPartition.get(Self.id)}: lucky_forward_homenode_${context} ${activeIdToPartition.get(homeNode.node.id)}`)
 
-    let  stats ={
-      skippedSelf:0,
-      skippedRotation:0,
-      skippedHome:0,
-      ok_inQ:0,
-      ok_inQ2:0,
-      ok_addQ:0
+    let stats = {
+      skippedSelf: 0,
+      skippedRotation: 0,
+      skippedHome: 0,
+      ok_inQ: 0,
+      ok_inQ2: 0,
+      ok_addQ: 0,
     }
 
     for (const id of closetNodeIds) {
@@ -1753,7 +1752,7 @@ class Shardus extends EventEmitter {
         stats.skippedSelf++
         continue
       }
-      if (id === homeNode.node.id){
+      if (id === homeNode.node.id) {
         stats.skippedHome++
         continue // we already added the home node
       }
@@ -1761,13 +1760,13 @@ class Shardus extends EventEmitter {
 
       //is this node safe in terms of rotation
       let rotationCheckPassed = true
-      if(Context.config.stateManager.forwardToLuckyNodesCheckRotation) {
+      if (Context.config.stateManager.forwardToLuckyNodesCheckRotation) {
         //is in rotation means it in the edge
         rotationCheckPassed = isNodeInRotationBounds(id) === false
       }
 
       // if the node is not active or not in rotation bounds, skip it
-      if (node.status !== 'active' || (rotationCheckPassed === false)) {
+      if (node.status !== 'active' || rotationCheckPassed === false) {
         /* prettier-ignore */ if (logFlags.debug || logFlags.rotation) this.mainLogger.debug( `forwardTransactionToLuckyNodes: node ${id} is not active or in rotation bounds. node.status: ${ node.status } isNodeInRotationBounds: ${isNodeInRotationBounds(id)}` )
         stats.skippedRotation++
         continue
@@ -1783,7 +1782,7 @@ class Shardus extends EventEmitter {
 
     let successCount = 0
     let failedCount = 0
-    for(const validator of selectedValidators) {
+    for (const validator of selectedValidators) {
       try {
         /* prettier-ignore */ if (logFlags.seqdiagram) this.seqLogger.info(`0x53455106 ${shardusGetTime()} tx:${txId} Note over ${activeIdToPartition.get(Self.id)}: lucky_forward_req_${context} ${activeIdToPartition.get(validator.id)}`)
 
@@ -1813,18 +1812,21 @@ class Shardus extends EventEmitter {
           /* prettier-ignore */ if (logFlags.seqdiagram) this.seqLogger.info(`0x53455106 ${shardusGetTime()} tx:${txId} Note over ${activeIdToPartition.get(Self.id)}: lucky_forward_success_${context} ${activeIdToPartition.get(validator.id)}`)
           /* prettier-ignore */ if (logFlags.debug || logFlags.rotation) this.mainLogger.debug( `Got successful response upon forwarding injected tx: ${validator.id}. ${message} ${Utils.safeStringify(tx)}` )
 
-          if(result.reason === 'Transaction is already in pending nonce queue.'){
+          if (result.reason === 'Transaction is already in pending nonce queue.') {
             stats.ok_inQ++
           }
-          if(result.reason === `Transaction already added to pending nonce queue.`){
+          if (result.reason === `Transaction already added to pending nonce queue.`) {
             stats.ok_inQ2++
           }
-          if(result.reason === `Transaction added to pending nonce queue.`){
+          if (result.reason === `Transaction added to pending nonce queue.`) {
             stats.ok_addQ++
           }
 
-          nestedCountersInstance.countEvent('statistics', `forward to lucky node success ${message} ${Utils.safeStringify(stats)}`)
-          if(Context.config.stateManager.forwardToLuckyMulti){
+          nestedCountersInstance.countEvent(
+            'statistics',
+            `forward to lucky node success ${message} ${Utils.safeStringify(stats)}`
+          )
+          if (Context.config.stateManager.forwardToLuckyMulti) {
             successCount++
             continue
           }
@@ -1839,7 +1841,10 @@ class Shardus extends EventEmitter {
     if (successCount > 0) {
       /* prettier-ignore */ if (logFlags.seqdiagram) this.seqLogger.info(`0x53455106 ${shardusGetTime()} tx:${txId} Note over ${activeIdToPartition.get(Self.id)}: lucky_forward_success_${context}`)
       /* prettier-ignore */ if (logFlags.debug || logFlags.rotation) this.mainLogger.debug( `Got successful response upon forwarding injected tx: ${message} ${Utils.safeStringify(tx)}` )
-      nestedCountersInstance.countEvent('statistics', `forward to luck success ${message} failed/success/total: ${failedCount}/${successCount}/${selectedValidators.length}`)
+      nestedCountersInstance.countEvent(
+        'statistics',
+        `forward to luck success ${message} failed/success/total: ${failedCount}/${successCount}/${selectedValidators.length}`
+      )
       return { success: true, reason: 'Transaction forwarded to validators', status: 200 }
     }
 
@@ -2119,10 +2124,7 @@ class Shardus extends EventEmitter {
     }
     if (restart)
       // exits with status 0 so that PM2 can restart the process
-      this.exitHandler.exitCleanly(
-        `invoke-exit: ${tag}`,
-        `invoke-exit: ${tag}. but exiting cleanly for a restart`
-      )
+      this.exitHandler.exitCleanly(`invoke-exit: ${tag}`, `invoke-exit: ${tag}. but exiting cleanly for a restart`)
     // exits with status 1 so that PM2 CANNOT restart the process
     else this.exitHandler.exitUncleanly(`invoke-exit: ${tag}`, `invoke-exit: ${exitType}: ${tag}`)
   }
@@ -2448,7 +2450,6 @@ class Shardus extends EventEmitter {
     return ensureKeySecurity(keyName, clearance)
   }
 
-
   getMultisigPublicKeys() {
     return getMultisigPublicKeys()
   }
@@ -2501,10 +2502,7 @@ class Shardus extends EventEmitter {
          * instead of the new validate fn
          */
         applicationInterfaceImpl.validate = (inTx, appData) => {
-          const oldResult: ShardusTypes.IncomingTransactionResult = application.validateTxnFields(
-            inTx,
-            appData
-          )
+          const oldResult: ShardusTypes.IncomingTransactionResult = application.validateTxnFields(inTx, appData)
           const newResult = {
             success: oldResult.success,
             reason: oldResult.reason,
@@ -2527,10 +2525,11 @@ class Shardus extends EventEmitter {
          * fn instead of the new crack fn
          */
         applicationInterfaceImpl.crack = (inTx) => {
-          const oldGetKeyFromTransactionResult: ShardusTypes.TransactionKeys =
-            application.getKeyFromTransaction(inTx)
-          const oldValidateTxnFieldsResult: ShardusTypes.IncomingTransactionResult =
-            application.validateTxnFields(inTx, null)
+          const oldGetKeyFromTransactionResult: ShardusTypes.TransactionKeys = application.getKeyFromTransaction(inTx)
+          const oldValidateTxnFieldsResult: ShardusTypes.IncomingTransactionResult = application.validateTxnFields(
+            inTx,
+            null
+          )
           const newResult = {
             timestamp: oldValidateTxnFieldsResult.txnTimestamp,
             id: this.crypto.hash(inTx), // [TODO] [URGENT] We really shouldn't be doing this and should change all apps to use the new way and do their own hash
@@ -2544,10 +2543,7 @@ class Shardus extends EventEmitter {
       }
 
       if (typeof application.txPreCrackData === 'function') {
-        applicationInterfaceImpl.txPreCrackData = async (
-          tx,
-          appData
-        ): Promise<{ status: boolean; reason: string }> => {
+        applicationInterfaceImpl.txPreCrackData = async (tx, appData): Promise<{ status: boolean; reason: string }> => {
           this.profiler.scopedProfileSectionStart('process-dapp.txPreCrackData', false)
           let { status: success, reason } = await application.txPreCrackData(tx, appData)
           this.profiler.scopedProfileSectionEnd('process-dapp.txPreCrackData')
@@ -2583,7 +2579,12 @@ class Shardus extends EventEmitter {
         applicationInterfaceImpl.transactionReceiptPass = async (tx, wrappedStates, applyResponse, isExecutionGroup) =>
           application.transactionReceiptPass(tx, wrappedStates, applyResponse, isExecutionGroup)
       } else {
-        applicationInterfaceImpl.transactionReceiptPass = async function (_tx, _wrappedStates, _applyResponse, _isExecutionGroup) {}
+        applicationInterfaceImpl.transactionReceiptPass = async function (
+          _tx,
+          _wrappedStates,
+          _applyResponse,
+          _isExecutionGroup
+        ) {}
       }
 
       if (typeof application.transactionReceiptFail === 'function') {
@@ -2716,8 +2717,7 @@ class Shardus extends EventEmitter {
 
       // pass array of account ids to this and it will delete the accounts
       if (typeof application.deleteAccountData === 'function') {
-        applicationInterfaceImpl.deleteAccountData = async (addressList) =>
-          application.deleteAccountData(addressList)
+        applicationInterfaceImpl.deleteAccountData = async (addressList) => application.deleteAccountData(addressList)
       } else {
         throw new Error('Missing required interface function. deleteAccountData()')
       }
@@ -2752,8 +2752,7 @@ class Shardus extends EventEmitter {
         applicationInterfaceImpl.getAccountDebugValue = (wrappedAccount) =>
           application.getAccountDebugValue(wrappedAccount)
       } else {
-        applicationInterfaceImpl.getAccountDebugValue = (_wrappedAccount) =>
-          'getAccountDebugValue() missing on app'
+        applicationInterfaceImpl.getAccountDebugValue = (_wrappedAccount) => 'getAccountDebugValue() missing on app'
       }
 
       //getSimpleTxDebugValue(tx)
@@ -2793,11 +2792,7 @@ class Shardus extends EventEmitter {
         applicationInterfaceImpl.dataSummaryUpdate = async (blob, accountDataBefore, accountDataAfter) =>
           application.dataSummaryUpdate(blob, accountDataBefore, accountDataAfter)
       } else {
-        applicationInterfaceImpl.dataSummaryUpdate = async function (
-          _blob,
-          _accountDataBefore,
-          _accountDataAfter
-        ) {}
+        applicationInterfaceImpl.dataSummaryUpdate = async function (_blob, _accountDataBefore, _accountDataAfter) {}
       }
       if (typeof application.txSummaryUpdate === 'function') {
         applicationInterfaceImpl.txSummaryUpdate = async (blob, tx, wrappedStates) =>
@@ -2831,8 +2826,7 @@ class Shardus extends EventEmitter {
           application.validateJoinRequest(data, mode, latestCycle, minNodes)
       }
       if (typeof application.validateArchiverJoinRequest === 'function') {
-        applicationInterfaceImpl.validateArchiverJoinRequest = (data) =>
-          application.validateArchiverJoinRequest(data)
+        applicationInterfaceImpl.validateArchiverJoinRequest = (data) => application.validateArchiverJoinRequest(data)
       }
       if (typeof application.getJoinData === 'function') {
         applicationInterfaceImpl.getJoinData = () => application.getJoinData()
@@ -2854,26 +2848,21 @@ class Shardus extends EventEmitter {
         applicationInterfaceImpl.getNodeInfoAppData = () => {}
       }
       if (typeof application.updateNetworkChangeQueue === 'function') {
-        applicationInterfaceImpl.updateNetworkChangeQueue = async (
-          account: ShardusTypes.WrappedData,
-          appData: any
-        ) => application.updateNetworkChangeQueue(account, appData)
+        applicationInterfaceImpl.updateNetworkChangeQueue = async (account: ShardusTypes.WrappedData, appData: any) =>
+          application.updateNetworkChangeQueue(account, appData)
       } else {
         // If the app doesn't provide updateNetworkChangeQueue, just return empty arr
         applicationInterfaceImpl.updateNetworkChangeQueue = async (_account, _appData) => []
       }
       if (typeof application.pruneNetworkChangeQueue === 'function') {
-        applicationInterfaceImpl.pruneNetworkChangeQueue = async (
-          account: ShardusTypes.WrappedData,
-          cycle: number
-        ) => application.pruneNetworkChangeQueue(account, cycle)
+        applicationInterfaceImpl.pruneNetworkChangeQueue = async (account: ShardusTypes.WrappedData, cycle: number) =>
+          application.pruneNetworkChangeQueue(account, cycle)
       } else {
         // If the app doesn't provide pruneNetworkChangeQueue, just return empty arr
         applicationInterfaceImpl.pruneNetworkChangeQueue = async (_account, _cycle) => []
       }
       if (typeof application.canStayOnStandby === 'function') {
-        applicationInterfaceImpl.canStayOnStandby = (joinInfo: JoinRequest) =>
-          application.canStayOnStandby(joinInfo)
+        applicationInterfaceImpl.canStayOnStandby = (joinInfo: JoinRequest) => application.canStayOnStandby(joinInfo)
       }
 
       if (typeof application.signAppData === 'function') {
@@ -2924,10 +2913,10 @@ class Shardus extends EventEmitter {
       if (typeof application.injectTxToConsensor === 'function') {
         applicationInterfaceImpl.injectTxToConsensor = (consensor, tx) => application.injectTxToConsensor(consensor, tx)
       }
-      if (typeof application.getNonceFromTx === "function") {
-        applicationInterfaceImpl.getNonceFromTx = (tx) => application.getNonceFromTx(tx);
+      if (typeof application.getNonceFromTx === 'function') {
+        applicationInterfaceImpl.getNonceFromTx = (tx) => application.getNonceFromTx(tx)
       }
-      if (typeof application.getAccountNonce === "function") {
+      if (typeof application.getAccountNonce === 'function') {
         applicationInterfaceImpl.getAccountNonce = (accountId) => application.getAccountNonce(accountId)
       }
       if (typeof application.verifyMultiSigs === 'function') {
@@ -2937,8 +2926,7 @@ class Shardus extends EventEmitter {
           allowedPubkeys,
           minSigRequired,
           requiredSecurityLevel
-        ) =>
-          application.verifyMultiSigs(rawPayload, sigs, allowedPubkeys, minSigRequired, requiredSecurityLevel)
+        ) => application.verifyMultiSigs(rawPayload, sigs, allowedPubkeys, minSigRequired, requiredSecurityLevel)
       } else {
         applicationInterfaceImpl.verifyMultiSigs = (
           _rawPayload,
@@ -2960,8 +2948,7 @@ class Shardus extends EventEmitter {
       }
 
       if (typeof application.getNetworkAccountFromArchiver === 'function') {
-        applicationInterfaceImpl.getNetworkAccountFromArchiver = async () =>
-          application.getNetworkAccountFromArchiver()
+        applicationInterfaceImpl.getNetworkAccountFromArchiver = async () => application.getNetworkAccountFromArchiver()
       } else {
         // If the app doesn't provide getNetworkAccountFromArchiver, assume it returns empty obj
         applicationInterfaceImpl.getNetworkAccountFromArchiver = async () => {
@@ -2969,10 +2956,7 @@ class Shardus extends EventEmitter {
         }
       }
     } catch (ex) {
-      this.shardus_fatal(
-        `getAppInterface_ex`,
-        `Required application interface not implemented. Exception: ${ex}`
-      )
+      this.shardus_fatal(`getAppInterface_ex`, `Required application interface not implemented. Exception: ${ex}`)
       this.fatalLogger.fatal('_getApplicationInterface: ' + ex.name + ': ' + ex.message + ' at ' + ex.stack)
       throw new Error(ex)
     }
@@ -3070,27 +3054,19 @@ class Shardus extends EventEmitter {
       res.json(await getSocketReport())
     })
 
-    this.network.registerExternalGet(
-      'calculate-fake-time-offset',
-      isDebugModeMiddlewareHigh,
-      async (req, res) => {
-        const shift = req.query.shift ? parseInt(req.query.shift as string) : 0
-        const spread = req.query.spread ? parseInt(req.query.spread as string) : 0
-        const offset = calculateFakeTimeOffset(shift, spread)
-        /* prettier-ignore */ this.mainLogger.debug({ message: "Calculated fakeTimeOffset", data: { shift, spread, offset } });
-        res.json({ success: true })
-      }
-    )
+    this.network.registerExternalGet('calculate-fake-time-offset', isDebugModeMiddlewareHigh, async (req, res) => {
+      const shift = req.query.shift ? parseInt(req.query.shift as string) : 0
+      const spread = req.query.spread ? parseInt(req.query.spread as string) : 0
+      const offset = calculateFakeTimeOffset(shift, spread)
+      /* prettier-ignore */ this.mainLogger.debug({ message: "Calculated fakeTimeOffset", data: { shift, spread, offset } });
+      res.json({ success: true })
+    })
 
-    this.network.registerExternalGet(
-      'clear-fake-time-offset',
-      isDebugModeMiddlewareHigh,
-      async (_req, res) => {
-        const offset = clearFakeTimeOffset()
-        /* prettier-ignore */ this.mainLogger.debug({ message: "Cleared fakeTimeOffset", data: { offset } });
-        res.json({ success: true })
-      }
-    )
+    this.network.registerExternalGet('clear-fake-time-offset', isDebugModeMiddlewareHigh, async (_req, res) => {
+      const offset = clearFakeTimeOffset()
+      /* prettier-ignore */ this.mainLogger.debug({ message: "Cleared fakeTimeOffset", data: { offset } });
+      res.json({ success: true })
+    })
 
     // this.p2p.registerInternal(
     //   'sign-app-data',
@@ -3131,12 +3107,7 @@ class Shardus extends EventEmitter {
 
           const request: SignAppDataReq = deserializeSignAppDataReq(requestStream)
           const { type, nodesToSign, hash, appData } = request
-          const { success, signature } = await this.app.signAppData?.(
-            type,
-            hash,
-            Number(nodesToSign),
-            appData
-          )
+          const { success, signature } = await this.app.signAppData?.(type, hash, Number(nodesToSign), appData)
           const response = { success: success, signature: signature } as SignAppDataResp
           const errors = verifyPayload(AJVSchemaEnum.SignAppDataResp, response)
           if (errors) {
@@ -3193,10 +3164,7 @@ class Shardus extends EventEmitter {
   registerExceptionHandler() {
     const logFatalAndExit = (err) => {
       console.log('Encountered a fatal error. Check fatal log for details.')
-      this.shardus_fatal(
-        `unhandledRejection_ex_` + err.stack.substring(0, 100),
-        'unhandledRejection: ' + err.stack
-      )
+      this.shardus_fatal(`unhandledRejection_ex_` + err.stack.substring(0, 100), 'unhandledRejection: ' + err.stack)
       // this.exitHandler.exitCleanly()
 
       // If the networks active node count is < some percentage of minNodes, don't exit on exceptions and log a counter instead
@@ -3331,8 +3299,7 @@ class Shardus extends EventEmitter {
         if (key === 'devPublicKeys' || key === 'multisigKeys') {
           existingObject[key] = value
           this.mainLogger.info(`patched ${key} to ${value}`)
-        }
-        else if (typeof value === 'object') {
+        } else if (typeof value === 'object') {
           this.patchObject(existingObject[key], value, appData)
         } else {
           existingObject[key] = value
@@ -3455,20 +3422,20 @@ class Shardus extends EventEmitter {
       const groupPromiseResp = await groupResolvePromises(
         closestNodes.map((node) => {
           // if (this.config.p2p.useBinarySerializedEndpoints && this.config.p2p.signAppDataBinary) {
-            const request: SignAppDataReq = {
-              type,
-              hash,
-              nodesToSign,
-              appData,
-            }
-            return this.p2p.askBinary<SignAppDataReq, SignAppDataResp>(
-              node,
-              InternalRouteEnum.binary_sign_app_data,
-              request,
-              serializeSignAppDataReq,
-              deserializeSignAppDataResp,
-              {}
-            )
+          const request: SignAppDataReq = {
+            type,
+            hash,
+            nodesToSign,
+            appData,
+          }
+          return this.p2p.askBinary<SignAppDataReq, SignAppDataResp>(
+            node,
+            InternalRouteEnum.binary_sign_app_data,
+            request,
+            serializeSignAppDataReq,
+            deserializeSignAppDataResp,
+            {}
+          )
           // } else
           // return this.p2p.ask(node, 'sign-app-data', {
           //   type,

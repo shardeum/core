@@ -14,15 +14,15 @@ jest.mock('../../../../src/p2p/Context', () => ({
     app: {
       binarySerializeObject: jest.fn(),
       binaryDeserializeObject: jest.fn(),
-    }
+    },
   },
   setDefaultConfigs: jest.fn(),
 }))
 describe('GetCachedAppDataReq serialization and deserialization', () => {
   beforeEach(() => {
-    beforeEachHandler() 
+    beforeEachHandler()
   })
-  
+
   beforeAll(() => {
     initAjvSchemas()
   })

@@ -304,9 +304,7 @@ function RunPerfTests(arrayCount, arrayPicks) {
   randomTestList = new Array(perfTestArraySize)
   randomTestList.fill({ a: 1 })
 
-  console.log(
-    `\narraySize:${perfTestArraySize} numPicks:${sampleTestSize}  testIterationsPerType:${testLoops * 5}:`
-  )
+  console.log(`\narraySize:${perfTestArraySize} numPicks:${sampleTestSize}  testIterationsPerType:${testLoops * 5}:`)
 
   //perf tests
   forceGC()

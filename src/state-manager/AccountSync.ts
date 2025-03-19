@@ -34,10 +34,7 @@ import ArchiverSyncTracker from './ArchiverSyncTracker'
 import { getArchiversList } from '../p2p/Archivers'
 import * as http from '../http'
 import { InternalRouteEnum } from '../types/enum/InternalRouteEnum'
-import {
-  GetAccountDataByListResp,
-  serializeGetAccountDataByListResp,
-} from '../types/GetAccountDataByListResp'
+import { GetAccountDataByListResp, serializeGetAccountDataByListResp } from '../types/GetAccountDataByListResp'
 import { InternalBinaryHandler } from '../types/Handler'
 import { Route } from '@shardeum-foundation/lib-types/build/src/p2p/P2PTypes'
 import { TypeIdentifierEnum } from '../types/enum/TypeIdentifierEnum'
@@ -45,10 +42,7 @@ import { deserializeGetAccountDataByListReq } from '../types/GetAccountDataByLis
 import { getStreamWithTypeCheck } from '../types/Helpers'
 import { GetAccountDataRespSerializable, serializeGetAccountDataResp } from '../types/GetAccountDataResp'
 import { deserializeGetAccountDataReq, verifyGetAccountDataReq } from '../types/GetAccountDataReq'
-import {
-  GlobalAccountReportReqSerializable,
-  serializeGlobalAccountReportReq,
-} from '../types/GlobalAccountReportReq'
+import { GlobalAccountReportReqSerializable, serializeGlobalAccountReportReq } from '../types/GlobalAccountReportReq'
 import {
   GlobalAccountReportRespSerializable,
   deserializeGlobalAccountReportResp,
@@ -319,22 +313,21 @@ class AccountSync {
     //     this.profiler.scopedProfileSectionEnd('get_account_data3', responseSize)
     //   }
     // )
-    
+
     Context.network.registerExternalGet('sync-globals', isDebugModeMiddleware, async (req, res) => {
       try {
-
         const cycle = this.stateManager.currentCycleShardData.cycleNumber
         const syncFromArchiver = false
-    
-        // need to review this , consider sync from archiver. 
-        // consider "express version" that syncs to a specific hash 
-        // todo actual endpoint with options 
+
+        // need to review this , consider sync from archiver.
+        // consider "express version" that syncs to a specific hash
+        // todo actual endpoint with options
         const syncTracker = this.createSyncTrackerByForGlobals(cycle, false, syncFromArchiver)
-        //this.globalAccountsSynced = false  
+        //this.globalAccountsSynced = false
 
         await syncTracker.syncStateDataGlobals()
         this.syncTrackers.pop()
-      } catch(e) {
+      } catch (e) {
         this.mainLogger.error(`sync-globals: Exception executing request: ${errorToStringFull(e)}`)
         res.write('error')
       }
@@ -767,7 +760,7 @@ class AccountSync {
           if (keptGlobal === false && this.globalAccountsSynced === false && useGlobalAccounts === true) {
             this.createSyncTrackerByForGlobals(cycle, true)
             addedGlobal = true
-          } 
+          }
 
           //init new non global trackers
           rangesToSync = this.initRangesToSync(nodeShardData, homePartition, 4, 4)
@@ -777,7 +770,7 @@ class AccountSync {
             newTrackers++
           }
 
-          // sync globals again after all the non global data. 
+          // sync globals again after all the non global data.
           // this is needed in case the global account changed in that time
           this.createSyncTrackerByForGlobals(cycle, true)
 
@@ -842,10 +835,8 @@ class AccountSync {
     const rangesToSync = [] //, rangesToSync: StateManagerTypes.shardFunctionTypes.AddressRange[]
 
     if (nodeShardData.storedPartitions.rangeIsSplit === true) {
-      partitionsCovered =
-        nodeShardData.storedPartitions.partitionEnd1 - nodeShardData.storedPartitions.partitionStart1
-      partitionsCovered +=
-        nodeShardData.storedPartitions.partitionEnd2 - nodeShardData.storedPartitions.partitionStart2
+      partitionsCovered = nodeShardData.storedPartitions.partitionEnd1 - nodeShardData.storedPartitions.partitionStart1
+      partitionsCovered += nodeShardData.storedPartitions.partitionEnd2 - nodeShardData.storedPartitions.partitionStart2
       partitionsPerRange = Math.max(Math.floor(partitionsCovered / syncRangeGoal), 1)
       /* prettier-ignore */ if (logFlags.console) console.log( `syncRangeGoal ${syncRangeGoal}  chunksGuide:${chunksGuide} numPartitions:${this.stateManager.currentCycleShardData.shardGlobals.numPartitions} partitionsPerRange:${partitionsPerRange}` )
 
@@ -904,8 +895,7 @@ class AccountSync {
         rangesToSync.push(range)
       }
     } else {
-      partitionsCovered =
-        nodeShardData.storedPartitions.partitionEnd - nodeShardData.storedPartitions.partitionStart
+      partitionsCovered = nodeShardData.storedPartitions.partitionEnd - nodeShardData.storedPartitions.partitionStart
       partitionsPerRange = Math.max(Math.floor(partitionsCovered / syncRangeGoal), 1)
       /* prettier-ignore */ if (logFlags.console) console.log( `syncRangeGoal ${syncRangeGoal}  chunksGuide:${chunksGuide} numPartitions:${this.stateManager.currentCycleShardData.shardGlobals.numPartitions} partitionsPerRange:${partitionsPerRange}` )
 
@@ -990,15 +980,10 @@ class AccountSync {
       return a.combinedHash === b.combinedHash
     }
 
-    const queryFn = async (
-      node: Shardus.Node
-    ): Promise<Partial<GlobalAccountReportResp> & { msg: string }> => {
+    const queryFn = async (node: Shardus.Node): Promise<Partial<GlobalAccountReportResp> & { msg: string }> => {
       try {
         // Node Precheck!
-        if (
-          this.stateManager.isNodeValidForInternalMessage(node.id, 'getRobustGlobalReport', true, true) ===
-          false
-        ) {
+        if (this.stateManager.isNodeValidForInternalMessage(node.id, 'getRobustGlobalReport', true, true) === false) {
           /* prettier-ignore */ nestedCountersInstance.countEvent('sync', `DATASYNC: getRobustGlobalReport_${tag} invalid node to ask: ${utils.stringifyReduce(node.id)}`)
           return {
             ready: false,
@@ -1014,10 +999,7 @@ class AccountSync {
         //   this.stateManager.config.p2p.getGloablAccountReportBinary
         // ) {
         const request = {} as GlobalAccountReportReqSerializable
-        result = await this.p2p.askBinary<
-          GlobalAccountReportReqSerializable,
-          GlobalAccountReportRespSerializable
-        >(
+        result = await this.p2p.askBinary<GlobalAccountReportReqSerializable, GlobalAccountReportRespSerializable>(
           node,
           InternalRouteEnum.binary_get_globalaccountreport,
           request,
@@ -1481,10 +1463,7 @@ class AccountSync {
   }
 
   // Check the entire range for a partition to see if any of it is covered by a sync tracker.
-  getSyncTrackerForParition(
-    partitionID: number,
-    cycleShardData: CycleShardData
-  ): SyncTrackerInterface | null {
+  getSyncTrackerForParition(partitionID: number, cycleShardData: CycleShardData): SyncTrackerInterface | null {
     if (cycleShardData == null) {
       return null
     }
@@ -1549,19 +1528,16 @@ class AccountSync {
     this.globalAccountsSynced = true
   }
 
-
   reSyncGlobals(): void {
-
     const cycle = this.stateManager.currentCycleShardData.cycleNumber
     const syncFromArchiver = false
 
-    // need to review this , consider sync from archiver. 
-    // consider "express version" that syncs to a specific hash 
-    // todo actual endpoint with options 
+    // need to review this , consider sync from archiver.
+    // consider "express version" that syncs to a specific hash
+    // todo actual endpoint with options
     this.createSyncTrackerByForGlobals(cycle, false, syncFromArchiver)
     //this.globalAccountsSynced = false
   }
-
 }
 
 export default AccountSync

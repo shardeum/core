@@ -2,10 +2,7 @@ import { Utils } from '@shardeum-foundation/lib-types'
 import { VectorBufferStream } from '../../../../src'
 import { initAjvSchemas, verifyPayload } from '../../../../src/types/ajv/Helpers'
 import { TypeIdentifierEnum } from '../../../../src/types/enum/TypeIdentifierEnum'
-import {
-  deserializeGetAppliedVoteReq,
-  serializeGetAppliedVoteReq,
-} from '../../../../src/types/GetAppliedVoteReq'
+import { deserializeGetAppliedVoteReq, serializeGetAppliedVoteReq } from '../../../../src/types/GetAppliedVoteReq'
 import {
   deserializeGetAppliedVoteResp,
   GetAppliedVoteResp,
@@ -16,14 +13,10 @@ import { stateManager } from '@src/p2p/Context'
 
 describe('RequestStateForTx Serialization', () => {
   beforeEach(() => {
-    (stateManager as any) = {
+    ;(stateManager as any) = {
       app: {
-        binarySerializeObject: jest.fn((_, data: any) =>
-          Buffer.from(Utils.safeStringify(data), 'utf8')
-        ),
-        binaryDeserializeObject: jest.fn((_, buffer: Buffer) =>
-          Utils.safeJsonParse(buffer.toString('utf8'))
-        ),
+        binarySerializeObject: jest.fn((_, data: any) => Buffer.from(Utils.safeStringify(data), 'utf8')),
+        binaryDeserializeObject: jest.fn((_, buffer: Buffer) => Utils.safeJsonParse(buffer.toString('utf8'))),
       },
     }
   })

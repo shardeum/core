@@ -21,9 +21,7 @@ export interface FinishedSyncingRequestResponse {
 /**
  * Adds nodes to the local state synced node list.
  */
-export function addFinishedSyncing(
-  finishedSyncRequest: FinishedSyncingRequest
-): FinishedSyncingRequestResponse {
+export function addFinishedSyncing(finishedSyncRequest: FinishedSyncingRequest): FinishedSyncingRequestResponse {
   const node = NodeList.byIdOrder.find((node) => node.id === finishedSyncRequest.nodeId)
   // validate
   // lookup node by id in payload and use pubkey and compare to sig.owner
@@ -61,10 +59,7 @@ export function addFinishedSyncing(
   // return false if already in local list
   if (newSyncFinishedNodes.has(finishedSyncRequest.nodeId) === true) {
     if (logFlags.console)
-      console.log(
-        `addFinishedSyncing(): Node already in newSyncFinishedNodes list`,
-        finishedSyncRequest.nodeId
-      )
+      console.log(`addFinishedSyncing(): Node already in newSyncFinishedNodes list`, finishedSyncRequest.nodeId)
     /* prettier-ignore */ nestedCountersInstance.countEvent('syncFinished.ts', `addFinishedSyncing(): already in local list` )
     return {
       success: false,
@@ -99,9 +94,9 @@ export function addFinishedSyncing(
  * @returns SyncCompletedRequest[]
  */
 export function drainFinishedSyncingRequest(): FinishedSyncingRequest[] {
-  const tmp = Array.from(newSyncFinishedNodes.values());
-  newSyncFinishedNodes = new Map<string, FinishedSyncingRequest>();
-  return tmp;
+  const tmp = Array.from(newSyncFinishedNodes.values())
+  newSyncFinishedNodes = new Map<string, FinishedSyncingRequest>()
+  return tmp
 }
 
 /**
@@ -114,9 +109,10 @@ export function drainFinishedSyncingRequest(): FinishedSyncingRequest[] {
 export function isNodeSelectedReadyList(nodeId: string): boolean {
   const mode = CycleChain.getNewest().mode
   // Adjust the list based on the mode
-  const listToCheck = mode === 'processing' 
-    ? NodeList.readyByTimeAndIdOrder.slice(0, config.p2p.allowActivePerCycle)
-    : NodeList.readyByTimeAndIdOrder;
+  const listToCheck =
+    mode === 'processing'
+      ? NodeList.readyByTimeAndIdOrder.slice(0, config.p2p.allowActivePerCycle)
+      : NodeList.readyByTimeAndIdOrder
 
   // Check if nodeId is in listToCheck
   return listToCheck.some((readyNode) => readyNode.id === nodeId)
@@ -126,33 +122,41 @@ export function selectNodesFromReadyList(mode: string): P2P.NodeListTypes.Node[]
   if (mode === 'processing') {
     let nodesToAllowActive = config.p2p.allowActivePerCycle
 
-    if(config.p2p.activeRecoveryEnabled){
+    if (config.p2p.activeRecoveryEnabled) {
       // check if we are below desired allow more nodes to join
-      if(CycleChain.newest != null){
+      if (CycleChain.newest != null) {
         const active = CycleChain.newest.active
         const desired = CycleChain.newest.desired
         const deficit = desired - active
-        if(deficit > 0){
+        if (deficit > 0) {
           // This code is rotation safe because if allowActivePerCycleRecover is set to 1
           // and allowActivePerCycle is set to 1 we will have the same boost
           const boost = Math.min(config.p2p.allowActivePerCycleRecover, deficit)
-          // apply the boost 
+          // apply the boost
           nodesToAllowActive = Math.max(nodesToAllowActive, boost)
         }
       }
     }
 
     if (config.debug.readyNodeDelay > 0) {
-      nestedCountersInstance.countEvent('p2p', `selectNodesFromReadyList: only returning nodes from the ready list that were added at least ${config.debug.readyNodeDelay} seconds ago`)
-      return NodeList.readyByTimeAndIdOrder.slice(0, nodesToAllowActive).filter((node) => CycleChain.newest.start >= node.readyTimestamp + config.debug.readyNodeDelay)
+      nestedCountersInstance.countEvent(
+        'p2p',
+        `selectNodesFromReadyList: only returning nodes from the ready list that were added at least ${config.debug.readyNodeDelay} seconds ago`
+      )
+      return NodeList.readyByTimeAndIdOrder
+        .slice(0, nodesToAllowActive)
+        .filter((node) => CycleChain.newest.start >= node.readyTimestamp + config.debug.readyNodeDelay)
     }
 
     return NodeList.readyByTimeAndIdOrder.slice(0, nodesToAllowActive)
   } else {
     if (mode === 'forming' && isFirst && NodeList.activeByIdOrder.length === 0) return NodeList.readyByTimeAndIdOrder
-    
+
     if (config.debug.readyNodeDelay > 0) {
-      nestedCountersInstance.countEvent('p2p', `selectNodesFromReadyList: only returning nodes from the ready list that were added at least ${config.debug.readyNodeDelay} seconds ago`)
+      nestedCountersInstance.countEvent(
+        'p2p',
+        `selectNodesFromReadyList: only returning nodes from the ready list that were added at least ${config.debug.readyNodeDelay} seconds ago`
+      )
       return NodeList.readyByTimeAndIdOrder.filter(
         (node) => CycleChain.newest.start >= node.readyTimestamp + config.debug.readyNodeDelay
       )

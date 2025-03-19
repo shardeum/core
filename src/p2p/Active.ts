@@ -16,7 +16,7 @@ import { getSortedStandbyJoinRequests } from './Join/v2'
 import { selectNodesFromReadyList } from './Join/v2/syncFinished'
 import { isDebugModeMiddleware } from '../network/debugMiddleware'
 import { Utils } from '@shardeum-foundation/lib-types'
-import { nodeListFromStates } from "./Join";
+import { nodeListFromStates } from './Join'
 import { checkGossipPayload } from '../utils/GossipValidation'
 
 let syncTimes = []
@@ -38,7 +38,6 @@ const gossipActiveRoute: P2P.P2PTypes.GossipHandler<P2P.ActiveTypes.SignedActive
     ) {
       return
     }
-
 
     if (addActiveTx(payload)) {
       Comms.sendGossip(

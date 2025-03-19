@@ -7,14 +7,14 @@ module.exports = {
   output: {
     filename: 'index.js',
     path: path.resolve(__dirname, process.env.npm_package_config_dist),
-    libraryTarget: 'commonjs2'
+    libraryTarget: 'commonjs2',
   },
   target: 'node',
   externals: [nodeExternals()],
   node: {
     __dirname: false,
-    __filename: false
+    __filename: false,
   },
   mode: 'production',
-  plugins: [new BytenodeWebpackPlugin()]
+  plugins: [new BytenodeWebpackPlugin()],
 }

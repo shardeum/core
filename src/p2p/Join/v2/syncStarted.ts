@@ -42,7 +42,8 @@ export async function submitSyncStarted(payload: SyncStarted): Promise<Result<vo
 
 export function addSyncStarted(syncStarted: StartedSyncingRequest): SyncStartedRequestResponse {
   // lookup node by id in payload and use pubkey and compare to sig.owner
-  const publicKeysMatch = ((NodeList.byIdOrder.find((node) => node.id === syncStarted.nodeId))?.publicKey) === syncStarted.sign.owner
+  const publicKeysMatch =
+    NodeList.byIdOrder.find((node) => node.id === syncStarted.nodeId)?.publicKey === syncStarted.sign.owner
   if (!publicKeysMatch) {
     return {
       success: false,
@@ -86,7 +87,6 @@ export function addSyncStarted(syncStarted: StartedSyncingRequest): SyncStartedR
     fatal: false,
   }
 }
-
 
 /**
  * Returns the list of nodeIds of nodes that started syncing empties the map.

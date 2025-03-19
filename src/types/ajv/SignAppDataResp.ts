@@ -15,7 +15,7 @@ export const schemaSignAppDataResp = {
     },
   },
   required: ['success', 'signature'],
-  additionalProperties : false,
+  additionalProperties: false,
 }
 
 export function initSignAppDataResp(): void {

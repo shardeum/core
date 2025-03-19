@@ -9,11 +9,7 @@ export type GetAppliedVoteReq = {
   txId: string
 }
 
-export function serializeGetAppliedVoteReq(
-  stream: VectorBufferStream,
-  obj: GetAppliedVoteReq,
-  root = false
-): void {
+export function serializeGetAppliedVoteReq(stream: VectorBufferStream, obj: GetAppliedVoteReq, root = false): void {
   if (root) {
     stream.writeUInt16(TypeIdentifierEnum.cGetAppliedVoteReq)
   }

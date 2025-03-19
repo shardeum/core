@@ -36,11 +36,7 @@ import {
   deserializeCompareCertResp,
   serializeCompareCertResp,
 } from '../types/CompareCertResp'
-import {
-  CompareCertReqSerializable,
-  deserializeCompareCertReq,
-  serializeCompareCertReq,
-} from '../types/CompareCertReq'
+import { CompareCertReqSerializable, deserializeCompareCertReq, serializeCompareCertReq } from '../types/CompareCertReq'
 import { verifyPayload } from '../types/ajv/Helpers'
 import fs from 'fs'
 import path from 'path'
@@ -731,10 +727,7 @@ function makeCycleRecord(
     networkId: prevRecord ? prevRecord.networkId : randomBytes(32),
     counter: prevRecord ? prevRecord.counter + 1 : 0,
     previous: prevRecord ? makeCycleMarker(prevRecord) : '0'.repeat(64),
-    start:
-      prevRecord && prevRecord.mode !== 'shutdown'
-        ? prevRecord.start + prevRecord.duration
-        : utils.getTime('s'),
+    start: prevRecord && prevRecord.mode !== 'shutdown' ? prevRecord.start + prevRecord.duration : utils.getTime('s'),
     duration: prevRecord ? prevRecord.duration : config.p2p.cycleDuration,
     networkConfigHash: makeNetworkConfigHash(),
   }
@@ -840,7 +833,10 @@ async function fetchLatestRecord(): Promise<P2P.CycleCreatorTypes.CycleRecord> {
         // this.fatalLogger.fatal(
         //   'CycleCreator: fetchLatestRecord_A: fetchLatestRecordFails > maxFetchLatestRecordFails. apoptosizeSelf '
         // )
-        nestedCountersInstance.countEvent('fetchLatestRecord', `fetchLatestRecord_A fail and apop self. ${shardusGetTime()}`)
+        nestedCountersInstance.countEvent(
+          'fetchLatestRecord',
+          `fetchLatestRecord_A fail and apop self. ${shardusGetTime()}`
+        )
         Apoptosis.apoptosizeSelf(
           'Apoptosized within fetchLatestRecord() => src/p2p/CycleCreator.ts',
           'Node stopped. Unable to sync newest cycles due to node performance or network issues.'
@@ -858,7 +854,10 @@ async function fetchLatestRecord(): Promise<P2P.CycleCreatorTypes.CycleRecord> {
       //   'CycleCreator: fetchLatestRecord_B: fetchLatestRecordFails > maxFetchLatestRecordFails. apoptosizeSelf ',
       //   utils.formatErrorMessage(err)
       // )
-      nestedCountersInstance.countEvent('fetchLatestRecord', `fetchLatestRecord_B fail and apop self. ${shardusGetTime()}`)
+      nestedCountersInstance.countEvent(
+        'fetchLatestRecord',
+        `fetchLatestRecord_B fail and apop self. ${shardusGetTime()}`
+      )
       Apoptosis.apoptosizeSelf(
         'Apoptosized within fetchLatestRecord() => src/p2p/CycleCreator.ts',
         'Node stopped. Unable to sync newest cycles due to node performance or network issues.'
@@ -973,7 +972,7 @@ function scoreCert(cert: P2P.CycleCreatorTypes.CycleCert, prevMarker: P2P.CycleC
     // will also nerf if foundationNode is undefined, which is will be for already active nodes when we
     // first turn on the addFoundationNodeAttribute flag under the current implementation
     if (config.p2p.nerfNonFoundationCertScores && !NodeList.byPubKey.get(cert.sign.owner).foundationNode) {
-      return out & 0x0FFFFFFF
+      return out & 0x0fffffff
     }
 
     return out
@@ -1203,17 +1202,17 @@ async function compareCycleCert(myC: number, myQ: number, matches: number) {
 
     let resp: CompareCertRes
     // if (config.p2p.useBinarySerializedEndpoints && config.p2p.compareCertBinary) {
-      let reqSerialized = req as CompareCertReqSerializable
-      resp = await Comms.askBinary<CompareCertReqSerializable, CompareCertRespSerializable>(
-        node,
-        InternalRouteEnum.binary_compare_cert,
-        reqSerialized,
-        serializeCompareCertReq,
-        deserializeCompareCertResp,
-        {}
-      )
+    let reqSerialized = req as CompareCertReqSerializable
+    resp = await Comms.askBinary<CompareCertReqSerializable, CompareCertRespSerializable>(
+      node,
+      InternalRouteEnum.binary_compare_cert,
+      reqSerialized,
+      serializeCompareCertReq,
+      deserializeCompareCertResp,
+      {}
+    )
     // } else {
-      // resp = await Comms.ask(node, 'compare-cert', req)
+    // resp = await Comms.ask(node, 'compare-cert', req)
     // }
     if (!validateCertsRecordTypes(resp, 'compareCycleCert')) return [null, node]
     if (!(resp && resp.certs && resp.certs[0].marker && resp.record)) {

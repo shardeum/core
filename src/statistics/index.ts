@@ -253,8 +253,7 @@ class Statistics extends EventEmitter {
     if (fifoHolder) {
       return fifoHolder.average()
     }
-    const ringHolder =
-      this.counters[name] || this.watchers[name] || this.timers[name] || this.manualStats[name]
+    const ringHolder = this.counters[name] || this.watchers[name] || this.timers[name] || this.manualStats[name]
     if (!ringHolder.ring) throw new Error(`Ring holder '${name}' is undefined.`)
     return ringHolder.ring.average()
   }
@@ -264,8 +263,7 @@ class Statistics extends EventEmitter {
     if (fifoHolder) {
       return fifoHolder.multiStats()
     }
-    const ringHolder =
-      this.counters[name] || this.watchers[name] || this.timers[name] || this.manualStats[name]
+    const ringHolder = this.counters[name] || this.watchers[name] || this.timers[name] || this.manualStats[name]
     if (!ringHolder.ring) throw new Error(`Ring holder '${name}' is undefined.`)
 
     return ringHolder.ring.multiStats()
@@ -276,15 +274,13 @@ class Statistics extends EventEmitter {
     if (fifoHolder) {
       return fifoHolder.max()
     }
-    const ringHolder =
-      this.counters[name] || this.watchers[name] || this.timers[name] || this.manualStats[name]
+    const ringHolder = this.counters[name] || this.watchers[name] || this.timers[name] || this.manualStats[name]
     if (!ringHolder.ring) throw new Error(`Ring holder '${name}' is undefined.`)
     return ringHolder.ring.max()
   }
 
   clearRing(name) {
-    const ringHolder =
-      this.counters[name] || this.watchers[name] || this.timers[name] || this.manualStats[name]
+    const ringHolder = this.counters[name] || this.watchers[name] || this.timers[name] || this.manualStats[name]
     if (!ringHolder.ring) throw new Error(`Ring holder '${name}' is undefined.`)
     return ringHolder.ring.clear()
   }

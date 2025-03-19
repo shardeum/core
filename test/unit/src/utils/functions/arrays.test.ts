@@ -1,6 +1,15 @@
 import { P2P } from '@shardeum-foundation/lib-types'
 import { nodeListFromStates } from '../../../../../src/p2p/Join'
-import { linearInsertSorted, propComparator2, shuffleArray, getRandom, insertSorted, binaryLowest, binarySearch, computeMedian } from '../../../../../src/utils'
+import {
+  linearInsertSorted,
+  propComparator2,
+  shuffleArray,
+  getRandom,
+  insertSorted,
+  binaryLowest,
+  binarySearch,
+  computeMedian,
+} from '../../../../../src/utils'
 
 const intComparator = (a: number, b: number): number => a - b
 
@@ -369,19 +378,19 @@ describe('shuffleArray', () => {
     // but the probability is extremely low with a large number of runs
     let shuffledAtLeastOnce = false
     const original = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-    
+
     // Run multiple times to reduce the chance of false negatives
     for (let i = 0; i < 10; i++) {
       const arr = [...original]
       shuffleArray(arr)
-      
+
       // Check if the array is different from the original
       if (!arr.every((val, idx) => val === original[idx])) {
         shuffledAtLeastOnce = true
         break
       }
     }
-    
+
     expect(shuffledAtLeastOnce).toBe(true)
   })
 
@@ -402,20 +411,20 @@ describe('shuffleArray', () => {
   // Deterministic test with mocked Math.random
   it('should shuffle deterministically when Math.random is mocked', () => {
     const mockRandom = jest.spyOn(Math, 'random')
-    
+
     // Mock to return specific values in sequence
     // For array [1, 2, 3], with i=2, j=1, we swap arr[2] and arr[1]
     // Then with i=1, j=0, we swap arr[1] and arr[0]
     mockRandom
       .mockReturnValueOnce(0.5) // For i=2, j=Math.floor(0.5 * 3) = 1
-      .mockReturnValueOnce(0)   // For i=1, j=Math.floor(0 * 2) = 0
-      
+      .mockReturnValueOnce(0) // For i=1, j=Math.floor(0 * 2) = 0
+
     const arr = [1, 2, 3]
     shuffleArray(arr)
-    
+
     // Expected: First swap [1, 3, 2], then [3, 1, 2]
     expect(arr).toEqual([3, 1, 2])
-    
+
     mockRandom.mockRestore()
   })
 
@@ -442,7 +451,7 @@ describe('shuffleArray', () => {
 describe('getRandom', () => {
   // Helper function to check if all elements in arr1 are present in arr2
   const allElementsIn = (arr1: any[], arr2: any[]): boolean => {
-    return arr1.every(item => arr2.includes(item))
+    return arr1.every((item) => arr2.includes(item))
   }
 
   it('should return an empty array when input array is empty', () => {
@@ -499,19 +508,19 @@ describe('getRandom', () => {
   // Deterministic test with mocked Math.random
   it('should select elements deterministically when Math.random is mocked', () => {
     const mockRandom = jest.spyOn(Math, 'random')
-    
+
     // Mock to return specific values in sequence
     mockRandom
       .mockReturnValueOnce(0.1) // Will select index 0 for first element
       .mockReturnValueOnce(0.5) // Will select index 1 for second element
-      
+
     const arr = [10, 20, 30]
     const result = getRandom(arr, 2)
-    
+
     // With our mocked values, we expect [20, 10]
     // Note: The algorithm is complex, so we need to carefully trace through it
     expect(result).toEqual([20, 10])
-    
+
     mockRandom.mockRestore()
   })
 
@@ -743,21 +752,21 @@ describe('binarySearch', () => {
 
   it('should handle partial type for search element', () => {
     interface Person {
-      id: number;
-      name: string;
+      id: number
+      name: string
     }
-    
+
     const people: Person[] = [
       { id: 1, name: 'Alice' },
       { id: 2, name: 'Bob' },
-      { id: 3, name: 'Charlie' }
-    ];
-    
-    const personComparator = (a: { id: number }, b: Person): number => a.id - b.id;
-    
-    const result = binarySearch(people, { id: 2 }, personComparator);
-    expect(result).toBe(1);
-  });
+      { id: 3, name: 'Charlie' },
+    ]
+
+    const personComparator = (a: { id: number }, b: Person): number => a.id - b.id
+
+    const result = binarySearch(people, { id: 2 }, personComparator)
+    expect(result).toBe(1)
+  })
 })
 
 describe('computeMedian', () => {

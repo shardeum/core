@@ -49,9 +49,7 @@ export const serializeGetAccountDataByHashesResp = (
   /* eslint-enable security/detect-object-injection */
 }
 
-export const deserializeGetAccountDataByHashesResp = (
-  stream: VectorBufferStream
-): GetAccountDataByHashesResp => {
+export const deserializeGetAccountDataByHashesResp = (stream: VectorBufferStream): GetAccountDataByHashesResp => {
   const version = stream.readUInt8()
   if (version !== cGetAccountDataByHashesRespVersion) {
     throw new Error(

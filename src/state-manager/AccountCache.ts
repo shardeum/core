@@ -97,10 +97,7 @@ class AccountCache {
     }
     if (cycle < 0 || cycle == null) {
       const stack = new Error().stack
-      this.statemanager_fatal(
-        `updateAccountHash cycle == ${cycle}`,
-        `updateAccountHash cycle == ${cycle} ${stack}`
-      )
+      this.statemanager_fatal(`updateAccountHash cycle == ${cycle}`, `updateAccountHash cycle == ${cycle} ${stack}`)
     }
 
     //do not leave this on!  spammy!
@@ -129,8 +126,7 @@ class AccountCache {
     //
     if (this.accountsHashCache3.currentCalculationCycle === -1) {
       if (this.stateManager?.currentCycleShardData != null) {
-        this.accountsHashCache3.currentCalculationCycle =
-          this.stateManager.currentCycleShardData.cycleNumber - 1
+        this.accountsHashCache3.currentCalculationCycle = this.stateManager.currentCycleShardData.cycleNumber - 1
         if (this.accountsHashCache3.currentCalculationCycle < 0) {
           this.accountsHashCache3.currentCalculationCycle = 0
         }
@@ -268,8 +264,7 @@ class AccountCache {
     if (this.accountsHashCache3.accountHashMap.has(accountId) === false) {
       return null
     }
-    const accountHashCacheHistory: AccountHashCacheHistory =
-      this.accountsHashCache3.accountHashMap.get(accountId)
+    const accountHashCacheHistory: AccountHashCacheHistory = this.accountsHashCache3.accountHashMap.get(accountId)
     if (accountHashCacheHistory.accountHashList.length > 0) {
       //0 is the newest?
       return accountHashCacheHistory.accountHashList[0]

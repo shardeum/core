@@ -147,11 +147,7 @@ ShardFunctions.computeNodePartitionDataMap(
   true
 )
 
-let homeNode = ShardFunctions.findHomeNode(
-  testInput.shardGlobals,
-  debugAccount,
-  testInput.parititionShardDataMap
-)
+let homeNode = ShardFunctions.findHomeNode(testInput.shardGlobals, debugAccount, testInput.parititionShardDataMap)
 
 console.log('done')
 

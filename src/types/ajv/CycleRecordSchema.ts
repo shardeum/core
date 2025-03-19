@@ -189,15 +189,7 @@ let schemaCycleRecord: object | undefined = {
           },
           version: { type: 'string' },
         },
-        required: [
-          'appJoinData',
-          'cycleMarker',
-          'nodeInfo',
-          'proofOfWork',
-          'selectionNum',
-          'sign',
-          'version',
-        ],
+        required: ['appJoinData', 'cycleMarker', 'nodeInfo', 'proofOfWork', 'selectionNum', 'sign', 'version'],
       },
     },
     standbyNodeListHash: { type: 'string' },
@@ -313,8 +305,8 @@ let schemaCycleRecord: object | undefined = {
 // AJV Schema for an Array of CycleRecords
 export let schemaCycleRecordArray: object | undefined = {
   type: 'array',
-  items: schemaCycleRecord
-};
+  items: schemaCycleRecord,
+}
 
 export function initCycleRecords(): void {
   addSchemaDependencies()

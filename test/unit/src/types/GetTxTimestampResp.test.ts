@@ -34,14 +34,11 @@ describe('getTxTimestampResp Serialization and Deserialization', () => {
         },
       ]
 
-      test.each(invalidObjects)(
-        'should throw error if field is improper during serialization',
-        ({ data }) => {
-          const dataClone = Utils.safeJsonParse(Utils.safeStringify(data))
-          const stream = new VectorBufferStream(0)
-          expect(() => serializeGetTxTimestampResp(stream, dataClone)).toThrow('Data validation error')
-        }
-      )
+      test.each(invalidObjects)('should throw error if field is improper during serialization', ({ data }) => {
+        const dataClone = Utils.safeJsonParse(Utils.safeStringify(data))
+        const stream = new VectorBufferStream(0)
+        expect(() => serializeGetTxTimestampResp(stream, dataClone)).toThrow('Data validation error')
+      })
     })
 
     test('should serialize data correctly', () => {
@@ -251,9 +248,7 @@ describe('getTxTimestampResp Serialization and Deserialization', () => {
       stream.writeUInt8(0) // isResponse not present
       stream.position = 0 // Reset position for reading
 
-      expect(() => deserializeGetTxTimestampResp(stream)).toThrow(
-        'GetTxTimestampRespVersion : Unsupported version'
-      )
+      expect(() => deserializeGetTxTimestampResp(stream)).toThrow('GetTxTimestampRespVersion : Unsupported version')
     })
 
     test('should deserialize with empty string for txId and cycleMarker', () => {

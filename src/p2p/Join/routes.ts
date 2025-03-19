@@ -20,7 +20,7 @@ import {
   queueJoinRequest,
   queueUnjoinRequest,
   verifyJoinRequestTypes,
-  nodeListFromStates
+  nodeListFromStates,
 } from '.'
 import { config, shardus } from '../Context'
 import { isBogonIP } from '../../utils/functions/checkIP'
@@ -46,7 +46,6 @@ import { testFailChance } from '../../utils'
 import { shardusGetTime } from '../../network'
 import { verifyPayload } from '../../types/ajv/Helpers'
 import { AJVSchemaEnum } from '../../types/enum/AJVSchemaEnum'
-
 
 const cycleMarkerRoute: P2P.P2PTypes.Route<Handler> = {
   method: 'GET',
@@ -76,18 +75,16 @@ const joinRoute: P2P.P2PTypes.Route<Handler> = {
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore
   handler: async (req, res) => {
-  
-
-  try {
-      const requestBody = req.body;
+    try {
+      const requestBody = req.body
       // Validate the joinReq against the ajv schema]
       const errors = verifyPayload(AJVSchemaEnum.JoinReq, requestBody)
       if (errors) {
         res.status(400).json({
           success: false,
           fatal: true,
-          reason: 'Validation error: ' + errors.join('; ')
-        });
+          reason: 'Validation error: ' + errors.join('; '),
+        })
         return
       }
 
@@ -96,8 +93,8 @@ const joinRoute: P2P.P2PTypes.Route<Handler> = {
         res.status(400).json({
           success: false,
           fatal: true,
-          reason: 'Validation error: ' + appJoinDataErrors.join('; ')
-        });
+          reason: 'Validation error: ' + appJoinDataErrors.join('; '),
+        })
         return
       }
 
@@ -138,7 +135,7 @@ const joinRoute: P2P.P2PTypes.Route<Handler> = {
       nestedCountersInstance.countEvent('p2p', `join-allow-bogon-firstnode:${getAllowBogon()}`)
 
       // Ensure IP and Port properties exist
-      const { externalIp, externalPort, internalIp, internalPort } = joinRequest.nodeInfo || {};
+      const { externalIp, externalPort, internalIp, internalPort } = joinRequest.nodeInfo || {}
 
       const externalPortReachable = await isPortReachable({ host: externalIp, port: externalPort })
       const internalPortReachable = await isPortReachable({ host: internalIp, port: internalPort })
@@ -249,13 +246,13 @@ const joinRoute: P2P.P2PTypes.Route<Handler> = {
         return
       }
     } catch (error) {
-      console.error('Error handling join request:', error);
+      console.error('Error handling join request:', error)
       res.status(500).json({
         success: false,
         fatal: true,
-        reason: 'An error occurred while processing the join request'
+        reason: 'An error occurred while processing the join request',
       })
-    return
+      return
     }
   },
 }
@@ -264,22 +261,22 @@ const unjoinRoute: P2P.P2PTypes.Route<Handler> = {
   method: 'POST',
   name: 'unjoin',
   handler: (req, res) => {
-   try {
-     const unjoinRequest = req.body
+    try {
+      const unjoinRequest = req.body
 
-     const processResult = processNewUnjoinRequest(unjoinRequest)
-     if (processResult.isErr()) {
-       res.status(500).json({ error: processResult.error.message })
-       return
-     }
+      const processResult = processNewUnjoinRequest(unjoinRequest)
+      if (processResult.isErr()) {
+        res.status(500).json({ error: processResult.error.message })
+        return
+      }
 
-     removeUnjoinRequest(unjoinRequest.publicKey)
-     queueUnjoinRequest(unjoinRequest)
+      removeUnjoinRequest(unjoinRequest.publicKey)
+      queueUnjoinRequest(unjoinRequest)
 
-     res.status(200).json({ message: 'Unjoin request processed successfully' })
-   } catch (error) {
-     res.status(500).json({ error: error.message || 'An unknown error occurred' })
-   }
+      res.status(200).json({ message: 'Unjoin request processed successfully' })
+    } catch (error) {
+      res.status(500).json({ error: error.message || 'An unknown error occurred' })
+    }
   },
 }
 
@@ -306,9 +303,7 @@ const standbyRefreshRoute: P2P.P2PTypes.Route<Handler> = {
   handler: async (req, res) => {
     // check if the config.debug.ignoreStandbyRefreshChance is a probability
     if (config.debug.ignoreStandbyRefreshChance < 0 || config.debug.ignoreStandbyRefreshChance > 1) {
-      warn(
-        'invalid config.debug.ignoreStandbyRefreshChance value: ' + config.debug.ignoreStandbyRefreshChance
-      )
+      warn('invalid config.debug.ignoreStandbyRefreshChance value: ' + config.debug.ignoreStandbyRefreshChance)
       res.status(500).json({ error: 'invalid config.debug.ignoreStandbyRefreshChance value' })
       // check if we should ignore this request for testing purposes
     } else if (config.debug.ignoreStandbyRefreshChance > 0) {
@@ -494,14 +489,14 @@ const gossipJoinRoute: P2P.P2PTypes.GossipHandler<P2P.JoinTypes.JoinRequest, P2P
  * Part of Join Protocol v2. Gossips all valid join requests.
  */
 const gossipValidJoinRequests: P2P.P2PTypes.GossipHandler<
-{
-  joinRequest: P2P.JoinTypes.JoinRequest,
-  sign: P2P.P2PTypes.Signature
-},
+  {
+    joinRequest: P2P.JoinTypes.JoinRequest
+    sign: P2P.P2PTypes.Signature
+  },
   P2P.NodeListTypes.Node['id']
 > = (
   payload: {
-    joinRequest: P2P.JoinTypes.JoinRequest,
+    joinRequest: P2P.JoinTypes.JoinRequest
     sign: P2P.P2PTypes.Signature
   },
   sender: P2P.NodeListTypes.Node['id'],
@@ -605,10 +600,17 @@ const gossipUnjoinRequests: P2P.P2PTypes.GossipHandler<SignedUnjoinRequest, P2P.
   sender: P2P.NodeListTypes.Node['id'],
   tracker: string
 ) => {
-  if(!checkGossipPayload(payload, {
-    publicKey: 's',
-    sign: 'o',
-  }, 'gossip-unjoin', sender)) {
+  if (
+    !checkGossipPayload(
+      payload,
+      {
+        publicKey: 's',
+        sign: 'o',
+      },
+      'gossip-unjoin',
+      sender
+    )
+  ) {
     return
   }
 
@@ -632,10 +634,11 @@ const gossipUnjoinRequests: P2P.P2PTypes.GossipHandler<SignedUnjoinRequest, P2P.
   )
 }
 
-const gossipSyncStartedRoute: P2P.P2PTypes.GossipHandler<
-  StartedSyncingRequest,
-  P2P.NodeListTypes.Node['id']
-> = (payload, sender, tracker) => {
+const gossipSyncStartedRoute: P2P.P2PTypes.GossipHandler<StartedSyncingRequest, P2P.NodeListTypes.Node['id']> = (
+  payload,
+  sender,
+  tracker
+) => {
   profilerInstance.scopedProfileSectionStart('gossip-sync-started')
   nestedCountersInstance.countEvent('p2p', `received gossip-sync-started`)
 
@@ -658,10 +661,7 @@ const gossipSyncStartedRoute: P2P.P2PTypes.GossipHandler<
 
     //  Validate of payload is done in addSyncStarted
     const addSyncStartedResult = addSyncStarted(payload)
-    nestedCountersInstance.countEvent(
-      'p2p',
-      `sync-started validation success: ${addSyncStartedResult.success}`
-    )
+    nestedCountersInstance.countEvent('p2p', `sync-started validation success: ${addSyncStartedResult.success}`)
     /* prettier-ignore */ if (logFlags.verbose) console.log(`sync-started validation success: ${addSyncStartedResult.success}`)
     /* prettier-ignore */ if (!addSyncStartedResult.success) nestedCountersInstance.countEvent('p2p', `sync-started failure reason: ${addSyncStartedResult.reason}`)
     /* prettier-ignore */ if (logFlags.verbose && !addSyncStartedResult.success) console.log(`sync-started validation reason: ${addSyncStartedResult.reason}`)
@@ -689,11 +689,7 @@ const gossipSyncStartedRoute: P2P.P2PTypes.GossipHandler<
 const gossipSyncFinishedRoute: P2P.P2PTypes.GossipHandler<
   P2P.JoinTypes.FinishedSyncingRequest,
   P2P.NodeListTypes.Node['id']
-> = (
-  payload: P2P.JoinTypes.FinishedSyncingRequest,
-  sender: P2P.NodeListTypes.Node['id'],
-  tracker: string
-) => {
+> = (payload: P2P.JoinTypes.FinishedSyncingRequest, sender: P2P.NodeListTypes.Node['id'], tracker: string) => {
   profilerInstance.scopedProfileSectionStart('gossip-sync-finished')
 
   try {

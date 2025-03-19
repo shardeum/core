@@ -17,14 +17,10 @@ import { stateManager } from '@src/p2p/Context'
 
 describe('RequestReceiptForTx Serialization', () => {
   beforeEach(() => {
-    (stateManager as any) = {
+    ;(stateManager as any) = {
       app: {
-        binarySerializeObject: jest.fn((_, data: any) =>
-          Buffer.from(Utils.safeStringify(data), 'utf8')
-        ),
-        binaryDeserializeObject: jest.fn((_, buffer: Buffer) =>
-          Utils.safeJsonParse(buffer.toString('utf8'))
-        ),
+        binarySerializeObject: jest.fn((_, data: any) => Buffer.from(Utils.safeStringify(data), 'utf8')),
+        binaryDeserializeObject: jest.fn((_, buffer: Buffer) => Utils.safeJsonParse(buffer.toString('utf8'))),
       },
     }
   })

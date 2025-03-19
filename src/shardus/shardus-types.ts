@@ -170,10 +170,7 @@ export interface InjectTxResponse {
 }
 
 export interface App {
-  injectTxToConsensor(
-    consensor: ValidatorNodeDetails[],
-    tx: OpaqueTransaction
-  ): Promise<InjectTxResponse | null>
+  injectTxToConsensor(consensor: ValidatorNodeDetails[], tx: OpaqueTransaction): Promise<InjectTxResponse | null>
   getNonceFromTx(tx: OpaqueTransaction): bigint
   getAccountNonce(accountId: string, wrappedData?: WrappedData): Promise<bigint>
   getTxSenderAddress(tx: OpaqueTransaction): string
@@ -1003,7 +1000,7 @@ export interface ServerConfiguration {
     /** enable fixes that allow us to sync and patch the network account so that we have correct config values at more places in the node lifecycle */
     patchNetworkAccountSyncFixes?: boolean
     // enable shard key refactoring changes as part of SHARD-1892 sec fixes
-    enableShardKeyChanges : boolean
+    enableShardKeyChanges: boolean
     // control the max content size for http responses
     maxResponseSize: number
   }
@@ -1410,12 +1407,12 @@ export interface ServerConfiguration {
     /** Options for validator tickets. E.g. - Silver tickets */
     tickets?: {
       /** Amount of time between checks for an updated list */
-      updateTicketListTimeInMs?: number,
+      updateTicketListTimeInMs?: number
       /** Array of ticket types */
       ticketTypes?: Array<{
-        type: string;
-        enabled: boolean;
-      }>,
+        type: string
+        enabled: boolean
+      }>
     }
   }
 }
@@ -1637,7 +1634,7 @@ type ObjectAlias = object
  * OpaqueTransaction is the way shardus should see transactions internally. it should not be able to mess with parameters individually
  */
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
-export interface OpaqueTransaction extends ObjectAlias { }
+export interface OpaqueTransaction extends ObjectAlias {}
 
 export interface ReinjectedOpaqueTransaction extends OpaqueTransaction {
   isReinjected: boolean

@@ -15,7 +15,7 @@ const cSendCachedAppDataReqVersion = 1
 
 describe('SendCachedAppDataReq Serialization and Deserialization', () => {
   beforeEach(() => {
-    (stateManager as any) = {
+    ;(stateManager as any) = {
       app: {
         binarySerializeObject: jest.fn((_, data: any) => Buffer.from(Utils.safeStringify(data), 'utf8')),
         binaryDeserializeObject: jest.fn((_, buffer: Buffer) => Utils.safeJsonParse(buffer.toString('utf8'))),
@@ -50,9 +50,7 @@ describe('SendCachedAppDataReq Serialization and Deserialization', () => {
       expectedStream.writeString(obj.txId)
       expectedStream.writeString(obj.executionShardKey)
       expectedStream.writeUInt32(obj.cachedAppData.cycle)
-      expectedStream.writeBuffer(
-        Buffer.from(Utils.safeStringify(obj.cachedAppData.appData), 'utf8')
-      )
+      expectedStream.writeBuffer(Buffer.from(Utils.safeStringify(obj.cachedAppData.appData), 'utf8'))
       expectedStream.writeString(obj.cachedAppData.dataID)
       expect(stream.getBuffer()).toEqual(expectedStream.getBuffer())
     })
@@ -78,9 +76,7 @@ describe('SendCachedAppDataReq Serialization and Deserialization', () => {
       expectedStream.writeString(obj.txId)
       expectedStream.writeString(obj.executionShardKey)
       expectedStream.writeUInt32(obj.cachedAppData.cycle)
-      expectedStream.writeBuffer(
-        Buffer.from(Utils.safeStringify(obj.cachedAppData.appData), 'utf8')
-      )
+      expectedStream.writeBuffer(Buffer.from(Utils.safeStringify(obj.cachedAppData.appData), 'utf8'))
       expectedStream.writeString(obj.cachedAppData.dataID)
       expect(stream.getBuffer()).toEqual(expectedStream.getBuffer())
     })
@@ -105,9 +101,7 @@ describe('SendCachedAppDataReq Serialization and Deserialization', () => {
       stream.writeString(obj.txId)
       stream.writeString(obj.executionShardKey)
       stream.writeUInt32(obj.cachedAppData.cycle)
-      stream.writeBuffer(
-        Buffer.from(Utils.safeStringify(obj.cachedAppData.appData), 'utf8')
-      )
+      stream.writeBuffer(Buffer.from(Utils.safeStringify(obj.cachedAppData.appData), 'utf8'))
       stream.writeString(obj.cachedAppData.dataID)
       stream.position = 0 // Reset position for reading
       const data = deserializeSendCachedAppDataReq(stream)
@@ -130,15 +124,11 @@ describe('SendCachedAppDataReq Serialization and Deserialization', () => {
       stream.writeUInt8(cSendCachedAppDataReqVersion + 1)
       stream.writeString(obj.topic)
       stream.writeUInt32(obj.cachedAppData.cycle)
-      stream.writeBuffer(
-        Buffer.from(Utils.safeStringify(obj.cachedAppData.appData), 'utf8')
-      )
+      stream.writeBuffer(Buffer.from(Utils.safeStringify(obj.cachedAppData.appData), 'utf8'))
       stream.writeString(obj.cachedAppData.dataID)
       stream.position = 0 // Reset position for reading
 
-      expect(() => deserializeSendCachedAppDataReq(stream)).toThrowError(
-        'SendCachedAppDataReq version mismatch'
-      )
+      expect(() => deserializeSendCachedAppDataReq(stream)).toThrowError('SendCachedAppDataReq version mismatch')
     })
 
     test('should serialize and deserialize successfully', () => {

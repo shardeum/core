@@ -71,9 +71,7 @@ describe('deserializeGetAccountQueueCountReq', () => {
     buffer[0] = cGetAccountQueueCountReqVersion + 1
     const alteredStream = VectorBufferStream.fromBuffer(buffer)
 
-    expect(() => deserializeGetAccountQueueCountReq(alteredStream)).toThrow(
-      'GetAccountQueueCountReq version mismatch'
-    )
+    expect(() => deserializeGetAccountQueueCountReq(alteredStream)).toThrow('GetAccountQueueCountReq version mismatch')
   })
 
   test('should deserialize with empty accountIds array', () => {
