@@ -10,25 +10,25 @@ import { serializeWrappedDataResponse } from '../../../../src/types/WrappedDataR
 import { initAjvSchemas } from '../../../../src/types/ajv/Helpers'
 import { TypeIdentifierEnum } from '../../../../src/types/enum/TypeIdentifierEnum'
 import { WrappedDataResponse } from '../../../../src/types/WrappedDataResponse'
+import { stateManager } from '@src/p2p/Context'
+import { beforeEachHandler } from './stateManagerSerializeMocks'
 
-// Mock the Context module and its nested structure
 jest.mock('../../../../src/p2p/Context', () => ({
-  setDefaultConfigs: jest.fn(),
   stateManager: {
     app: {
-      binarySerializeObject: jest.fn((enumType, data) => Buffer.from(Utils.safeStringify(data), 'utf8')),
-      binaryDeserializeObject: jest.fn((enumType, buffer) => Utils.safeJsonParse(buffer.toString('utf8'))),
-    },
+      binarySerializeObject: jest.fn(),
+      binaryDeserializeObject: jest.fn(),
+    }
   },
+  setDefaultConfigs: jest.fn(),
 }))
-
 describe('RequestStateForTxPostResp Tests', () => {
-  beforeAll(() => {
-    initAjvSchemas()
+  beforeEach(() => {
+    beforeEachHandler() 
   })
 
-  beforeEach(() => {
-    jest.clearAllMocks()
+  beforeAll(() => {
+    initAjvSchemas()
   })
 
   describe('Serialization Tests', () => {

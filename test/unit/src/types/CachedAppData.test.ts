@@ -1,7 +1,7 @@
 import { VectorBufferStream } from '../../../../src/utils/serialization/VectorBufferStream'
 import { TypeIdentifierEnum } from '../../../../src/types/enum/TypeIdentifierEnum'
 import { initAjvSchemas } from '../../../../src/types/ajv/Helpers'
-import { stateManager } from '../../../../src/p2p/Context'
+import { stateManager } from '@src/p2p/Context'
 
 import {
   CachedAppDataSerializable,
@@ -9,25 +9,23 @@ import {
   deserializeCachedAppData,
 } from '../../../../src/types/CachedAppData'
 import { AppObjEnum } from '../../../../src/types/enum/AppObjEnum'
-import { Utils } from '@shardeum-foundation/lib-types'
+import { beforeEachHandler } from './stateManagerSerializeMocks'
 
-// Mock the Context module and its nested structure
 jest.mock('../../../../src/p2p/Context', () => ({
-  setDefaultConfigs: jest.fn(),
   stateManager: {
-    app: {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      binarySerializeObject: jest.fn((enumType: AppObjEnum, data: any) =>
-        Buffer.from(Utils.safeStringify(data), 'utf8')
-      ),
-      binaryDeserializeObject: jest.fn((enumType: AppObjEnum, buffer: Buffer) =>
-        Utils.safeJsonParse(buffer.toString('utf8'))
-      ),
-    },
+      app: {
+      binarySerializeObject: jest.fn(),
+      binaryDeserializeObject: jest.fn(),
+      }
   },
+  setDefaultConfigs: jest.fn(),
 }))
 
 describe('CachedAppData Serialization and Deserialization', () => {
+  beforeEach(() => {
+    beforeEachHandler()
+  })
+
   beforeAll(() => {
     initAjvSchemas()
   })

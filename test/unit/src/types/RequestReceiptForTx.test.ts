@@ -13,19 +13,22 @@ import {
 } from '../../../../src/types/RequestReceiptForTxResp'
 import { VectorBufferStream } from '../../../../src/utils/serialization/VectorBufferStream'
 import { AJVSchemaEnum } from '../../../../src/types/enum/AJVSchemaEnum'
-
-// Mock the Context module and its nested structure
-jest.mock('../../../../src/p2p/Context', () => ({
-  setDefaultConfigs: jest.fn(),
-  stateManager: {
-    app: {
-      binarySerializeObject: jest.fn((enumType, data) => Buffer.from(Utils.safeStringify(data), 'utf8')),
-      binaryDeserializeObject: jest.fn((enumType, buffer) => Utils.safeJsonParse(buffer.toString('utf8'))),
-    },
-  },
-}))
+import { stateManager } from '@src/p2p/Context'
 
 describe('RequestReceiptForTx Serialization', () => {
+  beforeEach(() => {
+    (stateManager as any) = {
+      app: {
+        binarySerializeObject: jest.fn((_, data: any) =>
+          Buffer.from(Utils.safeStringify(data), 'utf8')
+        ),
+        binaryDeserializeObject: jest.fn((_, buffer: Buffer) =>
+          Utils.safeJsonParse(buffer.toString('utf8'))
+        ),
+      },
+    }
+  })
+
   beforeAll(() => {
     initAjvSchemas()
   })

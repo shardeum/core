@@ -93,6 +93,23 @@ describe('NestedCounters', () => {
     // Reset all mocks
     jest.clearAllMocks();
     
+    // Mock dependencies with more complete implementations
+    const Context = jest.requireMock('../../../../src/p2p/Context')
+    jest.spyOn(Context.network, 'registerExternalGet').mockImplementation((endpoint: string, middleware, handler) => {
+      // Store the handler for later use in tests
+      if (!mockedEndpoints[endpoint]) {
+        mockedEndpoints[endpoint] = {
+          middleware,
+          handler
+        };
+      }
+    });
+    jest.spyOn(Context, 'setDefaultConfigs').mockImplementation(() => {});
+
+    const network = jest.requireMock('../../../../src/network')
+    jest.spyOn(network, 'shardusGetTime').mockReturnValue(1000);
+    jest.spyOn(network, 'getNetworkTimeOffset').mockReturnValue(0);
+
     // Clear mocked endpoints
     Object.keys(mockedEndpoints).forEach(key => delete mockedEndpoints[key]);
 

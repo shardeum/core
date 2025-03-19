@@ -12,17 +12,22 @@ import {
   serializeGetAppliedVoteResp,
 } from '../../../../src/types/GetAppliedVoteResp'
 import { AJVSchemaEnum } from '../../../../src/types/enum/AJVSchemaEnum'
-jest.mock('../../../../src/p2p/Context', () => ({
-  setDefaultConfigs: jest.fn(),
-  stateManager: {
-    app: {
-      binarySerializeObject: jest.fn((enumType, data) => Buffer.from(Utils.safeStringify(data), 'utf8')),
-      binaryDeserializeObject: jest.fn((enumType, buffer) => Utils.safeJsonParse(buffer.toString('utf8'))),
-    },
-  },
-}))
+import { stateManager } from '@src/p2p/Context'
 
 describe('RequestStateForTx Serialization', () => {
+  beforeEach(() => {
+    (stateManager as any) = {
+      app: {
+        binarySerializeObject: jest.fn((_, data: any) =>
+          Buffer.from(Utils.safeStringify(data), 'utf8')
+        ),
+        binaryDeserializeObject: jest.fn((_, buffer: Buffer) =>
+          Utils.safeJsonParse(buffer.toString('utf8'))
+        ),
+      },
+    }
+  })
+
   beforeAll(() => {
     initAjvSchemas()
   })
