@@ -184,6 +184,7 @@ const SERVER_CONFIG: StrictServerConfiguration = {
     foundationNodeThreshold: 50,
     patchNetworkAccountSyncFixes: true,
     enableShardKeyChanges: true,
+    maxResponseSize: 1024 * 1024 * 15, // 15MB
   },
   ip: {
     externalIp: '0.0.0.0',

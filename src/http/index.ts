@@ -1,8 +1,8 @@
 import { parse as parseUrl } from 'url'
-import got from 'got'
 import { logFlags } from '../logger'
 import { Utils } from '@shardeum-foundation/lib-types'
 import { stringifyReduceLimit } from '../utils'
+import { customGot } from "../http/customHttpFunctions";
 
 let _logger = null
 let getIndex = 1
@@ -22,7 +22,7 @@ function _normalizeUrl(url: string) {
 
 async function _get(host, logIndex, timeout = 1000) {
   try {
-    const res = await got.get(host.href, {
+    const res = await customGot().get(host.href, {
       timeout: timeout, //  Omar - setting this to 1 sec
       retry: 0, // Omar - setting this to 0.
       headers: {
@@ -80,7 +80,7 @@ async function get<T>(url: string, getResponseObj = false, timeout = 1000): Prom
 
 async function _post(host, payload, logIndex, timeout = 1000) {
   try {
-    const res = await got.post(host.href, {
+    const res = await customGot().post(host.href, {
       timeout: timeout, // Omar - set this to 1 sec
       retry: 0, // Omar - set this to 0
       headers: {

@@ -36,6 +36,7 @@ import { Utils } from '@shardeum-foundation/lib-types'
 import { DevSecurityLevel } from '../shardus/shardus-types'
 import { verifyPayload } from '../types/ajv/Helpers'
 import { AJVSchemaEnum } from '../types/enum/AJVSchemaEnum'
+import { customFetch } from '../http/customHttpFunctions'
 
 const clone = rfdc()
 
@@ -195,7 +196,7 @@ async function getAllowedArchivers(): Promise<Array<{
   // Helper function to fetch and validate archiver data
   async function fetchArchiverData(ip: string, port: number): Promise<ArchiverResponse | null> {
     try {
-      const response = await fetch(`http://${ip}:${port}/allowed-archivers`)
+      const response = await customFetch(`http://${ip}:${port}/allowed-archivers`)
       if (!response.ok) {
         return null
       }

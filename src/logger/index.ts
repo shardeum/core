@@ -9,7 +9,6 @@ import { profilerInstance } from '../utils/profiler'
 import { nestedCountersInstance } from '../utils/nestedCounters'
 import { Utils } from '@shardeum-foundation/lib-types'
 const log4jsExtend = require('log4js-extend')
-import got from 'got'
 import { parse as parseUrl } from 'url'
 import {
   isDebugModeMiddleware,
@@ -20,6 +19,8 @@ import { isDebugMode } from '../debug'
 import { shardusGetTime } from '../network'
 import { config } from '../p2p/Context'
 import path from 'path'
+import { customGot } from '../http/customHttpFunctions'
+
 interface Logger {
   baseDir: string
   config: Shardus.StrictLogsConfiguration
@@ -592,7 +593,7 @@ class Logger {
     let normalized = this._normalizeUrl(url)
     let host = parseUrl(normalized, true)
     try {
-      await got.get(host.href, {
+      await customGot().get(host.href, {
         timeout: 1000,
         retry: 0,
         throwHttpErrors: false,
@@ -606,7 +607,7 @@ class Logger {
     let normalized = this._normalizeUrl(url)
     let host = parseUrl(normalized, true)
     try {
-      const res = await got.get(host.href, {
+      const res = await customGot().get(host.href, {
         timeout: 7000,
         retry: 0,
         throwHttpErrors: false,
