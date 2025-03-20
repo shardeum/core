@@ -526,23 +526,37 @@ describe('Profiler', () => {
         (call) => call[0] === 'combined-debug'
       )[2]
 
-      // Set up statistics instance
-      profiler.setStatisticsInstance(
-        new Statistics(
-          'test-dir',
-          {},
-          {
-            counters: [],
-            watchers: {},
-            timers: [],
-            manualStats: [],
-            fifoStats: [],
-            ringOverrides: {},
-            fifoOverrides: {},
-          },
-          {}
-        )
+      // Create a mock Statistics instance with all required methods
+      const mockStatistics = new Statistics(
+        'test-dir',
+        {},
+        {
+          counters: ['txProcessed', 'txInjected', 'txApplied', 'txRejected', 'networkTimeout', 'lostNodeTimeout'],
+          watchers: {},
+          timers: [],
+          manualStats: [],
+          fifoStats: [],
+          ringOverrides: {},
+          fifoOverrides: {},
+        },
+        {}
       )
+
+      // Mock all required methods if they don't exist
+      if (!mockStatistics.clearRing) {
+        mockStatistics.clearRing = jest.fn();
+      }
+      
+      // Mock getMultiStatReport to return a valid report object
+      if (!mockStatistics.getMultiStatReport) {
+        mockStatistics.getMultiStatReport = jest.fn().mockImplementation(() => ({
+          avg: 0,
+          max: 0,
+          allVals: []
+        }));
+      }
+
+      profiler.setStatisticsInstance(mockStatistics)
 
       // Call the handler
       await combinedDebugHandler(mockRequest, mockResponse)
