@@ -16,19 +16,19 @@ jest.mock('../../../../src/p2p/Context', () => ({
     app: {
       binarySerializeObject: jest.fn(),
       binaryDeserializeObject: jest.fn(),
-    }
+    },
   },
   setDefaultConfigs: jest.fn(),
 }))
 describe('RepairOOSAccountsReq', () => {
   beforeEach(() => {
-    beforeEachHandler() 
+    beforeEachHandler()
   })
 
   beforeAll(() => {
     initAjvSchemas()
   })
-  
+
   describe('RepairMissingAccountReq Serialization', () => {
     test('Should serialize with root true', () => {
       const obj: RepairOOSAccountsReq = {
@@ -552,4 +552,4 @@ describe('RepairOOSAccountsReq', () => {
       expect(obj).toEqual(data)
     })
   })
-});
+})

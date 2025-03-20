@@ -20,19 +20,18 @@ let multiSigLstCounter = Date.now()
 async function handleDebugAuth(_req, res, next, authLevel) {
   try {
     let statusHist = getStatusHistoryCopy()
-    let statusNow = statusHist[statusHist.length -1].moduleStatus || undefined
+    let statusNow = statusHist[statusHist.length - 1].moduleStatus || undefined
     let weAreActive = statusNow === NodeStatus.ACTIVE
     let latestCycle = CycleChain.newest
 
     if (!weAreActive) {
-      const activeNodes = await contactArchiver("dbgMiddleware")
+      const activeNodes = await contactArchiver('dbgMiddleware')
       latestCycle = await getNewestCycle(activeNodes)
     }
 
-    if(!latestCycle) {
-      res.status(500).json({ error: "Node can't gather latest Cycle to perform signature verification"})
+    if (!latestCycle) {
+      res.status(500).json({ error: "Node can't gather latest Cycle to perform signature verification" })
     }
-
 
     //auth with a signature
     if (_req.query.sig != null && _req.query.sig_counter != null) {
@@ -124,19 +123,18 @@ async function handleDebugAuth(_req, res, next, authLevel) {
 async function handleDebugMultiSigAuth(_req, res, next, authLevel: DevSecurityLevel) {
   nestedCountersInstance.countEvent('middleware', 'debug_multi_sig_auth')
   try {
-
     let statusHist = getStatusHistoryCopy()
-    let statusNow = statusHist[statusHist.length -1].moduleStatus || undefined
+    let statusNow = statusHist[statusHist.length - 1].moduleStatus || undefined
     let weAreActive = statusNow === NodeStatus.ACTIVE
     let latestCycle = CycleChain.newest
 
     if (!weAreActive) {
-      const activeNodes = await contactArchiver("dbgMiddleware")
+      const activeNodes = await contactArchiver('dbgMiddleware')
       latestCycle = await getNewestCycle(activeNodes)
     }
 
-    if(!latestCycle) {
-      res.status(500).json({ error: "Node can't gather latest Cycle to perform signature verification"})
+    if (!latestCycle) {
+      res.status(500).json({ error: "Node can't gather latest Cycle to perform signature verification" })
     }
     //auth with a signature
     if (_req.query.sig != null && _req.query.sig_counter != null) {

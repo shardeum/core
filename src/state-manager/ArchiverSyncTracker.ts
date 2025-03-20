@@ -241,9 +241,7 @@ export default class ArchiverSyncTracker implements SyncTrackerInterface {
           }
           while (this.accountSync.debugFail4) {
             await utils.sleep(1000)
-            if (
-              this.archiverDataSourceHelper.tryNextDataSourceArchiver('syncAccountData1 debugFail4') == false
-            ) {
+            if (this.archiverDataSourceHelper.tryNextDataSourceArchiver('syncAccountData1 debugFail4') == false) {
               throw new Error('out of account archivers to ask: dataSourceTest debugFail4')
             }
           }
@@ -313,9 +311,7 @@ export default class ArchiverSyncTracker implements SyncTrackerInterface {
           if (result.success === false) {
             /* prettier-ignore */ if (logFlags.verbose) if (logFlags.error) this.accountSync.mainLogger.error('ASK FAIL syncStateTableData result == success:false')
             if (this.archiverDataSourceHelper.tryNextDataSourceArchiver('ArchiverReponseFail') == false) {
-              throw new Error(
-                'out of account archivers to ask: syncStateDataGlobals- archiver success:false response'
-              )
+              throw new Error('out of account archivers to ask: syncStateDataGlobals- archiver success:false response')
             }
             continue
           }
@@ -488,7 +484,7 @@ export default class ArchiverSyncTracker implements SyncTrackerInterface {
           // Try again from the start of the list of archivers after waiting for 10 seconds
           receivedBusyMessageTimes = 0
           await utils.sleep(10000)
-        } else { 
+        } else {
           throw new Error(errorString)
         }
       }
@@ -545,7 +541,9 @@ export default class ArchiverSyncTracker implements SyncTrackerInterface {
       }
       const signedMessage = crypto.sign(message)
       console.log('getAccountDataFromArchiver message', signedMessage)
-      const getAccountDataFromArchiver = async (payload): Promise<GetAccountData3Resp & { success: boolean; error: string }> => {
+      const getAccountDataFromArchiver = async (
+        payload
+      ): Promise<GetAccountData3Resp & { success: boolean; error: string }> => {
         const dataSourceArchiver = this.archiverDataSourceHelper.dataSourceArchiver
         const accountDataArchiverUrl = `http://${dataSourceArchiver.ip}:${dataSourceArchiver.port}/get_account_data_archiver`
         try {
@@ -554,7 +552,7 @@ export default class ArchiverSyncTracker implements SyncTrackerInterface {
           return result
         } catch (error) {
           console.error('getAccountDataFromArchiver error', error)
-          return { data:null, errors:[], success:false, error:error.message as string }
+          return { data: null, errors: [], success: false, error: error.message as string }
         }
       }
       let result: GetAccountData3Resp & { success: boolean; error: string }
@@ -583,7 +581,7 @@ export default class ArchiverSyncTracker implements SyncTrackerInterface {
         /* prettier-ignore */ if (logFlags.verbose) if (logFlags.error) this.accountSync.mainLogger.error(`ASK FAIL syncAccountData result == success:false archiver:${this.archiverDataSourceHelper.dataSourceArchiver.publicKey}`)
 
         //interpret timeout as a busy archiver, so that we can keep try retrying
-        if(result?.error != null && result.error.includes('Timeout') ){
+        if (result?.error != null && result.error.includes('Timeout')) {
           receivedBusyMessageTimes++
           retryWithNextArchiver('archiver success:false', 'Archiver is busy serving other validators: Timeout')
           /* prettier-ignore */ nestedCountersInstance.countEvent(`archiver_sync`, `archiver is busy: Timeout`)

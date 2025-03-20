@@ -241,9 +241,7 @@ class Profiler {
       this.sectionTimes[sectionName] = section
     }
 
-    section.start = Context.config?.debug?.highResolutionProfiling
-      ? process.hrtime.bigint()
-      : BigInt(Date.now())
+    section.start = Context.config?.debug?.highResolutionProfiling ? process.hrtime.bigint() : BigInt(Date.now())
     section.started = true
     section.c++
 
@@ -279,9 +277,7 @@ class Profiler {
       return
     }
 
-    section.end = Context.config?.debug?.highResolutionProfiling
-      ? process.hrtime.bigint()
-      : BigInt(Date.now())
+    section.end = Context.config?.debug?.highResolutionProfiling ? process.hrtime.bigint() : BigInt(Date.now())
     section.total += section.end - section.start
     section.started = false
 
@@ -368,9 +364,7 @@ class Profiler {
       stat.avg = stat.total / stat.c
     }
 
-    section.start = Context.config?.debug?.highResolutionProfiling
-      ? process.hrtime.bigint()
-      : BigInt(Date.now())
+    section.start = Context.config?.debug?.highResolutionProfiling ? process.hrtime.bigint() : BigInt(Date.now())
     section.started = true
     section.c++
   }
@@ -383,9 +377,7 @@ class Profiler {
       if (profilerSelfReporting) return
     }
 
-    section.end = Context.config?.debug?.highResolutionProfiling
-      ? process.hrtime.bigint()
-      : BigInt(Date.now())
+    section.end = Context.config?.debug?.highResolutionProfiling ? process.hrtime.bigint() : BigInt(Date.now())
 
     const duration = section.end - section.start
     section.total += duration

@@ -18,10 +18,7 @@ import { P2PModuleContext as P2P, stateManager } from '../p2p/Context'
 import DataSourceHelper from './DataSourceHelper'
 import { shardusGetTime } from '../network'
 import { GetAccountDataByListReq, serializeGetAccountDataByListReq } from '../types/GetAccountDataByListReq'
-import {
-  deserializeGetAccountDataByListResp,
-  GetAccountDataByListResp,
-} from '../types/GetAccountDataByListResp'
+import { deserializeGetAccountDataByListResp, GetAccountDataByListResp } from '../types/GetAccountDataByListResp'
 import { InternalRouteEnum } from '../types/enum/InternalRouteEnum'
 import { AppObjEnum } from '../shardus/shardus-types'
 import { GetAccountDataReqSerializable, serializeGetAccountDataReq } from '../types/GetAccountDataReq'
@@ -268,9 +265,7 @@ export default class NodeSyncTracker implements SyncTrackerInterface {
         //this.accountSync.readyforTXs = true //Do not open the floodgates of queuing stuffs.
 
         //Get globals list and hash.
-        const globalReport: GlobalAccountReportResp = await this.accountSync.getRobustGlobalReport(
-          'syncTrackerGlobal'
-        )
+        const globalReport: GlobalAccountReportResp = await this.accountSync.getRobustGlobalReport('syncTrackerGlobal')
 
         //TODO should convert to a larger list of valid nodes
         this.dataSourceHelper.initWithList(this.accountSync.lastWinningGlobalReportNodes)
@@ -345,20 +340,20 @@ export default class NodeSyncTracker implements SyncTrackerInterface {
           //   stateManager.config.p2p.useBinarySerializedEndpoints &&
           //   stateManager.config.p2p.getAccountDataByListBinary
           // ) {
-            result = await this.p2p.askBinary<GetAccountDataByListReq, GetAccountDataByListResp>(
-              this.dataSourceHelper.dataSourceNode,
-              InternalRouteEnum.binary_get_account_data_by_list,
-              message,
-              serializeGetAccountDataByListReq,
-              deserializeGetAccountDataByListResp,
-              {}
-            )
+          result = await this.p2p.askBinary<GetAccountDataByListReq, GetAccountDataByListResp>(
+            this.dataSourceHelper.dataSourceNode,
+            InternalRouteEnum.binary_get_account_data_by_list,
+            message,
+            serializeGetAccountDataByListReq,
+            deserializeGetAccountDataByListResp,
+            {}
+          )
           // } else {
-            // result = await this.p2p.ask(
-            //   this.dataSourceHelper.dataSourceNode,
-            //   'get_account_data_by_list',
-            //   message
-            // )
+          // result = await this.p2p.ask(
+          //   this.dataSourceHelper.dataSourceNode,
+          //   'get_account_data_by_list',
+          //   message
+          // )
           // }
 
           if (result == null) {
@@ -587,23 +582,20 @@ export default class NodeSyncTracker implements SyncTrackerInterface {
         //   stateManager.config.p2p.useBinarySerializedEndpoints &&
         //   stateManager.config.p2p.getAccountDataBinary
         // ) {
-          const rBin = await this.p2p.askBinary<
-            GetAccountDataReqSerializable,
-            GetAccountDataRespSerializable
-          >(
-            this.dataSourceHelper.dataSourceNode,
-            InternalRouteEnum.binary_get_account_data,
-            message,
-            serializeGetAccountDataReq,
-            deserializeGetAccountDataResp,
-            {},
-            '',
-            false,
-            5000 + moreAskTime
-          )
-          if (((rBin.errors && rBin.errors.length === 0) || !rBin.errors) && rBin.data) {
-            r = rBin as GetAccountData3Resp
-          }
+        const rBin = await this.p2p.askBinary<GetAccountDataReqSerializable, GetAccountDataRespSerializable>(
+          this.dataSourceHelper.dataSourceNode,
+          InternalRouteEnum.binary_get_account_data,
+          message,
+          serializeGetAccountDataReq,
+          deserializeGetAccountDataResp,
+          {},
+          '',
+          false,
+          5000 + moreAskTime
+        )
+        if (((rBin.errors && rBin.errors.length === 0) || !rBin.errors) && rBin.data) {
+          r = rBin as GetAccountData3Resp
+        }
         // } else {
         //   r = await this.p2p.ask(
         //     this.dataSourceHelper.dataSourceNode,

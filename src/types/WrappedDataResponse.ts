@@ -11,11 +11,7 @@ export interface WrappedDataResponse extends WrappedData {
   isPartial: boolean
 }
 
-export function serializeWrappedDataResponse(
-  stream: VectorBufferStream,
-  obj: WrappedDataResponse,
-  root = false
-): void {
+export function serializeWrappedDataResponse(stream: VectorBufferStream, obj: WrappedDataResponse, root = false): void {
   if (root) {
     stream.writeUInt16(TypeIdentifierEnum.cWrappedDataResponse)
   }

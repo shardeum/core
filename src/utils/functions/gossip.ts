@@ -1,13 +1,6 @@
 import { mod } from '../'
 
-export function getLinearSeededGossip(
-  nodeIdxs,
-  myIdx,
-  gossipFactor,
-  startingSeed,
-  seedFalloff,
-  hop = 0
-): number[] {
+export function getLinearSeededGossip(nodeIdxs, myIdx, gossipFactor, startingSeed, seedFalloff, hop = 0): number[] {
   const nodeCount = nodeIdxs.length
   const unique = []
   const gossipToList = []

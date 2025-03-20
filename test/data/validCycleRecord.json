@@ -574,9 +574,7 @@
       "refreshedConsensors": [],
       "refuted": [],
       "refutedArchivers": [],
-      "removed": [
-        "5eafdde7bfda0b7255ca59d1b97c8c777ebb530a2b4a86e8a7ce1513b8b2855f"
-      ],
+      "removed": ["5eafdde7bfda0b7255ca59d1b97c8c777ebb530a2b4a86e8a7ce1513b8b2855f"],
       "removedArchivers": [],
       "returned": [],
       "standby": 0,
@@ -593,12 +591,8 @@
       "txremove": []
     },
     {
-      "activated": [
-        "eee291e80258f9fcbd436da15b52b4f1a5a0b0127941342af3ce6d904bf36b56"
-      ],
-      "activatedPublicKeys": [
-        "e595cb29353aa7fb3ed5afe7cced4d755224f8de9d0eab67ad00ccfcaf6ae73c"
-      ],
+      "activated": ["eee291e80258f9fcbd436da15b52b4f1a5a0b0127941342af3ce6d904bf36b56"],
+      "activatedPublicKeys": ["e595cb29353aa7fb3ed5afe7cced4d755224f8de9d0eab67ad00ccfcaf6ae73c"],
       "active": 11,
       "apoptosized": [],
       "appRemoved": [],
@@ -628,9 +622,7 @@
       "refreshedConsensors": [],
       "refuted": [],
       "refutedArchivers": [],
-      "removed": [
-        "56563c67064a85e2be320dec800169525b62f1c82343d3be7ecff96361d13c7f"
-      ],
+      "removed": ["56563c67064a85e2be320dec800169525b62f1c82343d3be7ecff96361d13c7f"],
       "removedArchivers": [],
       "returned": [],
       "standby": 0,
@@ -686,12 +678,8 @@
       "txremove": []
     },
     {
-      "activated": [
-        "f065b6d9ab8745a880370e0396ed75e1d883a18b02a26b17f90995e5f701a8db"
-      ],
-      "activatedPublicKeys": [
-        "c4580014ebfb4969d225fa6b9415675987054a3f85842989ea6a5ce90302d784"
-      ],
+      "activated": ["f065b6d9ab8745a880370e0396ed75e1d883a18b02a26b17f90995e5f701a8db"],
+      "activatedPublicKeys": ["c4580014ebfb4969d225fa6b9415675987054a3f85842989ea6a5ce90302d784"],
       "active": 11,
       "apoptosized": [],
       "appRemoved": [],
@@ -700,9 +688,7 @@
       "desired": 10,
       "duration": 30,
       "expired": 2,
-      "finishedSyncing": [
-        "eee291e80258f9fcbd436da15b52b4f1a5a0b0127941342af3ce6d904bf36b56"
-      ],
+      "finishedSyncing": ["eee291e80258f9fcbd436da15b52b4f1a5a0b0127941342af3ce6d904bf36b56"],
       "joined": [],
       "joinedArchivers": [],
       "joinedConsensors": [],
@@ -723,9 +709,7 @@
       "refreshedConsensors": [],
       "refuted": [],
       "refutedArchivers": [],
-      "removed": [
-        "41d303169790c7e2fcb64576040a56bd81359bc55305247ac1ad9be89b1f9033"
-      ],
+      "removed": ["41d303169790c7e2fcb64576040a56bd81359bc55305247ac1ad9be89b1f9033"],
       "removedArchivers": [],
       "returned": [],
       "standby": 0,
@@ -742,12 +726,8 @@
       "txremove": []
     },
     {
-      "activated": [
-        "d3e17109b20e5bf7e77c7c751930a05e4af2fd312303e7f510dbee02e17e2cce"
-      ],
-      "activatedPublicKeys": [
-        "814967e3f2b4f376279c911ed99eb8d3ed8e9e3595f89c52dbad9db05220fd3a"
-      ],
+      "activated": ["d3e17109b20e5bf7e77c7c751930a05e4af2fd312303e7f510dbee02e17e2cce"],
+      "activatedPublicKeys": ["814967e3f2b4f376279c911ed99eb8d3ed8e9e3595f89c52dbad9db05220fd3a"],
       "active": 10,
       "apoptosized": [],
       "appRemoved": [],
@@ -756,9 +736,7 @@
       "desired": 10,
       "duration": 30,
       "expired": 1,
-      "finishedSyncing": [
-        "f065b6d9ab8745a880370e0396ed75e1d883a18b02a26b17f90995e5f701a8db"
-      ],
+      "finishedSyncing": ["f065b6d9ab8745a880370e0396ed75e1d883a18b02a26b17f90995e5f701a8db"],
       "joined": [],
       "joinedArchivers": [],
       "joinedConsensors": [],
@@ -788,9 +766,7 @@
       "standbyRefresh": [],
       "standbyRemove": [],
       "start": 1726225786,
-      "startedSyncing": [
-        "eee291e80258f9fcbd436da15b52b4f1a5a0b0127941342af3ce6d904bf36b56"
-      ],
+      "startedSyncing": ["eee291e80258f9fcbd436da15b52b4f1a5a0b0127941342af3ce6d904bf36b56"],
       "syncing": 5,
       "target": 10,
       "txadd": [],
@@ -808,9 +784,7 @@
       "desired": 10,
       "duration": 30,
       "expired": 1,
-      "finishedSyncing": [
-        "d3e17109b20e5bf7e77c7c751930a05e4af2fd312303e7f510dbee02e17e2cce"
-      ],
+      "finishedSyncing": ["d3e17109b20e5bf7e77c7c751930a05e4af2fd312303e7f510dbee02e17e2cce"],
       "joined": [],
       "joinedArchivers": [],
       "joinedConsensors": [],
@@ -840,9 +814,7 @@
       "standbyRefresh": [],
       "standbyRemove": [],
       "start": 1726225756,
-      "startedSyncing": [
-        "f065b6d9ab8745a880370e0396ed75e1d883a18b02a26b17f90995e5f701a8db"
-      ],
+      "startedSyncing": ["f065b6d9ab8745a880370e0396ed75e1d883a18b02a26b17f90995e5f701a8db"],
       "syncing": 5,
       "target": 10,
       "txadd": [],
@@ -908,9 +880,7 @@
       "standbyRefresh": [],
       "standbyRemove": [],
       "start": 1726225726,
-      "startedSyncing": [
-        "d3e17109b20e5bf7e77c7c751930a05e4af2fd312303e7f510dbee02e17e2cce"
-      ],
+      "startedSyncing": ["d3e17109b20e5bf7e77c7c751930a05e4af2fd312303e7f510dbee02e17e2cce"],
       "syncing": 4,
       "target": 10,
       "txadd": [],
@@ -1045,9 +1015,7 @@
       "standbyRefresh": [],
       "standbyRemove": [],
       "start": 1726225696,
-      "startedSyncing": [
-        "8b4a02db9a4e401327e7cf3982b2d5e143dc44bea801f31dd00d4c2606cec053"
-      ],
+      "startedSyncing": ["8b4a02db9a4e401327e7cf3982b2d5e143dc44bea801f31dd00d4c2606cec053"],
       "syncing": 3,
       "target": 10,
       "txadd": [],
@@ -1182,9 +1150,7 @@
       "standbyRefresh": [],
       "standbyRemove": [],
       "start": 1726225666,
-      "startedSyncing": [
-        "5cb72fbe346959d396c9c85811596c29fbc4a2ba3a154da3cae417e89db33ae0"
-      ],
+      "startedSyncing": ["5cb72fbe346959d396c9c85811596c29fbc4a2ba3a154da3cae417e89db33ae0"],
       "syncing": 2,
       "target": 10,
       "txadd": [],
@@ -1319,9 +1285,7 @@
       "standbyRefresh": [],
       "standbyRemove": [],
       "start": 1726225636,
-      "startedSyncing": [
-        "118e05d6f13d0209e72b933407fed2b34e733d1a6afe0e146cec8e4c79065018"
-      ],
+      "startedSyncing": ["118e05d6f13d0209e72b933407fed2b34e733d1a6afe0e146cec8e4c79065018"],
       "syncing": 1,
       "target": 10,
       "txadd": [],
@@ -1652,9 +1616,7 @@
       "refreshedConsensors": [],
       "refuted": [],
       "refutedArchivers": [],
-      "removed": [
-        "3f8bfb19f9790b279cd6c0e35ad78b056c4bed25afaa83d5b78c11c5a8060098"
-      ],
+      "removed": ["3f8bfb19f9790b279cd6c0e35ad78b056c4bed25afaa83d5b78c11c5a8060098"],
       "removedArchivers": [],
       "returned": [],
       "standby": 0,
@@ -1791,9 +1753,7 @@
       "refreshedConsensors": [],
       "refuted": [],
       "refutedArchivers": [],
-      "removed": [
-        "324a8f01a09e70c6466463e476b4e4aa95f64152057f110c8f6bcfdbdf94da5d"
-      ],
+      "removed": ["324a8f01a09e70c6466463e476b4e4aa95f64152057f110c8f6bcfdbdf94da5d"],
       "removedArchivers": [],
       "returned": [],
       "standby": 0,
@@ -1861,9 +1821,7 @@
       "refreshedConsensors": [],
       "refuted": [],
       "refutedArchivers": [],
-      "removed": [
-        "2fac9cea5b02d9507a60fa937a0939e23a977a9284972231cef01f88ed341b8a"
-      ],
+      "removed": ["2fac9cea5b02d9507a60fa937a0939e23a977a9284972231cef01f88ed341b8a"],
       "removedArchivers": [],
       "returned": [],
       "standby": 0,
@@ -1951,9 +1909,7 @@
       "refreshedConsensors": [],
       "refuted": [],
       "refutedArchivers": [],
-      "removed": [
-        "1b053cc426cbb871293c33ec6df1e2c777c788a18cf324689a0d3668bc252745"
-      ],
+      "removed": ["1b053cc426cbb871293c33ec6df1e2c777c788a18cf324689a0d3668bc252745"],
       "removedArchivers": [],
       "returned": [],
       "standby": 0,
@@ -2053,9 +2009,7 @@
       "refreshedConsensors": [],
       "refuted": [],
       "refutedArchivers": [],
-      "removed": [
-        "0a3d5bc513e69cc7cd95bf5e8b7be4afbf629b5aa4f1581b01248aa9ec3003bb"
-      ],
+      "removed": ["0a3d5bc513e69cc7cd95bf5e8b7be4afbf629b5aa4f1581b01248aa9ec3003bb"],
       "removedArchivers": [],
       "returned": [],
       "standby": 0,
@@ -2118,9 +2072,7 @@
       "refreshedConsensors": [],
       "refuted": [],
       "refutedArchivers": [],
-      "removed": [
-        "eada3d3c8e5d9770e53fed50fc80f26090a6beb60df6f9f36c89602f75b9c02d"
-      ],
+      "removed": ["eada3d3c8e5d9770e53fed50fc80f26090a6beb60df6f9f36c89602f75b9c02d"],
       "removedArchivers": [],
       "returned": [],
       "standby": 0,
@@ -3764,9 +3716,7 @@
       "standbyRefresh": [],
       "standbyRemove": [],
       "start": 1726225006,
-      "startedSyncing": [
-        "eada3d3c8e5d9770e53fed50fc80f26090a6beb60df6f9f36c89602f75b9c02d"
-      ],
+      "startedSyncing": ["eada3d3c8e5d9770e53fed50fc80f26090a6beb60df6f9f36c89602f75b9c02d"],
       "syncing": 1,
       "target": 15,
       "txadd": [],
@@ -3840,12 +3790,8 @@
       "txremove": []
     },
     {
-      "activated": [
-        "d212d069298972ef27ee958ae36bde4e75e18d08b5b3b87ea1961d57a1c5f777"
-      ],
-      "activatedPublicKeys": [
-        "c4580014ebfb4969d225fa6b9415675987054a3f85842989ea6a5ce90302d784"
-      ],
+      "activated": ["d212d069298972ef27ee958ae36bde4e75e18d08b5b3b87ea1961d57a1c5f777"],
+      "activatedPublicKeys": ["c4580014ebfb4969d225fa6b9415675987054a3f85842989ea6a5ce90302d784"],
       "active": 11,
       "apoptosized": [],
       "appRemoved": [],
@@ -3862,9 +3808,7 @@
       "desired": 10,
       "duration": 30,
       "expired": 2,
-      "finishedSyncing": [
-        "62ebe4f759a38b45dbc595feac5c0cba10c6aaf304a9ad44a9f13764631f3c2b"
-      ],
+      "finishedSyncing": ["62ebe4f759a38b45dbc595feac5c0cba10c6aaf304a9ad44a9f13764631f3c2b"],
       "joined": [],
       "joinedArchivers": [],
       "joinedConsensors": [],
@@ -3885,9 +3829,7 @@
       "refreshedConsensors": [],
       "refuted": [],
       "refutedArchivers": [],
-      "removed": [
-        "all"
-      ],
+      "removed": ["all"],
       "removedArchivers": [],
       "returned": [],
       "standby": 0,
@@ -4059,12 +4001,8 @@
       "txremove": []
     },
     {
-      "activated": [
-        "34b711dabd3b39be86371d297fc71881f2466244993d113d0da9406c535fd345"
-      ],
-      "activatedPublicKeys": [
-        "e595cb29353aa7fb3ed5afe7cced4d755224f8de9d0eab67ad00ccfcaf6ae73c"
-      ],
+      "activated": ["34b711dabd3b39be86371d297fc71881f2466244993d113d0da9406c535fd345"],
+      "activatedPublicKeys": ["e595cb29353aa7fb3ed5afe7cced4d755224f8de9d0eab67ad00ccfcaf6ae73c"],
       "active": 10,
       "apoptosized": [],
       "appRemoved": [],
@@ -4073,9 +4011,7 @@
       "desired": 10,
       "duration": 30,
       "expired": 1,
-      "finishedSyncing": [
-        "d212d069298972ef27ee958ae36bde4e75e18d08b5b3b87ea1961d57a1c5f777"
-      ],
+      "finishedSyncing": ["d212d069298972ef27ee958ae36bde4e75e18d08b5b3b87ea1961d57a1c5f777"],
       "joined": [],
       "joinedArchivers": [],
       "joinedConsensors": [],
@@ -4105,9 +4041,7 @@
       "standbyRefresh": [],
       "standbyRemove": [],
       "start": 1726224742,
-      "startedSyncing": [
-        "62ebe4f759a38b45dbc595feac5c0cba10c6aaf304a9ad44a9f13764631f3c2b"
-      ],
+      "startedSyncing": ["62ebe4f759a38b45dbc595feac5c0cba10c6aaf304a9ad44a9f13764631f3c2b"],
       "syncing": 5,
       "target": 10,
       "txadd": [],
@@ -4125,9 +4059,7 @@
       "desired": 10,
       "duration": 30,
       "expired": 1,
-      "finishedSyncing": [
-        "34b711dabd3b39be86371d297fc71881f2466244993d113d0da9406c535fd345"
-      ],
+      "finishedSyncing": ["34b711dabd3b39be86371d297fc71881f2466244993d113d0da9406c535fd345"],
       "joined": [],
       "joinedArchivers": [],
       "joinedConsensors": [],
@@ -4157,9 +4089,7 @@
       "standbyRefresh": [],
       "standbyRemove": [],
       "start": 1726224712,
-      "startedSyncing": [
-        "d212d069298972ef27ee958ae36bde4e75e18d08b5b3b87ea1961d57a1c5f777"
-      ],
+      "startedSyncing": ["d212d069298972ef27ee958ae36bde4e75e18d08b5b3b87ea1961d57a1c5f777"],
       "syncing": 5,
       "target": 10,
       "txadd": [],
@@ -4225,9 +4155,7 @@
       "standbyRefresh": [],
       "standbyRemove": [],
       "start": 1726224682,
-      "startedSyncing": [
-        "34b711dabd3b39be86371d297fc71881f2466244993d113d0da9406c535fd345"
-      ],
+      "startedSyncing": ["34b711dabd3b39be86371d297fc71881f2466244993d113d0da9406c535fd345"],
       "syncing": 4,
       "target": 10,
       "txadd": [],
@@ -4362,9 +4290,7 @@
       "standbyRefresh": [],
       "standbyRemove": [],
       "start": 1726224652,
-      "startedSyncing": [
-        "93b5623d8c21ae788d82877ea32ae28d022d5d3d4bf0e3479ce266c80c3c36ae"
-      ],
+      "startedSyncing": ["93b5623d8c21ae788d82877ea32ae28d022d5d3d4bf0e3479ce266c80c3c36ae"],
       "syncing": 3,
       "target": 10,
       "txadd": [],
@@ -4491,9 +4417,7 @@
       "standbyRefresh": [],
       "standbyRemove": [],
       "start": 1726224622,
-      "startedSyncing": [
-        "a44a1bbe262ac098255d887305a466e1f7c69c6fbc959457fc248fec8aad1672"
-      ],
+      "startedSyncing": ["a44a1bbe262ac098255d887305a466e1f7c69c6fbc959457fc248fec8aad1672"],
       "syncing": 2,
       "target": 10,
       "txadd": [],
@@ -4777,9 +4701,7 @@
       "standbyRefresh": [],
       "standbyRemove": [],
       "start": 1726224562,
-      "startedSyncing": [
-        "88fadb9aa678017c9abf63c502fbb6893ad65273481087fe57c4ca9757f7f979"
-      ],
+      "startedSyncing": ["88fadb9aa678017c9abf63c502fbb6893ad65273481087fe57c4ca9757f7f979"],
       "syncing": 1,
       "target": 10,
       "txadd": [],
@@ -4986,9 +4908,7 @@
       "refreshedConsensors": [],
       "refuted": [],
       "refutedArchivers": [],
-      "removed": [
-        "59957ce6e9f96499607a00119d209e05121c501a210b88d81336f02d2b8dad1b"
-      ],
+      "removed": ["59957ce6e9f96499607a00119d209e05121c501a210b88d81336f02d2b8dad1b"],
       "removedArchivers": [],
       "returned": [],
       "standby": 0,
@@ -5110,12 +5030,8 @@
       ]
     },
     {
-      "activated": [
-        "c4c8327a4221158a482713af578109f590209f8bc6c40b2020f1e597c533661d"
-      ],
-      "activatedPublicKeys": [
-        "999e51e4c686a951c70467104919f9f878f8a753cc362ee35ef929f5d577fe0d"
-      ],
+      "activated": ["c4c8327a4221158a482713af578109f590209f8bc6c40b2020f1e597c533661d"],
+      "activatedPublicKeys": ["999e51e4c686a951c70467104919f9f878f8a753cc362ee35ef929f5d577fe0d"],
       "active": 11,
       "apoptosized": [],
       "appRemoved": [],
@@ -5145,9 +5061,7 @@
       "refreshedConsensors": [],
       "refuted": [],
       "refutedArchivers": [],
-      "removed": [
-        "5280d75215fb5a605d983ee78718fcc21b00bbd77ea540bd14c4620aa978d7d1"
-      ],
+      "removed": ["5280d75215fb5a605d983ee78718fcc21b00bbd77ea540bd14c4620aa978d7d1"],
       "removedArchivers": [],
       "returned": [],
       "standby": 0,
@@ -5210,12 +5124,8 @@
       ]
     },
     {
-      "activated": [
-        "bf9cb3c43b0cb564026e88b4d6ce09fa8db4b6d71249182eef0112301d4718a2"
-      ],
-      "activatedPublicKeys": [
-        "2aadc7476d636f3e03a7c86015bfed5fdd8084040699e7ec937e7e8700f973a8"
-      ],
+      "activated": ["bf9cb3c43b0cb564026e88b4d6ce09fa8db4b6d71249182eef0112301d4718a2"],
+      "activatedPublicKeys": ["2aadc7476d636f3e03a7c86015bfed5fdd8084040699e7ec937e7e8700f973a8"],
       "active": 11,
       "apoptosized": [],
       "appRemoved": [],
@@ -5245,9 +5155,7 @@
       "refreshedConsensors": [],
       "refuted": [],
       "refutedArchivers": [],
-      "removed": [
-        "4d8b3e6ba5470bf84f9babf1e8cd1f9583e2874a13c1b97a4cc78d824f1f6f09"
-      ],
+      "removed": ["4d8b3e6ba5470bf84f9babf1e8cd1f9583e2874a13c1b97a4cc78d824f1f6f09"],
       "removedArchivers": [],
       "returned": [],
       "standby": 0,
@@ -5277,12 +5185,8 @@
       "txremove": []
     },
     {
-      "activated": [
-        "97d7a4ae7dcf9f9083b7a8f63cdca13387ec8fc4ff798056c969875edcf200bc"
-      ],
-      "activatedPublicKeys": [
-        "ea03c539e75088b814fd680ef7860e642c04313fe06b23c3ae696a08dc71f394"
-      ],
+      "activated": ["97d7a4ae7dcf9f9083b7a8f63cdca13387ec8fc4ff798056c969875edcf200bc"],
+      "activatedPublicKeys": ["ea03c539e75088b814fd680ef7860e642c04313fe06b23c3ae696a08dc71f394"],
       "active": 11,
       "apoptosized": [],
       "appRemoved": [],
@@ -5312,9 +5216,7 @@
       "refreshedConsensors": [],
       "refuted": [],
       "refutedArchivers": [],
-      "removed": [
-        "2251dc3719a24f0b23f5fcdcf16afc875422b451506790cb0597f02d5afdc03f"
-      ],
+      "removed": ["2251dc3719a24f0b23f5fcdcf16afc875422b451506790cb0597f02d5afdc03f"],
       "removedArchivers": [],
       "returned": [],
       "standby": 0,
@@ -5384,12 +5286,8 @@
       "txremove": []
     },
     {
-      "activated": [
-        "43d68845cd794075a762f73a6c402af01e01c4adeff6bad34babf70564aca64f"
-      ],
-      "activatedPublicKeys": [
-        "dd29fe423494c40ff4cda716fa372e8b0a264f924089ffc825de299b9336a857"
-      ],
+      "activated": ["43d68845cd794075a762f73a6c402af01e01c4adeff6bad34babf70564aca64f"],
+      "activatedPublicKeys": ["dd29fe423494c40ff4cda716fa372e8b0a264f924089ffc825de299b9336a857"],
       "active": 11,
       "apoptosized": [],
       "appRemoved": [],
@@ -5419,9 +5317,7 @@
       "refreshedConsensors": [],
       "refuted": [],
       "refutedArchivers": [],
-      "removed": [
-        "14207a30b6fab36851a1e4f6c17fbc3c2e569084d2f832035039cc54de5d7804"
-      ],
+      "removed": ["14207a30b6fab36851a1e4f6c17fbc3c2e569084d2f832035039cc54de5d7804"],
       "removedArchivers": [],
       "returned": [],
       "standby": 0,
@@ -5451,12 +5347,8 @@
       "txremove": []
     },
     {
-      "activated": [
-        "3de74c2bb1f408b22e541965ed8323a32c65c6a74c55b1e1d3c6c6c01e3a98f2"
-      ],
-      "activatedPublicKeys": [
-        "814967e3f2b4f376279c911ed99eb8d3ed8e9e3595f89c52dbad9db05220fd3a"
-      ],
+      "activated": ["3de74c2bb1f408b22e541965ed8323a32c65c6a74c55b1e1d3c6c6c01e3a98f2"],
+      "activatedPublicKeys": ["814967e3f2b4f376279c911ed99eb8d3ed8e9e3595f89c52dbad9db05220fd3a"],
       "active": 11,
       "apoptosized": [],
       "appRemoved": [],
@@ -5486,9 +5378,7 @@
       "refreshedConsensors": [],
       "refuted": [],
       "refutedArchivers": [],
-      "removed": [
-        "904a08129aa0bfd7b279cafc98139c5e14705d36dfd2ebb5f86e195473a0d1e1"
-      ],
+      "removed": ["904a08129aa0bfd7b279cafc98139c5e14705d36dfd2ebb5f86e195473a0d1e1"],
       "removedArchivers": [],
       "returned": [],
       "standby": 0,
@@ -5505,12 +5395,8 @@
       "txremove": []
     },
     {
-      "activated": [
-        "339fadfd58c3c1420ee19475e310af7fbce180710f9a10bd10bd6f56a07e1d3d"
-      ],
-      "activatedPublicKeys": [
-        "c488d2d8365c5c1ac3d210d5675654b3d49daffa8c82119942ebdaec3c734150"
-      ],
+      "activated": ["339fadfd58c3c1420ee19475e310af7fbce180710f9a10bd10bd6f56a07e1d3d"],
+      "activatedPublicKeys": ["c488d2d8365c5c1ac3d210d5675654b3d49daffa8c82119942ebdaec3c734150"],
       "active": 10,
       "apoptosized": [],
       "appRemoved": [],
@@ -8024,12 +7910,8 @@
       "txremove": []
     },
     {
-      "activated": [
-        "904a08129aa0bfd7b279cafc98139c5e14705d36dfd2ebb5f86e195473a0d1e1"
-      ],
-      "activatedPublicKeys": [
-        "93adfb8bb1fad91b5739a910c9cf46f424930a3d9359043912343b286355d8ba"
-      ],
+      "activated": ["904a08129aa0bfd7b279cafc98139c5e14705d36dfd2ebb5f86e195473a0d1e1"],
+      "activatedPublicKeys": ["93adfb8bb1fad91b5739a910c9cf46f424930a3d9359043912343b286355d8ba"],
       "active": 0,
       "apoptosized": [],
       "appRemoved": [],
@@ -8086,9 +7968,7 @@
       "desired": 10,
       "duration": 30,
       "expired": 1,
-      "finishedSyncing": [
-        "904a08129aa0bfd7b279cafc98139c5e14705d36dfd2ebb5f86e195473a0d1e1"
-      ],
+      "finishedSyncing": ["904a08129aa0bfd7b279cafc98139c5e14705d36dfd2ebb5f86e195473a0d1e1"],
       "joined": [],
       "joinedArchivers": [],
       "joinedConsensors": [],
@@ -8118,9 +7998,7 @@
       "standbyRefresh": [],
       "standbyRemove": [],
       "start": 1726223422,
-      "startedSyncing": [
-        "904a08129aa0bfd7b279cafc98139c5e14705d36dfd2ebb5f86e195473a0d1e1"
-      ],
+      "startedSyncing": ["904a08129aa0bfd7b279cafc98139c5e14705d36dfd2ebb5f86e195473a0d1e1"],
       "syncing": 1,
       "target": 10,
       "txadd": [],

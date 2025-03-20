@@ -36,8 +36,8 @@ import {
   TrieAccount,
   IsInsyncResult,
   CycleShardData,
-  SignedReceipt
-} from "./state-manager-types";
+  SignedReceipt,
+} from './state-manager-types'
 import {
   isDebugModeMiddleware,
   isDebugModeMiddlewareLow,
@@ -59,11 +59,7 @@ import {
   serializeGetTrieHashesResp,
   deserializeGetTrieHashesResp,
 } from '../types/GetTrieHashesResp'
-import {
-  GetTrieHashesRequest,
-  deserializeGetTrieHashesReq,
-  serializeGetTrieHashesReq,
-} from '../types/GetTrieHashesReq'
+import { GetTrieHashesRequest, deserializeGetTrieHashesReq, serializeGetTrieHashesReq } from '../types/GetTrieHashesReq'
 import {
   deserializeGetAccountDataByHashesResp,
   GetAccountDataByHashesResp,
@@ -90,7 +86,11 @@ import {
 } from '../types/GetTrieAccountHashesResp'
 import { BadRequest, InternalError, serializeResponseError } from '../types/ResponseError'
 import { Utils } from '@shardeum-foundation/lib-types'
-import { RepairOOSAccountsReq, deserializeRepairOOSAccountsReq, serializeRepairOOSAccountsReq } from '../types/RepairOOSAccountsReq'
+import {
+  RepairOOSAccountsReq,
+  deserializeRepairOOSAccountsReq,
+  serializeRepairOOSAccountsReq,
+} from '../types/RepairOOSAccountsReq'
 import { robustQuery } from '../p2p/Utils'
 import { RequestReceiptForTxReqSerialized, serializeRequestReceiptForTxReq } from '../types/RequestReceiptForTxReq'
 import { deserializeRequestReceiptForTxResp, RequestReceiptForTxRespSerialized } from '../types/RequestReceiptForTxResp'
@@ -121,8 +121,8 @@ type AccountStats = {
 }
 
 interface AccountRepairDataResponse {
-  nodes: Shardus.Node[],
-  wrappedDataList: Shardus.WrappedData[],
+  nodes: Shardus.Node[]
+  wrappedDataList: Shardus.WrappedData[]
 }
 interface TooOldAccountRecord {
   wrappedData: Shardus.WrappedData
@@ -498,10 +498,7 @@ class AccountPatcher {
         nestedCountersInstance.countEvent('internal', route)
         this.profiler.scopedProfileSectionStart(route, false, payloadBuffer.length)
         try {
-          const requestStream = getStreamWithTypeCheck(
-            payloadBuffer,
-            TypeIdentifierEnum.cRepairOOSAccountsReq
-          )
+          const requestStream = getStreamWithTypeCheck(payloadBuffer, TypeIdentifierEnum.cRepairOOSAccountsReq)
           if (!requestStream) {
             return
           }
@@ -562,10 +559,7 @@ class AccountPatcher {
             }
 
             const proposal = signedReceipt.proposal
-            if (
-              signedReceipt.proposalHash !==
-              this.stateManager.transactionConsensus.calculateVoteHash(proposal)
-            ) {
+            if (signedReceipt.proposalHash !== this.stateManager.transactionConsensus.calculateVoteHash(proposal)) {
               nestedCountersInstance.countEvent(
                 'accountPatcher',
                 `binary/repair_oos_accounts: proposal hash mismatch for txId: ${txId}`
@@ -575,10 +569,7 @@ class AccountPatcher {
 
             const queryFn = async (node: Node) => {
               const message = { txid: txId, timestamp: accountData.timestamp }
-              return await this.p2p.askBinary<
-                RequestReceiptForTxReqSerialized,
-                RequestReceiptForTxRespSerialized
-              >(
+              return await this.p2p.askBinary<RequestReceiptForTxReqSerialized, RequestReceiptForTxRespSerialized>(
                 node,
                 InternalRouteEnum.binary_request_receipt_for_tx,
                 message,
@@ -597,17 +588,19 @@ class AccountPatcher {
               )
               continue
             }
-            
-            if (txReceipt.topResult.success !== true 
-              || txReceipt.topResult.receipt == null
-              || txReceipt.topResult.receipt.proposalHash == null) {
+
+            if (
+              txReceipt.topResult.success !== true ||
+              txReceipt.topResult.receipt == null ||
+              txReceipt.topResult.receipt.proposalHash == null
+            ) {
               nestedCountersInstance.countEvent(
                 'accountPatcher',
                 `binary/repair_oos_accounts: robust query couldn't find queueEntry for txId: ${txId}`
               )
               continue
             }
-            
+
             if (signedReceipt.proposalHash !== txReceipt.topResult.receipt.proposalHash) {
               nestedCountersInstance.countEvent(
                 'accountPatcher',
@@ -617,7 +610,7 @@ class AccountPatcher {
             }
 
             // if (receivedBestVote != null) {
-              // Check if vote is from eligible list of voters for this TX
+            // Check if vote is from eligible list of voters for this TX
             // if (
             //   this.stateManager.transactionQueue.useNewPOQ &&
             //   !archivedQueueEntry.eligibleNodeIdsToVote.has(receivedBestVote.node_id)
@@ -645,9 +638,15 @@ class AccountPatcher {
 
             // Verify signed receipt
             const executionGroupNodes = new Set(archivedQueueEntry.executionGroup.map((node) => node.publicKey))
-            const receiptVerification = this.stateManager.transactionConsensus.verifyAppliedReceipt(signedReceipt, executionGroupNodes)
+            const receiptVerification = this.stateManager.transactionConsensus.verifyAppliedReceipt(
+              signedReceipt,
+              executionGroupNodes
+            )
             if (receiptVerification !== true) {
-              nestedCountersInstance.countEvent('accountPatcher', `repair_oos_accounts: receipt verification failed for txId: ${txId}`)
+              nestedCountersInstance.countEvent(
+                'accountPatcher',
+                `repair_oos_accounts: receipt verification failed for txId: ${txId}`
+              )
               continue
             }
 
@@ -950,7 +949,8 @@ class AccountPatcher {
 
             // check the length of the radix
             if (nodeHashes.radix.length !== this.treeSyncDepth) {
-              if (logFlags.error) this.mainLogger.error(`syncTrieHashesBinaryHandler: radix length mismatch: ${nodeHashes.radix}`)
+              if (logFlags.error)
+                this.mainLogger.error(`syncTrieHashesBinaryHandler: radix length mismatch: ${nodeHashes.radix}`)
               nestedCountersInstance.countEvent('accountPatcher', `${route}-radix-length-mismatch`)
               continue
             }
@@ -1052,7 +1052,7 @@ class AccountPatcher {
         const result = {
           nodeChildHashes: [],
           stats: { matched: 0, visisted: 0, empty: 0, childCount: 0 },
-          nodeId: Self.id
+          nodeId: Self.id,
         } as HashTrieAccountsResp
         try {
           const stream = getStreamWithTypeCheck(payload, TypeIdentifierEnum.cGetAccountTrieHashesReq)
@@ -1107,10 +1107,7 @@ class AccountPatcher {
       },
     }
 
-    this.p2p.registerInternalBinary(
-      getTrieAccountHashesBinaryHandler.name,
-      getTrieAccountHashesBinaryHandler.handler
-    )
+    this.p2p.registerInternalBinary(getTrieAccountHashesBinaryHandler.name, getTrieAccountHashesBinaryHandler.handler)
 
     // this.p2p.registerInternal(
     //   'get_account_data_by_hashes',
@@ -1278,11 +1275,7 @@ class AccountPatcher {
           }
 
           for (const accountHashEntry of req.accounts) {
-            if (
-              accountHashEntry == null ||
-              accountHashEntry.hash == null ||
-              accountHashEntry.accountID == null
-            ) {
+            if (accountHashEntry == null || accountHashEntry.hash == null || accountHashEntry.accountID == null) {
               queryStats.fix1++
               continue
             }
@@ -1332,9 +1325,7 @@ class AccountPatcher {
             }
           }
 
-          this.mainLogger.debug(
-            `${route} 1 requests[${req.accounts.length}] :${utils.stringifyReduce(req.accounts)} `
-          )
+          this.mainLogger.debug(`${route} 1 requests[${req.accounts.length}] :${utils.stringifyReduce(req.accounts)} `)
           this.mainLogger.debug(`${route} 2 skippedAccounts:${utils.stringifyReduce(skippedAccounts)} `)
           this.mainLogger.debug(`${route} 3 returnedAccounts:${utils.stringifyReduce(returnedAccounts)} `)
           this.mainLogger.debug(`${route} 4 queryStats:${utils.stringifyReduce(queryStats)} `)
@@ -1358,19 +1349,15 @@ class AccountPatcher {
       getAccountDataByHashesBinaryHandler.handler
     )
 
-    Context.network.registerExternalGet(
-      'debug-patcher-ignore-hash-updates',
-      isDebugModeMiddleware,
-      (_req, res) => {
-        try {
-          this.debug_ignoreUpdates = !this.debug_ignoreUpdates
-          res.write(`this.debug_ignoreUpdates: ${this.debug_ignoreUpdates}\n`)
-        } catch (e) {
-          res.write(`${e}\n`)
-        }
-        res.end()
+    Context.network.registerExternalGet('debug-patcher-ignore-hash-updates', isDebugModeMiddleware, (_req, res) => {
+      try {
+        this.debug_ignoreUpdates = !this.debug_ignoreUpdates
+        res.write(`this.debug_ignoreUpdates: ${this.debug_ignoreUpdates}\n`)
+      } catch (e) {
+        res.write(`${e}\n`)
       }
-    )
+      res.end()
+    })
     Context.network.registerExternalGet('debug-patcher-fail-tx', isDebugModeMiddleware, (_req, res) => {
       try {
         //toggle chance to fail TXs in a way that they do not get fixed by the first tier of repair.
@@ -1415,129 +1402,117 @@ class AccountPatcher {
       }
       res.end()
     })
-    Context.network.registerExternalGet(
-      'debug-patcher-dumpTree',
-      isDebugModeMiddlewareMedium,
-      (_req, res) => {
-        try {
-          // this.statemanager_fatal('debug shardTrie',`temp shardTrie ${utils.stringifyReduce(this.shardTrie.layerMaps[0].values().next().value)}`)
-          // res.write(`${utils.stringifyReduce(this.shardTrie.layerMaps[0].values().next().value)}\n`)
+    Context.network.registerExternalGet('debug-patcher-dumpTree', isDebugModeMiddlewareMedium, (_req, res) => {
+      try {
+        // this.statemanager_fatal('debug shardTrie',`temp shardTrie ${utils.stringifyReduce(this.shardTrie.layerMaps[0].values().next().value)}`)
+        // res.write(`${utils.stringifyReduce(this.shardTrie.layerMaps[0].values().next().value)}\n`)
 
-          const trieRoot = this.shardTrie.layerMaps[0].values().next().value
+        const trieRoot = this.shardTrie.layerMaps[0].values().next().value
 
-          //strip noisy fields
-          const tempString = JSON.stringify(trieRoot, utils.debugReplacer)
-          const processedObject = Utils.safeJsonParse(tempString)
+        //strip noisy fields
+        const tempString = JSON.stringify(trieRoot, utils.debugReplacer)
+        const processedObject = Utils.safeJsonParse(tempString)
 
-          // use stringify to put a stable sort on the object keys (important for comparisons)
-          const finalStr = utils.stringifyReduce(processedObject)
+        // use stringify to put a stable sort on the object keys (important for comparisons)
+        const finalStr = utils.stringifyReduce(processedObject)
 
-          this.statemanager_fatal('debug shardTrie', `temp shardTrie ${finalStr}`)
-          res.write(`${finalStr}\n`)
-        } catch (e) {
-          res.write(`${e}\n`)
-        }
-        res.end()
+        this.statemanager_fatal('debug shardTrie', `temp shardTrie ${finalStr}`)
+        res.write(`${finalStr}\n`)
+      } catch (e) {
+        res.write(`${e}\n`)
       }
-    )
+      res.end()
+    })
 
-    Context.network.registerExternalGet(
-      'debug-patcher-dumpTree-partial',
-      isDebugModeMiddlewareMedium,
-      (req, res) => {
-        try {
-          const subTree: boolean = req.query.subtree === 'true'
-          let radix: string = req.query.radix as string
-          if (radix.length > this.treeMaxDepth) radix = radix.slice(0, this.treeMaxDepth)
-          const level = radix.length
-          const layerMap = this.shardTrie.layerMaps[level] // eslint-disable-line security/detect-object-injection
+    Context.network.registerExternalGet('debug-patcher-dumpTree-partial', isDebugModeMiddlewareMedium, (req, res) => {
+      try {
+        const subTree: boolean = req.query.subtree === 'true'
+        let radix: string = req.query.radix as string
+        if (radix.length > this.treeMaxDepth) radix = radix.slice(0, this.treeMaxDepth)
+        const level = radix.length
+        const layerMap = this.shardTrie.layerMaps[level] // eslint-disable-line security/detect-object-injection
 
-          let hashTrieNode = layerMap.get(radix.toLowerCase())
-          if (!subTree) {
-            // deep clone the trie node before removing children property
-            hashTrieNode = Utils.safeJsonParse(Utils.safeStringify(hashTrieNode))
-            delete hashTrieNode.children
-          }
-          if (!hashTrieNode) {
-             /* prettier-ignore */ if (logFlags.error) console.error('debug-patcher-dumpTree-partial - Radix not found. Returning 404')
-            res.status(404).json({error: 'Radix not found'})
-            return
-          }
-          //strip noisy fields
-          const tempString = JSON.stringify(hashTrieNode, utils.debugReplacer)
-          const processedObject = Utils.safeJsonParse(tempString)
-
-          // use stringify to put a stable sort on the object keys (important for comparisons)
-          const finalStr = utils.stringifyReduce(processedObject)
-
-          this.statemanager_fatal('debug shardTrie', `temp shardTrie ${finalStr}`)
-          res.write(`${finalStr}\n`)
-        } catch (e) {
-          console.log('Error', e)
-          res.write(`${e}\n`)
+        let hashTrieNode = layerMap.get(radix.toLowerCase())
+        if (!subTree) {
+          // deep clone the trie node before removing children property
+          hashTrieNode = Utils.safeJsonParse(Utils.safeStringify(hashTrieNode))
+          delete hashTrieNode.children
         }
-        res.end()
-      }
-    )
-
-    Context.network.registerExternalGet(
-      'debug-patcher-fail-hashes',
-      isDebugModeMiddlewareLow,
-      (_req, res) => {
-        try {
-          const lastCycle = this.p2p.state.getLastCycle()
-          const cycle = lastCycle.counter
-          const minVotes = this.calculateMinVotes()
-          const notEnoughVotesRadix = {}
-          const outOfSyncRadix = {}
-
-          const hashTrieSyncConsensus = this.hashTrieSyncConsensusByCycle.get(cycle)
-
-          if (!hashTrieSyncConsensus) {
-            res.json({ error: `Unable to find hashTrieSyncConsensus for last cycle ${lastCycle}` })
-            return
-          }
-
-          for (const radix of hashTrieSyncConsensus.radixHashVotes.keys()) {
-            const votesMap = hashTrieSyncConsensus.radixHashVotes.get(radix)
-            const ourTrieNode = this.shardTrie.layerMaps[this.treeSyncDepth].get(radix)
-
-            const hasEnoughVotes = votesMap.bestVotes >= minVotes
-            const isRadixInSync = ourTrieNode ? ourTrieNode.hash === votesMap.bestHash : false
-
-            if (!hasEnoughVotes || !isRadixInSync) {
-              const kvp = []
-              for (const [key, value] of votesMap.allVotes.entries()) {
-                kvp.push({
-                  id: key,
-                  count: value.count,
-                  nodeIDs: [...value.voters].map((node) => utils.makeShortHash(node.id) + ':' + node.externalPort),
-                })
-              }
-              const simpleMap = {
-                bestHash: votesMap.bestHash,
-                ourHash: ourTrieNode ? ourTrieNode.hash : '',
-                bestVotes: votesMap.bestVotes,
-                minVotes,
-                allVotes: kvp,
-              }
-              if (!hasEnoughVotes) notEnoughVotesRadix[radix] = simpleMap // eslint-disable-line security/detect-object-injection
-              if (!isRadixInSync) outOfSyncRadix[radix] = simpleMap // eslint-disable-line security/detect-object-injection
-            }
-          }
-          res.json({
-            cycle,
-            notEnoughVotesRadix,
-            outOfSyncRadix,
-          })
+        if (!hashTrieNode) {
+          /* prettier-ignore */ if (logFlags.error) console.error('debug-patcher-dumpTree-partial - Radix not found. Returning 404')
+          res.status(404).json({ error: 'Radix not found' })
           return
-        } catch (e) {
-          console.log('Error', e)
-          res.write(`${e}\n`)
         }
-        res.end()
+        //strip noisy fields
+        const tempString = JSON.stringify(hashTrieNode, utils.debugReplacer)
+        const processedObject = Utils.safeJsonParse(tempString)
+
+        // use stringify to put a stable sort on the object keys (important for comparisons)
+        const finalStr = utils.stringifyReduce(processedObject)
+
+        this.statemanager_fatal('debug shardTrie', `temp shardTrie ${finalStr}`)
+        res.write(`${finalStr}\n`)
+      } catch (e) {
+        console.log('Error', e)
+        res.write(`${e}\n`)
       }
-    )
+      res.end()
+    })
+
+    Context.network.registerExternalGet('debug-patcher-fail-hashes', isDebugModeMiddlewareLow, (_req, res) => {
+      try {
+        const lastCycle = this.p2p.state.getLastCycle()
+        const cycle = lastCycle.counter
+        const minVotes = this.calculateMinVotes()
+        const notEnoughVotesRadix = {}
+        const outOfSyncRadix = {}
+
+        const hashTrieSyncConsensus = this.hashTrieSyncConsensusByCycle.get(cycle)
+
+        if (!hashTrieSyncConsensus) {
+          res.json({ error: `Unable to find hashTrieSyncConsensus for last cycle ${lastCycle}` })
+          return
+        }
+
+        for (const radix of hashTrieSyncConsensus.radixHashVotes.keys()) {
+          const votesMap = hashTrieSyncConsensus.radixHashVotes.get(radix)
+          const ourTrieNode = this.shardTrie.layerMaps[this.treeSyncDepth].get(radix)
+
+          const hasEnoughVotes = votesMap.bestVotes >= minVotes
+          const isRadixInSync = ourTrieNode ? ourTrieNode.hash === votesMap.bestHash : false
+
+          if (!hasEnoughVotes || !isRadixInSync) {
+            const kvp = []
+            for (const [key, value] of votesMap.allVotes.entries()) {
+              kvp.push({
+                id: key,
+                count: value.count,
+                nodeIDs: [...value.voters].map((node) => utils.makeShortHash(node.id) + ':' + node.externalPort),
+              })
+            }
+            const simpleMap = {
+              bestHash: votesMap.bestHash,
+              ourHash: ourTrieNode ? ourTrieNode.hash : '',
+              bestVotes: votesMap.bestVotes,
+              minVotes,
+              allVotes: kvp,
+            }
+            if (!hasEnoughVotes) notEnoughVotesRadix[radix] = simpleMap // eslint-disable-line security/detect-object-injection
+            if (!isRadixInSync) outOfSyncRadix[radix] = simpleMap // eslint-disable-line security/detect-object-injection
+          }
+        }
+        res.json({
+          cycle,
+          notEnoughVotesRadix,
+          outOfSyncRadix,
+        })
+        return
+      } catch (e) {
+        console.log('Error', e)
+        res.write(`${e}\n`)
+      }
+      res.end()
+    })
 
     Context.network.registerExternalGet('get-tree-last-insync', isDebugModeMiddlewareLow, (_req, res) => {
       res.write(`${this.failedLastTrieSync === false}\n`)
@@ -1579,15 +1554,7 @@ class AccountPatcher {
           const high = prefix + 'f'.repeat(60)
 
           const suffix = id.substring(5, 10)
-          const possibleAccounts = await this.app.getAccountDataByRange(
-            low,
-            high,
-            0,
-            shardusGetTime(),
-            100,
-            0,
-            ''
-          )
+          const possibleAccounts = await this.app.getAccountDataByRange(low, high, 0, shardusGetTime(), 100, 0, '')
 
           res.write(`searching ${possibleAccounts.length} accounts \n`)
 
@@ -1647,15 +1614,7 @@ class AccountPatcher {
           const high = prefix + 'f'.repeat(60)
 
           const suffix = id.substring(5, 10)
-          const possibleAccounts = await this.app.getAccountDataByRange(
-            low,
-            high,
-            0,
-            shardusGetTime(),
-            100,
-            0,
-            ''
-          )
+          const possibleAccounts = await this.app.getAccountDataByRange(low, high, 0, shardusGetTime(), 100, 0, '')
 
           for (const account of possibleAccounts) {
             if (account.accountId.endsWith(suffix)) {
@@ -2210,10 +2169,7 @@ class AccountPatcher {
    * @param consensusArray the list of radix and hash values that have been voted on by the majority
    * @param localMap a map of our hashTrie nodes to compare to the consensus
    */
-  diffConsenus(
-    consensusArray: RadixAndHash[],
-    localMap: Map<string, HashTrieNode>
-  ): { radix: string; hash: string }[] {
+  diffConsenus(consensusArray: RadixAndHash[], localMap: Map<string, HashTrieNode>): { radix: string; hash: string }[] {
     if (consensusArray == null) {
       this.statemanager_fatal('diffConsenus: consensusArray == null', 'diffConsenus: consensusArray == null')
       return []
@@ -2248,21 +2204,21 @@ class AccountPatcher {
    * @param localLayerMap
    * @returns
    */
-  findExtraBadKeys(consensusArray: RadixAndHashWithNodeId[], localLayerMap: Map<string, HashTrieNode>): RadixAndHashWithNodeId[] {
+  findExtraBadKeys(
+    consensusArray: RadixAndHashWithNodeId[],
+    localLayerMap: Map<string, HashTrieNode>
+  ): RadixAndHashWithNodeId[] {
     const extraBadRadixes: RadixAndHashWithNodeId[] = []
     if (consensusArray == null) {
-      this.statemanager_fatal(
-        'findExtraBadKeys: consensusArray == null',
-        'findExtraBadKeys: consensusArray == null'
-      )
+      this.statemanager_fatal('findExtraBadKeys: consensusArray == null', 'findExtraBadKeys: consensusArray == null')
       return []
     }
-    const parentKeys: Set<{parentKey: string, nodeId: string}> = new Set()
+    const parentKeys: Set<{ parentKey: string; nodeId: string }> = new Set()
     const goodKeys: Set<string> = new Set()
     //build sets of parents and good keys
     for (const value of consensusArray) {
       const parentKey = value.radix.slice(0, value.radix.length - 1)
-      parentKeys.add({parentKey, nodeId: value.nodeId})
+      parentKeys.add({ parentKey, nodeId: value.nodeId })
       goodKeys.add(value.radix)
     }
 
@@ -2274,7 +2230,11 @@ class AccountPatcher {
         if (weHaveKey) {
           const theyHaveKey = goodKeys.has(childKey)
           if (theyHaveKey === false) {
-            extraBadRadixes.push({radix: localLayerMap.get(childKey).radix, hash: localLayerMap.get(childKey).hash, nodeId: item.nodeId})
+            extraBadRadixes.push({
+              radix: localLayerMap.get(childKey).radix,
+              hash: localLayerMap.get(childKey).hash,
+              nodeId: item.nodeId,
+            })
           }
         }
       }
@@ -2428,14 +2388,14 @@ class AccountPatcher {
         //   this.stateManager.config.p2p.useBinarySerializedEndpoints &&
         //   this.stateManager.config.p2p.getTrieHashesBinary
         // ) {
-          promise = this.p2p.askBinary<GetTrieHashesRequest, GetTrieHashesResponse>(
-            node,
-            InternalRouteEnum.binary_get_trie_hashes,
-            value,
-            serializeGetTrieHashesReq,
-            deserializeGetTrieHashesResp,
-            {}
-          )
+        promise = this.p2p.askBinary<GetTrieHashesRequest, GetTrieHashesResponse>(
+          node,
+          InternalRouteEnum.binary_get_trie_hashes,
+          value,
+          serializeGetTrieHashesReq,
+          deserializeGetTrieHashesResp,
+          {}
+        )
         // } else {
         //   promise = this.p2p.ask(node, 'get_trie_hashes', value)
         // }
@@ -2450,15 +2410,15 @@ class AccountPatcher {
       const trieHashesResponses: GetTrieHashesResponse[] = await Promise.all(promises)
       for (const response of trieHashesResponses) {
         if (response != null && response.nodeHashes != null) {
-          let data:  RadixAndHashWithNodeId[] = response.nodeHashes.map(nodeHash => {
+          let data: RadixAndHashWithNodeId[] = response.nodeHashes.map((nodeHash) => {
             let item: RadixAndHash = {
               radix: nodeHash.radix,
-              hash: nodeHash.hash
+              hash: nodeHash.hash,
             }
             return {
               radix: item.radix,
               hash: item.hash,
-              nodeId: response.nodeId
+              nodeId: response.nodeId,
             }
           })
           results = results.concat(data)
@@ -2538,14 +2498,14 @@ class AccountPatcher {
         //   this.stateManager.config.p2p.useBinarySerializedEndpoints &&
         //   this.stateManager.config.p2p.getTrieAccountHashesBinary
         // ) {
-          promise = this.p2p.askBinary<GetTrieAccountHashesReq, GetTrieAccountHashesResp>(
-            key,
-            InternalRouteEnum.binary_get_trie_account_hashes,
-            value,
-            serializeGetTrieAccountHashesReq,
-            deserializeGetTrieAccountHashesResp,
-            {}
-          )
+        promise = this.p2p.askBinary<GetTrieAccountHashesReq, GetTrieAccountHashesResp>(
+          key,
+          InternalRouteEnum.binary_get_trie_account_hashes,
+          value,
+          serializeGetTrieAccountHashesReq,
+          deserializeGetTrieAccountHashesResp,
+          {}
+        )
         // } else {
         // promise = this.p2p.ask(key, 'get_trie_accountHashes', value)
         // }
@@ -2632,8 +2592,8 @@ class AccountPatcher {
       stats: {
         good: 0,
         bad: 0,
-        total: 0
-      }
+        total: 0,
+      },
     }
 
     if (hashTrieSyncConsensus == null) {
@@ -2883,9 +2843,7 @@ class AccountPatcher {
             'debug findBadAccounts',
             `debug findBadAccounts ${cycle}: ${radix} bestVotes${
               votesMap.bestVotes
-            } < minVotes:${minVotes} uniqueVotes: ${votesMap.allVotes.size} ${utils.stringifyReduce(
-              simpleMap
-            )}`
+            } < minVotes:${minVotes} uniqueVotes: ${votesMap.allVotes.size} ${utils.stringifyReduce(simpleMap)}`
           )
         }
         // skipping 50% votes restriction to allow patcher to do account based patching
@@ -2952,11 +2910,11 @@ class AccountPatcher {
         }
         this.statemanager_fatal(
           'debug findBadAccounts',
-          `debug findBadAccounts ${cycle}: ${radixToFix.radix} isInNonConsensusRange: ${hasNonConsensusRange} isInNonStorageRange: ${hasNonStorageRange} bestVotes ${
+          `debug findBadAccounts ${cycle}: ${
+            radixToFix.radix
+          } isInNonConsensusRange: ${hasNonConsensusRange} isInNonStorageRange: ${hasNonStorageRange} bestVotes ${
             votesMap.bestVotes
-          } minVotes:${minVotes} uniqueVotes: ${votesMap.allVotes.size} ${utils.stringifyReduce(
-            simpleMap
-          )}`
+          } minVotes:${minVotes} uniqueVotes: ${votesMap.allVotes.size} ${utils.stringifyReduce(simpleMap)}`
         )
       }
     }
@@ -2978,13 +2936,25 @@ class AccountPatcher {
       const remoteChildrenToDiff: RadixAndHashWithNodeId[] = await this.getChildrenOf(toFix, cycle)
 
       if (remoteChildrenToDiff == null) {
-        nestedCountersInstance.countEvent(`accountPatcher`, `findBadAccounts remoteChildrenToDiff == null for radixes: ${Utils.safeStringify(toFix)}, cycle: ${cycle}`, 1)
+        nestedCountersInstance.countEvent(
+          `accountPatcher`,
+          `findBadAccounts remoteChildrenToDiff == null for radixes: ${Utils.safeStringify(toFix)}, cycle: ${cycle}`,
+          1
+        )
       }
       if (remoteChildrenToDiff.length === 0) {
-        nestedCountersInstance.countEvent(`accountPatcher`, `findBadAccounts remoteChildrenToDiff.length = 0 for radixes: ${Utils.safeStringify(toFix)}, cycle: ${cycle}`, 1)
+        nestedCountersInstance.countEvent(
+          `accountPatcher`,
+          `findBadAccounts remoteChildrenToDiff.length = 0 for radixes: ${Utils.safeStringify(toFix)}, cycle: ${cycle}`,
+          1
+        )
       }
 
-      this.mainLogger.debug(`findBadAccounts ${cycle}: level: ${level}, toFix: ${toFix.length}, childrenToDiff: ${Utils.safeStringify(remoteChildrenToDiff)}, badLayerMap: ${Utils.safeStringify(badLayerMap)}`)
+      this.mainLogger.debug(
+        `findBadAccounts ${cycle}: level: ${level}, toFix: ${toFix.length}, childrenToDiff: ${Utils.safeStringify(
+          remoteChildrenToDiff
+        )}, badLayerMap: ${Utils.safeStringify(badLayerMap)}`
+      )
       toFix = this.diffConsenus(remoteChildrenToDiff, badLayerMap)
 
       stats.subHashesTested += toFix.length
@@ -2992,7 +2962,6 @@ class AccountPatcher {
       if (toFix.length === 0) {
         stats.trailColdLevel = level
         extraBadKeys = this.findExtraBadKeys(remoteChildrenToDiff, badLayerMap)
-
 
         let result = {
           nodeChildHashes: [],
@@ -3022,7 +2991,11 @@ class AccountPatcher {
               result.nodeChildHashes.push({ radix: radixAndHash.radix, childAccounts })
               for (const account of hashTrieNode.accounts) {
                 childAccounts.push({ accountID: account.accountID, hash: account.hash })
-                extraBadAccounts.push({ accountID: account.accountID, hash: account.hash, targetNodeId: radixAndHash.nodeId })
+                extraBadAccounts.push({
+                  accountID: account.accountID,
+                  hash: account.hash,
+                  targetNodeId: radixAndHash.nodeId,
+                })
                 result.stats.childCount++
               }
               if (hashTrieNode.accounts.length === 0) {
@@ -3051,7 +3024,11 @@ class AccountPatcher {
               result.nodeChildHashes.push({ radix, childAccounts })
               for (const account of leaf.accounts) {
                 childAccounts.push({ accountID: account.accountID, hash: account.hash })
-                extraBadAccounts.push({ accountID: account.accountID, hash: account.hash, targetNodeId: radixAndHash.nodeId })
+                extraBadAccounts.push({
+                  accountID: account.accountID,
+                  hash: account.hash,
+                  targetNodeId: radixAndHash.nodeId,
+                })
                 result.stats.childCount++
               }
               if (leaf.accounts.length === 0) {
@@ -3097,7 +3074,7 @@ class AccountPatcher {
           }
         }
         for (let account of radixAndChildHash.childAccounts) {
-          remoteAccountsMap.set(account.accountID, {account, nodeId: radixAndChildHash.nodeId})
+          remoteAccountsMap.set(account.accountID, { account, nodeId: radixAndChildHash.nodeId })
         }
         if (radixAndChildHash.childAccounts.length > localAccountsMap.size) {
           /* prettier-ignore */ if (this.config.debug.verboseNestedCounters) nestedCountersInstance.countEvent(`accountPatcher`, `remote trie node has more accounts, radix: ${radixAndChildHash.radix}`)
@@ -3167,9 +3144,9 @@ class AccountPatcher {
             accountsWeNeedToRepair.push(localAccount)
             continue
           }
-          const {account: remoteAccount, nodeId: targetNodeId} = remoteNodeItem
+          const { account: remoteAccount, nodeId: targetNodeId } = remoteNodeItem
           if (remoteAccount == null) {
-            accountsTheyNeedToRepair.push({...localAccount, targetNodeId})
+            accountsTheyNeedToRepair.push({ ...localAccount, targetNodeId })
           }
         }
       } else {
@@ -3189,32 +3166,32 @@ class AccountPatcher {
       stats,
       extraBadAccounts,
       extraBadKeys,
-      accountsTheyNeedToRepair
+      accountsTheyNeedToRepair,
     }
   }
 
   extractLeafNodes(rootNode: HashTrieNode): HashTrieNode[] {
-    const leafNodes: HashTrieNode[] = [];
+    const leafNodes: HashTrieNode[] = []
 
     function traverse(node: HashTrieNode) {
       if (node == null) {
         return
       }
       if (node.children && node.children.length === 0) {
-        leafNodes.push(node);
-        return;
+        leafNodes.push(node)
+        return
       }
 
       if (node.children && node.children.length > 0) {
         for (const childNode of node.children) {
           if (childNode) {
-            traverse(childNode);
+            traverse(childNode)
           }
         }
       }
     }
-    traverse(rootNode);
-    return leafNodes;
+    traverse(rootNode)
+    return leafNodes
   }
   //big todo .. be able to test changes on a temp tree and validate the hashed before we commit updates
   //also need to actually update the full account data and not just our tree!!
@@ -3350,10 +3327,15 @@ class AccountPatcher {
       }
 
       if (hasNonConsensusRange) {
-        if (lastCycleNonConsensus === false && hasNonStorageRange === false) { // lastCycleConsensus && hasStorageRange
+        if (lastCycleNonConsensus === false && hasNonStorageRange === false) {
+          // lastCycleConsensus && hasStorageRange
           //we can share this data, may be a pain for nodes to verify..
           //todo include last cycle syncing..
-          nestedCountersInstance.countEvent(`accountPatcher`, `broadcast nonConsensus because lastCycleNonConsensus === false`, 1)
+          nestedCountersInstance.countEvent(
+            `accountPatcher`,
+            `broadcast nonConsensus because lastCycleNonConsensus === false`,
+            1
+          )
         } else {
           //we cant send this data
           nestedCountersInstance.countEvent('accountPatcher', 'broadcast skip nonConsensus', 1)
@@ -3411,25 +3393,25 @@ class AccountPatcher {
     //   this.stateManager.config.p2p.useBinarySerializedEndpoints &&
     //   this.stateManager.config.p2p.syncTrieHashesBinary
     // ) {
-      for (const messageEntry of messageToNodeMap.values()) {
-        const syncTrieHashesRequest: SyncTrieHashesRequest = {
-          cycle,
-          nodeHashes: messageEntry.message.nodeHashes,
-        }
-        const promise = this.p2p.tellBinary<SyncTrieHashesRequest>(
-          [messageEntry.node],
-          InternalRouteEnum.binary_sync_trie_hashes,
-          syncTrieHashesRequest,
-          serializeSyncTrieHashesReq,
-          {}
-        )
-        promises.push(promise)
+    for (const messageEntry of messageToNodeMap.values()) {
+      const syncTrieHashesRequest: SyncTrieHashesRequest = {
+        cycle,
+        nodeHashes: messageEntry.message.nodeHashes,
       }
+      const promise = this.p2p.tellBinary<SyncTrieHashesRequest>(
+        [messageEntry.node],
+        InternalRouteEnum.binary_sync_trie_hashes,
+        syncTrieHashesRequest,
+        serializeSyncTrieHashesReq,
+        {}
+      )
+      promises.push(promise)
+    }
     // } else {
-      // for (const messageEntry of messageToNodeMap.values()) {
-      //   const promise = this.p2p.tell([messageEntry.node], 'sync_trie_hashes', messageEntry.message)
-      //   promises.push(promise)
-      // }
+    // for (const messageEntry of messageToNodeMap.values()) {
+    //   const promise = this.p2p.tell([messageEntry.node], 'sync_trie_hashes', messageEntry.message)
+    //   promises.push(promise)
+    // }
     // }
     await Promise.all(promises)
   }
@@ -3459,9 +3441,8 @@ class AccountPatcher {
     const minHashesPerRange = 4
     // y = floor(log16((minHashesPerRange * max(1, x/consensusRange   ))))
     let syncDepthRaw =
-      Math.log(
-        minHashesPerRange * Math.max(1, shardGlobals.numPartitions / (shardGlobals.consensusRadius * 2 + 1))
-      ) / Math.log(16)
+      Math.log(minHashesPerRange * Math.max(1, shardGlobals.numPartitions / (shardGlobals.consensusRadius * 2 + 1))) /
+      Math.log(16)
     syncDepthRaw = Math.max(1, syncDepthRaw) // at least 1
     const newSyncDepth = Math.ceil(syncDepthRaw)
 
@@ -3551,10 +3532,18 @@ class AccountPatcher {
         }
         if (accountData.stateId !== accountToFix.hash) {
           this.mainLogger.debug(`requestOtherNodesToRepair: accountData.stateId !== accountToFix.hash`)
-          nestedCountersInstance.countEvent(`accountPatcher`, `requestOtherNodesToRepair accountData.stateId !== accountToFix.hash`, 1)
+          nestedCountersInstance.countEvent(
+            `accountPatcher`,
+            `requestOtherNodesToRepair accountData.stateId !== accountToFix.hash`,
+            1
+          )
           continue
         }
-        const archivedQueueEntry = this.stateManager.transactionQueue.getArchivedQueueEntryByAccountIdAndHash(accountToFix.accountID, accountToFix.hash, 'requestOtherNodesToRepair')
+        const archivedQueueEntry = this.stateManager.transactionQueue.getArchivedQueueEntryByAccountIdAndHash(
+          accountToFix.accountID,
+          accountToFix.hash,
+          'requestOtherNodesToRepair'
+        )
         if (archivedQueueEntry == null) {
           this.mainLogger.debug(`requestOtherNodesToRepair: archivedQueueEntry is null`)
           nestedCountersInstance.countEvent(`accountPatcher`, `requestOtherNodesToRepair archivedQueueEntry == null`, 1)
@@ -3566,7 +3555,7 @@ class AccountPatcher {
           txId: archivedQueueEntry.acceptedTx.txId,
           accountData,
           targetNodeId: accountToFix.targetNodeId,
-          signedReceipt: archivedQueueEntry.signedReceipt
+          signedReceipt: archivedQueueEntry.signedReceipt,
         }
         if (repairInstructionMap.has(repairInstruction.targetNodeId)) {
           repairInstructionMap.get(repairInstruction.targetNodeId).push(repairInstruction)
@@ -3582,19 +3571,19 @@ class AccountPatcher {
             this.mainLogger.debug(`requestOtherNodesToRepair: node == null`)
           }
           const message = {
-            repairInstructions
+            repairInstructions,
           }
           nestedCountersInstance.countEvent('accountPatcher', 'sending repairInstruction for missing account')
           // if(this.stateManager.config.p2p.useBinarySerializedEndpoints &&
           //   this.stateManager.config.p2p.repairMissingAccountsBinary
           // ) {
-            await this.p2p.tellBinary<RepairOOSAccountsReq>(
-              [node],
-              InternalRouteEnum.binary_repair_oos_accounts,
-              message,
-              serializeRepairOOSAccountsReq,
-              {}
-            )
+          await this.p2p.tellBinary<RepairOOSAccountsReq>(
+            [node],
+            InternalRouteEnum.binary_repair_oos_accounts,
+            message,
+            serializeRepairOOSAccountsReq,
+            {}
+          )
           // } else {
           //   this.p2p.tell([node], 'repair_oos_accounts', message)
           // }
@@ -3648,15 +3637,13 @@ class AccountPatcher {
         }
       }
       debug.sort(this.sortByRadix)
-      this.statemanager_fatal(
-        'debug shardTrie',
-        `temp shardTrie votes c:${cycle}: ${utils.stringifyReduce(debug)}`
-      )
+      this.statemanager_fatal('debug shardTrie', `temp shardTrie votes c:${cycle}: ${utils.stringifyReduce(debug)}`)
     }
 
     let isInsyncResult = this.isInSync(cycle)
     this.lastInSyncResult = isInsyncResult
-    if (logFlags.debug) this.mainLogger.debug(`isInSync: cycle: ${cycle}, isInsyncResult: ${Utils.safeStringify(isInsyncResult)}`)
+    if (logFlags.debug)
+      this.mainLogger.debug(`isInSync: cycle: ${cycle}, isInsyncResult: ${Utils.safeStringify(isInsyncResult)}`)
     if (isInsyncResult == null || isInsyncResult.insync === false) {
       let failHistoryObject: { repaired: number; s: number; e: number; cycles: number }
       if (lastFail === false) {
@@ -3679,14 +3666,22 @@ class AccountPatcher {
       /* prettier-ignore */ nestedCountersInstance.countEvent(`accountPatcher`, `accountHashesChecked c:${cycle}`, results.accountHashesChecked)
 
       if (logFlags.debug) {
-        this.mainLogger.debug(`badAccounts cycle: ${cycle}, ourBadAccounts: ${results.badAccounts.length}, ourBadAccounts: ${Utils.safeStringify(results.badAccounts)}`)
+        this.mainLogger.debug(
+          `badAccounts cycle: ${cycle}, ourBadAccounts: ${
+            results.badAccounts.length
+          }, ourBadAccounts: ${Utils.safeStringify(results.badAccounts)}`
+        )
       }
       if (results.accountsTheyNeedToRepair.length > 0 || results.extraBadAccounts.length > 0) {
         let accountsTheyNeedToRepair = [...results.accountsTheyNeedToRepair]
         if (results.extraBadAccounts.length > 0) {
           accountsTheyNeedToRepair = accountsTheyNeedToRepair.concat(results.extraBadAccounts)
         }
-        this.mainLogger.debug(`badAccounts cycle: ${cycle}, accountsTheyNeedToRepair: ${accountsTheyNeedToRepair.length}, accountsTheyNeedToRepair: ${Utils.safeStringify(accountsTheyNeedToRepair)}`)
+        this.mainLogger.debug(
+          `badAccounts cycle: ${cycle}, accountsTheyNeedToRepair: ${
+            accountsTheyNeedToRepair.length
+          }, accountsTheyNeedToRepair: ${Utils.safeStringify(accountsTheyNeedToRepair)}`
+        )
         this.requestOtherNodesToRepair(accountsTheyNeedToRepair)
       }
 
@@ -3719,10 +3714,7 @@ class AccountPatcher {
       )
 
       if (repairDataResponse == null) {
-        this.statemanager_fatal(
-          'checkAndSetAccountData repairDataResponse',
-          `c:${cycle} repairDataResponse is null`
-        )
+        this.statemanager_fatal('checkAndSetAccountData repairDataResponse', `c:${cycle} repairDataResponse is null`)
       }
 
       //we need filter our list of possible account data to use for corrections.
@@ -3740,7 +3732,7 @@ class AccountPatcher {
         tsFix3: 0,
       }
 
-      let tooOldAccountsMap : Map<string, TooOldAccountRecord> = new Map()
+      let tooOldAccountsMap: Map<string, TooOldAccountRecord> = new Map()
       let wrappedDataList = repairDataResponse.wrappedDataList
 
       // build a list of data that is good to use in this repair operation
@@ -3749,9 +3741,7 @@ class AccountPatcher {
         let wrappedData: Shardus.WrappedData = wrappedDataList[i]
         let nodeWeAsked = repairDataResponse.nodes[i]
         if (this.stateManager.accountCache.hasAccount(wrappedData.accountId)) {
-          const accountMemData: AccountHashCache = this.stateManager.accountCache.getAccountHash(
-            wrappedData.accountId
-          )
+          const accountMemData: AccountHashCache = this.stateManager.accountCache.getAccountHash(wrappedData.accountId)
           // dont allow an older timestamp to overwrite a newer copy of data we have.
           // we may need to do more work to make sure this can not cause an un repairable situation
           if (wrappedData.timestamp < accountMemData.t) {
@@ -3761,15 +3751,15 @@ class AccountPatcher {
               'checkAndSetAccountData updateTooOld',
               `checkAndSetAccountData updateTooOld ${cycle}: acc:${utils.stringifyReduce(
                 wrappedData.accountId
-              )} updateTS:${wrappedData.timestamp} updateHash:${utils.stringifyReduce(
-                wrappedData.stateId
-              )}  cacheTS:${accountMemData.t} cacheHash:${utils.stringifyReduce(accountMemData.h)}`
+              )} updateTS:${wrappedData.timestamp} updateHash:${utils.stringifyReduce(wrappedData.stateId)}  cacheTS:${
+                accountMemData.t
+              } cacheHash:${utils.stringifyReduce(accountMemData.h)}`
             )
             filterStats.tooOld++
             tooOldAccountsMap.set(wrappedData.accountId, {
               wrappedData,
               accountMemData,
-              node: nodeWeAsked
+              node: nodeWeAsked,
             })
             continue
           }
@@ -3841,14 +3831,24 @@ class AccountPatcher {
       }
 
       if (tooOldAccountsMap.size > 0) {
-        if (logFlags.debug) this.mainLogger.debug(`too_old_account detected: ${tooOldAccountsMap.size}, ${utils.stringifyReduce(tooOldAccountsMap)}`)
+        if (logFlags.debug)
+          this.mainLogger.debug(
+            `too_old_account detected: ${tooOldAccountsMap.size}, ${utils.stringifyReduce(tooOldAccountsMap)}`
+          )
         nestedCountersInstance.countEvent('accountPatcher', `too_old_account detected c:${cycle}`)
         // ask the remote node to repair their data
         for (let [accountId, tooOldRecord] of tooOldAccountsMap) {
           // const archivedQueueEntry = this.stateManager.transactionQueue.getQueueEntryArchivedByTimestamp(tooOldRecord.accountMemData.t, 'too_old_account repair')
-          const archivedQueueEntry = this.stateManager.transactionQueue.getArchivedQueueEntryByAccountIdAndHash(accountId, tooOldRecord.accountMemData.h, 'too_old_account repair')
+          const archivedQueueEntry = this.stateManager.transactionQueue.getArchivedQueueEntryByAccountIdAndHash(
+            accountId,
+            tooOldRecord.accountMemData.h,
+            'too_old_account repair'
+          )
           if (archivedQueueEntry == null) {
-            nestedCountersInstance.countEvent('accountPatcher', `too_old_account repair archivedQueueEntry null c:${cycle}`)
+            nestedCountersInstance.countEvent(
+              'accountPatcher',
+              `too_old_account repair archivedQueueEntry null c:${cycle}`
+            )
             continue
           }
 
@@ -3865,55 +3865,72 @@ class AccountPatcher {
               const accountHash = this.app.calculateAccountHash(recordData)
               if (tooOldRecord.accountMemData.h !== accountHash) {
                 skippedAccounts.push({ accountID: accountId, hash: stateId })
-                nestedCountersInstance.countEvent(`accountPatcher`, `too_old_account repair account hash mismatch skipped c:${cycle}`)
+                nestedCountersInstance.countEvent(
+                  `accountPatcher`,
+                  `too_old_account repair account hash mismatch skipped c:${cycle}`
+                )
                 continue
               }
               accountDataFinal.push(wrappedAccount)
             }
           }
           if (accountDataFinal.length === 0) {
-            nestedCountersInstance.countEvent('accountPatcher', `too_old_account repair accountDataFinal empty c:${cycle}`)
+            nestedCountersInstance.countEvent(
+              'accountPatcher',
+              `too_old_account repair accountDataFinal empty c:${cycle}`
+            )
             continue
           }
           let updatedAccountData = accountDataFinal[0]
           if (updatedAccountData == null || updatedAccountData.timestamp != tooOldRecord.accountMemData.t) {
-            nestedCountersInstance.countEvent('accountPatcher', `too_old_account repair archivedQueueEntry account data not found or timestamp mismatch c:${cycle}`)
+            nestedCountersInstance.countEvent(
+              'accountPatcher',
+              `too_old_account repair archivedQueueEntry account data not found or timestamp mismatch c:${cycle}`
+            )
             continue
           }
           const accountDataRequest: TooOldAccountUpdateRequest = {
             accountID: accountId,
             txId: archivedQueueEntry.acceptedTx.txId,
             signedReceipt: this.stateManager.getSignedReceipt(archivedQueueEntry),
-            updatedAccountData: updatedAccountData
+            updatedAccountData: updatedAccountData,
           }
           const message: RepairOOSAccountsReq = {
-            repairInstructions: [{
-              accountID: accountId,
-              hash: updatedAccountData.stateId,
-              txId: archivedQueueEntry.acceptedTx.txId,
-              accountData: updatedAccountData,
-              targetNodeId: tooOldRecord.node.id,
-              signedReceipt: this.stateManager.getSignedReceipt(archivedQueueEntry)
-            }]
+            repairInstructions: [
+              {
+                accountID: accountId,
+                hash: updatedAccountData.stateId,
+                txId: archivedQueueEntry.acceptedTx.txId,
+                accountData: updatedAccountData,
+                targetNodeId: tooOldRecord.node.id,
+                signedReceipt: this.stateManager.getSignedReceipt(archivedQueueEntry),
+              },
+            ],
           }
           nestedCountersInstance.countEvent('accountPatcher', 'sending too_old_account repair request')
           // if (this.stateManager.config.p2p.useBinarySerializedEndpoints &&
           //   this.stateManager.config.p2p.repairMissingAccountsBinary
           // ) {
-            await this.p2p.tellBinary<RepairOOSAccountsReq>(
-              [tooOldRecord.node],
-              InternalRouteEnum.binary_repair_oos_accounts,
-              message,
-              serializeRepairOOSAccountsReq,
-              {}
-            )
+          await this.p2p.tellBinary<RepairOOSAccountsReq>(
+            [tooOldRecord.node],
+            InternalRouteEnum.binary_repair_oos_accounts,
+            message,
+            serializeRepairOOSAccountsReq,
+            {}
+          )
           // } else {
           //   await this.p2p.tell([tooOldRecord.node], 'repair_oos_accounts', message)
           // }
           let shortAccountId = utils.makeShortHash(accountId)
           let shortNodeId = utils.makeShortHash(tooOldRecord.node.id)
-          nestedCountersInstance.countEvent('accountPatcher', `too_old_account repair requested. account: ${shortAccountId}, node: ${shortNodeId} c:${cycle}:`)
-          if (logFlags.debug) this.mainLogger.debug(`too_old_account repair requested: account: ${shortAccountId}, node: ${shortNodeId}, cycle: ${cycle}`)
+          nestedCountersInstance.countEvent(
+            'accountPatcher',
+            `too_old_account repair requested. account: ${shortAccountId}, node: ${shortNodeId} c:${cycle}:`
+          )
+          if (logFlags.debug)
+            this.mainLogger.debug(
+              `too_old_account repair requested: account: ${shortAccountId}, node: ${shortNodeId}, cycle: ${cycle}`
+            )
         }
       }
 
@@ -3952,13 +3969,14 @@ class AccountPatcher {
       )
       this.statemanager_fatal(
         'isInSync = false',
-        `bad accounts cycle:${cycle} bad:${results.badAccounts.length} received:${
-          wrappedDataList.length
-        } failedH: ${failedHashes.length} filtered:${utils.stringifyReduce(
-          filterStats
-        )} stats:${utils.stringifyReduce(results.stats)} getAccountStats: ${utils.stringifyReduce(
-          getAccountStats
-        )} details: ${utils.stringifyReduceLimit(results.badAccounts, logLimit)}`
+        `bad accounts cycle:${cycle} bad:${results.badAccounts.length} received:${wrappedDataList.length} failedH: ${
+          failedHashes.length
+        } filtered:${utils.stringifyReduce(filterStats)} stats:${utils.stringifyReduce(
+          results.stats
+        )} getAccountStats: ${utils.stringifyReduce(getAccountStats)} details: ${utils.stringifyReduceLimit(
+          results.badAccounts,
+          logLimit
+        )}`
       )
       this.statemanager_fatal(
         'isInSync = false',
@@ -4097,10 +4115,7 @@ class AccountPatcher {
     getAccountStats: AccountStats
   }> {
     //pick which nodes to ask! /    //build up requests
-    const nodesBySyncRadix: Map<
-      string,
-      RequestEntry
-    > = new Map()
+    const nodesBySyncRadix: Map<string, RequestEntry> = new Map()
     const accountHashMap = new Map()
 
     const wrappedDataList: Shardus.WrappedData[] = []
@@ -4131,10 +4146,7 @@ class AccountPatcher {
           //minor layer of security, we will ask a different node for the account than the one that gave us the hash
           const nodeToAsk = this.getNodeForQuery(accountEntry.accountID, cycle, true)
           if (nodeToAsk == null) {
-            this.statemanager_fatal(
-              'getAccountRepairData no node avail',
-              `getAccountRepairData no node avail ${cycle}`
-            )
+            this.statemanager_fatal('getAccountRepairData no node avail', `getAccountRepairData no node avail ${cycle}`)
             continue
           }
           requestEntry = { node: nodeToAsk, request: { cycle, accounts: [] } }
@@ -4162,16 +4174,16 @@ class AccountPatcher {
             //   this.stateManager.config.p2p.useBinarySerializedEndpoints &&
             //   this.stateManager.config.p2p.getAccountDataByHashBinary
             // ) {
-              promise = this.p2p.askBinary<GetAccountDataByHashesReq, GetAccountDataByHashesResp>(
-                requestEntry.node,
-                InternalRouteEnum.binary_get_account_data_by_hashes,
-                requestEntry.request,
-                serializeGetAccountDataByHashesReq,
-                deserializeGetAccountDataByHashesResp,
-                {}
-              )
+            promise = this.p2p.askBinary<GetAccountDataByHashesReq, GetAccountDataByHashesResp>(
+              requestEntry.node,
+              InternalRouteEnum.binary_get_account_data_by_hashes,
+              requestEntry.request,
+              serializeGetAccountDataByHashesReq,
+              deserializeGetAccountDataByHashesResp,
+              {}
+            )
             // } else {
-              // promise = this.p2p.ask(requestEntry.node, 'get_account_data_by_hashes', requestEntry.request)
+            // promise = this.p2p.ask(requestEntry.node, 'get_account_data_by_hashes', requestEntry.request)
             // }
             promises.push(promise)
             offset = offset + accountPerRequest
@@ -4189,16 +4201,16 @@ class AccountPatcher {
           //   this.stateManager.config.p2p.useBinarySerializedEndpoints &&
           //   this.stateManager.config.p2p.getAccountDataByHashBinary
           // ) {
-            promise = this.p2p.askBinary<GetAccountDataByHashesReq, GetAccountDataByHashesResp>(
-              requestEntry.node,
-              InternalRouteEnum.binary_get_account_data_by_hashes,
-              requestEntry.request,
-              serializeGetAccountDataByHashesReq,
-              deserializeGetAccountDataByHashesResp,
-              {}
-            )
+          promise = this.p2p.askBinary<GetAccountDataByHashesReq, GetAccountDataByHashesResp>(
+            requestEntry.node,
+            InternalRouteEnum.binary_get_account_data_by_hashes,
+            requestEntry.request,
+            serializeGetAccountDataByHashesReq,
+            deserializeGetAccountDataByHashesResp,
+            {}
+          )
           // } else {
-            // promise = this.p2p.ask(requestEntry.node, 'get_account_data_by_hashes', requestEntry.request)
+          // promise = this.p2p.ask(requestEntry.node, 'get_account_data_by_hashes', requestEntry.request)
           // }
           promises.push(promise)
           getAccountStats.requested = requestEntry.request.accounts.length
@@ -4507,9 +4519,9 @@ class AccountPatcher {
       }
 
       stream.write(
-        `node: ${range.id} ${range.ipPort}\tgraph: ${partitionGraph}\thome: ${
-          range.hP
-        }   data:${Utils.safeStringify(range)}\n`
+        `node: ${range.id} ${range.ipPort}\tgraph: ${partitionGraph}\thome: ${range.hP}   data:${Utils.safeStringify(
+          range
+        )}\n`
       )
     }
     stream.write(`\n\n`)
@@ -4558,9 +4570,7 @@ class AccountPatcher {
   }
 
   calculateMinVotes(): number {
-    let minVotes = Math.ceil(
-      this.stateManager.currentCycleShardData.shardGlobals.nodesPerConsenusGroup * 0.51
-    )
+    let minVotes = Math.ceil(this.stateManager.currentCycleShardData.shardGlobals.nodesPerConsenusGroup * 0.51)
     const majorityOfActiveNodes = Math.ceil(this.stateManager.currentCycleShardData.nodes.length * 0.51)
     minVotes = Math.min(minVotes, majorityOfActiveNodes)
     minVotes = Math.max(1, minVotes)

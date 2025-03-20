@@ -78,9 +78,7 @@ describe('RequestStateForTxPostReq Tests', () => {
       stream.writeUInt8(cRequestStateForTxPostReqVersion + 1)
       stream.position = 0
 
-      expect(() => deserializeRequestStateForTxPostReq(stream)).toThrow(
-        'RequestStateForTxPostReq version mismatch'
-      )
+      expect(() => deserializeRequestStateForTxPostReq(stream)).toThrow('RequestStateForTxPostReq version mismatch')
     })
   })
 

@@ -13,10 +13,10 @@ import { beforeEachHandler } from './stateManagerSerializeMocks'
 
 jest.mock('../../../../src/p2p/Context', () => ({
   stateManager: {
-      app: {
+    app: {
       binarySerializeObject: jest.fn(),
       binaryDeserializeObject: jest.fn(),
-      }
+    },
   },
   setDefaultConfigs: jest.fn(),
 }))
@@ -44,9 +44,7 @@ describe('CachedAppData Serialization and Deserialization', () => {
       const expectedStream = new VectorBufferStream(0)
       expectedStream.writeUInt16(TypeIdentifierEnum.cCachedAppData)
       expectedStream.writeUInt32(obj.cycle)
-      expectedStream.writeBuffer(
-        stateManager.app.binarySerializeObject(AppObjEnum.CachedAppData, obj.appData)
-      )
+      expectedStream.writeBuffer(stateManager.app.binarySerializeObject(AppObjEnum.CachedAppData, obj.appData))
       expectedStream.writeString(obj.dataID)
       expect(stream.getBuffer()).toEqual(expectedStream.getBuffer())
     })
@@ -63,9 +61,7 @@ describe('CachedAppData Serialization and Deserialization', () => {
 
       const expectedStream = new VectorBufferStream(0)
       expectedStream.writeUInt32(obj.cycle)
-      expectedStream.writeBuffer(
-        stateManager.app.binarySerializeObject(AppObjEnum.CachedAppData, obj.appData)
-      )
+      expectedStream.writeBuffer(stateManager.app.binarySerializeObject(AppObjEnum.CachedAppData, obj.appData))
       expectedStream.writeString(obj.dataID)
       expect(stream.getBuffer()).toEqual(expectedStream.getBuffer())
     })
@@ -83,9 +79,7 @@ describe('CachedAppData Serialization and Deserialization', () => {
       const expectedStream = new VectorBufferStream(0)
       expectedStream.writeUInt16(TypeIdentifierEnum.cCachedAppData)
       expectedStream.writeUInt32(obj.cycle)
-      expectedStream.writeBuffer(
-        stateManager.app.binarySerializeObject(AppObjEnum.CachedAppData, obj.appData)
-      )
+      expectedStream.writeBuffer(stateManager.app.binarySerializeObject(AppObjEnum.CachedAppData, obj.appData))
       expectedStream.writeString(obj.dataID)
       expect(stream.getBuffer()).toEqual(expectedStream.getBuffer())
     })
@@ -100,9 +94,7 @@ describe('CachedAppData Serialization and Deserialization', () => {
       }
       const stream = new VectorBufferStream(0)
       stream.writeUInt32(expectedObj.cycle)
-      stream.writeBuffer(
-        stateManager.app.binarySerializeObject(AppObjEnum.CachedAppData, expectedObj.appData)
-      )
+      stream.writeBuffer(stateManager.app.binarySerializeObject(AppObjEnum.CachedAppData, expectedObj.appData))
       stream.writeString(expectedObj.dataID)
       stream.position = 0
       const obj = deserializeCachedAppData(stream)

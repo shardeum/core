@@ -77,7 +77,7 @@ export function selectNodes(maxAllowed: number): void {
   /* prettier-ignore */ if (logFlags.p2pNonFatal && logFlags.console)
   console.log('Input parameters to selectIndexesWithOffset - Max allowed:', maxAllowed, 'Offset:', offset, 'Array Size: ',objs.length);
 
-  if (maxAllowed > objs.length){
+  if (maxAllowed > objs.length) {
     /* prettier-ignore */ nestedCountersInstance.countEvent('joinV2', `selectNodes: capping maxAllowed ${maxAllowed} to ${objs.length}`)
     maxAllowed = objs.length
   }
@@ -182,15 +182,10 @@ export async function notifyingNewestJoinedConsensors(): Promise<void> {
     })
 
     // make the call, but don't await. it might take a while.
-    http
-      .post(`http://${joinedConsensor.externalIp}:${joinedConsensor.externalPort}/accepted`, offer)
-      .catch((e) => {
-        nestedCountersInstance.countEvent(
-          'joinV2',
-          `C${counter}: notifyingNewestJoinedConsensors: http post failed`
-        )
-        console.error(`C${counter} failed to notify node ${publicKey} that it has been selected:`, e)
-      })
+    http.post(`http://${joinedConsensor.externalIp}:${joinedConsensor.externalPort}/accepted`, offer).catch((e) => {
+      nestedCountersInstance.countEvent('joinV2', `C${counter}: notifyingNewestJoinedConsensors: http post failed`)
+      console.error(`C${counter} failed to notify node ${publicKey} that it has been selected:`, e)
+    })
   }
 }
 /**

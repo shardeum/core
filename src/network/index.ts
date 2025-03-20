@@ -205,8 +205,7 @@ export class NetworkClass extends EventEmitter {
 
         routeName = route
         if (!route && payload) {
-          if (logFlags.debug)
-            this.mainLogger.debug('Received response data without any specified route', payload)
+          if (logFlags.debug) this.mainLogger.debug('Received response data without any specified route', payload)
           return
         }
 
@@ -244,8 +243,7 @@ export class NetworkClass extends EventEmitter {
         }
       } catch (err) {
         if (logFlags.error) this.mainLogger.error('Network: _setupInternal: ', err)
-        if (logFlags.error)
-          this.mainLogger.error('DBG', 'Network: _setupInternal > sn.listen > callback > data', data)
+        if (logFlags.error) this.mainLogger.error('DBG', 'Network: _setupInternal > sn.listen > callback > data', data)
         if (logFlags.error)
           this.mainLogger.error('DBG', 'Network: _setupInternal > sn.listen > callback > remote', remote)
       } finally {
@@ -401,14 +399,7 @@ export class NetworkClass extends EventEmitter {
         }
         /* prettier-ignore */ if (logFlags.playback && alreadyLogged === false) this.logger.playbackLog('self', node, 'InternalAsk', route, id, message)
         try {
-          await this.sn.send(
-            node.internalPort,
-            node.internalIp,
-            data,
-            this.timeout + extraTime,
-            onRes,
-            onTimeout
-          )
+          await this.sn.send(node.internalPort, node.internalIp, data, this.timeout + extraTime, onRes, onTimeout)
         } catch (err) {
           nestedCountersInstance.countEvent('network', `error-ask ${route}`)
           /* prettier-ignore */ if (logFlags.error) this.mainLogger.error(`Network error (ask-err) on ${route}: ${formatErrorMessage(err)}`)
@@ -689,8 +680,7 @@ export async function init() {
     (config.ip.externalPort === 'auto' ? await getNextExternalPort(externalIp) : config.ip.externalPort) ||
     defaults['externalPort']
 
-  const internalIp =
-    (config.ip.internalIp === 'auto' ? externalIp : config.ip.internalIp) || defaults['internalIp']
+  const internalIp = (config.ip.internalIp === 'auto' ? externalIp : config.ip.internalIp) || defaults['internalIp']
 
   const internalPort =
     (config.ip.internalPort === 'auto' ? await getNextExternalPort(internalIp) : config.ip.internalPort) ||

@@ -28,14 +28,6 @@
       "@test/*": ["test/*"]
     }
   },
-  "exclude": [
-    "build",
-    "node_modules"
-  ],
-  "include": [
-    "src/**/*.js",
-    "src/**/*.ts",
-    "src/**/*.json",
-    "test/**/*.ts"
-  ]
+  "exclude": ["build", "node_modules"],
+  "include": ["src/**/*.js", "src/**/*.ts", "src/**/*.json", "test/**/*.ts"]
 }

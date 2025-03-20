@@ -13,11 +13,7 @@ export type SignAppDataResp = {
   }
 }
 
-export function serializeSignAppDataResp(
-  stream: VectorBufferStream,
-  obj: SignAppDataResp,
-  root = false
-): void {
+export function serializeSignAppDataResp(stream: VectorBufferStream, obj: SignAppDataResp, root = false): void {
   if (root) {
     stream.writeUInt16(TypeIdentifierEnum.cSignAppDataResp)
   }

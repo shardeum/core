@@ -192,26 +192,15 @@ class PartitionStats {
             res.write(Utils.safeStringify(lines))
           } else {
             {
-              const {
-                allPassed,
-                allPassedMetric2,
-                singleVotePartitions,
-                multiVotePartitions,
-                badPartitions,
-                totalTx,
-              } = this.processTxStatsDump(res, this.txStatsTallyFunction, lines)
+              const { allPassed, allPassedMetric2, singleVotePartitions, multiVotePartitions, badPartitions, totalTx } =
+                this.processTxStatsDump(res, this.txStatsTallyFunction, lines)
               res.write(
                 `TX statsReport${cycleNumber}  : ${allPassed} pass2: ${allPassedMetric2}  single:${singleVotePartitions} multi:${multiVotePartitions} badPartitions:${badPartitions} totalTx:${totalTx}\n`
               )
             }
             {
-              const {
-                allPassed,
-                allPassedMetric2,
-                singleVotePartitions,
-                multiVotePartitions,
-                badPartitions,
-              } = this.processDataStatsDump(res, this.dataStatsTallyFunction, lines)
+              const { allPassed, allPassedMetric2, singleVotePartitions, multiVotePartitions, badPartitions } =
+                this.processDataStatsDump(res, this.dataStatsTallyFunction, lines)
               res.write(
                 `DATA statsReport${cycleNumber}  : ${allPassed} pass2: ${allPassedMetric2}  single:${singleVotePartitions} multi:${multiVotePartitions} badPartitions:${badPartitions}\n`
               )
@@ -279,9 +268,7 @@ class PartitionStats {
    * gets the TX summary blob partition for the given cycle.  (should be the TX's cycleToRecordOn).
    * @param cycle
    */
-  getOrCreateTXSummaryBlobCollectionByCycle(
-    cycle: number
-  ): StateManagerTypes.StateManagerTypes.SummaryBlobCollection {
+  getOrCreateTXSummaryBlobCollectionByCycle(cycle: number): StateManagerTypes.StateManagerTypes.SummaryBlobCollection {
     let summaryBlobCollectionToUse = null
     if (cycle < 0) {
       return null
@@ -543,9 +530,7 @@ class PartitionStats {
         })}`
       )
 
-    const blob: StateManagerTypes.StateManagerTypes.SummaryBlob = this.getSummaryBlob(
-      accountDataAfter.accountId
-    )
+    const blob: StateManagerTypes.StateManagerTypes.SummaryBlob = this.getSummaryBlob(accountDataAfter.accountId)
     blob.counter++
     if (accountDataAfter.data == null) {
       blob.errorNull += 100000000
@@ -640,9 +625,7 @@ class PartitionStats {
     }
     if (accountToUseForTXStatBinning == null) {
       if (this.invasiveDebugInfo)
-        this.mainLogger.debug(
-          `statsTxSummaryUpdate skip(no local writable key) c:${cycle} ${queueEntry.logID}`
-        )
+        this.mainLogger.debug(`statsTxSummaryUpdate skip(no local writable key) c:${cycle} ${queueEntry.logID}`)
       return
     }
 
@@ -676,9 +659,9 @@ class PartitionStats {
     } else {
       if (logFlags.error || this.invasiveDebugInfo)
         this.mainLogger.error(
-          `statsTxSummaryUpdate no collection for c:${cycle}  tx: ${
-            queueEntry.logID
-          } accForBin:${utils.makeShortHash(accountToUseForTXStatBinning)}`
+          `statsTxSummaryUpdate no collection for c:${cycle}  tx: ${queueEntry.logID} accForBin:${utils.makeShortHash(
+            accountToUseForTXStatBinning
+          )}`
         )
     }
   }
@@ -831,9 +814,7 @@ class PartitionStats {
     }
 
     if (writeTofile) {
-      /*if(logFlags.debug)*/ this.statsLogger.debug(
-        `logs for cycle ${cycle}: ` + utils.stringifyReduce(statsDump)
-      )
+      /*if(logFlags.debug)*/ this.statsLogger.debug(`logs for cycle ${cycle}: ` + utils.stringifyReduce(statsDump))
     }
 
     return statsDump

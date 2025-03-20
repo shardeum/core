@@ -119,7 +119,9 @@ function attemptSimpleFetch<T>(
 }
 
 /** Executes a robust query to retrieve the cycle marker from the network. */
-export function robustQueryForCycleRecordHash(nodes: ActiveNode[]): RobustQueryResultAsync<{ currentCycleHash: hexstring }> {
+export function robustQueryForCycleRecordHash(
+  nodes: ActiveNode[]
+): RobustQueryResultAsync<{ currentCycleHash: hexstring }> {
   return makeRobustQueryCall(nodes, 'current-cycle-hash')
 }
 
@@ -145,29 +147,21 @@ export function robustQueryForStandbyNodeListHash(
 }
 
 /** Executes a robust query to retrieve the txList hash from the network. */
-export function robustQueryForTxListHash(
-  nodes: ActiveNode[]
-): RobustQueryResultAsync<{ txListHash: hexstring }> {
+export function robustQueryForTxListHash(nodes: ActiveNode[]): RobustQueryResultAsync<{ txListHash: hexstring }> {
   return makeRobustQueryCall(nodes, 'tx-list-hash')
 }
 
 /** Retrives the cycle by marker from the node. */
-export function getCycleDataFromNode(
-  node: ActiveNode,
-  expectedMarker: hexstring
-): ResultAsync<CycleRecord, Error> {
+export function getCycleDataFromNode(node: ActiveNode, expectedMarker: hexstring): ResultAsync<CycleRecord, Error> {
   info(`getCycleDataFromNode: expectedMarker: ${expectedMarker}`)
-  
+
   return attemptSimpleFetch(node, 'cycle-by-marker', {
     marker: expectedMarker,
   })
 }
 
 /** Gets the full validator list from the specified node. */
-export function getValidatorListFromNode(
-  node: ActiveNode,
-  expectedHash: hexstring
-): ResultAsync<Validator[], Error> {
+export function getValidatorListFromNode(node: ActiveNode, expectedHash: hexstring): ResultAsync<Validator[], Error> {
   info(`getValidatorListFromNode: expectedHash: ${expectedHash}`)
 
   return attemptSimpleFetch(
@@ -181,10 +175,7 @@ export function getValidatorListFromNode(
 }
 
 /** Gets the full archiver list from the specified archiver. */
-export function getArchiverListFromNode(
-  node: ActiveNode,
-  expectedHash: hexstring
-): ResultAsync<Archiver[], Error> {
+export function getArchiverListFromNode(node: ActiveNode, expectedHash: hexstring): ResultAsync<Archiver[], Error> {
   info(`getArchiverListFromNode: expectedHash: ${expectedHash}`)
 
   return attemptSimpleFetch(node, 'archiver-list', {

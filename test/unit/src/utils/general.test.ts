@@ -314,9 +314,7 @@ test('generateArraySchema() > should generate proper array schema', () => {
   try {
     generateArraySchema(any)
   } catch (e) {
-    expect(e.message).toBe(
-      'Array schema generation does not allowed type diversities in an array unless specified'
-    )
+    expect(e.message).toBe('Array schema generation does not allowed type diversities in an array unless specified')
   }
   expect(generateArraySchema(dimensional)).toBe('array[]')
 })

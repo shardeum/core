@@ -1,41 +1,41 @@
-import TransactionQueue from '../../../../src/state-manager/TransactionQueue';
-import { NonceQueueItem } from '../../../../src/state-manager/state-manager-types';
-import { config } from '../../../../src/p2p/Context';
+import TransactionQueue from '../../../../src/state-manager/TransactionQueue'
+import { NonceQueueItem } from '../../../../src/state-manager/state-manager-types'
+import { config } from '../../../../src/p2p/Context'
 
 jest.mock('../../../../src/p2p/Context', () => {
   const config = {}
   return {
     config,
     setDefaultConfigs: jest.fn((newConfig) => {
-      Object.assign(config, newConfig.server);
+      Object.assign(config, newConfig.server)
     }),
-    shardusGetTime: jest.fn(() => Date.now())
-  };
-});
+    shardusGetTime: jest.fn(() => Date.now()),
+  }
+})
 
 describe('TransactionQueue', () => {
-  let transactionQueue: TransactionQueue;
+  let transactionQueue: TransactionQueue
 
   beforeEach(() => {
     // Mock dependencies
-    const mockStateManager = {} as any;
-    const mockProfiler = {} as any;
-    const mockApp = {} as any;
+    const mockStateManager = {} as any
+    const mockProfiler = {} as any
+    const mockApp = {} as any
     const mockLogger = {
       getLogger: jest.fn().mockReturnValue({
         error: jest.fn(),
         warn: jest.fn(),
         info: jest.fn(),
         debug: jest.fn(),
-        trace: jest.fn()
-      })
-    } as any;
-    const mockStorage = {} as any;
-    const mockP2P = {} as any;
-    const mockCrypto = {} as any;
+        trace: jest.fn(),
+      }),
+    } as any
+    const mockStorage = {} as any
+    const mockP2P = {} as any
+    const mockCrypto = {} as any
 
     // Use the mocked config from Context
-    const { config } = require('../../../../src/p2p/Context');
+    const { config } = require('../../../../src/p2p/Context')
 
     transactionQueue = new TransactionQueue(
       mockStateManager,
@@ -46,8 +46,8 @@ describe('TransactionQueue', () => {
       mockP2P,
       mockCrypto,
       config
-    );
-  });
+    )
+  })
 
   describe('addTransactionToNonceQueue', () => {
     it('should add a new transaction to an empty queue', () => {
@@ -58,16 +58,16 @@ describe('TransactionQueue', () => {
         tx: {} as any,
         appData: {},
         global: false,
-        noConsensus: false
-      };
+        noConsensus: false,
+      }
 
-      const result = transactionQueue.addTransactionToNonceQueue(nonceQueueEntry);
+      const result = transactionQueue.addTransactionToNonceQueue(nonceQueueEntry)
 
-      expect(result.success).toBe(true);
-      expect(result.alreadyAdded).toBe(false);
-      expect(transactionQueue.nonceQueue.get('account1')).toHaveLength(1);
-      expect(transactionQueue.nonceQueue.get('account1')?.[0]).toEqual(nonceQueueEntry);
-    });
+      expect(result.success).toBe(true)
+      expect(result.alreadyAdded).toBe(false)
+      expect(transactionQueue.nonceQueue.get('account1')).toHaveLength(1)
+      expect(transactionQueue.nonceQueue.get('account1')?.[0]).toEqual(nonceQueueEntry)
+    })
 
     it('should replace an existing transaction with the same nonce', () => {
       const existingEntry: NonceQueueItem = {
@@ -77,23 +77,23 @@ describe('TransactionQueue', () => {
         tx: {} as any,
         appData: {},
         global: false,
-        noConsensus: false
-      };
-      transactionQueue.nonceQueue.set('account1', [existingEntry]);
+        noConsensus: false,
+      }
+      transactionQueue.nonceQueue.set('account1', [existingEntry])
 
       const newEntry: NonceQueueItem = {
         ...existingEntry,
-        txId: 'tx2'
-      };
+        txId: 'tx2',
+      }
 
-      const result = transactionQueue.addTransactionToNonceQueue(newEntry);
+      const result = transactionQueue.addTransactionToNonceQueue(newEntry)
 
-      expect(result.success).toBe(true);
-      expect(result.alreadyAdded).toBe(true);
-      expect(transactionQueue.nonceQueue.get('account1')).toHaveLength(1);
-      expect(transactionQueue.nonceQueue.get('account1')?.[0]).not.toBeUndefined();
-      expect(transactionQueue.nonceQueue.get('account1')?.[0]?.txId).toBe('tx2');
-    });
+      expect(result.success).toBe(true)
+      expect(result.alreadyAdded).toBe(true)
+      expect(transactionQueue.nonceQueue.get('account1')).toHaveLength(1)
+      expect(transactionQueue.nonceQueue.get('account1')?.[0]).not.toBeUndefined()
+      expect(transactionQueue.nonceQueue.get('account1')?.[0]?.txId).toBe('tx2')
+    })
 
     it('should add a transaction with a higher nonce to an existing queue', () => {
       const existingEntry: NonceQueueItem = {
@@ -103,14 +103,14 @@ describe('TransactionQueue', () => {
         tx: {} as any,
         appData: {},
         global: false,
-        noConsensus: false
+        noConsensus: false,
       }
       transactionQueue.nonceQueue.set('account1', [existingEntry])
 
       const newEntry: NonceQueueItem = {
         ...existingEntry,
         nonce: 2n,
-        txId: 'tx2'
+        txId: 'tx2',
       }
 
       const result = transactionQueue.addTransactionToNonceQueue(newEntry)
@@ -120,7 +120,7 @@ describe('TransactionQueue', () => {
       expect(transactionQueue.nonceQueue.get('account1')).toHaveLength(2)
       expect(transactionQueue.nonceQueue.get('account1')?.[0].txId).toEqual(existingEntry.txId)
       expect(transactionQueue.nonceQueue.get('account1')?.[1].txId).toEqual(newEntry.txId)
-    });
+    })
 
     it('should add txs with decreasing nonce order without issue', () => {
       const firstEntry: NonceQueueItem = {
@@ -130,7 +130,7 @@ describe('TransactionQueue', () => {
         tx: {} as any,
         appData: {},
         global: false,
-        noConsensus: false
+        noConsensus: false,
       }
       const secondEntry: NonceQueueItem = {
         ...firstEntry,
@@ -157,6 +157,6 @@ describe('TransactionQueue', () => {
       expect(transactionQueue.nonceQueue.get('account1')?.[0].txId).toEqual(thirdEntry.txId)
       expect(transactionQueue.nonceQueue.get('account1')?.[1].txId).toEqual(secondEntry.txId)
       expect(transactionQueue.nonceQueue.get('account1')?.[2].txId).toEqual(firstEntry.txId)
-    });
-  });
-});
+    })
+  })
+})

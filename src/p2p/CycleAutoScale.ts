@@ -127,9 +127,7 @@ function _requestNetworkScaling(upOrDown) {
   const isRequestAdded = addExtScalingRequest(signedRequest)
   if (isRequestAdded) {
     info(
-      `Our scale request is added. Gossiping our scale request to other nodes. ${Utils.safeStringify(
-        signedRequest
-      )}`
+      `Our scale request is added. Gossiping our scale request to other nodes. ${Utils.safeStringify(signedRequest)}`
     )
     Comms.sendGossip('scaling', signedRequest, '', null, NodeList.byIdOrder, true, 2)
     scalingRequested = true
@@ -185,9 +183,9 @@ function validateScalingRequest(scalingRequest: P2P.CycleAutoScaleTypes.SignedSc
   // Check if cycle counter matches
   if (scalingRequest.counter !== CycleCreator.currentCycle) {
     warn(
-      `Invalid scaling request, not for this cycle. Current cycle:${
-        CycleCreator.currentCycle
-      }, cycleInScaleRequest: ${scalingRequest.counter} Request: ${Utils.safeStringify(scalingRequest)}`
+      `Invalid scaling request, not for this cycle. Current cycle:${CycleCreator.currentCycle}, cycleInScaleRequest: ${
+        scalingRequest.counter
+      } Request: ${Utils.safeStringify(scalingRequest)}`
     )
     return false
   }
@@ -213,7 +211,7 @@ function validateScalingRequest(scalingRequest: P2P.CycleAutoScaleTypes.SignedSc
     return false
   }
 
-  // TODO need to verify if the node was a valid sender in the sub commitee 
+  // TODO need to verify if the node was a valid sender in the sub commitee
 
   // Return false if fails validation for signature
   if (!crypto.verify(scalingRequest, node.publicKey)) {
@@ -274,10 +272,7 @@ function _checkScaling() {
   }
 
   let numActiveNodes = NodeList.activeByIdOrder.length
-  let requiredVotes = Math.max(
-    config.p2p.minScaleReqsNeeded,
-    config.p2p.scaleConsensusRequired * numActiveNodes
-  )
+  let requiredVotes = Math.max(config.p2p.minScaleReqsNeeded, config.p2p.scaleConsensusRequired * numActiveNodes)
 
   let scaleUpRequests = getScaleUpRequests()
   let scaleDownRequests = getScaleDownRequests()
@@ -416,13 +411,12 @@ function setAndGetTargetCount(prevRecord: P2P.CycleCreatorTypes.CycleRecord): nu
       targetCount = config.p2p.minNodes + config.p2p.extraNodesToAddInRestart
     } else if (prevRecord.mode === 'restart') {
       // In restart mode, all the nodes remain in 'selected?' mode until the desired number of nodes are reached
-      
-      //Instruction:  I have a bunch of logs like this but I want to upgrade them to call logger.mainLog_debug. 
+
+      //Instruction:  I have a bunch of logs like this but I want to upgrade them to call logger.mainLog_debug.
       /* prettier-ignore */ //if (logFlags && logFlags.verbose) console.log("CycleAutoScale: in restart")
       //Instruction: here is what I want the log to look like.  Note the first argument is a unique key.  The funciton name in all capps followed by some context and then an int that incrments so we dont have dupes will work
       /* prettier-ignore */ if (logFlags?.verbose) logger.mainLog_debug('SETANDGETTARGETCOUNT_RESTART_1',"CycleAutoScale: in restart")
-      
- 
+
       if (syncing < desired + config.p2p.extraNodesToAddInRestart) {
         /* prettier-ignore */ if (logFlags && logFlags.verbose) console.log("CycleAutoScale: entered syncing < desired")
         let add = ~~(0.5 * syncing) // Add 50% more nodes on each cycle

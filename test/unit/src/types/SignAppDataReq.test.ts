@@ -16,7 +16,7 @@ jest.mock('../../../../src/p2p/Context', () => ({
     app: {
       binarySerializeObject: jest.fn(),
       binaryDeserializeObject: jest.fn(),
-    }
+    },
   },
   setDefaultConfigs: jest.fn(),
 }))

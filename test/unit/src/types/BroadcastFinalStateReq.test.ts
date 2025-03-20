@@ -14,10 +14,10 @@ import { beforeEachHandler } from './stateManagerSerializeMocks'
 
 jest.mock('../../../../src/p2p/Context', () => ({
   stateManager: {
-      app: {
+    app: {
       binarySerializeObject: jest.fn(),
       binaryDeserializeObject: jest.fn(),
-      }
+    },
   },
   setDefaultConfigs: jest.fn(),
 }))
@@ -155,9 +155,7 @@ describe('BroadcastFinalStateReq', () => {
       buffer[0] = cBroadcastFinalStateReqVersion + 1
       const alteredStream = VectorBufferStream.fromBuffer(buffer)
 
-      expect(() => deserializeBroadcastFinalStateReq(alteredStream)).toThrow(
-        'BroadcastFinalStateReq version mismatch'
-      )
+      expect(() => deserializeBroadcastFinalStateReq(alteredStream)).toThrow('BroadcastFinalStateReq version mismatch')
     })
   })
 

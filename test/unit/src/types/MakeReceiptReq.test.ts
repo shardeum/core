@@ -1,8 +1,4 @@
-import {
-  serializeMakeReceiptReq,
-  deserializeMakeReceiptReq,
-  MakeReceiptReq,
-} from '../../../../src/types/MakeReceipReq'
+import { serializeMakeReceiptReq, deserializeMakeReceiptReq, MakeReceiptReq } from '../../../../src/types/MakeReceipReq'
 import { VectorBufferStream } from '../../../../src/utils/serialization/VectorBufferStream'
 import { TypeIdentifierEnum } from '../../../../src/types/enum/TypeIdentifierEnum'
 import { initAjvSchemas } from '../../../../src/types/ajv/Helpers'

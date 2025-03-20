@@ -23,9 +23,7 @@ export function serializeRequestReceiptForTxReq(
   stream.writeString(inp.timestamp.toString())
 }
 
-export function deserializeRequestReceiptForTxReq(
-  stream: VectorBufferStream
-): RequestReceiptForTxReqSerialized {
+export function deserializeRequestReceiptForTxReq(stream: VectorBufferStream): RequestReceiptForTxReqSerialized {
   const version = stream.readUInt8()
   if (version !== cRequestReceiptForTxReqVersion) {
     throw new Error('RequestReceiptForTxReq version mismatch')

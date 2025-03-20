@@ -49,9 +49,7 @@ export function updateStateHashesByCycleMap(
   stateHash: P2P.SnapshotTypes.StateHashes,
   stateHashesByCycle: Iterable<readonly [number, P2P.SnapshotTypes.StateHashes]>
 ): Map<number, P2P.SnapshotTypes.StateHashes> {
-  const newStateHashByCycle: Map<Cycle['counter'], P2P.SnapshotTypes.StateHashes> = new Map(
-    stateHashesByCycle
-  )
+  const newStateHashByCycle: Map<Cycle['counter'], P2P.SnapshotTypes.StateHashes> = new Map(stateHashesByCycle)
   const transformedStateHash = {
     ...stateHash,
     partitionHashes: convertMapToObj(stateHash.partitionHashes),
@@ -73,9 +71,7 @@ export function updateReceiptHashesByCycleMap(
   receiptHash: P2P.SnapshotTypes.ReceiptHashes,
   receiptHashesByCycle: Iterable<readonly [number, P2P.SnapshotTypes.ReceiptHashes]>
 ): Map<number, P2P.SnapshotTypes.ReceiptHashes> {
-  const newReceiptHashesByCycle: Map<Cycle['counter'], P2P.SnapshotTypes.ReceiptHashes> = new Map(
-    receiptHashesByCycle
-  )
+  const newReceiptHashesByCycle: Map<Cycle['counter'], P2P.SnapshotTypes.ReceiptHashes> = new Map(receiptHashesByCycle)
 
   const transformedStateHash = {
     ...receiptHash,
@@ -98,9 +94,7 @@ export function updateSummaryHashesByCycleMap(
   summaryHashes: P2P.SnapshotTypes.SummaryHashes,
   summaryHashesByCycle: Iterable<readonly [number, P2P.SnapshotTypes.SummaryHashes]>
 ): Map<number, P2P.SnapshotTypes.SummaryHashes> {
-  const newSummaryHashesByCycle: Map<Cycle['counter'], P2P.SnapshotTypes.SummaryHashes> = new Map(
-    summaryHashesByCycle
-  )
+  const newSummaryHashesByCycle: Map<Cycle['counter'], P2P.SnapshotTypes.SummaryHashes> = new Map(summaryHashesByCycle)
 
   const transformedSummaryHash = {
     ...summaryHashes,
@@ -205,12 +199,7 @@ export async function calculateOldDataMap(
 ): Promise<Map<P2P.SnapshotTypes.PartitionNum, ShardusTypes.AccountsCopy[]>> {
   const partitionShardDataMap: StateManager.shardFunctionTypes.ParititionShardDataMap = new Map()
   const oldDataMap: Map<P2P.SnapshotTypes.PartitionNum, ShardusTypes.AccountsCopy[]> = new Map()
-  ShardFunctions.computePartitionShardDataMap(
-    shardGlobals,
-    partitionShardDataMap,
-    0,
-    shardGlobals.numPartitions
-  )
+  ShardFunctions.computePartitionShardDataMap(shardGlobals, partitionShardDataMap, 0, shardGlobals.numPartitions)
 
   /**
    * [NOTE] [AS] Need to do this because type of 'cycleJoined' field differs
@@ -318,10 +307,7 @@ export function getMissingPartitions(
   const missingPartitions = []
   const { homePartition } = ShardFunctions.addressToPartition(shardGlobals, Self.id)
   log(`Home partition for us is: ${homePartition}`)
-  const { partitionStart, partitionEnd } = ShardFunctions.calculateStoredPartitions2(
-    shardGlobals,
-    homePartition
-  )
+  const { partitionStart, partitionEnd } = ShardFunctions.calculateStoredPartitions2(shardGlobals, homePartition)
   log('partition start: ', partitionStart)
   log('partition end: ', partitionEnd)
   const partitionsToCheck = []

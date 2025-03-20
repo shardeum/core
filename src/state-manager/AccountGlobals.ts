@@ -13,10 +13,7 @@ import { Route } from '@shardeum-foundation/lib-types/build/src/p2p/P2PTypes'
 import { InternalBinaryHandler } from '../types/Handler'
 import { InternalRouteEnum } from '../types/enum/InternalRouteEnum'
 import { TypeIdentifierEnum } from '../types/enum/TypeIdentifierEnum'
-import {
-  GlobalAccountReportRespSerializable,
-  serializeGlobalAccountReportResp,
-} from '../types/GlobalAccountReportResp'
+import { GlobalAccountReportRespSerializable, serializeGlobalAccountReportResp } from '../types/GlobalAccountReportResp'
 import { RequestErrorEnum } from '../types/enum/RequestErrorEnum'
 import { getStreamWithTypeCheck, requestErrorHandler } from '../types/Helpers'
 import { BadRequest, InternalError, serializeResponseError } from '../types/ResponseError'
@@ -256,10 +253,7 @@ class AccountGlobals {
         }
       },
     }
-    this.p2p.registerInternalBinary(
-      globalAccountReportBinaryHandler.name,
-      globalAccountReportBinaryHandler.handler
-    )
+    this.p2p.registerInternalBinary(globalAccountReportBinaryHandler.name, globalAccountReportBinaryHandler.handler)
   }
 
   /**
@@ -292,8 +286,10 @@ class AccountGlobals {
         throw new Error(`DATASYNC: getGlobalListEarly: failed to get global list after 10 retries`)
       }
       try {
-        const globalReport: GlobalAccountReportResp =
-          await this.stateManager.accountSync.getRobustGlobalReport('getGlobalListEarly', syncFromArchiver)
+        const globalReport: GlobalAccountReportResp = await this.stateManager.accountSync.getRobustGlobalReport(
+          'getGlobalListEarly',
+          syncFromArchiver
+        )
         const temp = []
         for (const report of globalReport.accounts) {
           temp.push(report.id)

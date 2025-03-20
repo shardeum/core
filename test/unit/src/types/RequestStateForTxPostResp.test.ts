@@ -18,13 +18,13 @@ jest.mock('../../../../src/p2p/Context', () => ({
     app: {
       binarySerializeObject: jest.fn(),
       binaryDeserializeObject: jest.fn(),
-    }
+    },
   },
   setDefaultConfigs: jest.fn(),
 }))
 describe('RequestStateForTxPostResp Tests', () => {
   beforeEach(() => {
-    beforeEachHandler() 
+    beforeEachHandler()
   })
 
   beforeAll(() => {
@@ -170,9 +170,7 @@ describe('RequestStateForTxPostResp Tests', () => {
       stream.writeUInt8(cRequestStateForTxPostRespVersion + 1)
       stream.position = 0
 
-      expect(() => deserializeRequestStateForTxPostResp(stream)).toThrow(
-        'RequestStateForTxPostResp version mismatch'
-      )
+      expect(() => deserializeRequestStateForTxPostResp(stream)).toThrow('RequestStateForTxPostResp version mismatch')
     })
 
     test('Deserialize empty stateList', () => {

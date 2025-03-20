@@ -122,10 +122,7 @@ class PartitionObjects {
       const consensusEndPartition = shardValues.nodeShardData.consensusEndPartition
 
       response = { res: [], cycleNumber: this.nextCycleReportToSend.cycleNumber }
-      if (
-        this.lastCycleReported < this.nextCycleReportToSend.cycleNumber ||
-        this.partitionReportDirty === true
-      ) {
+      if (this.lastCycleReported < this.nextCycleReportToSend.cycleNumber || this.partitionReportDirty === true) {
         // consensusOnly hashes
         if (smallHashes === true) {
           for (const r of this.nextCycleReportToSend.res) {
@@ -135,9 +132,7 @@ class PartitionObjects {
         for (const r of this.nextCycleReportToSend.res) {
           if (consensusOnly) {
             //check if partition is in our range!
-            if (
-              ShardFunctions.partitionInWrappingRange(r.i, consensusStartPartition, consensusEndPartition)
-            ) {
+            if (ShardFunctions.partitionInWrappingRange(r.i, consensusStartPartition, consensusEndPartition)) {
               response.res.push(r)
             }
           } else {

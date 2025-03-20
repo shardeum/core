@@ -1,6 +1,11 @@
 import { publicKey } from '@shardeum-foundation/lib-types'
 import { SignedObject } from '@shardeum-foundation/lib-types/build/src/p2p/P2PTypes'
-import { ArchiverDownMsg, ArchiverRefutesLostMsg, ArchiverUpMsg, InvestigateArchiverMsg } from '@shardeum-foundation/lib-types/build/src/p2p/LostArchiverTypes'
+import {
+  ArchiverDownMsg,
+  ArchiverRefutesLostMsg,
+  ArchiverUpMsg,
+  InvestigateArchiverMsg,
+} from '@shardeum-foundation/lib-types/build/src/p2p/LostArchiverTypes'
 
 /** TYPES */
 

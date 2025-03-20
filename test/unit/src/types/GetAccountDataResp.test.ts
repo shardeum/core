@@ -13,10 +13,10 @@ import { beforeEachHandler } from './stateManagerSerializeMocks'
 
 jest.mock('../../../../src/p2p/Context', () => ({
   stateManager: {
-      app: {
+    app: {
       binarySerializeObject: jest.fn(),
       binaryDeserializeObject: jest.fn(),
-      }
+    },
   },
   setDefaultConfigs: jest.fn(),
 }))

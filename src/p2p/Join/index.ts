@@ -31,12 +31,7 @@ import { deleteStandbyNode, drainNewUnjoinRequests, processNewUnjoinRequest } fr
 import { JoinRequest } from '@shardeum-foundation/lib-types/build/src/p2p/JoinTypes'
 import { updateNodeState } from '../Self'
 import { HTTPError } from 'got'
-import {
-  drainLostAfterSelectionNodes,
-  drainSyncStarted,
-  lostAfterSelection,
-  addSyncStarted,
-} from './v2/syncStarted'
+import { drainLostAfterSelectionNodes, drainSyncStarted, lostAfterSelection, addSyncStarted } from './v2/syncStarted'
 import { addFinishedSyncing, drainFinishedSyncingRequest, newSyncFinishedNodes } from './v2/syncFinished'
 //import { getLastCycleStandbyRefreshRequest, resetLastCycleStandbyRefreshRequests, drainNewStandbyRefreshRequests } from './v2/standbyRefresh'
 import { drainNewStandbyRefreshRequests, addStandbyRefresh } from './v2/standbyRefresh'
@@ -134,9 +129,7 @@ export function calculateToAccept(): number {
   let syncMax =
     CycleChain.newest.safetyMode === true
       ? CycleChain.newest.safetyNum
-      : Math.floor(
-          config.p2p.maxSyncingPerCycle * CycleCreator.scaleFactor * CycleCreator.scaleFactorSyncBoost
-        )
+      : Math.floor(config.p2p.maxSyncingPerCycle * CycleCreator.scaleFactor * CycleCreator.scaleFactorSyncBoost)
 
   //The first batch of nodes to join the network after the seed node server can join at a higher rate if firstCycleJoin is set.
   //This first batch will sync the full data range from the seed node, which should be very little data.
@@ -513,10 +506,16 @@ export function updateRecord(txs: P2P.JoinTypes.Txs, record: P2P.CycleCreatorTyp
 
       if (nodeIfSelectedLastCycle) {
         record.apoptosized.push(nodeIfSelectedLastCycle.id)
-        nestedCountersInstance.countEvent('p2p', `node that requested to unjoin but was selected to go active was added to apoptosized`) 
+        nestedCountersInstance.countEvent(
+          'p2p',
+          `node that requested to unjoin but was selected to go active was added to apoptosized`
+        )
       } else if (nodeIfSelectedThisCycle) {
         record.apoptosized.push(nodeIfSelectedThisCycle.id)
-        nestedCountersInstance.countEvent('p2p', `node that requested to unjoin but was selected to go active was added to apoptosized`) 
+        nestedCountersInstance.countEvent(
+          'p2p',
+          `node that requested to unjoin but was selected to go active was added to apoptosized`
+        )
       } else {
         record.standbyRemove.push(signedUnjoinRequest.publicKey)
       }
@@ -705,10 +704,7 @@ export function sendRequests(): void {
         true
       )
     } else {
-      nestedCountersInstance.countEvent(
-        'p2p',
-        `join:sendRequests: failed to add our own sync-finished message`
-      )
+      nestedCountersInstance.countEvent('p2p', `join:sendRequests: failed to add our own sync-finished message`)
       /* prettier-ignore */ if (logFlags.p2pNonFatal) console.log(`join:sendRequests: failed to add our own sync-finished message`)
     }
   }
@@ -737,10 +733,7 @@ export function sendRequests(): void {
           true
         )
       } else {
-        nestedCountersInstance.countEvent(
-          'p2p',
-          `join:sendRequests: failed to add standby-refresh message`
-        )
+        nestedCountersInstance.countEvent('p2p', `join:sendRequests: failed to add standby-refresh message`)
         /* prettier-ignore */ if (logFlags.p2pNonFatal) console.log(`join:sendRequests: failed to add standby-refresh message`)
       }
     }
@@ -752,7 +745,7 @@ export function sendRequests(): void {
       // TODO: may need to check if node is on standby and maybe validate the request again
       // need to think about this more
 
-      // The point of having two arrays for joinReq gossip was that it was the simplest way I could think at the time to avoid a race conditon. 
+      // The point of having two arrays for joinReq gossip was that it was the simplest way I could think at the time to avoid a race conditon.
       // however, I think its over-engineered. I think its even simpler to let a node that validated before sendRequests to just send it,
       // and next cycle, the other nodes should check if the node is on the standby list before sending it. This will speed up creating a network
 
@@ -773,7 +766,7 @@ export function sendRequests(): void {
       }
 
       const signedObjectWithJoinRequest = crypto.sign({ joinRequest, sign: null })
-      
+
       Comms.sendGossip(
         'gossip-valid-join-requests',
         signedObjectWithJoinRequest,
@@ -802,9 +795,12 @@ export function sendRequests(): void {
 
       const processResult = processNewUnjoinRequest(unjoinRequest)
       if (processResult.isErr()) {
-        nestedCountersInstance.countEvent('p2p', `join:sendRequests: failed to process unjoin request; failed to process unjoin request`)
+        nestedCountersInstance.countEvent(
+          'p2p',
+          `join:sendRequests: failed to process unjoin request; failed to process unjoin request`
+        )
         /* prettier-ignore */ if (logFlags.p2pNonFatal) console.error(`join:sendRequests: will not gossip to network; failed to process unjoin request for node ${unjoinRequest.publicKey}:`, JSON.stringify(processResult.error))
-        return 
+        return
       }
 
       nestedCountersInstance.countEvent('p2p', `join:sendRequests: sending unjoin gossip to network`)
@@ -834,7 +830,10 @@ export function queueRequest(): void {
 
 export async function queueStartedSyncingRequest(): Promise<void> {
   if (Self.isFirst === false && config.debug.startedSyncingDelay > 0) {
-    nestedCountersInstance.countEvent('p2p', `join:queueStartedSyncingRequest: delaying started syncing by ${config.debug.startedSyncingDelay} seconds`)
+    nestedCountersInstance.countEvent(
+      'p2p',
+      `join:queueStartedSyncingRequest: delaying started syncing by ${config.debug.startedSyncingDelay} seconds`
+    )
     await utils.sleep(config.debug.startedSyncingDelay * 1000)
   }
   queuedStartedSyncingId = Self.id
@@ -843,7 +842,10 @@ export async function queueStartedSyncingRequest(): Promise<void> {
 export async function queueFinishedSyncingRequest(): Promise<void> {
   if (neverGoActive) return
   if (Self.isFirst === false && config.debug.finishedSyncingDelay > 0) {
-    nestedCountersInstance.countEvent('p2p', `join:queueFinishedSyncingRequest: delaying finished syncing by ${config.debug.finishedSyncingDelay} seconds`)
+    nestedCountersInstance.countEvent(
+      'p2p',
+      `join:queueFinishedSyncingRequest: delaying finished syncing by ${config.debug.finishedSyncingDelay} seconds`
+    )
     await utils.sleep(config.debug.finishedSyncingDelay * 1000)
   }
 
@@ -895,8 +897,7 @@ export async function createJoinRequest(
     }
   }
   const signedJoinReq = crypto.sign(joinReq)
-  if (logFlags.p2pNonFatal)
-    info(`Join request created... Join request: ${Utils.safeStringify(signedJoinReq)}`)
+  if (logFlags.p2pNonFatal) info(`Join request created... Join request: ${Utils.safeStringify(signedJoinReq)}`)
   return signedJoinReq
 }
 
@@ -1076,9 +1077,7 @@ export async function submitJoinV2(
     } else {
       //even if not checking bogon still reject other invalid IPs that would be unusable
       if (isInvalidIP(joinRequest.nodeInfo.externalIp)) {
-        throw new Error(
-          `Fatal: Node cannot join with invalid external IP: ${joinRequest.nodeInfo.externalIp}`
-        )
+        throw new Error(`Fatal: Node cannot join with invalid external IP: ${joinRequest.nodeInfo.externalIp}`)
       }
     }
   }
@@ -1119,9 +1118,7 @@ export async function submitJoinV2(
   }
 
   if (unreachable >= 2) {
-    throw new Error(
-      `Fatal: submitJoin: our node was reported to not be reachable by 2 or more nodes ${unreachable}`
-    )
+    throw new Error(`Fatal: submitJoin: our node was reported to not be reachable by 2 or more nodes ${unreachable}`)
   }
 
   if (errs.length >= responses.length) {
@@ -1141,9 +1138,7 @@ export async function submitJoinV2(
 export async function fetchJoined(activeNodes: P2P.P2PTypes.Node[]): Promise<string> {
   const queryFn = async (node: P2P.P2PTypes.Node): Promise<{ node: P2P.NodeListTypes.Node }> => {
     const publicKey = crypto.keypair.publicKey
-    const res: { node: P2P.NodeListTypes.Node } = await http.get(
-      `${node.ip}:${node.port}/joined/${publicKey}`
-    )
+    const res: { node: P2P.NodeListTypes.Node } = await http.get(`${node.ip}:${node.port}/joined/${publicKey}`)
     return res
   }
   try {
@@ -1172,9 +1167,7 @@ export async function fetchJoined(activeNodes: P2P.P2PTypes.Node[]): Promise<str
 export async function fetchJoinedV2(
   activeNodes: P2P.P2PTypes.Node[]
 ): Promise<{ id: string | undefined; isOnStandbyList: boolean }> {
-  const queryFn = async (
-    node: P2P.P2PTypes.Node
-  ): Promise<{ id: string | undefined; isOnStandbyList: boolean }> => {
+  const queryFn = async (node: P2P.P2PTypes.Node): Promise<{ id: string | undefined; isOnStandbyList: boolean }> => {
     const publicKey = crypto.keypair.publicKey
     const res: { id: string | undefined; isOnStandbyList: boolean } = await http.get(
       `${node.ip}:${node.port}/joinedV2/${publicKey}`
@@ -1391,7 +1384,7 @@ function verifyNotIPv6(joinRequest: P2P.JoinTypes.JoinRequest): JoinRequestRespo
  *
  * If the `joinRequestVersion` is not older than the current version of the
  * node, it returns `null`.
- * 
+ *
  * Note: 'null' means the version is valid to join or that we are not checking versions.
  */
 function validateVersion(joinRequestVersion: string): JoinRequestResponse | null {
@@ -1405,7 +1398,7 @@ function validateVersion(joinRequestVersion: string): JoinRequestResponse | null
     return null
   }
 
-  let errorMessage = '' 
+  let errorMessage = ''
   switch (versionValidationResult) {
     case utils.VersionValidationResult.ComparisonFailed:
       errorMessage = `Version too old - Core: ${version}, Join Request: ${joinRequestVersion}`
@@ -1561,9 +1554,7 @@ function getSelectionKey(joinRequest: JoinRequest): Result<string, JoinRequestRe
   return ok(joinRequest.nodeInfo.publicKey)
 }
 
-export function verifyJoinRequestSignature(
-  joinRequest: P2P.JoinTypes.JoinRequest
-): JoinRequestResponse | null {
+export function verifyJoinRequestSignature(joinRequest: P2P.JoinTypes.JoinRequest): JoinRequestResponse | null {
   if (!crypto.verify(joinRequest, joinRequest.nodeInfo.publicKey)) {
     /* prettier-ignore */ if (logFlags.p2pNonFatal) warn('join bad sign ' + Utils.safeStringify(joinRequest))
     nestedCountersInstance.countEvent('p2p', `join-reject-bad-sign`)

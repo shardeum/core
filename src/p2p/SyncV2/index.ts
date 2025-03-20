@@ -51,7 +51,7 @@ export function init(): void {
  * @returns {ResultAsync<void, Error>} - A ResultAsync object. On success, it will contain void and on
  * error, it will contain an Error object. The function is asynchronous and can be awaited.
  */
-export function syncV2(activeNodes: P2P.SyncTypes.ActiveNode[], shardus:Shardus): ResultAsync<void, Error> {
+export function syncV2(activeNodes: P2P.SyncTypes.ActiveNode[], shardus: Shardus): ResultAsync<void, Error> {
   return syncValidValidatorList(activeNodes).andThen(([validatorList, validatorListHash]) =>
     syncArchiverList(activeNodes).andThen(([archiverList, archiverListHash]) =>
       syncStandbyNodeList(activeNodes).andThen((standbyNodeList) =>
@@ -97,10 +97,9 @@ export function syncV2(activeNodes: P2P.SyncTypes.ActiveNode[], shardus:Shardus)
               // add latest cycle
               CycleChain.reset()
 
-              
-              // earlyConfigFetchAndPatch() is an async call so we have to do some 
+              // earlyConfigFetchAndPatch() is an async call so we have to do some
               // funky stuff to call it in this neverthow style code:
-            
+
               info('syncV2: cycle.counter ', cycle.counter)
               info('syncV2: cycle.marker ', makeCycleMarker(cycle))
               info('syncV2: nodelist hash ', cycle.nodeListHash)
@@ -110,7 +109,7 @@ export function syncV2(activeNodes: P2P.SyncTypes.ActiveNode[], shardus:Shardus)
 
               digestCycle(cycle, 'syncV2')
 
-              info('syncV2: CycleChain.newest.counter ', CycleChain.newest.counter)  
+              info('syncV2: CycleChain.newest.counter ', CycleChain.newest.counter)
               info('syncV2: CycleChain.newest.marker ', makeCycleMarker(CycleChain.newest))
               info('syncV2: nodelist hash ', CycleChain.newest.nodeListHash)
               info('syncV2: archiverList hash ', CycleChain.newest.archiverListHash)
@@ -205,7 +204,9 @@ function syncStandbyNodeList(activeNodes: P2P.SyncTypes.ActiveNode[]): ResultAsy
   })
 }
 
-function syncTxList(activeNodes: P2P.SyncTypes.ActiveNode[]): ResultAsync<{ hash: string; tx: P2P.ServiceQueueTypes.AddNetworkTx }[], Error> {
+function syncTxList(
+  activeNodes: P2P.SyncTypes.ActiveNode[]
+): ResultAsync<{ hash: string; tx: P2P.ServiceQueueTypes.AddNetworkTx }[], Error> {
   return robustQueryForTxListHash(activeNodes).andThen(({ value, winningNodes }) =>
     getTxListFromNode(winningNodes[0], value.txListHash).andThen((txList) =>
       verifyTxList(txList, value.txListHash).map(() => txList)

@@ -7,11 +7,7 @@ export type getTxTimestampReq = { txId: string; cycleCounter: number; cycleMarke
 
 export const cGetTxTimestampReqVersion = 1
 
-export function serializeGetTxTimestampReq(
-  stream: VectorBufferStream,
-  obj: getTxTimestampReq,
-  root = false
-): void {
+export function serializeGetTxTimestampReq(stream: VectorBufferStream, obj: getTxTimestampReq, root = false): void {
   const errors = verifyPayload(AJVSchemaEnum.GetTxTimestampReq, obj)
   if (errors && errors.length > 0) {
     throw new Error('Data validation error')

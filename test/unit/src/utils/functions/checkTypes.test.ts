@@ -205,4 +205,4 @@ describe('isNumeric', () => {
   it('should return false for string with number and text', () => {
     expect(isNumeric('123abc')).toBe(false)
   })
-}) 
+})

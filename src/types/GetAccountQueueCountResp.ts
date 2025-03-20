@@ -62,9 +62,7 @@ export function deserializeGetAccountQueueCountResp(stream: VectorBufferStream):
     const committingAppDataLength = stream.readUInt16()
     const committingAppData = []
     for (let i = 0; i < committingAppDataLength; i++) {
-      committingAppData.push(
-        stateManager.app.binaryDeserializeObject(AppObjEnum.AppData, stream.readBuffer())
-      )
+      committingAppData.push(stateManager.app.binaryDeserializeObject(AppObjEnum.AppData, stream.readBuffer()))
     }
     const accountsLength = stream.readUInt16()
     const accounts = []

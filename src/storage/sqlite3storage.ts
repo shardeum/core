@@ -177,9 +177,7 @@ class Sqlite3Storage {
       if (config.p2p.startInWitnessMode) {
         throw new Error('Unable to start in witness mode: no old data')
       } else {
-        this.mainLogger.error(
-          'error moving/removing directory db.. ' + e.name + ': ' + e.message + ' at ' + e.stack
-        )
+        this.mainLogger.error('error moving/removing directory db.. ' + e.name + ': ' + e.message + ' at ' + e.stack)
       }
     }
     try {
@@ -346,12 +344,7 @@ class Sqlite3Storage {
     }
   }
 
-  _update(
-    table: ModelData,
-    values: GenericObject,
-    where: GenericObject,
-    opts: OperationOptions
-  ): Promise<unknown> {
+  _update(table: ModelData, values: GenericObject, where: GenericObject, opts: OperationOptions): Promise<unknown> {
     try {
       this.profiler.profileSectionStart('db')
       // return table.update(values, { where, ...opts })

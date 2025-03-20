@@ -55,8 +55,7 @@ class Crypto {
         return
       }
     } catch (e) {
-      if (logFlags.error)
-        this.mainLogger.error(`error fetching keypair from database ${Utils.safeStringify(e)}`)
+      if (logFlags.error) this.mainLogger.error(`error fetching keypair from database ${Utils.safeStringify(e)}`)
     }
 
     if (this.config.crypto.keyPairConfig.useKeyPairFromFile) {
@@ -157,10 +156,7 @@ class Crypto {
    * @param recipientCurvePk
    * @returns
    */
-  tagWithSize<T>(
-    obj: T,
-    recipientCurvePk: crypto.curvePublicKey
-  ): T & { msgSize: number } & crypto.TaggedObject {
+  tagWithSize<T>(obj: T, recipientCurvePk: crypto.curvePublicKey): T & { msgSize: number } & crypto.TaggedObject {
     const strEncoded = Utils.safeStringify(obj)
     const msgSize = strEncoded.length //get the message size
     const objCopy = Utils.safeJsonParse(strEncoded)

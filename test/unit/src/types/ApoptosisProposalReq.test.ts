@@ -89,9 +89,7 @@ describe('ApoptosisProposalReq Deserialization', () => {
     buffer[0] = cApoptosisProposalReqVersion + 1
 
     const alteredStream = VectorBufferStream.fromBuffer(buffer)
-    expect(() => deserializeApoptosisProposalReq(alteredStream)).toThrow(
-      'ApoptosisProposalReq version mismatch'
-    )
+    expect(() => deserializeApoptosisProposalReq(alteredStream)).toThrow('ApoptosisProposalReq version mismatch')
   })
 
   test('should deserialize empty string', () => {

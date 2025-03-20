@@ -7,7 +7,7 @@ import {
   sortHashAsc,
   sortTimestampAsc,
   sortAscProp,
-  sortDecProp
+  sortDecProp,
 } from '../../../../../src/utils/functions/sortingCompareFunctions'
 
 describe('sortingCompareFunctions', () => {
@@ -34,26 +34,26 @@ describe('sortingCompareFunctions', () => {
       // Empty strings
       expect(sortAsc('', 'a')).toBe(Ordering.Less)
       expect(sortAsc('a', '')).toBe(Ordering.Greater)
-      
+
       // Zero and negative numbers
       expect(sortAsc(0, 1)).toBe(Ordering.Less)
       expect(sortAsc(-1, 0)).toBe(Ordering.Less)
       expect(sortAsc(-1, -2)).toBe(Ordering.Greater)
-      
+
       // Special numeric values
       expect(sortAsc(Infinity, 5)).toBe(Ordering.Greater)
       expect(sortAsc(5, Infinity)).toBe(Ordering.Less)
     })
-    
+
     it('should handle null and undefined values according to JavaScript comparison rules', () => {
       // null is less than any number in JS comparison
       expect(sortAsc(null, 5)).toBe(Ordering.Less)
       expect(sortAsc(5, null)).toBe(Ordering.Greater)
-      
+
       // undefined compared with numbers
       expect(sortAsc(undefined, 5)).toBe(Ordering.Greater)
       expect(sortAsc(5, undefined)).toBe(Ordering.Greater)
-      
+
       // null vs undefined
       expect(sortAsc(null, undefined)).toBe(Ordering.Greater) // Actual behavior: null < undefined is false, so it returns 1
       expect(sortAsc(undefined, null)).toBe(Ordering.Greater)
@@ -83,26 +83,26 @@ describe('sortingCompareFunctions', () => {
       // Empty strings
       expect(sortDec('', 'a')).toBe(Ordering.Greater)
       expect(sortDec('a', '')).toBe(Ordering.Less)
-      
+
       // Zero and negative numbers
       expect(sortDec(0, 1)).toBe(Ordering.Greater)
       expect(sortDec(-1, 0)).toBe(Ordering.Greater)
       expect(sortDec(-1, -2)).toBe(Ordering.Less)
-      
+
       // Special numeric values
       expect(sortDec(Infinity, 5)).toBe(Ordering.Less)
       expect(sortDec(5, Infinity)).toBe(Ordering.Greater)
     })
-    
+
     it('should handle null and undefined values according to JavaScript comparison rules', () => {
       // null is less than any number in JS comparison, but for descending order it's reversed
       expect(sortDec(null, 5)).toBe(Ordering.Greater)
       expect(sortDec(5, null)).toBe(Ordering.Less)
-      
+
       // undefined compared with numbers
       expect(sortDec(undefined, 5)).toBe(Ordering.Greater)
       expect(sortDec(5, undefined)).toBe(Ordering.Greater)
-      
+
       // null vs undefined
       expect(sortDec(null, undefined)).toBe(Ordering.Greater)
       expect(sortDec(undefined, null)).toBe(Ordering.Greater) // Actual behavior: undefined > null is false, so it returns 1
@@ -132,26 +132,26 @@ describe('sortingCompareFunctions', () => {
       // Empty strings
       expect(sort_i_Asc({ i: '' }, { i: 'a' })).toBe(Ordering.Less)
       expect(sort_i_Asc({ i: 'a' }, { i: '' })).toBe(Ordering.Greater)
-      
+
       // Zero and negative numbers
       expect(sort_i_Asc({ i: 0 }, { i: 1 })).toBe(Ordering.Less)
       expect(sort_i_Asc({ i: -1 }, { i: 0 })).toBe(Ordering.Less)
       expect(sort_i_Asc({ i: -1 }, { i: -2 })).toBe(Ordering.Greater)
-      
+
       // Special numeric values
       expect(sort_i_Asc({ i: Infinity }, { i: 5 })).toBe(Ordering.Greater)
       expect(sort_i_Asc({ i: 5 }, { i: Infinity })).toBe(Ordering.Less)
     })
-    
+
     it('should handle null and undefined i values according to JavaScript comparison rules', () => {
       // null is less than any number in JS comparison
       expect(sort_i_Asc({ i: null }, { i: 5 })).toBe(Ordering.Less)
       expect(sort_i_Asc({ i: 5 }, { i: null })).toBe(Ordering.Greater)
-      
+
       // undefined compared with numbers
       expect(sort_i_Asc({ i: undefined }, { i: 5 })).toBe(Ordering.Greater)
       expect(sort_i_Asc({ i: 5 }, { i: undefined })).toBe(Ordering.Greater)
-      
+
       // null vs undefined
       expect(sort_i_Asc({ i: null }, { i: undefined })).toBe(Ordering.Greater)
       expect(sort_i_Asc({ i: undefined }, { i: null })).toBe(Ordering.Greater)
@@ -188,26 +188,26 @@ describe('sortingCompareFunctions', () => {
       // Empty strings
       expect(sort_id_Asc({ id: '' }, { id: 'a' })).toBe(Ordering.Less)
       expect(sort_id_Asc({ id: 'a' }, { id: '' })).toBe(Ordering.Greater)
-      
+
       // Zero and negative numbers
       expect(sort_id_Asc({ id: 0 }, { id: 1 })).toBe(Ordering.Less)
       expect(sort_id_Asc({ id: -1 }, { id: 0 })).toBe(Ordering.Less)
       expect(sort_id_Asc({ id: -1 }, { id: -2 })).toBe(Ordering.Greater)
-      
+
       // Special numeric values
       expect(sort_id_Asc({ id: Infinity }, { id: 5 })).toBe(Ordering.Greater)
       expect(sort_id_Asc({ id: 5 }, { id: Infinity })).toBe(Ordering.Less)
     })
-    
+
     it('should handle null and undefined id values according to JavaScript comparison rules', () => {
       // null is less than any number in JS comparison
       expect(sort_id_Asc({ id: null }, { id: 5 })).toBe(Ordering.Less)
       expect(sort_id_Asc({ id: 5 }, { id: null })).toBe(Ordering.Greater)
-      
+
       // undefined compared with numbers
       expect(sort_id_Asc({ id: undefined }, { id: 5 })).toBe(Ordering.Greater)
       expect(sort_id_Asc({ id: 5 }, { id: undefined })).toBe(Ordering.Greater)
-      
+
       // null vs undefined
       expect(sort_id_Asc({ id: null }, { id: undefined })).toBe(Ordering.Greater)
       expect(sort_id_Asc({ id: undefined }, { id: null })).toBe(Ordering.Greater)
@@ -244,22 +244,22 @@ describe('sortingCompareFunctions', () => {
       // Empty strings
       expect(sortHashAsc({ hash: '' }, { hash: 'a' })).toBe(Ordering.Less)
       expect(sortHashAsc({ hash: 'a' }, { hash: '' })).toBe(Ordering.Greater)
-      
+
       // Zero and negative numbers
       expect(sortHashAsc({ hash: 0 }, { hash: 1 })).toBe(Ordering.Less)
       expect(sortHashAsc({ hash: -1 }, { hash: 0 })).toBe(Ordering.Less)
       expect(sortHashAsc({ hash: -1 }, { hash: -2 })).toBe(Ordering.Greater)
     })
-    
+
     it('should handle null and undefined hash values according to JavaScript comparison rules', () => {
       // null is less than any number in JS comparison
       expect(sortHashAsc({ hash: null }, { hash: '0x123' })).toBe(Ordering.Less)
       expect(sortHashAsc({ hash: '0x123' }, { hash: null })).toBe(Ordering.Greater)
-      
+
       // undefined compared with strings
       expect(sortHashAsc({ hash: undefined }, { hash: '0x123' })).toBe(Ordering.Greater)
       expect(sortHashAsc({ hash: '0x123' }, { hash: undefined })).toBe(Ordering.Greater)
-      
+
       // null vs undefined
       expect(sortHashAsc({ hash: null }, { hash: undefined })).toBe(Ordering.Greater)
       expect(sortHashAsc({ hash: undefined }, { hash: null })).toBe(Ordering.Greater)
@@ -297,21 +297,21 @@ describe('sortingCompareFunctions', () => {
       expect(sortTimestampAsc({ timestamp: 0 }, { timestamp: 1 })).toBe(Ordering.Less)
       expect(sortTimestampAsc({ timestamp: -1 }, { timestamp: 0 })).toBe(Ordering.Less)
       expect(sortTimestampAsc({ timestamp: -1 }, { timestamp: -2 })).toBe(Ordering.Greater)
-      
+
       // Special numeric values
       expect(sortTimestampAsc({ timestamp: Infinity }, { timestamp: 1625097600000 })).toBe(Ordering.Greater)
       expect(sortTimestampAsc({ timestamp: 1625097600000 }, { timestamp: Infinity })).toBe(Ordering.Less)
     })
-    
+
     it('should handle null and undefined timestamp values according to JavaScript comparison rules', () => {
       // null is less than any number in JS comparison
       expect(sortTimestampAsc({ timestamp: null }, { timestamp: 1625097600000 })).toBe(Ordering.Less)
       expect(sortTimestampAsc({ timestamp: 1625097600000 }, { timestamp: null })).toBe(Ordering.Greater)
-      
+
       // undefined compared with numbers
       expect(sortTimestampAsc({ timestamp: undefined }, { timestamp: 1625097600000 })).toBe(Ordering.Greater)
       expect(sortTimestampAsc({ timestamp: 1625097600000 }, { timestamp: undefined })).toBe(Ordering.Greater)
-      
+
       // null vs undefined
       expect(sortTimestampAsc({ timestamp: null }, { timestamp: undefined })).toBe(Ordering.Greater)
       expect(sortTimestampAsc({ timestamp: undefined }, { timestamp: null })).toBe(Ordering.Greater)
@@ -348,26 +348,26 @@ describe('sortingCompareFunctions', () => {
       // Empty strings
       expect(sortAscProp({ name: '' }, { name: 'a' }, 'name')).toBe(Ordering.Less)
       expect(sortAscProp({ name: 'a' }, { name: '' }, 'name')).toBe(Ordering.Greater)
-      
+
       // Zero and negative numbers
       expect(sortAscProp({ value: 0 }, { value: 1 }, 'value')).toBe(Ordering.Less)
       expect(sortAscProp({ value: -1 }, { value: 0 }, 'value')).toBe(Ordering.Less)
       expect(sortAscProp({ value: -1 }, { value: -2 }, 'value')).toBe(Ordering.Greater)
-      
+
       // Special numeric values
       expect(sortAscProp({ value: Infinity }, { value: 5 }, 'value')).toBe(Ordering.Greater)
       expect(sortAscProp({ value: 5 }, { value: Infinity }, 'value')).toBe(Ordering.Less)
     })
-    
+
     it('should handle null and undefined property values according to JavaScript comparison rules', () => {
       // null is less than any number in JS comparison
       expect(sortAscProp({ value: null }, { value: 5 }, 'value')).toBe(Ordering.Less)
       expect(sortAscProp({ value: 5 }, { value: null }, 'value')).toBe(Ordering.Greater)
-      
+
       // undefined compared with numbers
       expect(sortAscProp({ value: undefined }, { value: 5 }, 'value')).toBe(Ordering.Greater)
       expect(sortAscProp({ value: 5 }, { value: undefined }, 'value')).toBe(Ordering.Greater)
-      
+
       // null vs undefined
       expect(sortAscProp({ value: null }, { value: undefined }, 'value')).toBe(Ordering.Greater)
       expect(sortAscProp({ value: undefined }, { value: null }, 'value')).toBe(Ordering.Greater)
@@ -383,7 +383,7 @@ describe('sortingCompareFunctions', () => {
     it('should work with different property names', () => {
       const obj1 = { name: 'Alice', age: 30, active: true }
       const obj2 = { name: 'Bob', age: 25, active: false }
-      
+
       expect(sortAscProp(obj1, obj2, 'name')).toBe(Ordering.Less) // 'Alice' < 'Bob'
       expect(sortAscProp(obj1, obj2, 'age')).toBe(Ordering.Greater) // 30 > 25
       expect(sortAscProp(obj1, obj2, 'active')).toBe(Ordering.Greater) // true > false
@@ -413,26 +413,26 @@ describe('sortingCompareFunctions', () => {
       // Empty strings
       expect(sortDecProp({ name: '' }, { name: 'a' }, 'name')).toBe(Ordering.Greater)
       expect(sortDecProp({ name: 'a' }, { name: '' }, 'name')).toBe(Ordering.Less)
-      
+
       // Zero and negative numbers
       expect(sortDecProp({ value: 0 }, { value: 1 }, 'value')).toBe(Ordering.Greater)
       expect(sortDecProp({ value: -1 }, { value: 0 }, 'value')).toBe(Ordering.Greater)
       expect(sortDecProp({ value: -1 }, { value: -2 }, 'value')).toBe(Ordering.Less)
-      
+
       // Special numeric values
       expect(sortDecProp({ value: Infinity }, { value: 5 }, 'value')).toBe(Ordering.Less)
       expect(sortDecProp({ value: 5 }, { value: Infinity }, 'value')).toBe(Ordering.Greater)
     })
-    
+
     it('should handle null and undefined property values according to JavaScript comparison rules', () => {
       // null is less than any number in JS comparison, but for descending order it's reversed
       expect(sortDecProp({ value: null }, { value: 5 }, 'value')).toBe(Ordering.Greater)
       expect(sortDecProp({ value: 5 }, { value: null }, 'value')).toBe(Ordering.Less)
-      
+
       // undefined compared with numbers
       expect(sortDecProp({ value: undefined }, { value: 5 }, 'value')).toBe(Ordering.Greater)
       expect(sortDecProp({ value: 5 }, { value: undefined }, 'value')).toBe(Ordering.Greater)
-      
+
       // null vs undefined
       expect(sortDecProp({ value: null }, { value: undefined }, 'value')).toBe(Ordering.Greater)
       expect(sortDecProp({ value: undefined }, { value: null }, 'value')).toBe(Ordering.Greater)
@@ -448,10 +448,10 @@ describe('sortingCompareFunctions', () => {
     it('should work with different property names', () => {
       const obj1 = { name: 'Alice', age: 30, active: true }
       const obj2 = { name: 'Bob', age: 25, active: false }
-      
+
       expect(sortDecProp(obj1, obj2, 'name')).toBe(Ordering.Greater) // 'Alice' < 'Bob', but descending
       expect(sortDecProp(obj1, obj2, 'age')).toBe(Ordering.Less) // 30 > 25, so descending is -1
       expect(sortDecProp(obj1, obj2, 'active')).toBe(Ordering.Less) // true > false, so descending is -1
     })
   })
-}) 
+})

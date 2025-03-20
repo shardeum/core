@@ -22,9 +22,7 @@ export function serializeWrappedDataFromQueue(
   stream.writeUInt8(obj.seenInQueue ? 1 : 0)
 }
 
-export function deserializeWrappedDataFromQueue(
-  stream: VectorBufferStream
-): WrappedDataFromQueueSerializable {
+export function deserializeWrappedDataFromQueue(stream: VectorBufferStream): WrappedDataFromQueueSerializable {
   const version = stream.readUInt8()
   if (version > cWrappedDataFromQueueBinaryVersion) {
     throw new Error('WrappedDataFromQueue version mismatch')

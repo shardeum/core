@@ -103,8 +103,7 @@ export default class FastRandomIterator {
     }
 
     // FastSimple and Simple methods start here
-    const randomFetchIndex =
-      Math.floor(Math.random() * (this.arraySize - this.iteratorIndex)) + this.iteratorIndex
+    const randomFetchIndex = Math.floor(Math.random() * (this.arraySize - this.iteratorIndex)) + this.iteratorIndex
     //The simple fast algorithm
     if (this.indexList != null) {
       nextIndex = this.indexList[randomFetchIndex]

@@ -1,8 +1,13 @@
-import { isNodeProblematic, getConsecutiveRefutes, getRefutePercentage, getProblematicNodes } from '../../../../src/p2p/ProblemNodeHandler'
+import {
+  isNodeProblematic,
+  getConsecutiveRefutes,
+  getRefutePercentage,
+  getProblematicNodes,
+} from '../../../../src/p2p/ProblemNodeHandler'
 import { P2P } from '@shardeum-foundation/lib-types'
 import * as NodeList from '../../../../src/p2p/NodeList'
 import * as Context from '../../../../src/p2p/Context'
-import { Node } from '@shardeum-foundation/lib-types/build/src/p2p/NodeListTypes';
+import { Node } from '@shardeum-foundation/lib-types/build/src/p2p/NodeListTypes'
 // Mock NodeList module
 jest.mock('../../../../src/p2p/NodeList', () => ({
   activeByIdOrder: [],
@@ -16,8 +21,8 @@ jest.mock('../../../../src/p2p/Context', () => ({
       problematicNodeConsecutiveRefuteThreshold: 3,
       problematicNodeRefutePercentageThreshold: 0.1,
       problematicNodeHistoryLength: 100,
-    }
-  }
+    },
+  },
 }))
 
 const baseMockNode = {
@@ -40,7 +45,7 @@ const baseMockNode = {
   joinRequestTimestamp: Date.now(),
   activeCycle: 0,
   syncingTimestamp: Date.now(),
-  readyTimestamp: Date.now()
+  readyTimestamp: Date.now(),
 }
 
 describe('ProblemNodeHandler', () => {
@@ -48,9 +53,9 @@ describe('ProblemNodeHandler', () => {
 
   beforeEach(() => {
     // Reset config values before each test
-    (Context.config as any).p2p.problematicNodeConsecutiveRefuteThreshold = 3;
-    (Context.config as any).p2p.problematicNodeRefutePercentageThreshold = 0.1;
-    (Context.config as any).p2p.problematicNodeHistoryLength = 100;
+    ;(Context.config as any).p2p.problematicNodeConsecutiveRefuteThreshold = 3
+    ;(Context.config as any).p2p.problematicNodeRefutePercentageThreshold = 0.1
+    ;(Context.config as any).p2p.problematicNodeHistoryLength = 100
 
     // Create a mock node for testing
     mockNode = {
@@ -65,7 +70,7 @@ describe('ProblemNodeHandler', () => {
 
   describe('isNodeProblematic', () => {
     it('should return false if node has no refuteCycles', () => {
-      (mockNode.refuteCycles as any) = undefined
+      ;(mockNode.refuteCycles as any) = undefined
       expect(isNodeProblematic(mockNode, 1)).toBe(false)
     })
 
@@ -188,7 +193,7 @@ describe('ProblemNodeHandler', () => {
         active: 0,
         start: Date.now(),
         mode: 'processing',
-        desired: 100
+        desired: 100,
       } as any
     })
 
@@ -287,4 +292,4 @@ describe('ProblemNodeHandler', () => {
       expect(result).not.toContain('node1')
     })
   })
-}) 
+})

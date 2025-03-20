@@ -319,8 +319,7 @@ export async function robustQuery<Node = unknown, Response = unknown>(
       const node = nodes[i]
       queries.push(wrappedQuery(node))
     }
-    if (logFlags.profiling_verbose)
-      profilerInstance.scopedProfileSectionStart(`robustQuery ${note} queryNodes`)
+    if (logFlags.profiling_verbose) profilerInstance.scopedProfileSectionStart(`robustQuery ${note} queryNodes`)
     const [results, errs] = await utils.robustPromiseAll<{ response: Response; node: Node }>(queries)
     if (logFlags.profiling_verbose) profilerInstance.scopedProfileSectionEnd(`robustQuery ${note} queryNodes`)
 
@@ -348,8 +347,7 @@ export async function robustQuery<Node = unknown, Response = unknown>(
     }
 
     for (const err of errs) {
-      if (logFlags.console || config.debug.robustQueryDebug || extraDebugging)
-        console.log('robustQuery: err:', err)
+      if (logFlags.console || config.debug.robustQueryDebug || extraDebugging) console.log('robustQuery: err:', err)
       errors += 1
       if (extraDebugging) nestedCountersInstance.countEvent('robustQuery', `${note} error: ${err.message}`)
     }
@@ -369,10 +367,7 @@ export async function robustQuery<Node = unknown, Response = unknown>(
     if (nodes.length < toQuery) {
       /* prettier-ignore */ if (logFlags.console || config.debug.robustQueryDebug || extraDebugging) console.log(`robustQuery: ${note} stopping since we ran out of nodes to query.`)
       if (extraDebugging)
-        nestedCountersInstance.countEvent(
-          'robustQuery',
-          `${note} stopping since we ran out of nodes to query.`
-        )
+        nestedCountersInstance.countEvent('robustQuery', `${note} stopping since we ran out of nodes to query.`)
       break
     }
     let nodesToQuery: Node[]
@@ -420,14 +415,11 @@ export async function robustQuery<Node = unknown, Response = unknown>(
     const highestCountItem = responses.getHighestCountItem()
     if (highestCountItem === null) {
       if (config.debug.robustQueryDebug || extraDebugging) {
-        console.log(
-          `isRobustResult=false. highestCountItem=null robust tally dump: ${stringifyReduce(responses)}`
-        )
+        console.log(`isRobustResult=false. highestCountItem=null robust tally dump: ${stringifyReduce(responses)}`)
       }
       //if there was no highestCountItem then we had no responses at all
       /* prettier-ignore */ if (logFlags.console || config.debug.robustQueryDebug || extraDebugging) console.log('robustQuery: isRobustResult=false. no responses at all')
-      if (extraDebugging)
-        nestedCountersInstance.countEvent('robustQuery', `isRobustResult=false. no responses at all`)
+      if (extraDebugging) nestedCountersInstance.countEvent('robustQuery', `isRobustResult=false. no responses at all`)
       return { topResult: null, winningNodes: [], isRobustResult: false }
     }
     //this isRobustResult should always be false if we get to this code.
@@ -571,19 +563,13 @@ export async function getActiveNodesFromArchiver(
     10000
   ).mapErr((e) => {
     // transform the error if we get one
-    nestedCountersInstance.countRareEvent(
-      'archiver_nodelist',
-      'Could not get seed list from seed node server 2 '
-    )
+    nestedCountersInstance.countRareEvent('archiver_nodelist', 'Could not get seed list from seed node server 2 ')
     const nodeListUrl = `http://${archiver.ip}:${archiver.port}/nodelist`
     return Error(`Could not get seed list from seed node server 2 ${nodeListUrl}: ` + e.message)
   })
 }
 
-function isNodeRecentlyRotatedIn(
-  idx: number,
-  numActiveNodes: number
-): boolean {
+function isNodeRecentlyRotatedIn(idx: number, numActiveNodes: number): boolean {
   return (
     numActiveNodes >= 10 + config.p2p.rotationEdgeToAvoid &&
     config.p2p.rotationEdgeToAvoid &&
@@ -591,10 +577,7 @@ function isNodeRecentlyRotatedIn(
   )
 }
 
-function isNodeNearRotatingOut(
-  idx: number,
-  numActiveNodes: number
-): boolean {
+function isNodeNearRotatingOut(idx: number, numActiveNodes: number): boolean {
   return (
     numActiveNodes >= 10 + config.p2p.rotationEdgeToAvoid &&
     config.p2p.rotationEdgeToAvoid &&

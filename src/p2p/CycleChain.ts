@@ -56,23 +56,20 @@ export function prepend(cycle: P2P.CycleCreatorTypes.CycleRecord) {
     oldest = cycle
 
     // this will happen only once in the lifetime of a node. we never set newest to null
-    if (newest == null){
+    if (newest == null) {
       newest = cycle
     }
 
     // if our cycle is newer than the newest lets update newest and current cycle marker
     // this should only be happening before we have started digesting cycles.
     // but this check will make the actions correct.
-    if(cycle.counter > newest.counter){
+    if (cycle.counter > newest.counter) {
       newest = cycle
       currentCycleMarker = marker
     }
   }
 }
-export function validate(
-  prev: P2P.CycleCreatorTypes.CycleRecord,
-  next: P2P.CycleCreatorTypes.CycleRecord
-): boolean {
+export function validate(prev: P2P.CycleCreatorTypes.CycleRecord, next: P2P.CycleCreatorTypes.CycleRecord): boolean {
   const prevMarker = computeCycleMarker(prev)
 
   info('validate: prevMarker', prevMarker)
@@ -123,7 +120,7 @@ export function getStoredCycleByTimestamp(timestamp) {
       return cycle
     }
   }
-  if(cycles.length > 0 && timestamp === cycles[0].start){
+  if (cycles.length > 0 && timestamp === cycles[0].start) {
     nestedCountersInstance.countEvent('getCycleNumberFromTimestamp', `getStoredCycleByTimestamp edge case 0`)
     return cycles[0]
   }
@@ -156,10 +153,7 @@ export function getCycleNumberFromTimestamp(
   }
 
   //currentCycleShardData
-  if (
-    currentCycleShardData.timestamp < offsetTimestamp &&
-    offsetTimestamp <= currentCycleShardData.timestampEndCycle
-  ) {
+  if (currentCycleShardData.timestamp < offsetTimestamp && offsetTimestamp <= currentCycleShardData.timestampEndCycle) {
     if (currentCycleShardData.cycleNumber == null) {
       /* prettier-ignore */ stateManager.statemanager_fatal('getCycleNumberFromTimestamp failed. cycleNumber == null', 'currentCycleShardData.cycleNumber == null')
       /* prettier-ignore */ nestedCountersInstance.countEvent('getCycleNumberFromTimestamp', 'currentCycleShardData.cycleNumber fail')
@@ -177,7 +171,7 @@ export function getCycleNumberFromTimestamp(
       }
     } else {
       nestedCountersInstance.countEvent('getCycleNumberFromTimestamp', `current cycle`)
-      if(currentCycleShardData.timestamp === offsetTimestamp){
+      if (currentCycleShardData.timestamp === offsetTimestamp) {
         nestedCountersInstance.countEvent('getCycleNumberFromTimestamp', `exact curent upper boundary`)
       }
       return currentCycleShardData.cycleNumber
@@ -193,11 +187,11 @@ export function getCycleNumberFromTimestamp(
   if (offsetTimestamp > currentCycleShardData.timestampEndCycle) {
     let cycle: P2P.CycleCreatorTypes.CycleRecord = getNewest()
     let timePastCurrentCycle = offsetTimestamp - currentCycleShardData.timestampEndCycle
-    
+
     const cyclesAheadNotAdjusted = timePastCurrentCycle / (cycle.duration * 1000)
-    let cyclesAhead = Math.ceil(cyclesAheadNotAdjusted) 
+    let cyclesAhead = Math.ceil(cyclesAheadNotAdjusted)
     //If we land on an exact boundary this would have been broken under past logic
-    if(cyclesAhead === cyclesAheadNotAdjusted){
+    if (cyclesAhead === cyclesAheadNotAdjusted) {
       nestedCountersInstance.countEvent('getCycleNumberFromTimestamp', `exact future boundary`)
     }
 
@@ -283,9 +277,7 @@ export function getDebug() {
     const lost = record.lost.map((id) => (idToIpPort[id] ? idToIpPort[id] : 'x' + id.slice(0, 3)))
     const refu = record.refuted.map((id) => (idToIpPort[id] ? idToIpPort[id] : 'x' + id.slice(0, 3)))
     const apopd = record.apoptosized.map((id) => (idToIpPort[id] ? idToIpPort[id] : 'x' + id.slice(0, 3)))
-    const rfshd = record.refreshedConsensors.map(
-      (c) => `${c.externalIp}:${c.externalPort}-${c.counterRefreshed}`
-    )
+    const rfshd = record.refreshedConsensors.map((c) => `${c.externalIp}:${c.externalPort}-${c.counterRefreshed}`)
 
     const str = `      ${ctr}:${prev}:${rhash} { actv:${actv}, exp:${exp}, desr:${desr}, joind:[${joind.join()}], actvd:[${actvd.join()}], lost:[${lost.join()}] refu:[${refu.join()}] apop:[${apopd.join()}] rmvd:[${
       record.removed[0] !== 'all' ? rmvd.join() : rmvd

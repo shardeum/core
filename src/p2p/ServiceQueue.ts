@@ -208,7 +208,10 @@ const debugDropNGTGossipRoute: P2P.P2PTypes.GossipHandler<any> = async (payload,
   const verificationResult = verifyDebugDropNGT(payload, cycle)
   if (verificationResult.success === false) {
     if (logFlags.important_as_error) console.log(`debug-drop-ngt - ${verificationResult.message}`)
-    nestedCountersInstance.countEvent('serviceQueue', `debug-drop-ngt - verification of debug drop NGT payload failed: ${verificationResult.message}`)
+    nestedCountersInstance.countEvent(
+      'serviceQueue',
+      `debug-drop-ngt - verification of debug drop NGT payload failed: ${verificationResult.message}`
+    )
     return
   }
   const unsignedRemoveNetworkTx = {
@@ -303,12 +306,12 @@ export function init(): void {
   })
 
   network.registerExternalGet('debug-network-txcount', isDebugModeMiddleware, (req, res) => {
-    const copy = txList.map(entry => ({
+    const copy = txList.map((entry) => ({
       ...entry,
-      count: tryCounts.get(entry.hash) || 0
-    }));
-    res.send({ status: 'ok', tryCounts: copy });
-  });
+      count: tryCounts.get(entry.hash) || 0,
+    }))
+    res.send({ status: 'ok', tryCounts: copy })
+  })
 }
 
 export function reset(): void {
@@ -508,7 +511,7 @@ export function sendRequests(): void {
   for (const dropNGTInfo of debugDropNGTs) {
     const unsignedRemoveNetworkTx = {
       txHash: dropNGTInfo.txHash,
-      cycle: dropNGTInfo.cycle
+      cycle: dropNGTInfo.cycle,
     }
     txRemove.push(unsignedRemoveNetworkTx)
 
@@ -585,9 +588,7 @@ export async function addNetworkTx(
   }
 }
 
-export function getLatestNetworkTxEntryForSubqueueKey(
-  subqueueKey: string
-): P2P.ServiceQueueTypes.NetworkTxEntry {
+export function getLatestNetworkTxEntryForSubqueueKey(subqueueKey: string): P2P.ServiceQueueTypes.NetworkTxEntry {
   for (let i = txList.length - 1; i >= 0; i--) {
     if (txList[i].tx.subQueueKey === subqueueKey) {
       return txList[i]
@@ -616,8 +617,7 @@ async function _addNetworkTx(addTx: P2P.ServiceQueueTypes.AddNetworkTx): Promise
     const txHashBuffer = Buffer.from(addTx.hash)
 
     // Compare lengths first to avoid timing attacks
-    if (hashBuffer.length !== txHashBuffer.length
-      || !timingSafeEqual(Buffer.from(addTx.hash), Buffer.from(hash))) {
+    if (hashBuffer.length !== txHashBuffer.length || !timingSafeEqual(Buffer.from(addTx.hash), Buffer.from(hash))) {
       /* prettier-ignore */ if (logFlags.p2pNonFatal) warn('Hash mismatch', addTx.hash, hash)
       return false
     }
@@ -784,9 +784,7 @@ export async function syncTxListFromArchiver(): Promise<void> {
     txList = txListResult.value
     info('first nodes successfully synced tx list from archiver in restart mode')
   } else {
-    throw Error(
-      'Fatal: Hash of tx list from archiver does not match hash of latest tx list from cycle record'
-    )
+    throw Error('Fatal: Hash of tx list from archiver does not match hash of latest tx list from cycle record')
   }
 }
 
@@ -886,21 +884,21 @@ function verifyDebugDropNGT(reqParamsDropNGT, cycle): { success: boolean; messag
         return {
           success: true,
           message: 'Signature is correct and signer is authorized',
-          cycle: hashIncluded.cycleCounter
+          cycle: hashIncluded.cycleCounter,
         }
       } else {
         /* prettier-ignore */ if (logFlags.verbose) console.log('Authorization failed for security level HIGH')
         /* prettier-ignore */ nestedCountersInstance.countEvent('security', 'Authorization failed for security level HIGH')
         return {
           success: false,
-          message: 'Authorization failed for security level HIGH'
+          message: 'Authorization failed for security level HIGH',
         }
       }
     } else {
       /* prettier-ignore */ if (logFlags.verbose) console.log('Signature verification failed')
       return {
         success: false,
-        message: 'Signature verification failed'
+        message: 'Signature verification failed',
       }
     }
   }
@@ -935,21 +933,21 @@ function verifyDebugDropNGT(reqParamsDropNGT, cycle): { success: boolean; messag
         reqParamsDropNGT.owner = ownerPk
         return {
           success: true,
-          message: 'Signature is correct and signer is authorized'
+          message: 'Signature is correct and signer is authorized',
         }
       } else {
         /* prettier-ignore */ if (logFlags.verbose) console.log('Authorization failed for security level HIGH')
         /* prettier-ignore */ nestedCountersInstance.countEvent('security', 'Authorization failed for security level HIGH')
         return {
           success: false,
-          message: 'Authorization failed for security level HIGH'
+          message: 'Authorization failed for security level HIGH',
         }
       }
     } else {
       /* prettier-ignore */ if (logFlags.verbose) console.log('Signature verification failed')
       return {
         success: false,
-        message: 'Signature verification failed'
+        message: 'Signature verification failed',
       }
     }
   }

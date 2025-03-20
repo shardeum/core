@@ -36,12 +36,9 @@ describe('GetTxTimestampReq Tests', () => {
         },
       ]
 
-      test.each(incompleteObjects)(
-        'should throw error if field is missing during serialization',
-        ({ data }) => {
-          expect(() => serializeGetTxTimestampReq(stream, data)).toThrow('Data validation error')
-        }
-      )
+      test.each(incompleteObjects)('should throw error if field is missing during serialization', ({ data }) => {
+        expect(() => serializeGetTxTimestampReq(stream, data)).toThrow('Data validation error')
+      })
     })
 
     it('should serialize correctly with root flag false', () => {

@@ -10,10 +10,12 @@ export function getCorrespondingNodes(
   receiverGroupSize: number,
   sendGroupSize: number,
   transactionGroupSize: number,
-  note =  ''
+  note = ''
 ): number[] {
   if (logFlags.verbose) {
-    console.log(`getCorrespondingNodes ${note} ${ourIndex} ${startTargetIndex} ${endTargetIndex} ${globalOffset} ${receiverGroupSize} ${sendGroupSize} ${transactionGroupSize}`)
+    console.log(
+      `getCorrespondingNodes ${note} ${ourIndex} ${startTargetIndex} ${endTargetIndex} ${globalOffset} ${receiverGroupSize} ${sendGroupSize} ${transactionGroupSize}`
+    )
   }
   let wrappedIndex: number
   let targetNumber: number
@@ -105,7 +107,9 @@ export function verifyCorrespondingSender(
   note = ''
 ): boolean {
   if (logFlags.verbose) {
-    console.log(`verifyCorrespondingSender ${note} ${receivingNodeIndex} ${sendingNodeIndex} ${globalOffset} ${receiverGroupSize} ${sendGroupSize} ${receiverStartIndex} ${receiverEndIndex} ${transactionGroupSize}`)
+    console.log(
+      `verifyCorrespondingSender ${note} ${receivingNodeIndex} ${sendingNodeIndex} ${globalOffset} ${receiverGroupSize} ${sendGroupSize} ${receiverStartIndex} ${receiverEndIndex} ${transactionGroupSize}`
+    )
   }
   //note, in the gather case, we need to check the address range of the sender node also, to prove
   //that it does cover the given account range
@@ -116,7 +120,7 @@ export function verifyCorrespondingSender(
     unwrappedReceivingNodeIndex = unwrappedReceivingNodeIndex + transactionGroupSize
   }
   let unwrappedSendingNodeIndex = sendingNodeIndex
-  if(shouldUnwrapSender) {
+  if (shouldUnwrapSender) {
     unwrappedSendingNodeIndex = sendingNodeIndex + transactionGroupSize
   }
 
@@ -130,7 +134,9 @@ export function verifyCorrespondingSender(
       )
     return true
   } else {
-    console.log(`note: ${note} X verification failed ${targetIndex} !== ${targetIndex2} sender: ${unwrappedSendingNodeIndex} receiver: ${receivingNodeIndex}`)
+    console.log(
+      `note: ${note} X verification failed ${targetIndex} !== ${targetIndex2} sender: ${unwrappedSendingNodeIndex} receiver: ${receivingNodeIndex}`
+    )
     return false
   }
 }
