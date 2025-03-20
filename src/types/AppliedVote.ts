@@ -16,11 +16,7 @@ export type AppliedVoteSerializable = {
   app_data_hash?: string
 }
 
-export function serializeAppliedVote(
-  stream: VectorBufferStream,
-  obj: AppliedVoteSerializable,
-  root = false
-): void {
+export function serializeAppliedVote(stream: VectorBufferStream, obj: AppliedVoteSerializable, root = false): void {
   if (root) {
     stream.writeUInt16(TypeIdentifierEnum.cAppliedVote)
   }

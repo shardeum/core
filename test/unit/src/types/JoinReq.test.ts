@@ -1,15 +1,15 @@
 import { initJoinReq } from '../../../../src/types/ajv/JoinReq'
-import { verifyPayload } from '../../../../src/types/ajv/Helpers';
-import { AJVSchemaEnum } from '../../../../src/types/enum/AJVSchemaEnum';
+import { verifyPayload } from '../../../../src/types/ajv/Helpers'
+import { AJVSchemaEnum } from '../../../../src/types/enum/AJVSchemaEnum'
 
 describe('JoinRequest Tests', () => {
   beforeAll(() => {
     // Initialize schema once before all tests
-    initJoinReq();
-  });
+    initJoinReq()
+  })
 
   describe('JoinRequest Validation', () => {
-    let validJoinRequest;
+    let validJoinRequest
 
     beforeEach(() => {
       // Prepare a valid join request according to the schema
@@ -25,7 +25,7 @@ describe('JoinRequest Tests', () => {
           activeTimestamp: Date.now() - 10000,
           syncingTimestamp: Date.now() - 5000,
           readyTimestamp: Date.now() - 3000,
-          refreshedCounter: 0
+          refreshedCounter: 0,
         },
         selectionNum: '67890',
         cycleMarker: 'abcdef123456',
@@ -33,45 +33,48 @@ describe('JoinRequest Tests', () => {
         version: '1.0',
         sign: {
           owner: 'owner12345',
-          sig: 'sig67890'
+          sig: 'sig67890',
         },
         appJoinData: {
-          extraData: 'Some data here'
-        }
-      };
-    });
+          extraData: 'Some data here',
+        },
+      }
+    })
 
     test('should pass validation for a valid join request', () => {
-      const errors = verifyPayload(AJVSchemaEnum.JoinReq, validJoinRequest);
-      expect(errors).toBeNull(); // No errors for a valid schema
-    });
+      const errors = verifyPayload(AJVSchemaEnum.JoinReq, validJoinRequest)
+      expect(errors).toBeNull() // No errors for a valid schema
+    })
 
     test('should fail validation if required fields are missing', () => {
       // Modify validJoinRequest to invalidate it
-      const invalidJoinRequest = { ...validJoinRequest, nodeInfo: { ...validJoinRequest.nodeInfo, publicKey: undefined } };
+      const invalidJoinRequest = {
+        ...validJoinRequest,
+        nodeInfo: { ...validJoinRequest.nodeInfo, publicKey: undefined },
+      }
 
-      const errors = verifyPayload(AJVSchemaEnum.JoinReq, invalidJoinRequest);
-      expect(errors).not.toBeNull();
-      expect(errors.length).toBeGreaterThan(0);
-    });
+      const errors = verifyPayload(AJVSchemaEnum.JoinReq, invalidJoinRequest)
+      expect(errors).not.toBeNull()
+      expect(errors.length).toBeGreaterThan(0)
+    })
 
     test('should fail validation if fields do not meet criteria', () => {
       // Set externalPort outside the specified range
       const invalidPortJoinRequest = {
         ...validJoinRequest,
-        nodeInfo: { ...validJoinRequest.nodeInfo, externalPort: 70000 } // Invalid port number
-      };
+        nodeInfo: { ...validJoinRequest.nodeInfo, externalPort: 70000 }, // Invalid port number
+      }
 
-      const errors = verifyPayload(AJVSchemaEnum.JoinReq, invalidPortJoinRequest);
-      expect(errors).not.toBeNull();
-      expect(errors.length).toBeGreaterThan(0);
-    });
+      const errors = verifyPayload(AJVSchemaEnum.JoinReq, invalidPortJoinRequest)
+      expect(errors).not.toBeNull()
+      expect(errors.length).toBeGreaterThan(0)
+    })
 
     test('should fail validation for an invalid external IP format', () => {
-        validJoinRequest.nodeInfo.externalIp = '999.999.999.999';  // Invalid IP format
-        const errors = verifyPayload(AJVSchemaEnum.JoinReq, validJoinRequest);
-        expect(errors).not.toBeNull();
-        expect(errors.length).toBeGreaterThan(0);
-      });
-  });
-});
+      validJoinRequest.nodeInfo.externalIp = '999.999.999.999' // Invalid IP format
+      const errors = verifyPayload(AJVSchemaEnum.JoinReq, validJoinRequest)
+      expect(errors).not.toBeNull()
+      expect(errors.length).toBeGreaterThan(0)
+    })
+  })
+})

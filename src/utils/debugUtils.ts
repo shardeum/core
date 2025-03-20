@@ -29,9 +29,7 @@ async function getSocketStatistics(): Promise<SocketStatistics> {
 
     const [, total] = totalLine.match(/Total:\s+(\d+)/) || []
     const [, tcp, estab, closed, orphaned, timewait] =
-      tcpLine.match(
-        /TCP:\s+(\d+)\s+\(estab\s+(\d+),\s+closed\s+(\d+),\s+orphaned\s+(\d+),\s+timewait\s+(\d+)\)/
-      ) || []
+      tcpLine.match(/TCP:\s+(\d+)\s+\(estab\s+(\d+),\s+closed\s+(\d+),\s+orphaned\s+(\d+),\s+timewait\s+(\d+)\)/) || []
 
     const result: SocketStatistics = {
       error: false,

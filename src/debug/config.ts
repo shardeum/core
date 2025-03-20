@@ -4,12 +4,7 @@ import { config } from '../p2p/Context'
 export type DebugConfigurations = StrictServerConfiguration['debug']
 
 export function isDebugMode(): boolean {
-  return !!(
-    config &&
-    config.mode &&
-    config.mode.toLowerCase &&
-    config.mode.toLowerCase() === ServerMode.Debug
-  )
+  return !!(config && config.mode && config.mode.toLowerCase && config.mode.toLowerCase() === ServerMode.Debug)
 }
 
 export function isDebugModeAnd(

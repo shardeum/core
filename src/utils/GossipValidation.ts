@@ -41,15 +41,16 @@ export function checkGossipPayload<T extends GossipPayload>(
   // Check if the current quarter is either 1 or 2
   if (![1, 2].includes(CycleCreator.currentQuarter)) {
     // count the event if the current quarter is not 1 or 2
-    nestedCountersInstance.countEvent('p2p', `${logContext}-reject: not in Q1 or Q2. currentCycle: ${CycleCreator.currentCycle} `)
+    nestedCountersInstance.countEvent(
+      'p2p',
+      `${logContext}-reject: not in Q1 or Q2. currentCycle: ${CycleCreator.currentCycle} `
+    )
 
     // Log warnings if error logging is enabled
     if (logFlags.error) {
-      warn(
-        `${logContext}-reject: not in Q1 or Q2, currentQuarter: ${CycleCreator.currentQuarter}`
-      )
+      warn(`${logContext}-reject: not in Q1 or Q2, currentQuarter: ${CycleCreator.currentQuarter}`)
     }
-    
+
     return false
   }
 
@@ -62,7 +63,10 @@ export function checkGossipPayload<T extends GossipPayload>(
     if (nodeIfSelectedLastCycle) {
       signer = NodeList.byPubKey.get(payload.sign.owner)
       if (!signer) {
-        if (logFlags.error) warn(`${logContext}: Got ${logContext} from standby node that was selected to join, but can't find it in NodeList.byPubKey`)
+        if (logFlags.error)
+          warn(
+            `${logContext}: Got ${logContext} from standby node that was selected to join, but can't find it in NodeList.byPubKey`
+          )
         return false
       }
     } else {
@@ -83,7 +87,11 @@ export function checkGossipPayload<T extends GossipPayload>(
   // Only accept original transactions in quarter 1
   const isOrig = signer.id === sender
   if (isOrig && CycleCreator.currentQuarter > 1) {
-    if (logFlags.error) nestedCountersInstance.countEvent('p2p', `${logContext}-reject: CycleCreator.currentQuarter > 1, currentQuarter: ${CycleCreator.currentQuarter}`)
+    if (logFlags.error)
+      nestedCountersInstance.countEvent(
+        'p2p',
+        `${logContext}-reject: CycleCreator.currentQuarter > 1, currentQuarter: ${CycleCreator.currentQuarter}`
+      )
     return false
   }
 

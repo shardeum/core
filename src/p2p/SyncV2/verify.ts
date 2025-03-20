@@ -23,11 +23,7 @@ import { logFlags } from '../../logger'
  *
  * @returns Returns a Result object. On successful hash verification, returns 'ok' with value true. On mismatch, returns 'err' with an Error object detailing the mismatch.
  */
-function verify(
-  object: HashableObject,
-  expectedHash: hexstring,
-  objectName = 'some object'
-): Result<boolean, Error> {
+function verify(object: HashableObject, expectedHash: hexstring, objectName = 'some object'): Result<boolean, Error> {
   console.log(`hashing ${objectName}:`, Utils.safeStringify(object))
   const newHash = crypto.hash(object)
   console.log(`got ${newHash}`)
@@ -41,8 +37,7 @@ export function verifyValidatorList(
   validatorList: P2P.NodeListTypes.Node[],
   expectedHash: hexstring
 ): Result<boolean, Error> {
-  if (logFlags.p2pSyncDebug)
-    info(`verifyValidatorList ${expectedHash}  ${Utils.safeStringify(validatorList)} `)
+  if (logFlags.p2pSyncDebug) info(`verifyValidatorList ${expectedHash}  ${Utils.safeStringify(validatorList)} `)
   return verify(validatorList, expectedHash, 'validator list')
 }
 

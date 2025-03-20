@@ -35,9 +35,7 @@ export const serializeGetAccountDataByHashesReq = (
   }
 }
 
-export const deserializeGetAccountDataByHashesReq = (
-  stream: VectorBufferStream
-): GetAccountDataByHashesReq => {
+export const deserializeGetAccountDataByHashesReq = (stream: VectorBufferStream): GetAccountDataByHashesReq => {
   const version = stream.readUInt8()
   if (version !== cGetAccountDataByHashesReqVersion) {
     throw new Error(

@@ -37,9 +37,7 @@ export const serializeRequestStateForTxResp = (
   stream.writeUInt8(inp.success ? 1 : 0)
 }
 
-export const deserializeRequestStateForTxResp = (
-  stream: VectorBufferStream
-): RequestStateForTxRespSerialized => {
+export const deserializeRequestStateForTxResp = (stream: VectorBufferStream): RequestStateForTxRespSerialized => {
   const ver = stream.readUInt8()
   if (ver !== cRequestStateForTxRespVersion) {
     throw new Error('Unsupported version')

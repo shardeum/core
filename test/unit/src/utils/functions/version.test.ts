@@ -209,12 +209,14 @@ describe('Version Management', () => {
     it('should return true for valid SemVersion objects', () => {
       expect(isValidSemVersionObject({ major: 1, minor: 2, patch: 3 })).toBe(true)
       expect(isValidSemVersionObject({ major: 0, minor: 0, patch: 0 })).toBe(true)
-      expect(isValidSemVersionObject({ 
-        major: 1, 
-        minor: 2, 
-        patch: 3, 
-        prerelease: { number: 4 } 
-      })).toBe(true)
+      expect(
+        isValidSemVersionObject({
+          major: 1,
+          minor: 2,
+          patch: 3,
+          prerelease: { number: 4 },
+        })
+      ).toBe(true)
     })
 
     it('should return false for invalid SemVersion objects', () => {
@@ -223,44 +225,69 @@ describe('Version Management', () => {
       expect(isValidSemVersionObject(undefined)).toBe(false)
       expect(isValidSemVersionObject('1.2.3')).toBe(false)
       expect(isValidSemVersionObject(123)).toBe(false)
-      
+
       // Missing required properties
       expect(isValidSemVersionObject({})).toBe(false)
       expect(isValidSemVersionObject({ major: 1 })).toBe(false)
       expect(isValidSemVersionObject({ major: 1, minor: 2 })).toBe(false)
       expect(isValidSemVersionObject({ minor: 1, patch: 2 })).toBe(false)
-      
+
       // Invalid property types
       expect(isValidSemVersionObject({ major: '1', minor: 2, patch: 3 })).toBe(false)
       expect(isValidSemVersionObject({ major: 1, minor: '2', patch: 3 })).toBe(false)
       expect(isValidSemVersionObject({ major: 1, minor: 2, patch: '3' })).toBe(false)
-      
+
       // Negative numbers
       expect(isValidSemVersionObject({ major: -1, minor: 2, patch: 3 })).toBe(false)
       expect(isValidSemVersionObject({ major: 1, minor: -2, patch: 3 })).toBe(false)
       expect(isValidSemVersionObject({ major: 1, minor: 2, patch: -3 })).toBe(false)
-      
+
       // Non-integer numbers
       expect(isValidSemVersionObject({ major: 1.5, minor: 2, patch: 3 })).toBe(false)
       expect(isValidSemVersionObject({ major: 1, minor: 2.5, patch: 3 })).toBe(false)
       expect(isValidSemVersionObject({ major: 1, minor: 2, patch: 3.5 })).toBe(false)
-      
+
       // Invalid prerelease
-      expect(isValidSemVersionObject({ 
-        major: 1, minor: 2, patch: 3, prerelease: 'invalid' 
-      })).toBe(false)
-      expect(isValidSemVersionObject({ 
-        major: 1, minor: 2, patch: 3, prerelease: {} 
-      })).toBe(false)
-      expect(isValidSemVersionObject({ 
-        major: 1, minor: 2, patch: 3, prerelease: { number: '1' } 
-      })).toBe(false)
-      expect(isValidSemVersionObject({ 
-        major: 1, minor: 2, patch: 3, prerelease: { number: -1 } 
-      })).toBe(false)
-      expect(isValidSemVersionObject({ 
-        major: 1, minor: 2, patch: 3, prerelease: { number: 1.5 } 
-      })).toBe(false)
+      expect(
+        isValidSemVersionObject({
+          major: 1,
+          minor: 2,
+          patch: 3,
+          prerelease: 'invalid',
+        })
+      ).toBe(false)
+      expect(
+        isValidSemVersionObject({
+          major: 1,
+          minor: 2,
+          patch: 3,
+          prerelease: {},
+        })
+      ).toBe(false)
+      expect(
+        isValidSemVersionObject({
+          major: 1,
+          minor: 2,
+          patch: 3,
+          prerelease: { number: '1' },
+        })
+      ).toBe(false)
+      expect(
+        isValidSemVersionObject({
+          major: 1,
+          minor: 2,
+          patch: 3,
+          prerelease: { number: -1 },
+        })
+      ).toBe(false)
+      expect(
+        isValidSemVersionObject({
+          major: 1,
+          minor: 2,
+          patch: 3,
+          prerelease: { number: 1.5 },
+        })
+      ).toBe(false)
     })
   })
 
@@ -333,10 +360,10 @@ describe('Version Management', () => {
       expect(meetsMinimumVersion('1.2.0', '1.2beta')).toBe(VersionValidationResult.TestVersionParseFailure)
       expect(meetsMinimumVersion('1.2.0', '1.1')).toBe(VersionValidationResult.TestVersionParseFailure)
       expect(meetsMinimumVersion('1.2.0', '1.2.5')).toBe(VersionValidationResult.Success)
-      expect(meetsMinimumVersion('1.2.0', '1.2.3')).toBe(VersionValidationResult.Success)   
+      expect(meetsMinimumVersion('1.2.0', '1.2.3')).toBe(VersionValidationResult.Success)
       expect(meetsMinimumVersion('1.2.0', '1.10.0')).toBe(VersionValidationResult.Success)
       expect(meetsMinimumVersion('1.2.0', '1.2')).toBe(VersionValidationResult.TestVersionParseFailure)
-    })    
+    })
   })
 
   describe('POC2', () => {
@@ -348,9 +375,9 @@ describe('Version Management', () => {
       expect(meetsMinimumVersion('1.2beta', '1.2.0')).toBe(VersionValidationResult.ControlVersionParseFailure)
       expect(meetsMinimumVersion('1.1', '1.2.0')).toBe(VersionValidationResult.ControlVersionParseFailure)
       expect(meetsMinimumVersion('1.2.5', '1.2.0')).toBe(VersionValidationResult.ComparisonFailed)
-      expect(meetsMinimumVersion('1.2.3', '1.2.0')).toBe(VersionValidationResult.ComparisonFailed)   
+      expect(meetsMinimumVersion('1.2.3', '1.2.0')).toBe(VersionValidationResult.ComparisonFailed)
       expect(meetsMinimumVersion('1.10.0', '1.2.0')).toBe(VersionValidationResult.ComparisonFailed)
       expect(meetsMinimumVersion('1.2', '1.2.0')).toBe(VersionValidationResult.ControlVersionParseFailure)
-    })    
+    })
   })
-}) 
+})

@@ -171,12 +171,7 @@ class BetterSqlite3Storage {
     return await this.all<T>(queryString, valueArray)
   }
 
-  _update(
-    table: ModelData,
-    values: GenericObject,
-    where: GenericObject,
-    opts: OperationOptions
-  ): Promise<unknown> {
+  _update(table: ModelData, values: GenericObject, where: GenericObject, opts: OperationOptions): Promise<unknown> {
     let queryString = table.updateString
 
     const valueParams = this.params2Array(values, table)

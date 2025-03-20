@@ -65,9 +65,7 @@ const gossipInternalBinaryRoute: P2P.P2PTypes.Route<InternalBinaryHandler<Buffer
       nestedCountersInstance.countEvent('internal', `${route}-${gossipType}-exception`)
       logger
         .getLogger('comms-route')
-        .error(
-          `${route}: Exception executing gossip type: ${gossipType}, request: ${utils.errorToStringFull(e)}`
-        )
+        .error(`${route}: Exception executing gossip type: ${gossipType}, request: ${utils.errorToStringFull(e)}`)
     } finally {
       profilerInstance.scopedProfileSectionEnd(route)
     }
@@ -321,11 +319,7 @@ export async function tellBinary<TReq>(
   if (commsCounters) {
     nestedCountersInstance.countEvent('comms-route', `tellBinary ${route}`, nodes.length)
     /* prettier-ignore */ nestedCountersInstance.countEvent('comms-route x recipients', `tellBinary ${route} recipients:${nodes.length}`, nodes.length)
-    nestedCountersInstance.countEvent(
-      'comms-recipients',
-      `tellBinary recipients: ${nodes.length}`,
-      nodes.length
-    )
+    nestedCountersInstance.countEvent('comms-recipients', `tellBinary recipients: ${nodes.length}`, nodes.length)
     /* prettier-ignore */ nestedCountersInstance.countEvent('comms-route x recipients (logical count)', `tellBinary ${route} recipients:${nodes.length}`)
   }
 
@@ -429,9 +423,7 @@ export async function ask(
     const [response] = _extractPayload(respWithAuth, [node])
     if (!response) {
       throw new Error(
-        `Unable to verify response to ask request: ${route} -- ${Utils.safeStringify(message)} from node: ${
-          node.id
-        }`
+        `Unable to verify response to ask request: ${route} -- ${Utils.safeStringify(message)} from node: ${node.id}`
       )
     }
     return response
@@ -608,8 +600,7 @@ export function registerInternalBinary(route: string, handler: InternalBinaryHan
     internalRecvCounter++
     // We have internal requests turned off until we have a node id
     if (!acceptInternal) {
-      if (logFlags.p2pNonFatal)
-        info('registerInternalBinary: we are not currently accepting internal requests...')
+      if (logFlags.p2pNonFatal) info('registerInternalBinary: we are not currently accepting internal requests...')
       return
     }
 
@@ -649,7 +640,7 @@ export function registerInternalBinary(route: string, handler: InternalBinaryHan
       /* prettier-ignore */ if (logFlags.p2pNonFatal) warn('registerInternalBinary: internal route missing signer or sender...')
       return
     }
-    
+
     const isSignerSenderMismatch = NodeList.byPubKey.get(sign.owner).id !== header.sender_id
     if (isSignerSenderMismatch && !isTestMode) {
       nestedCountersInstance.countEvent('comms-route', `signer_sender_mismatch`)
@@ -675,10 +666,7 @@ export function registerInternalBinary(route: string, handler: InternalBinaryHan
     if (!hasHandlerResponded && isAskRoute(route)) {
       nestedCountersInstance.countEvent('comms-route', `no-response`)
       nestedCountersInstance.countEvent('comms-route', `no-response ${route}`)
-      const wrappedError = responseSerializer(
-        InternalError('Handler failed to respond'),
-        serializeResponseError
-      )
+      const wrappedError = responseSerializer(InternalError('Handler failed to respond'), serializeResponseError)
       const responseHeaders: AppHeader = {}
       responseHeaders.sender_id = Self.id
       responseHeaders.tracker_id = header.tracker_id
@@ -787,9 +775,7 @@ export function isNodeValidForInternalMessage(
       return true
     } else {
       if (logErrors)
-        warn(
-          `isNodeUpRecentOverride: ${age} upRecent = false. no recent TX, but this is not a fail conditions`
-        )
+        warn(`isNodeUpRecentOverride: ${age} upRecent = false. no recent TX, but this is not a fail conditions`)
     }
   }
 
@@ -1026,17 +1012,17 @@ export async function sendGossip(
     }
 
     // if (config.p2p.useBinarySerializedEndpoints === true) {
-      msgSize = await tellBinary<GossipReqBinary>(
-        recipients,
-        InternalRouteEnum.binary_gossip,
-        gossipPayload,
-        serializeGossipReq,
-        {
-          tracker_id: tracker,
-        },
-        true,
-        tracker
-      )
+    msgSize = await tellBinary<GossipReqBinary>(
+      recipients,
+      InternalRouteEnum.binary_gossip,
+      gossipPayload,
+      serializeGossipReq,
+      {
+        tracker_id: tracker,
+      },
+      true,
+      tracker
+    )
     // } else {
     //   msgSize = await tell(recipients, 'gossip', gossipPayload, true, tracker, type)
     // }
@@ -1133,10 +1119,7 @@ export async function sendGossipAll(
           return true
         } else {
           nestedCountersInstance.countEvent('p2p-skip-send', 'skipping gossip')
-          nestedCountersInstance.countEvent(
-            'p2p-skip-send',
-            `skipping gossip ${node.internalIp}:${node.externalPort}`
-          )
+          nestedCountersInstance.countEvent('p2p-skip-send', `skipping gossip ${node.internalIp}:${node.externalPort}`)
         }
       })
     }

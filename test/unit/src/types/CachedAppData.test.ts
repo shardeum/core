@@ -1,7 +1,7 @@
 import { VectorBufferStream } from '../../../../src/utils/serialization/VectorBufferStream'
 import { TypeIdentifierEnum } from '../../../../src/types/enum/TypeIdentifierEnum'
 import { initAjvSchemas } from '../../../../src/types/ajv/Helpers'
-import { stateManager } from '../../../../src/p2p/Context'
+import { stateManager } from '@src/p2p/Context'
 
 import {
   CachedAppDataSerializable,
@@ -9,25 +9,23 @@ import {
   deserializeCachedAppData,
 } from '../../../../src/types/CachedAppData'
 import { AppObjEnum } from '../../../../src/types/enum/AppObjEnum'
-import { Utils } from '@shardeum-foundation/lib-types'
+import { beforeEachHandler } from './stateManagerSerializeMocks'
 
-// Mock the Context module and its nested structure
 jest.mock('../../../../src/p2p/Context', () => ({
-  setDefaultConfigs: jest.fn(),
   stateManager: {
     app: {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      binarySerializeObject: jest.fn((enumType: AppObjEnum, data: any) =>
-        Buffer.from(Utils.safeStringify(data), 'utf8')
-      ),
-      binaryDeserializeObject: jest.fn((enumType: AppObjEnum, buffer: Buffer) =>
-        Utils.safeJsonParse(buffer.toString('utf8'))
-      ),
+      binarySerializeObject: jest.fn(),
+      binaryDeserializeObject: jest.fn(),
     },
   },
+  setDefaultConfigs: jest.fn(),
 }))
 
 describe('CachedAppData Serialization and Deserialization', () => {
+  beforeEach(() => {
+    beforeEachHandler()
+  })
+
   beforeAll(() => {
     initAjvSchemas()
   })
@@ -46,9 +44,7 @@ describe('CachedAppData Serialization and Deserialization', () => {
       const expectedStream = new VectorBufferStream(0)
       expectedStream.writeUInt16(TypeIdentifierEnum.cCachedAppData)
       expectedStream.writeUInt32(obj.cycle)
-      expectedStream.writeBuffer(
-        stateManager.app.binarySerializeObject(AppObjEnum.CachedAppData, obj.appData)
-      )
+      expectedStream.writeBuffer(stateManager.app.binarySerializeObject(AppObjEnum.CachedAppData, obj.appData))
       expectedStream.writeString(obj.dataID)
       expect(stream.getBuffer()).toEqual(expectedStream.getBuffer())
     })
@@ -65,9 +61,7 @@ describe('CachedAppData Serialization and Deserialization', () => {
 
       const expectedStream = new VectorBufferStream(0)
       expectedStream.writeUInt32(obj.cycle)
-      expectedStream.writeBuffer(
-        stateManager.app.binarySerializeObject(AppObjEnum.CachedAppData, obj.appData)
-      )
+      expectedStream.writeBuffer(stateManager.app.binarySerializeObject(AppObjEnum.CachedAppData, obj.appData))
       expectedStream.writeString(obj.dataID)
       expect(stream.getBuffer()).toEqual(expectedStream.getBuffer())
     })
@@ -85,9 +79,7 @@ describe('CachedAppData Serialization and Deserialization', () => {
       const expectedStream = new VectorBufferStream(0)
       expectedStream.writeUInt16(TypeIdentifierEnum.cCachedAppData)
       expectedStream.writeUInt32(obj.cycle)
-      expectedStream.writeBuffer(
-        stateManager.app.binarySerializeObject(AppObjEnum.CachedAppData, obj.appData)
-      )
+      expectedStream.writeBuffer(stateManager.app.binarySerializeObject(AppObjEnum.CachedAppData, obj.appData))
       expectedStream.writeString(obj.dataID)
       expect(stream.getBuffer()).toEqual(expectedStream.getBuffer())
     })
@@ -102,9 +94,7 @@ describe('CachedAppData Serialization and Deserialization', () => {
       }
       const stream = new VectorBufferStream(0)
       stream.writeUInt32(expectedObj.cycle)
-      stream.writeBuffer(
-        stateManager.app.binarySerializeObject(AppObjEnum.CachedAppData, expectedObj.appData)
-      )
+      stream.writeBuffer(stateManager.app.binarySerializeObject(AppObjEnum.CachedAppData, expectedObj.appData))
       stream.writeString(expectedObj.dataID)
       stream.position = 0
       const obj = deserializeCachedAppData(stream)

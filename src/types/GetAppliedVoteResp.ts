@@ -12,11 +12,7 @@ export type GetAppliedVoteResp = {
   appliedVoteHash: string
 }
 
-export function serializeGetAppliedVoteResp(
-  stream: VectorBufferStream,
-  obj: GetAppliedVoteResp,
-  root = false
-): void {
+export function serializeGetAppliedVoteResp(stream: VectorBufferStream, obj: GetAppliedVoteResp, root = false): void {
   if (root) {
     stream.writeUInt16(TypeIdentifierEnum.cGetAppliedVoteResp)
   }

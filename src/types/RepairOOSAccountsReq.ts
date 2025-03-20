@@ -49,9 +49,7 @@ export const serializeRepairOOSAccountsReq = (
 export const deserializeRepairOOSAccountsReq = (stream: VectorBufferStream): RepairOOSAccountsReq => {
   const version = stream.readUInt8()
   if (version !== cRepairOOSAccountsReqVersion) {
-    throw new Error(
-      `RepairOOSAccountsReqDeserializer expected version ${cRepairOOSAccountsReqVersion}, got ${version}`
-    )
+    throw new Error(`RepairOOSAccountsReqDeserializer expected version ${cRepairOOSAccountsReqVersion}, got ${version}`)
   }
   const repairInstructionsLength = stream.readUInt32()
   const result: RepairOOSAccountsReq = {

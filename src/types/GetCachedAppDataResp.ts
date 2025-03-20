@@ -28,9 +28,7 @@ export function serializeGetCachedAppDataResp(
   if (response.cachedAppData) {
     stream.writeUInt8(1)
     stream.writeString(response.cachedAppData.dataID)
-    stream.writeBuffer(
-      stateManager.app.binarySerializeObject(AppObjEnum.CachedAppData, response.cachedAppData.appData)
-    )
+    stream.writeBuffer(stateManager.app.binarySerializeObject(AppObjEnum.CachedAppData, response.cachedAppData.appData))
     stream.writeUInt32(response.cachedAppData.cycle)
   } else {
     stream.writeUInt8(0)

@@ -52,7 +52,6 @@ import { BadRequest, serializeResponseError } from '../types/ResponseError'
 import { RequestErrorEnum } from '../types/enum/RequestErrorEnum'
 import { getStreamWithTypeCheck, requestErrorHandler } from '../types/Helpers'
 
-
 /** STATE */
 
 // [TODO] - need to remove this after removing sequalize
@@ -75,10 +74,7 @@ const stopExternalRoute: P2P.P2PTypes.Route<Handler> = {
   handler: (_req, res) => {
     if (isDebugMode()) {
       res.json({ status: 'goodbye cruel world' })
-      apoptosizeSelf(
-        'Apoptosis called at stopExternalRoute => src/p2p/Apoptosis.ts',
-        'Node stopped from `stop` route.'
-      )
+      apoptosizeSelf('Apoptosis called at stopExternalRoute => src/p2p/Apoptosis.ts', 'Node stopped from `stop` route.')
     }
   },
 }

@@ -75,7 +75,7 @@ class LoadDetection extends EventEmitter {
         const nodeLoad = this.getCurrentNodeLoad()
         res.json({ load, nodeLoad })
       } catch (e) {
-        console.log(`Error getting load: ${e.message}`);
+        console.log(`Error getting load: ${e.message}`)
       }
       return
     })
@@ -84,28 +84,28 @@ class LoadDetection extends EventEmitter {
   configUpdated() {
     try {
       if (this.desiredTxTime !== Context.config.loadDetection.desiredTxTime) {
-        this.desiredTxTime = typeof Context.config.loadDetection.desiredTxTime === 'string' ? Number(Context.config.loadDetection.desiredTxTime) : Context.config.loadDetection.desiredTxTime
+        this.desiredTxTime =
+          typeof Context.config.loadDetection.desiredTxTime === 'string'
+            ? Number(Context.config.loadDetection.desiredTxTime)
+            : Context.config.loadDetection.desiredTxTime
         console.log('Config updated for loadDetection.desiredTxTime', this.desiredTxTime)
-        nestedCountersInstance.countEvent(
-          'loadRelated',
-          `desiredTxTime config updated`
-        )
+        nestedCountersInstance.countEvent('loadRelated', `desiredTxTime config updated`)
       }
       if (this.executeQueueLimit !== Context.config.loadDetection.executeQueueLimit) {
-        this.executeQueueLimit = typeof Context.config.loadDetection.executeQueueLimit === 'string' ? Number(Context.config.loadDetection.executeQueueLimit) : Context.config.loadDetection.executeQueueLimit
+        this.executeQueueLimit =
+          typeof Context.config.loadDetection.executeQueueLimit === 'string'
+            ? Number(Context.config.loadDetection.executeQueueLimit)
+            : Context.config.loadDetection.executeQueueLimit
         console.log('Config updated for loadDetection.executeQueueLimit', this.executeQueueLimit)
-        nestedCountersInstance.countEvent(
-          'loadRelated',
-          `executeQueueLimit config updated`
-        )
+        nestedCountersInstance.countEvent('loadRelated', `executeQueueLimit config updated`)
       }
       if (this.queueLimit !== Context.config.loadDetection.queueLimit) {
-        this.queueLimit = typeof Context.config.loadDetection.queueLimit === 'string' ? Number(Context.config.loadDetection.queueLimit) : Context.config.loadDetection.queueLimit
+        this.queueLimit =
+          typeof Context.config.loadDetection.queueLimit === 'string'
+            ? Number(Context.config.loadDetection.queueLimit)
+            : Context.config.loadDetection.queueLimit
         console.log('Config updated for loadDetection.queueLimit', this.queueLimit)
-        nestedCountersInstance.countEvent(
-          'loadRelated',
-          `queueLimit config updated`
-        )
+        nestedCountersInstance.countEvent('loadRelated', `queueLimit config updated`)
       }
     } catch (e) {
       nestedCountersInstance.countEvent('loadRelated', `config update failed`)
@@ -142,10 +142,7 @@ class LoadDetection extends EventEmitter {
       if (queueLength < 20) {
         //if(scaledQueueLength < (this.lowThreshold)){ //tried to get fancy, but going back to 20 as a constant.
         if (scaledTxTimeInQueue > this.highThreshold) {
-          nestedCountersInstance.countEvent(
-            'loadRelated',
-            `scaledTxTimeInQueue clamped due to low scaledQueueLength`
-          )
+          nestedCountersInstance.countEvent('loadRelated', `scaledTxTimeInQueue clamped due to low scaledQueueLength`)
         }
         scaledTxTimeInQueue = 0
       }
@@ -217,7 +214,7 @@ class LoadDetection extends EventEmitter {
     //We could potentially make this better by taking some kind of self average
     //rather than just the random luck of load see when a new cycle has turned over.
     //however, these load metrics already have some inherent averaging
-    let lastCycle = Context.p2p.state.getLastCycle();
+    let lastCycle = Context.p2p.state.getLastCycle()
     if (lastCycle == null) {
       return
     } else if (this.lastEmitCycle != lastCycle.counter) {

@@ -77,9 +77,7 @@ function testPartitionMath1_new(numNodes, debugIndex) {
     // }
 
     if (partitionStart !== highResult.homePartition) {
-      logErrorLimited(
-        `failed partition ${addressRange.partitionEnd} high result: ${highResult.homePartition}`
-      )
+      logErrorLimited(`failed partition ${addressRange.partitionEnd} high result: ${highResult.homePartition}`)
     }
 
     if (nextAddress != null && nextAddress !== addressRange.low) {

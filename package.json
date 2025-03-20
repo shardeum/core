@@ -1,6 +1,6 @@
 {
   "name": "@shardeum-foundation/core",
-  "version": "2.14.0-prerelease.5",
+  "version": "2.14.0-prerelease.7",
   "engines": {
     "node": "18.19.1"
   },
@@ -39,15 +39,15 @@
     "test": "jest",
     "test-watch": "jest --watch",
     "depcheck": "depcheck --skip-missing --ignores webpack,webpack-cli,prettier,typescript-eslint,typescript-estree,@mapbox/node-pre-gyp,@types/estree",
-    "format-check": "prettier --check './src/**/*.ts'",
-    "format-fix": "prettier --write './src/**/*.ts'",
     "release:prepatch": "npm run prepare && npm version prepatch --preid=prerelease && git push --follow-tags && npm publish --tag prerelease",
     "release:preminor": "npm run prepare && npm version preminor --preid=prerelease && git push --follow-tags && npm publish --tag prerelease",
     "release:premajor": "npm run prepare && npm version premajor --preid=prerelease && git push --follow-tags && npm publish --tag prerelease",
     "release:prerelease": "npm run prepare && npm version prerelease --preid=prerelease && git push --follow-tags && npm publish --tag prerelease",
     "release:patch": "npm run prepare && npm version patch && git push --follow-tags && npm publish",
     "release:minor": "npm run prepare && npm version minor && git push --follow-tags && npm publish",
-    "release:major": "npm run prepare && npm version major && git push --follow-tags && npm publish"
+    "release:major": "npm run prepare && npm version major && git push --follow-tags && npm publish",
+    "format-check": "prettier --check \"**/*.{js,jsx,ts,tsx,json}\"",
+    "format-fix": "prettier --write \"**/*.{js,jsx,ts,tsx,json}\""
   },
   "repository": {
     "type": "git",
@@ -57,9 +57,9 @@
     "access": "public"
   },
   "dependencies": {
-    "@shardeum-foundation/lib-crypto-utils": "4.2.0-prerelease.3",
-    "@shardeum-foundation/lib-net": "1.5.0-prerelease.1",
-    "@shardeum-foundation/lib-types": "1.3.0-prerelease.2",
+    "@shardeum-foundation/lib-crypto-utils": "4.2.0-prerelease.4",
+    "@shardeum-foundation/lib-net": "1.5.0-prerelease.2",
+    "@shardeum-foundation/lib-types": "1.3.0-prerelease.3",
     "@hapi/sntp": "3.1.1",
     "@mapbox/node-pre-gyp": "1.0.10",
     "@types/better-sqlite3": "7.6.3",

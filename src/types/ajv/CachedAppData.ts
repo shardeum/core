@@ -10,7 +10,6 @@ export const schemaCachedAppData = {
   },
   required: ['cycle', 'appData', 'dataID'],
   additionalProperties: false,
-
 }
 
 export function initCachedAppData(): void {

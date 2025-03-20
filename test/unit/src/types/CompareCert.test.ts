@@ -30,14 +30,7 @@ describe('CompareCert Serialization and Deserialization', () => {
       start: 123,
       duration: 456,
       networkConfigHash: 'hash',
-      mode: 'processing' as
-        | 'forming'
-        | 'processing'
-        | 'safety'
-        | 'recovery'
-        | 'restart'
-        | 'restore'
-        | 'shutdown',
+      mode: 'processing' as 'forming' | 'processing' | 'safety' | 'recovery' | 'restart' | 'restore' | 'shutdown',
       safetyMode: true,
       safetyNum: 2,
       networkStateHash: 'stateHash',

@@ -10,11 +10,7 @@ export type CachedAppDataSerializable = {
   dataID: string
 }
 
-export function serializeCachedAppData(
-  stream: VectorBufferStream,
-  obj: CachedAppDataSerializable,
-  root = false
-): void {
+export function serializeCachedAppData(stream: VectorBufferStream, obj: CachedAppDataSerializable, root = false): void {
   if (root) {
     stream.writeUInt16(TypeIdentifierEnum.cCachedAppData)
   }

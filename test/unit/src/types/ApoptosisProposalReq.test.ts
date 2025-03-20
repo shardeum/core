@@ -7,7 +7,6 @@ import {
 import { initAjvSchemas } from '../../../../src/types/ajv/Helpers'
 import { TypeIdentifierEnum } from '../../../../src/types/enum/TypeIdentifierEnum'
 import { VectorBufferStream } from '../../../../src/utils/serialization/VectorBufferStream'
-import { Utils } from '@shardeum-foundation/lib-types'
 
 describe('ApoptosisProposalReq Serialization', () => {
   test('should serialize with root true', () => {
@@ -90,9 +89,7 @@ describe('ApoptosisProposalReq Deserialization', () => {
     buffer[0] = cApoptosisProposalReqVersion + 1
 
     const alteredStream = VectorBufferStream.fromBuffer(buffer)
-    expect(() => deserializeApoptosisProposalReq(alteredStream)).toThrow(
-      'ApoptosisProposalReq version mismatch'
-    )
+    expect(() => deserializeApoptosisProposalReq(alteredStream)).toThrow('ApoptosisProposalReq version mismatch')
   })
 
   test('should deserialize empty string', () => {

@@ -145,8 +145,13 @@ class CachedAppDataManager {
             return errorHandler(RequestErrorEnum.InvalidRequest)
           }
 
-          if(this.config.p2p.useFactCorrespondingTell) {
-            const isValidSender = this.factValidateCorrespondingCachedAppDataSender(cachedAppData.dataID, header.sender_id, req.executionShardKey, req.txId)
+          if (this.config.p2p.useFactCorrespondingTell) {
+            const isValidSender = this.factValidateCorrespondingCachedAppDataSender(
+              cachedAppData.dataID,
+              header.sender_id,
+              req.executionShardKey,
+              req.txId
+            )
             if (isValidSender === false) {
               /* prettier-ignore */ if (logFlags.error) this.mainLogger.error(`send_cachedAppData invalid sender ${header.sender_id} for data: ${cachedAppData.dataID}`)
               return
@@ -325,30 +330,46 @@ class CachedAppDataManager {
     cacheTopic.maxItemSize = maxItemSize
   }
 
-  factValidateCorrespondingCachedAppDataSender(dataID: string, senderNodeId: string, executionShardKey : string, txId: string) {
+  factValidateCorrespondingCachedAppDataSender(
+    dataID: string,
+    senderNodeId: string,
+    executionShardKey: string,
+    txId: string
+  ) {
     const senderGroup = this.stateManager.transactionQueue.getConsenusGroupForAccount(executionShardKey)
     const senderNode = NodeList.nodes.get(senderNodeId)
     const logID = utils.stringifyReduce(txId)
     if (senderNode === null) {
       /* prettier-ignore */ if(logFlags.error) this.mainLogger.error(`factValidateCorrespondingCachedAppDataSender: logId: ${logID} sender node is null`)
-      nestedCountersInstance.countEvent('stateManager', 'factValidateCorrespondingCachedAppDataSender: sender node is null')
+      nestedCountersInstance.countEvent(
+        'stateManager',
+        'factValidateCorrespondingCachedAppDataSender: sender node is null'
+      )
       return false
     }
     const senderIsInExecutionGroup = senderGroup.some((node) => node.id === senderNodeId)
     if (senderIsInExecutionGroup === false) {
       /* prettier-ignore */ if(logFlags.error) this.mainLogger.error(`factValidateCorrespondingCachedAppDataSender: logId: ${logID} sender is not in the execution group sender:${senderNodeId}`)
-      nestedCountersInstance.countEvent('stateManager', 'factValidateCorrespondingCachedAppDataSender: sender is not in the execution group')
+      nestedCountersInstance.countEvent(
+        'stateManager',
+        'factValidateCorrespondingCachedAppDataSender: sender is not in the execution group'
+      )
       return false
     }
 
     const targetGroup = this.stateManager.transactionQueue.getConsenusGroupForAccount(dataID)
-    const allNodes = Array.from(new Set([...senderGroup, ...targetGroup])).sort((a, b) => a.id.localeCompare(b.id));
+    const allNodes = Array.from(new Set([...senderGroup, ...targetGroup])).sort((a, b) => a.id.localeCompare(b.id))
     const senderIndexInTxGroup = allNodes.findIndex((node) => node.id === senderNodeId)
-    const ourIndexInTxGroup = allNodes.findIndex((node) => node.id === this.stateManager.currentCycleShardData.nodeShardData.node.id)
+    const ourIndexInTxGroup = allNodes.findIndex(
+      (node) => node.id === this.stateManager.currentCycleShardData.nodeShardData.node.id
+    )
     const senderGroupSize = senderGroup.length
     const targetGroupSize = targetGroup.length
-    const {startIndex: targetStartIndex, endIndex: targetEndIndex} = 
-      this.stateManager.transactionQueue.getStartAndEndIndexOfTargetGroup(targetGroup.map(node => node.id), allNodes)
+    const { startIndex: targetStartIndex, endIndex: targetEndIndex } =
+      this.stateManager.transactionQueue.getStartAndEndIndexOfTargetGroup(
+        targetGroup.map((node) => node.id),
+        allNodes
+      )
     const globalOffset = parseInt(txId.slice(-4), 16)
 
     // check if it is a FACT sender
@@ -366,7 +387,10 @@ class CachedAppDataManager {
     // it is not a FACT corresponding node
     if (isValidFactSender === false) {
       /* prettier-ignore */ if(logFlags.error) this.mainLogger.error(`factValidateCorrespondingCachedAppDataSender: logId: logId: ${logID} sender is not a valid sender isValidSender:  ${isValidFactSender}`);
-      nestedCountersInstance.countEvent('stateManager', 'factValidateCorrespondingCachedAppDataSender: sender is not a valid sender or a neighbour node')
+      nestedCountersInstance.countEvent(
+        'stateManager',
+        'factValidateCorrespondingCachedAppDataSender: sender is not a valid sender or a neighbour node'
+      )
       return false
     }
     return true
@@ -396,14 +420,16 @@ class CachedAppDataManager {
 
     const senderGroup = this.stateManager.transactionQueue.getConsenusGroupForAccount(queueEntry.executionShardKey)
     const targetGroup = this.stateManager.transactionQueue.getConsenusGroupForAccount(dataID)
-    const allNodes = Array.from(new Set([...senderGroup, ...targetGroup])).sort((a, b) => a.id.localeCompare(b.id));
+    const allNodes = Array.from(new Set([...senderGroup, ...targetGroup])).sort((a, b) => a.id.localeCompare(b.id))
     const senderIndexInTxGroup = allNodes.findIndex((node) => node.id === ourNodeData.node.id)
     const senderGroupSize = senderGroup.length
     const targetGroupSize = targetGroup.length
-    const {startIndex: targetStartIndex, endIndex: targetEndIndex} = 
-      this.stateManager.transactionQueue.getStartAndEndIndexOfTargetGroup(targetGroup.map(node => node.id), allNodes)
+    const { startIndex: targetStartIndex, endIndex: targetEndIndex } =
+      this.stateManager.transactionQueue.getStartAndEndIndexOfTargetGroup(
+        targetGroup.map((node) => node.id),
+        allNodes
+      )
     const globalOffset = parseInt(txId.slice(-4), 16)
-
 
     const correspondingIndices = getCorrespondingNodes(
       senderIndexInTxGroup,
@@ -459,25 +485,25 @@ class CachedAppDataManager {
       const filteredCorrespondingAccNodes = filteredNodes
 
       // if (this.config.p2p.useBinarySerializedEndpoints && this.config.p2p.sendCachedAppDataBinary) {
-        if(logFlags.shardedCache) console.log(`cachedAddData: factSendCorrespondingCachedAppData sending ${dataID}`)
-        const sendCacheAppDataReq: SendCachedAppDataReq = {
-          topic,
-          txId,
-          executionShardKey: queueEntry.executionShardKey,
-          cachedAppData: {
-            dataID: message.cachedAppData.dataID,
-            appData: message.cachedAppData.appData,
-            cycle: message.cachedAppData.cycle,
-          },
-        }
-        this.p2p.tellBinary<SendCachedAppDataReq>(
-          filteredCorrespondingAccNodes,
-          InternalRouteEnum.binary_send_cachedAppData,
-          sendCacheAppDataReq,
-          serializeSendCachedAppDataReq,
-          {}
-        )
-        // return
+      if (logFlags.shardedCache) console.log(`cachedAddData: factSendCorrespondingCachedAppData sending ${dataID}`)
+      const sendCacheAppDataReq: SendCachedAppDataReq = {
+        topic,
+        txId,
+        executionShardKey: queueEntry.executionShardKey,
+        cachedAppData: {
+          dataID: message.cachedAppData.dataID,
+          appData: message.cachedAppData.appData,
+          cycle: message.cachedAppData.cycle,
+        },
+      }
+      this.p2p.tellBinary<SendCachedAppDataReq>(
+        filteredCorrespondingAccNodes,
+        InternalRouteEnum.binary_send_cachedAppData,
+        sendCacheAppDataReq,
+        serializeSendCachedAppDataReq,
+        {}
+      )
+      // return
       // }
 
       // this.p2p.tell(filteredCorrespondingAccNodes, 'send_cachedAppData', message)
@@ -672,24 +698,24 @@ class CachedAppDataManager {
             const filteredCorrespondingAccNodes = filteredNodes
 
             // if (this.config.p2p.useBinarySerializedEndpoints && this.config.p2p.sendCachedAppDataBinary) {
-              const sendCacheAppDataReq: SendCachedAppDataReq = {
-                topic,
-                txId,
-                executionShardKey: queueEntry.executionShardKey,
-                cachedAppData: {
-                  dataID: message.cachedAppData.dataID,
-                  appData: message.cachedAppData.appData,
-                  cycle: message.cachedAppData.cycle,
-                },
-              }
-              this.p2p.tellBinary<SendCachedAppDataReq>(
-                filteredCorrespondingAccNodes,
-                InternalRouteEnum.binary_send_cachedAppData,
-                sendCacheAppDataReq,
-                serializeSendCachedAppDataReq,
-                {}
-              )
-              // return
+            const sendCacheAppDataReq: SendCachedAppDataReq = {
+              topic,
+              txId,
+              executionShardKey: queueEntry.executionShardKey,
+              cachedAppData: {
+                dataID: message.cachedAppData.dataID,
+                appData: message.cachedAppData.appData,
+                cycle: message.cachedAppData.cycle,
+              },
+            }
+            this.p2p.tellBinary<SendCachedAppDataReq>(
+              filteredCorrespondingAccNodes,
+              InternalRouteEnum.binary_send_cachedAppData,
+              sendCacheAppDataReq,
+              serializeSendCachedAppDataReq,
+              {}
+            )
+            // return
             // }
 
             // this.p2p.tell(filteredCorrespondingAccNodes, 'send_cachedAppData', message)
@@ -757,15 +783,15 @@ class CachedAppDataManager {
       let r: CachedAppData | boolean
       try {
         // if (this.config.p2p.useBinarySerializedEndpoints && this.config.p2p.getCachedAppDataBinary) {
-          const resp = await this.p2p.askBinary<GetCachedAppDataReq, GetCachedAppDataResp>(
-            randomConsensusNode,
-            InternalRouteEnum.binary_get_cached_app_data,
-            message,
-            serializeGetCachedAppDataReq,
-            deserializeGetCachedAppDataResp,
-            {}
-          )
-          r = resp?.cachedAppData ?? false
+        const resp = await this.p2p.askBinary<GetCachedAppDataReq, GetCachedAppDataResp>(
+          randomConsensusNode,
+          InternalRouteEnum.binary_get_cached_app_data,
+          message,
+          serializeGetCachedAppDataReq,
+          deserializeGetCachedAppDataResp,
+          {}
+        )
+        r = resp?.cachedAppData ?? false
         // } else {
         //   r = await this.p2p.ask(randomConsensusNode, 'get_cached_app_data', message)
         // }
@@ -776,8 +802,7 @@ class CachedAppDataManager {
       }
 
       if (r === false) {
-        if (logFlags.error)
-          this.mainLogger.error(`cachedAppData: ASK FAIL getLocalOrRemoteCachedAppData r === false`)
+        if (logFlags.error) this.mainLogger.error(`cachedAppData: ASK FAIL getLocalOrRemoteCachedAppData r === false`)
         nestedCountersInstance.countEvent('cached-app-data', 'result is false')
         return null
       }

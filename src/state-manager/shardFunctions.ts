@@ -24,11 +24,7 @@ class ShardFunctions {
    * @param {number} numNodes
    * @param {number} nodesPerConsenusGroup
    */
-  static calculateShardGlobals(
-    numNodes: number,
-    nodesPerConsenusGroup: number,
-    nodesPerEdge: number
-  ): ShardGlobals {
+  static calculateShardGlobals(numNodes: number, nodesPerConsenusGroup: number, nodesPerEdge: number): ShardGlobals {
     const shardGlobals = {} as ShardGlobals
 
     if (nodesPerConsenusGroup % 2 === 0) {
@@ -98,18 +94,12 @@ class ShardFunctions {
    * @param shardGlobals
    * @param homePartition
    */
-  static calculateStoredPartitions2(
-    shardGlobals: ShardGlobals,
-    homePartition: number
-  ): WrappablePartitionRange {
+  static calculateStoredPartitions2(shardGlobals: ShardGlobals, homePartition: number): WrappablePartitionRange {
     const storedPartitionRadius = shardGlobals.consensusRadius + shardGlobals.nodesPerEdge
     return ShardFunctions.calculateParitionRange(shardGlobals, homePartition, storedPartitionRadius)
   }
 
-  static calculateConsensusPartitions(
-    shardGlobals: ShardGlobals,
-    homePartition: number
-  ): WrappablePartitionRange {
+  static calculateConsensusPartitions(shardGlobals: ShardGlobals, homePartition: number): WrappablePartitionRange {
     return ShardFunctions.calculateParitionRange(shardGlobals, homePartition, shardGlobals.consensusRadius)
   }
 
@@ -172,8 +162,7 @@ class ShardFunctions {
     wrappablePartitionRange.partitionsCovered = 0
     if (wrappablePartitionRange.partitionStart < 0) {
       wrappablePartitionRange.rangeIsSplit = true
-      wrappablePartitionRange.partitionStart2 =
-        wrappablePartitionRange.partitionStart + shardGlobals.numPartitions
+      wrappablePartitionRange.partitionStart2 = wrappablePartitionRange.partitionStart + shardGlobals.numPartitions
       wrappablePartitionRange.partitionEnd2 = shardGlobals.numPartitions - 1
       wrappablePartitionRange.partitionStart1 = 0
       wrappablePartitionRange.partitionEnd1 = wrappablePartitionRange.partitionEnd
@@ -182,8 +171,7 @@ class ShardFunctions {
     }
     if (wrappablePartitionRange.partitionEnd >= shardGlobals.numPartitions) {
       wrappablePartitionRange.rangeIsSplit = true
-      wrappablePartitionRange.partitionEnd1 =
-        wrappablePartitionRange.partitionEnd - shardGlobals.numPartitions
+      wrappablePartitionRange.partitionEnd1 = wrappablePartitionRange.partitionEnd - shardGlobals.numPartitions
       wrappablePartitionRange.partitionStart1 = 0
       wrappablePartitionRange.partitionStart2 = wrappablePartitionRange.partitionStart
       wrappablePartitionRange.partitionEnd2 = shardGlobals.numPartitions - 1
@@ -321,18 +309,13 @@ class ShardFunctions {
   static testInRange(partition: number, wrappableParitionRange: WrappablePartitionRange): boolean {
     if (wrappableParitionRange.rangeIsSplit) {
       if (
-        (partition >= wrappableParitionRange.partitionStart1 &&
-          partition <= wrappableParitionRange.partitionEnd1) ||
-        (partition >= wrappableParitionRange.partitionStart2 &&
-          partition <= wrappableParitionRange.partitionEnd2)
+        (partition >= wrappableParitionRange.partitionStart1 && partition <= wrappableParitionRange.partitionEnd1) ||
+        (partition >= wrappableParitionRange.partitionStart2 && partition <= wrappableParitionRange.partitionEnd2)
       ) {
         return true
       }
     } else {
-      if (
-        partition >= wrappableParitionRange.partitionStart &&
-        partition <= wrappableParitionRange.partitionEnd
-      ) {
+      if (partition >= wrappableParitionRange.partitionStart && partition <= wrappableParitionRange.partitionEnd) {
         return true
       }
     }
@@ -618,8 +601,7 @@ class ShardFunctions {
       if (nodeShardData.consensusNodeForOurNodeFull.length >= 2) {
         // this logic only works because we know that getNeigborNodesInRange starts at the starting point
         const startNode = nodeShardData.consensusNodeForOurNodeFull[0]
-        const endNode =
-          nodeShardData.consensusNodeForOurNodeFull[nodeShardData.consensusNodeForOurNodeFull.length - 1]
+        const endNode = nodeShardData.consensusNodeForOurNodeFull[nodeShardData.consensusNodeForOurNodeFull.length - 1]
 
         let startPartition = nodeShardDataMap.get(startNode.id).homePartition
         let endPartition = nodeShardDataMap.get(endNode.id).homePartition
@@ -755,9 +737,7 @@ class ShardFunctions {
             extraLists,
           })}`
         } catch (ex) {
-          this.fatalLogger.fatal(
-            'computeExtendedNodePartitionData: ' + ex.name + ': ' + ex.message + ' at ' + ex.stack
-          )
+          this.fatalLogger.fatal('computeExtendedNodePartitionData: ' + ex.name + ': ' + ex.message + ' at ' + ex.stack)
         }
         if (ShardFunctions.fatalLogger) {
           ShardFunctions.fatalLogger.fatal(message)
@@ -1202,10 +1182,7 @@ class ShardFunctions {
     return result
   }
 
-  static getPartitionRangeFromRadix(
-    shardGlobals: ShardGlobals,
-    radix: string
-  ): { low: number; high: number } {
+  static getPartitionRangeFromRadix(shardGlobals: ShardGlobals, radix: string): { low: number; high: number } {
     const filledAddress = radix + '0'.repeat(64 - radix.length)
     const partition = ShardFunctions.addressToPartition(shardGlobals, filledAddress)
 
@@ -1370,11 +1347,7 @@ class ShardFunctions {
     return results
   }
 
-  static partitionToAddressRange2(
-    shardGlobals: ShardGlobals,
-    partition: number,
-    partitionMax?: number
-  ): AddressRange {
+  static partitionToAddressRange2(shardGlobals: ShardGlobals, partition: number, partitionMax?: number): AddressRange {
     const result = {} as AddressRange
     result.partition = partition
 
@@ -1951,11 +1924,7 @@ class ShardFunctions {
    * @param {number} toListSize
    * @param {number} fromListIndex
    */
-  static fastStableCorrespondingIndicies(
-    fromListSize: number,
-    toListSize: number,
-    fromListIndex: number
-  ): number[] {
+  static fastStableCorrespondingIndicies(fromListSize: number, toListSize: number, fromListIndex: number): number[] {
     const results = [] as number[]
     if (fromListSize >= toListSize) {
       let value = Math.round((fromListIndex / fromListSize) * toListSize)

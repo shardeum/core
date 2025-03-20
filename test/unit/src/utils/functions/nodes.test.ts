@@ -21,7 +21,7 @@ describe('removeNodesByID', () => {
       activeTimestamp: 1200,
       activeCycle: 1,
       syncingTimestamp: 1100,
-      readyTimestamp: 1150
+      readyTimestamp: 1150,
     },
     {
       id: 'node2',
@@ -39,7 +39,7 @@ describe('removeNodesByID', () => {
       activeTimestamp: 1201,
       activeCycle: 1,
       syncingTimestamp: 1101,
-      readyTimestamp: 1151
+      readyTimestamp: 1151,
     },
     {
       id: 'node3',
@@ -57,15 +57,15 @@ describe('removeNodesByID', () => {
       activeTimestamp: 1202,
       activeCycle: 1,
       syncingTimestamp: 1102,
-      readyTimestamp: 1152
-    }
+      readyTimestamp: 1152,
+    },
   ]
 
   // Positive test cases
   it('should remove a single node by ID from an array of nodes', () => {
     const result = removeNodesByID(sampleNodes, ['node1'])
     expect(result).toHaveLength(2)
-    expect(result.map(node => node.id)).toEqual(['node2', 'node3'])
+    expect(result.map((node) => node.id)).toEqual(['node2', 'node3'])
   })
 
   it('should remove multiple nodes by ID from an array of nodes', () => {
@@ -138,4 +138,4 @@ describe('removeNodesByID', () => {
     // Since no nodes match the filter condition, all nodes will be returned
     expect(result).toEqual(nodesWithoutId)
   })
-}) 
+})

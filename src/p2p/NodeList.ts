@@ -3,14 +3,7 @@ import { P2P } from '@shardeum-foundation/lib-types'
 import { Logger } from 'log4js'
 import { isDebugModeMiddleware, isDebugModeMiddlewareLow } from '../network/debugMiddleware'
 import { ShardusEvent } from '../shardus/shardus-types'
-import {
-  binarySearch,
-  FIFOCache,
-  insertSorted,
-  linearInsertSorted,
-  propComparator,
-  propComparator2
-} from '../utils'
+import { binarySearch, FIFOCache, insertSorted, linearInsertSorted, propComparator, propComparator2 } from '../utils'
 import * as Comms from './Comms'
 import { config, crypto, logger, network } from './Context'
 import * as CycleChain from './CycleChain'
@@ -20,8 +13,8 @@ import rfdc from 'rfdc'
 import { logFlags } from '../logger'
 import { nestedCountersInstance } from '..'
 import { shardusGetTime } from '../network'
-import { getStandbyNodesInfoMap, standbyNodesInfo } from "./Join/v2";
-import { getDesiredCount } from "./CycleAutoScale";
+import { getStandbyNodesInfoMap, standbyNodesInfo } from './Join/v2'
+import { getDesiredCount } from './CycleAutoScale'
 import { Utils } from '@shardeum-foundation/lib-types'
 import { networkMode } from './Modes'
 import { getNewestCycle } from './Sync'
@@ -48,10 +41,7 @@ export let readyByTimeAndIdOrder: P2P.NodeListTypes.Node[]
 export let activeOthersByIdOrder: P2P.NodeListTypes.Node[]
 export let potentiallyRemoved: Set<P2P.NodeListTypes.Node['id']>
 export let selectedById: Map<P2P.NodeListTypes.Node['id'], number>
-export let removedNodeIDCache: FIFOCache<
-  P2P.NodeListTypes.Node['id'],
-  P2P.NodeListTypes.Node['publicKey']
-> 
+export let removedNodeIDCache: FIFOCache<P2P.NodeListTypes.Node['id'], P2P.NodeListTypes.Node['publicKey']>
 
 const VERBOSE = false // Use to dump complete NodeList and CycleChain data
 
@@ -113,7 +103,7 @@ const isRefuteCyclesEnabled = (cycle: P2P.CycleCreatorTypes.CycleRecord | null) 
   if (cycle === null) {
     nestedCountersInstance.countEvent('p2p', `initRefuteCycles: cycle is null when initializing refute cycles`)
     /* prettier-ignore */ if (logFlags.p2pNonFatal) console.log('initRefuteCycles: cycle is null when initializing refute cycles')
-    return false;
+    return false
   }
 
   if (config.p2p.enableProblematicNodeRemoval && cycle.counter >= config.p2p.enableProblematicNodeRemovalOnCycle) {
@@ -126,11 +116,10 @@ const isRefuteCyclesEnabled = (cycle: P2P.CycleCreatorTypes.CycleRecord | null) 
 const initRefuteCyclesForNode = (node: P2P.NodeListTypes.Node, cycle: P2P.CycleCreatorTypes.CycleRecord | null) => {
   if (isRefuteCyclesEnabled(cycle)) {
     // This if check is a critical fix.  This is because initRefuteCyclesForNode gets called
-    // as part of addNode and addNode gets called in syncV2 after we download the nodelist and then 
+    // as part of addNode and addNode gets called in syncV2 after we download the nodelist and then
     // pass it to addNodes.   having the check here will make sure we dont wipe out existing
     // data in refuteCycles that we just downloaded.
-    if(node.refuteCycles == null)
-      node.refuteCycles = []
+    if (node.refuteCycles == null) node.refuteCycles = []
   }
 }
 
@@ -204,14 +193,18 @@ export function addNode(node: P2P.NodeListTypes.Node, caller: string, cycle: P2P
     removeReadyNode(node.id)
   }
 }
-export function addNodes(newNodes: P2P.NodeListTypes.Node[], caller: string, cycle: P2P.CycleCreatorTypes.CycleRecord | null) {
+export function addNodes(
+  newNodes: P2P.NodeListTypes.Node[],
+  caller: string,
+  cycle: P2P.CycleCreatorTypes.CycleRecord | null
+) {
   for (const node of newNodes) {
     addNode(node, caller, cycle)
   }
 }
 
 export function getRemovedNodePubKeyFromCache(nodeId: P2P.NodeListTypes.Node['id']) {
-  return removedNodeIDCache.get(nodeId);
+  return removedNodeIDCache.get(nodeId)
 }
 
 export function removeSelectedNode(id: string) {
@@ -239,11 +232,7 @@ export function removeReadyNode(id: string) {
   if (idx >= 0) readyByTimeAndIdOrder.splice(idx, 1)
 }
 
-export function removeNode(
-  id: string,
-  raiseEvents: boolean,
-  cycle: P2P.CycleCreatorTypes.CycleRecord | null
-) {
+export function removeNode(id: string, raiseEvents: boolean, cycle: P2P.CycleCreatorTypes.CycleRecord | null) {
   let idx: number
 
   // Omar added this so we don't crash if a node gets remove more than once
@@ -302,7 +291,7 @@ export function removeNode(
   // add to removed node cache
   if (!removedNodeIDCache) {
     removedNodeIDCache = new FIFOCache<P2P.NodeListTypes.Node['id'], P2P.NodeListTypes.Node['publicKey']>(
-        config.p2p.removedNodeIDCacheSize
+      config.p2p.removedNodeIDCacheSize
     )
   }
   removedNodeIDCache.set(id, node.publicKey)
@@ -348,11 +337,7 @@ export function emitSyncTimeoutEvent(node: P2P.NodeListTypes.Node, cycle: P2P.Cy
   emitter.emit('node-sync-timeout', emitParams)
 }
 
-export function removeNodes(
-  ids: string[],
-  raiseEvents: boolean,
-  cycle: P2P.CycleCreatorTypes.CycleRecord | null
-) {
+export function removeNodes(ids: string[], raiseEvents: boolean, cycle: P2P.CycleCreatorTypes.CycleRecord | null) {
   for (const id of ids) removeNode(id, raiseEvents, cycle)
 }
 
@@ -438,18 +423,17 @@ export function updateNodes(
 
   info(`NodeList.updateNodes: ${updates.length} ${Utils.safeStringify(stats)} enableProblematicNodeRemoval: ${config.p2p.enableProblematicNodeRemoval} cycle: ${cycle?.counter} refuteCyclesEnabled: ${refuteCyclesEnabled} enableProblematicNodeRemovalOnCycle: ${config.p2p.enableProblematicNodeRemovalOnCycle}`) 
   */
-
 }
 
 export function updateProblematicNodeTracking(cycle: P2P.CycleCreatorTypes.CycleRecord | null) {
   if (isRefuteCyclesEnabled(cycle)) {
     if (logFlags.p2pNonFatal) console.log('p2p: updating refute cycles')
-   
+
     for (const node of nodes.values()) {
       if (!node.refuteCycles) {
         nestedCountersInstance.countEvent('p2p', `updateProblematicNodeTracking: initializing refute cycles for node`)
         if (logFlags.p2pNonFatal) console.log('p2p: initializing refute cycles for node', node.id)
-        node.refuteCycles = [];
+        node.refuteCycles = []
       }
 
       // Track refutes if this update is from a cycle record
@@ -457,18 +441,21 @@ export function updateProblematicNodeTracking(cycle: P2P.CycleCreatorTypes.Cycle
         if (!node.refuteCycles.includes(cycle.counter)) {
           nestedCountersInstance.countEvent('p2p', `updateProblematicNodeTracking: tracking refute cycle for node`)
           if (logFlags.p2pNonFatal) console.log(`p2p: tracking refute cycle for node ${node.id} - ${cycle.counter}`)
-          node.refuteCycles.push(cycle.counter);
+          node.refuteCycles.push(cycle.counter)
         }
       }
-      
-      const numRefuteCyclesBeforeClean = node.refuteCycles.length;
+
+      const numRefuteCyclesBeforeClean = node.refuteCycles.length
       // Clean up old refutes using sliding window
-      const windowStart = Math.max(1, cycle.counter - config.p2p.problematicNodeHistoryLength);
-      node.refuteCycles = node.refuteCycles.filter(c => c >= windowStart);
-      const numRefuteCyclesAfterClean = node.refuteCycles.length;
+      const windowStart = Math.max(1, cycle.counter - config.p2p.problematicNodeHistoryLength)
+      node.refuteCycles = node.refuteCycles.filter((c) => c >= windowStart)
+      const numRefuteCyclesAfterClean = node.refuteCycles.length
       if (numRefuteCyclesBeforeClean > numRefuteCyclesAfterClean) {
         nestedCountersInstance.countEvent('p2p', `updateProblematicNodeTracking: cleaned up refute cycles for node`)
-        if (logFlags.p2pNonFatal) console.log(`p2p: cleaned up refute cycles for node ${node.id} - ${numRefuteCyclesBeforeClean} -> ${numRefuteCyclesAfterClean}`)
+        if (logFlags.p2pNonFatal)
+          console.log(
+            `p2p: cleaned up refute cycles for node ${node.id} - ${numRefuteCyclesBeforeClean} -> ${numRefuteCyclesAfterClean}`
+          )
       }
     }
   }
@@ -510,9 +497,7 @@ export function getDebug() {
         .join()}]
       othersByIdOrder:       [${othersByIdOrder.map((node) => `${node.externalIp}:${node.externalPort}`)}]
       activeByIdOrder:       [${activeByIdOrder.map((node) => `${node.externalIp}:${node.externalPort}`)}]
-      activeOthersByIdOrder: [${activeOthersByIdOrder.map(
-        (node) => `${node.externalIp}:${node.externalPort}`
-      )}]
+      activeOthersByIdOrder: [${activeOthersByIdOrder.map((node) => `${node.externalIp}:${node.externalPort}`)}]
       `
   if (VERBOSE)
     output += `

@@ -15,11 +15,7 @@ export type getTxTimestampResp = {
 
 const cGetTxTimestampRespVersion = 1
 
-export function serializeGetTxTimestampResp(
-  stream: VectorBufferStream,
-  obj: getTxTimestampResp,
-  root = false
-): void {
+export function serializeGetTxTimestampResp(stream: VectorBufferStream, obj: getTxTimestampResp, root = false): void {
   const errors = verifyPayload(AJVSchemaEnum.GetTxTimestampResp, obj)
   if (errors && errors.length > 0) {
     throw new Error('Data validation error')

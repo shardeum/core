@@ -38,9 +38,7 @@ export function serializeGlobalAccountReportResp(
   }
 }
 
-export function deserializeGlobalAccountReportResp(
-  stream: VectorBufferStream
-): GlobalAccountReportRespSerializable {
+export function deserializeGlobalAccountReportResp(stream: VectorBufferStream): GlobalAccountReportRespSerializable {
   const version = stream.readUInt8()
   if (version > cGlobalAccountReportRespVersion) {
     throw new Error('GlobalAccountReportRespSerializable version mismatch')

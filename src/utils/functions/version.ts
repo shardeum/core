@@ -2,7 +2,7 @@
  * Represents a semantic version with major, minor, patch, and optional prerelease components.
  * Follows the SemVer specification format: MAJOR.MINOR.PATCH[-prerelease.PRERELEASE]
  * Example: 1.2.3-prerelease.4
- * 
+ *
  * @internal This interface is exported for testing purposes only and is not part of the public API.
  */
 export interface SemVersion {
@@ -22,10 +22,10 @@ export interface SemVersion {
 /**
  * Validates if an object conforms to the SemVersion interface.
  * This function performs thorough validation of all properties and their types.
- * 
+ *
  * @param obj - The object to validate
  * @returns true if the object is a valid SemVersion, false otherwise
- * 
+ *
  * @internal This function is exported for testing purposes only and is not part of the public API.
  */
 export function isValidSemVersionObject(obj: unknown): obj is SemVersion {
@@ -35,55 +35,55 @@ export function isValidSemVersionObject(obj: unknown): obj is SemVersion {
   }
 
   const version = obj as Partial<SemVersion>
-  
+
   // Check if major property exists and is a number
   if (typeof version.major !== 'number') {
     return false
   }
-  
+
   // Check if minor property exists and is a number
   if (typeof version.minor !== 'number') {
     return false
   }
-  
+
   // Check if patch property exists and is a number
   if (typeof version.patch !== 'number') {
     return false
   }
-  
+
   // Check if major is a non-negative integer
   if (!Number.isInteger(version.major) || version.major < 0) {
     return false
   }
-  
+
   // Check if minor is a non-negative integer
   if (!Number.isInteger(version.minor) || version.minor < 0) {
     return false
   }
-  
+
   // Check if patch is a non-negative integer
   if (!Number.isInteger(version.patch) || version.patch < 0) {
     return false
   }
-  
+
   // If prerelease exists, validate it
   if (version.prerelease !== undefined) {
     // Check if prerelease is an object
     if (typeof version.prerelease !== 'object' || version.prerelease === null) {
       return false
     }
-    
+
     // Check if prerelease.number exists and is a number
     if (typeof version.prerelease.number !== 'number') {
       return false
     }
-    
+
     // Check if prerelease.number is a non-negative integer
     if (!Number.isInteger(version.prerelease.number) || version.prerelease.number < 0) {
       return false
     }
   }
-  
+
   // All checks passed
   return true
 }
@@ -93,11 +93,11 @@ export function isValidSemVersionObject(obj: unknown): obj is SemVersion {
  * Supports formats:
  * - x.y.z (standard version)
  * - x.y.z-prerelease.n (version with prerelease)
- * 
+ *
  * @param version - The version string to parse
  * @throws Error if version string is invalid or malformed
  * @returns A validated SemVersion object
- * 
+ *
  * @internal This function is exported for testing purposes only and is not part of the public API.
  */
 export function parseSemVersion(version: string | null | undefined): SemVersion {
@@ -150,7 +150,7 @@ export function parseSemVersion(version: string | null | undefined): SemVersion 
 
 /**
  * Represents the result of comparing two versions.
- * 
+ *
  * @internal This enum is exported for testing purposes only and is not part of the public API.
  */
 export enum VersionComparisonResult {
@@ -165,11 +165,11 @@ export enum VersionComparisonResult {
 /**
  * Compares two SemVersion objects following SemVer rules.
  * Comparison order: major, minor, patch, then prerelease if necessary.
- * 
+ *
  * @param a - First version to compare
  * @param b - Second version to compare
  * @returns VersionComparisonResult indicating the relationship between versions
- * 
+ *
  * @internal This function is exported for testing purposes only and is not part of the public API.
  */
 export function compareSemVersions(a: SemVersion, b: SemVersion): VersionComparisonResult {
@@ -185,7 +185,7 @@ export function compareSemVersions(a: SemVersion, b: SemVersion): VersionCompari
 
 /**
  * Compares the major, minor, and patch components of two versions.
- * 
+ *
  * @param a - First version to compare
  * @param b - Second version to compare
  * @returns VersionComparisonResult based on major, minor, and patch comparison
@@ -216,7 +216,7 @@ function compareNormalSemVersions(a: SemVersion, b: SemVersion): VersionComparis
  * Compares the prerelease components of two versions.
  * Per SemVer spec, a version with a prerelease component is lower than
  * the same version without a prerelease component.
- * 
+ *
  * @param a - First version to compare
  * @param b - Second version to compare
  * @returns VersionComparisonResult based on prerelease comparison
@@ -245,11 +245,11 @@ function comparePrereleaseSemVersions(a: SemVersion, b: SemVersion): VersionComp
 
 /**
  * Checks if a version meets or exceeds a minimum required version.
- * 
+ *
  * @param requiredVersion - The minimum version required
  * @param testVersion - The version to test
  * @returns true if testVersion is equal to or greater than requiredVersion
- * 
+ *
  * @internal This function is exported for testing purposes only and is not part of the public API.
  */
 export function meetsMinimumSemVersion(requiredVersion: SemVersion, testVersion: SemVersion): boolean {
@@ -259,11 +259,11 @@ export function meetsMinimumSemVersion(requiredVersion: SemVersion, testVersion:
 
 /**
  * Checks if a version is at or below a maximum allowed version.
- * 
+ *
  * @param maximumVersion - The maximum version allowed
  * @param testVersion - The version to test
  * @returns true if testVersion is equal to or less than maximumVersion
- * 
+ *
  * @internal This function is exported for testing purposes only and is not part of the public API.
  */
 export function isWithinMaximumSemVersion(maximumVersion: SemVersion, testVersion: SemVersion): boolean {
@@ -292,7 +292,7 @@ export enum VersionValidationResult {
 /**
  * Validates and checks if a version meets or exceeds a minimum required version.
  * This function handles parsing, validation, and comparison in one step.
- * 
+ *
  * @param requiredVersionStr - The minimum version required (as a string)
  * @param testVersionStr - The version to test (as a string)
  * @returns A VersionValidationResult indicating success or the specific failure reason
@@ -340,7 +340,7 @@ export function meetsMinimumVersion(
 /**
  * Validates and checks if a version is at or below a maximum allowed version.
  * This function handles parsing, validation, and comparison in one step.
- * 
+ *
  * @param maximumVersionStr - The maximum allowed version (as a string)
  * @param testVersionStr - The version to test (as a string)
  * @returns A VersionValidationResult indicating success or the specific failure reason
@@ -384,4 +384,3 @@ export function isWithinMaximumVersion(
     return VersionValidationResult.ComparisonFailed
   }
 }
-

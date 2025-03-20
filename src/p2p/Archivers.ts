@@ -2,13 +2,7 @@ import { hexstring, P2P, publicKey, StateManager } from '@shardeum-foundation/li
 import deepmerge from 'deepmerge'
 import * as http from '../http'
 import { logFlags } from '../logger'
-import {
-  getReceiptHashes,
-  getReceiptMap,
-  getStateHashes,
-  getSummaryBlob,
-  getSummaryHashes,
-} from '../snapshot'
+import { getReceiptHashes, getReceiptMap, getStateHashes, getSummaryBlob, getSummaryHashes } from '../snapshot'
 import { shuffleMapIterator, sleep, validateTypes } from '../utils'
 import { nestedCountersInstance } from '../utils/nestedCounters'
 import { profilerInstance } from '../utils/profiler'
@@ -36,6 +30,7 @@ import { Utils } from '@shardeum-foundation/lib-types'
 import { DevSecurityLevel } from '../shardus/shardus-types'
 import { verifyPayload } from '../types/ajv/Helpers'
 import { AJVSchemaEnum } from '../types/enum/AJVSchemaEnum'
+import { customFetch } from '../http/customHttpFunctions'
 
 const clone = rfdc()
 
@@ -45,12 +40,9 @@ let p2pLogger
 
 export let archivers: Map<P2P.ArchiversTypes.JoinedArchiver['publicKey'], P2P.ArchiversTypes.JoinedArchiver>
 // TODO: Update any with appropriate type
-export let recipients: Map<
-  P2P.ArchiversTypes.JoinedArchiver['publicKey'],
-  P2P.ArchiversTypes.DataRecipient | any
->
+export let recipients: Map<P2P.ArchiversTypes.JoinedArchiver['publicKey'], P2P.ArchiversTypes.DataRecipient | any>
 
-let allowedArchivers: Array<{ ip: string, port: number, publicKey: string }> = []
+let allowedArchivers: Array<{ ip: string; port: number; publicKey: string }> = []
 let allowedArchiversInterval: NodeJS.Timeout | null = null
 let joinRequests: P2P.ArchiversTypes.Request[]
 let leaveRequests: P2P.ArchiversTypes.Request[]
@@ -81,17 +73,15 @@ export function getNumArchivers(): number {
   return archivers.size
 }
 
-export function getArchiverWithPublicKey(
-  publicKey: publicKey
-): P2P.ArchiversTypes.JoinedArchiver | undefined {
+export function getArchiverWithPublicKey(publicKey: publicKey): P2P.ArchiversTypes.JoinedArchiver | undefined {
   return archivers.get(publicKey)
 }
 
 export function getRandomArchiver(): P2P.ArchiversTypes.JoinedArchiver | null {
   if (archivers.size === 0) return null
   const list = Array.from(archivers.values())
-  const index = randomInt(0, list.length);
-  return list[index];
+  const index = randomInt(0, list.length)
+  return list[index]
 }
 
 /** CycleCreator Functions */
@@ -106,7 +96,7 @@ export function init() {
   reset()
   resetLeaveRequests()
   registerRoutes()
-  getAllowedArchivers().then(archivers => {
+  getAllowedArchivers().then((archivers) => {
     if (archivers.length >= 1) {
       allowedArchivers = archivers
     }
@@ -150,11 +140,13 @@ export function init() {
   }
 }
 
-async function getAllowedArchivers(): Promise<Array<{
-  ip: string
-  port: number
-  publicKey: string
-}>> {
+async function getAllowedArchivers(): Promise<
+  Array<{
+    ip: string
+    port: number
+    publicKey: string
+  }>
+> {
   // Type for archiver data response
   type ArchiverResponse = {
     allowedArchivers: Array<{
@@ -180,10 +172,16 @@ async function getAllowedArchivers(): Promise<Array<{
     }
 
     const payload = {
-      allowedArchivers: data.allowedArchivers
+      allowedArchivers: data.allowedArchivers,
     }
 
-    const isValidList = Context.stateManager.app.verifyMultiSigs(payload, data.signatures, allowedSigners, minSigRequired, DevSecurityLevel.High)
+    const isValidList = Context.stateManager.app.verifyMultiSigs(
+      payload,
+      data.signatures,
+      allowedSigners,
+      minSigRequired,
+      DevSecurityLevel.High
+    )
     if (!isValidList) {
       p2pLogger.warn('getAllowedArchivers: invalid signatures')
       return false
@@ -195,25 +193,27 @@ async function getAllowedArchivers(): Promise<Array<{
   // Helper function to fetch and validate archiver data
   async function fetchArchiverData(ip: string, port: number): Promise<ArchiverResponse | null> {
     try {
-      const response = await fetch(`http://${ip}:${port}/allowed-archivers`)
+      const response = await customFetch(`http://${ip}:${port}/allowed-archivers`)
       if (!response.ok) {
         return null
       }
-      const bodyText = await response.text();
+      const bodyText = await response.text()
 
       // Check if the body length exceeds the maximum allowed length
       if (bodyText.length > MAX_BODY_LENGTH_ALLOWED_ARCHIVERS) {
-        p2pLogger.warn(`Response body for allowed archivers is too large: ${bodyText.length} bytes. Max allowed is ${MAX_BODY_LENGTH_ALLOWED_ARCHIVERS} bytes.`);
-        return null;
+        p2pLogger.warn(
+          `Response body for allowed archivers is too large: ${bodyText.length} bytes. Max allowed is ${MAX_BODY_LENGTH_ALLOWED_ARCHIVERS} bytes.`
+        )
+        return null
       }
 
-      const data = Utils.safeJsonParse(bodyText);
+      const data = Utils.safeJsonParse(bodyText)
 
       // Validate the parsed JSON data against the AJV schema
-      const inValidResponse = verifyPayload(AJVSchemaEnum.AllowedArchiverResponse, data);
+      const inValidResponse = verifyPayload(AJVSchemaEnum.AllowedArchiverResponse, data)
       if (inValidResponse) {
-        p2pLogger.warn('getAllowedArchivers: invalid allowed archivers response');
-        return null;
+        p2pLogger.warn('getAllowedArchivers: invalid allowed archivers response')
+        return null
       }
       if (data.allowedArchivers?.length > 0 && verifyArchiverData(data)) {
         return data
@@ -297,8 +297,11 @@ export function updateRecord(txs: P2P.ArchiversTypes.Txs, record: P2P.CycleCreat
 
   // Remove archivers that are not in the allowed list
   for (const existingArchiver of archivers.values()) {
-    if (allowedArchivers.length > 0 && !allowedArchivers.some(allowed => allowed.publicKey === existingArchiver.publicKey) &&
-      !leavingArchivers.some(leaving => leaving.publicKey === existingArchiver.publicKey)) {
+    if (
+      allowedArchivers.length > 0 &&
+      !allowedArchivers.some((allowed) => allowed.publicKey === existingArchiver.publicKey) &&
+      !leavingArchivers.some((leaving) => leaving.publicKey === existingArchiver.publicKey)
+    ) {
       leavingArchivers.push(existingArchiver)
     }
   }
@@ -311,12 +314,10 @@ export function updateRecord(txs: P2P.ArchiversTypes.Txs, record: P2P.CycleCreat
     )
 
   record.joinedArchivers = joinedArchivers.sort(
-    (a: P2P.ArchiversTypes.JoinedArchiver, b: P2P.ArchiversTypes.JoinedArchiver) =>
-      a.publicKey > b.publicKey ? 1 : -1
+    (a: P2P.ArchiversTypes.JoinedArchiver, b: P2P.ArchiversTypes.JoinedArchiver) => (a.publicKey > b.publicKey ? 1 : -1)
   )
   record.leavingArchivers = leavingArchivers.sort(
-    (a: P2P.ArchiversTypes.JoinedArchiver, b: P2P.ArchiversTypes.JoinedArchiver) =>
-      a.publicKey > b.publicKey ? 1 : -1
+    (a: P2P.ArchiversTypes.JoinedArchiver, b: P2P.ArchiversTypes.JoinedArchiver) => (a.publicKey > b.publicKey ? 1 : -1)
   )
   if (logFlags.console)
     console.log(
@@ -340,10 +341,10 @@ export function parseRecord(record: P2P.CycleCreatorTypes.CycleRecord): P2P.Cycl
 }
 
 /** Not used by Archivers */
-export function sendRequests() { }
+export function sendRequests() {}
 
 /** Not used by Archivers */
-export function queueRequest() { }
+export function queueRequest() {}
 
 /** Original Functions */
 
@@ -389,9 +390,7 @@ export function addArchiverJoinRequest(joinRequest: P2P.ArchiversTypes.Request, 
     warn('addJoinRequest: This archiver is already in the active archiver list')
     return { success: false, reason: 'This archiver is already in the active archiver list' }
   }
-  const existingJoinRequest = joinRequests.find(
-    (j) => j.nodeInfo.publicKey === joinRequest.nodeInfo.publicKey
-  )
+  const existingJoinRequest = joinRequests.find((j) => j.nodeInfo.publicKey === joinRequest.nodeInfo.publicKey)
   if (existingJoinRequest) {
     warn('addJoinRequest: This archiver join request already exists')
     return { success: false, reason: 'This archiver join request already exists' }
@@ -403,7 +402,9 @@ export function addArchiverJoinRequest(joinRequest: P2P.ArchiversTypes.Request, 
     }
   }
 
-  const isPublicKeyWhitelisted = allowedArchivers.some(archiver => archiver.publicKey === joinRequest.nodeInfo.publicKey);
+  const isPublicKeyWhitelisted = allowedArchivers.some(
+    (archiver) => archiver.publicKey === joinRequest.nodeInfo.publicKey
+  )
   if (!isPublicKeyWhitelisted && archivers.size > 0) {
     warn('addJoinRequest: Archiver not found in the allowed list')
     return { success: false, reason: 'Archiver not found in the allowed list' }
@@ -473,10 +474,7 @@ function validateArchiverAppData(joinRequest: P2P.ArchiversTypes.Request): {
     try {
       const validationResponse = shardus.app.validateArchiverJoinRequest(joinRequest)
       if (validationResponse.success !== true) {
-        error(
-          `Validation of Archiver join request data failed due to ${validationResponse.reason || 'unknown reason'
-          }`
-        )
+        error(`Validation of Archiver join request data failed due to ${validationResponse.reason || 'unknown reason'}`)
         nestedCountersInstance.countEvent('Archiver', `Join-reject-dapp`)
         return {
           success: validationResponse.success,
@@ -532,13 +530,10 @@ export function addLeaveRequest(leaveRequest: P2P.ArchiversTypes.Request, tracke
     )
     return {
       success: false,
-      reason:
-        'Not a valid archiver to be sending leave request, archiver was not found in active archiver list',
+      reason: 'Not a valid archiver to be sending leave request, archiver was not found in active archiver list',
     }
   }
-  const existingLeaveRequest = leaveRequests.find(
-    (j) => j.nodeInfo.publicKey === leaveRequest.nodeInfo.publicKey
-  )
+  const existingLeaveRequest = leaveRequests.find((j) => j.nodeInfo.publicKey === leaveRequest.nodeInfo.publicKey)
   if (existingLeaveRequest) {
     warn('addLeaveRequest: This archiver leave request already exists')
     return { success: false, reason: 'This archiver leave request already exists' }
@@ -687,8 +682,7 @@ async function forwardReceipts() {
         responses.RECEIPT = receipts
         if (logFlags.console) console.log('newArchiversToForward', newArchiversToForward)
         for (let publicKey of newArchiversToForward) {
-          if (logFlags.console)
-            console.log('Sending last 15s receipts to newly subscribed archivers', publicKey)
+          if (logFlags.console) console.log('Sending last 15s receipts to newly subscribed archivers', publicKey)
           const recipient = recipients.get(publicKey)
           if (!recipient) continue
           forwardDataToSubscribedArchivers(responses, publicKey, recipient)
@@ -715,8 +709,7 @@ async function forwardDataToSubscribedArchivers(responses, publicKey, recipient)
   if (logFlags.console) console.log('Sending data to subscribed archivers', taggedDataResponse)
   try {
     if (io.sockets.sockets[connectedSockets[publicKey]]) {
-      if (logFlags.console)
-        console.log('Forwarded Archiver', recipient.nodeInfo.ip + ':' + recipient.nodeInfo.port)
+      if (logFlags.console) console.log('Forwarded Archiver', recipient.nodeInfo.ip + ':' + recipient.nodeInfo.port)
       io.sockets.sockets[connectedSockets[publicKey]].emit('DATA', Utils.safeStringify(taggedDataResponse))
     } else {
       warn(`Subscribed Archiver ${publicKey} is not connected over socket connection`)
@@ -849,8 +842,7 @@ export function sendData() {
     const cycleRecords = getCycleChain(lastSentCycle + 1)
     const cyclesWithMarker = []
     for (let i = 0; i < cycleRecords.length; i++) {
-      if (logFlags.console)
-        console.log('cycleRecords counter to sent to the archiver', cycleRecords[i].counter)
+      if (logFlags.console) console.log('cycleRecords counter to sent to the archiver', cycleRecords[i].counter)
       cyclesWithMarker.push({
         ...cycleRecords[i],
         marker: computeCycleMarker(cycleRecords[i]),
@@ -874,10 +866,7 @@ export function sendData() {
       try {
         // console.log('connected socketes', publicKey, connectedSockets)
         if (io.sockets.sockets[connectedSockets[publicKey]])
-          io.sockets.sockets[connectedSockets[publicKey]].emit(
-            'DATA',
-            Utils.safeStringify(taggedDataResponse)
-          )
+          io.sockets.sockets[connectedSockets[publicKey]].emit('DATA', Utils.safeStringify(taggedDataResponse))
         else {
           warn(`Subscribed Archiver ${publicKey} is not connected over socket connection`)
           // Call into LostArchivers to report Archiver as lost
@@ -899,9 +888,7 @@ export function sendData() {
       switch (request.type) {
         case P2P.SnapshotTypes.TypeNames.CYCLE: {
           // Identify request type
-          const typedRequest = request as P2P.ArchiversTypes.DataRequest<
-            P2P.SnapshotTypes.NamesToTypes['CYCLE']
-          >
+          const typedRequest = request as P2P.ArchiversTypes.DataRequest<P2P.SnapshotTypes.NamesToTypes['CYCLE']>
           // Get latest cycles since lastData
           const cycleRecords = getCycleChain(typedRequest.lastData + 1)
           const cyclesWithMarker = []
@@ -1008,9 +995,7 @@ export function getRefreshedArchivers(record) {
   // }
   if (record.leavingArchivers) {
     for (const archiverInfo of record.leavingArchivers) {
-      refreshedArchivers = refreshedArchivers.filter(
-        (archiver) => archiver.publicKey !== archiverInfo.publicKey
-      )
+      refreshedArchivers = refreshedArchivers.filter((archiver) => archiver.publicKey !== archiverInfo.publicKey)
     }
   }
   return refreshedArchivers
@@ -1042,9 +1027,7 @@ export function registerRoutes() {
     const accepted = addArchiverJoinRequest(joinRequest)
     if (!accepted.success) {
       warn('Archiver join request not accepted.')
-      res.json(
-        { success: false, error: `Archiver join request rejected! ${accepted.reason}` }
-      )
+      res.json({ success: false, error: `Archiver join request rejected! ${accepted.reason}` })
       return
     }
     if (logFlags.p2pNonFatal) info('Archiver join request accepted!')
@@ -1066,9 +1049,7 @@ export function registerRoutes() {
     const accepted = addLeaveRequest(leaveRequest)
     if (!accepted.success) {
       warn('Archiver leave request not accepted.')
-      res.json(
-        { success: false, error: `Archiver leave request rejected! ${accepted.reason}` }
-      )
+      res.json({ success: false, error: `Archiver leave request rejected! ${accepted.reason}` })
       return
     }
     if (logFlags.p2pNonFatal) info('Archiver leave request accepted!')
@@ -1222,9 +1203,7 @@ export function registerRoutes() {
     delete queryRequest.publicKey
     delete queryRequest.tag
     let data: {
-      [key: number]:
-      | StateManager.StateManagerTypes.ReceiptMapResult[]
-      | StateManager.StateManagerTypes.StatsClump
+      [key: number]: StateManager.StateManagerTypes.ReceiptMapResult[] | StateManager.StateManagerTypes.StatsClump
     }
     if (queryRequest.type === 'RECEIPT_MAP') {
       data = getReceiptMap(queryRequest.lastData)
@@ -1312,10 +1291,7 @@ export function getFromArchiver<R>(
     http.get(`http://${archiver.ip}:${archiver.port}/${endpoint}`, false, timeout ?? 1000),
     (e: Error) => {
       warn(`${archiver.ip}:${archiver.port} is unreachable`)
-      reportLostArchiver(
-        archiver.publicKey,
-        failureReportMessage || `cannot GET archiver endpoint ${endpoint}`
-      )
+      reportLostArchiver(archiver.publicKey, failureReportMessage || `cannot GET archiver endpoint ${endpoint}`)
       return e
     }
   )
@@ -1337,10 +1313,7 @@ export function postToArchiver<B, R>(
     http.post(`http://${archiver.ip}:${archiver.port}/${endpoint}`, body, false, timeout),
     (e: Error) => {
       warn(`${archiver.ip}:${archiver.port} is unreachable`)
-      reportLostArchiver(
-        archiver.publicKey,
-        failureReportMessage || `cannot POST archiver endpoint ${endpoint}`
-      )
+      reportLostArchiver(archiver.publicKey, failureReportMessage || `cannot POST archiver endpoint ${endpoint}`)
       return e
     }
   )

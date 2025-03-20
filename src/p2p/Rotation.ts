@@ -78,27 +78,42 @@ export function updateRecord(
 
   {
     const { expired, removed } = getExpiredRemoved(prev.start, prev.desired, txs)
-    nestedCountersInstance.countEvent('p2p', `results of getExpiredRemoved: expired: ${expired} removed: ${removed.length}`, 1)
-    if (logFlags && logFlags.verbose) console.log(`results of getExpiredRemoved: expired: ${expired} removed: ${removed.length} array: ${removed}`)
+    nestedCountersInstance.countEvent(
+      'p2p',
+      `results of getExpiredRemoved: expired: ${expired} removed: ${removed.length}`,
+      1
+    )
+    if (logFlags && logFlags.verbose)
+      console.log(`results of getExpiredRemoved: expired: ${expired} removed: ${removed.length} array: ${removed}`)
   }
-  
-  const problemNodeRemovalEnabled = config.p2p.enableProblematicNodeRemoval && currentCycle >= config.p2p.enableProblematicNodeRemovalOnCycle;
+
+  const problemNodeRemovalEnabled =
+    config.p2p.enableProblematicNodeRemoval && currentCycle >= config.p2p.enableProblematicNodeRemovalOnCycle
   // we only want to use the problematic node removal logic if we are past the enableProblematicNodeRemovalOnCycle and have a full history of refutes
   // note: we may want to wait an additional config.p2p.problematicNodeHistoryLength cycles before we start removing problematic nodes
   //       this would give us a full history of refutes before we start removing problematic nodes
   if (problemNodeRemovalEnabled === false) {
     // Allow the autoscale module to set this value
     const { expired, removed } = getExpiredRemovedV2(prev, lastLoggedCycle, txs, info)
-    nestedCountersInstance.countEvent('p2p', `results of getExpiredRemovedV2: expired: ${expired} removed: ${removed.length}`, 1)
-    if (logFlags && logFlags.verbose) console.log(`results of getExpiredRemovedV2: expired: ${expired} removed: ${removed.length} array: ${removed}`)
-      
+    nestedCountersInstance.countEvent(
+      'p2p',
+      `results of getExpiredRemovedV2: expired: ${expired} removed: ${removed.length}`,
+      1
+    )
+    if (logFlags && logFlags.verbose)
+      console.log(`results of getExpiredRemovedV2: expired: ${expired} removed: ${removed.length} array: ${removed}`)
+
     record.expired = expired
     record.removed = removed // already sorted
   } else {
     const { expired, removed, problematic } = getExpiredRemovedV3(prev, lastLoggedCycle, txs, info)
-    nestedCountersInstance.countEvent('p2p', `results of getExpiredRemovedV3: expired: ${expired} removed: ${removed.length} problematic: ${problematic}`, 1)
+    nestedCountersInstance.countEvent(
+      'p2p',
+      `results of getExpiredRemovedV3: expired: ${expired} removed: ${removed.length} problematic: ${problematic}`,
+      1
+    )
     /* prettier-ignore */ if(logFlags?.node_rotation_debug) logger.mainLog_debug('GETEXPIREDREMOVEDV3_STATS', `results of getExpiredRemovedV3: expired: ${expired} removed: ${removed.length} problematic: ${problematic}`)
-      // record.problematic = problematic // may want to write this to cycle record for
+    // record.problematic = problematic // may want to write this to cycle record for
     record.expired = expired
     record.removed = removed // already sorted
   }
@@ -249,20 +264,20 @@ function error(...msg: string[]): void {
 }
 
 /** Returns a linearly interpolated value between `amountToShrink` and the same
-* multiplied by a `scaleFactor`. The result depends on the
-* `scaleInfluenceForShrink` 
-* 
-* ITN3 example numbers  (128 / 5) * (640 / 100) = 25.6 * 6.4 = 163.84
-* config.p2p.amountToShrink  5 
-* config.p2p.scaleInfluenceForShrink  0.2,
-* 
-* Math.floor(lerp(163.84, 5, 0.2)) = 36!
-* 
-* this is use as a max though onlty to clamp but not raise our amount to shrink
-* this is for the scaled down remove case
-* 
-* 
-*/
+ * multiplied by a `scaleFactor`. The result depends on the
+ * `scaleInfluenceForShrink`
+ *
+ * ITN3 example numbers  (128 / 5) * (640 / 100) = 25.6 * 6.4 = 163.84
+ * config.p2p.amountToShrink  5
+ * config.p2p.scaleInfluenceForShrink  0.2,
+ *
+ * Math.floor(lerp(163.84, 5, 0.2)) = 36!
+ *
+ * this is use as a max though onlty to clamp but not raise our amount to shrink
+ * this is for the scaled down remove case
+ *
+ *
+ */
 function getScaledAmountToShrink(): number {
   const nonScaledAmount = config.p2p.amountToShrink
   const scaledAmount = config.p2p.amountToShrink * CycleCreator.scaleFactor

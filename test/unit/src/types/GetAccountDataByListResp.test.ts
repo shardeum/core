@@ -8,34 +8,32 @@ import {
 import { serializeWrappedData } from '../../../../src/types/WrappedData'
 import { initAjvSchemas } from '../../../../src/types/ajv/Helpers'
 import { TypeIdentifierEnum } from '../../../../src/types/enum/TypeIdentifierEnum'
-import { Utils } from '@shardeum-foundation/lib-types'
+import { beforeEachHandler } from './stateManagerSerializeMocks'
 
-// Mock the Context module and its nested structure
 jest.mock('../../../../src/p2p/Context', () => ({
-  setDefaultConfigs: jest.fn(),
   stateManager: {
     app: {
-      binarySerializeObject: jest.fn((enumType, data) => Buffer.from(Utils.safeStringify(data), 'utf8')),
-      binaryDeserializeObject: jest.fn((enumType, buffer) => Utils.safeJsonParse(buffer.toString('utf8'))),
+      binarySerializeObject: jest.fn(),
+      binaryDeserializeObject: jest.fn(),
     },
   },
+  setDefaultConfigs: jest.fn(),
 }))
 
 describe('GetAccountDataByListResp Serialization and Deserialization', () => {
+  beforeEach(() => {
+    beforeEachHandler()
+  })
+
   beforeAll(() => {
     initAjvSchemas()
-  })
-  beforeEach(() => {
-    jest.clearAllMocks()
   })
 
   describe('Serialization', () => {
     describe('Valid Data Cases', () => {
       test('should serialize non-null accountData correctly with root true', () => {
         const obj: GetAccountDataByListResp = {
-          accountData: [
-            { accountId: 'acc123', stateId: 'state456', data: { detail: 'info' }, timestamp: 123456 },
-          ],
+          accountData: [{ accountId: 'acc123', stateId: 'state456', data: { detail: 'info' }, timestamp: 123456 }],
         }
         const stream = new VectorBufferStream(0)
         serializeGetAccountDataByListResp(stream, obj, true)
@@ -55,9 +53,7 @@ describe('GetAccountDataByListResp Serialization and Deserialization', () => {
 
       test('should serialize non-null accountData correctly with root false', () => {
         const obj: GetAccountDataByListResp = {
-          accountData: [
-            { accountId: 'acc123', stateId: 'state456', data: { detail: 'info' }, timestamp: 123456 },
-          ],
+          accountData: [{ accountId: 'acc123', stateId: 'state456', data: { detail: 'info' }, timestamp: 123456 }],
         }
         const stream = new VectorBufferStream(0)
         serializeGetAccountDataByListResp(stream, obj, false)
@@ -109,9 +105,7 @@ describe('GetAccountDataByListResp Serialization and Deserialization', () => {
     describe('Error Handling', () => {
       test('should throw validation error for invalid data', () => {
         const obj: any = {
-          accountData: [
-            { accountId: null, stateId: 'state456', data: { detail: 'info' }, timestamp: 123456 },
-          ],
+          accountData: [{ accountId: null, stateId: 'state456', data: { detail: 'info' }, timestamp: 123456 }],
         }
         const stream = new VectorBufferStream(0)
         expect(() => serializeGetAccountDataByListResp(stream, obj, false)).toThrow('Data validation error')
@@ -122,9 +116,7 @@ describe('GetAccountDataByListResp Serialization and Deserialization', () => {
   describe('Deserialization', () => {
     test('should deserialize data correctly', () => {
       const obj = {
-        accountData: [
-          { accountId: 'acc123', stateId: 'state456', data: { detail: 'info' }, timestamp: 123456 },
-        ],
+        accountData: [{ accountId: 'acc123', stateId: 'state456', data: { detail: 'info' }, timestamp: 123456 }],
       }
       const stream = new VectorBufferStream(0)
       stream.writeUInt8(cGetAccountDataByListRespVersion) // version
@@ -166,18 +158,14 @@ describe('GetAccountDataByListResp Serialization and Deserialization', () => {
       stream.writeUInt8(cGetAccountDataByListRespVersion + 1) // incorrect version
       stream.position = 0 // Reset position for reading
 
-      expect(() => deserializeGetAccountDataByListResp(stream)).toThrow(
-        'GetAccountDataByListResp version mismatch'
-      )
+      expect(() => deserializeGetAccountDataByListResp(stream)).toThrow('GetAccountDataByListResp version mismatch')
     })
   })
 
   describe('GetAccountDataByListResp Serialization and Deserialization Together', () => {
     test('should serialize and deserialize data correctly', () => {
       const originalObj: GetAccountDataByListResp = {
-        accountData: [
-          { accountId: 'acc123', stateId: 'state456', data: { detail: 'info' }, timestamp: 123456 },
-        ],
+        accountData: [{ accountId: 'acc123', stateId: 'state456', data: { detail: 'info' }, timestamp: 123456 }],
       }
 
       // Serialize

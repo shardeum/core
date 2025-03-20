@@ -52,14 +52,7 @@ function getClosestNodes(shardGlobals, parititionShardDataMap, activeNodes, hash
   let homeNode = ShardFunctions.findHomeNode(shardGlobals, hash, parititionShardDataMap)
   let homeNodeIndex = homeNode.ourNodeIndex
   let idToExclude = ''
-  let results = ShardFunctions.getNodesByProximity(
-    shardGlobals,
-    activeNodes,
-    homeNodeIndex,
-    idToExclude,
-    count,
-    true
-  )
+  let results = ShardFunctions.getNodesByProximity(shardGlobals, activeNodes, homeNodeIndex, idToExclude, count, true)
 
   return results
 }
@@ -445,9 +438,7 @@ for (let i = 0; i < testIterations; i++) {
     console.log(` summary:${utils.stringifyReduce(summaryObject)}`)
     console.log(` relationString:${relationString}`)
     console.log('Home node for debug acc:' + utils.stringifyReduce(homeNode))
-    console.log(
-      'nodeThatStoreOurParitionFull:' + utils.stringifyReduce(homeNode.nodeThatStoreOurParitionFull)
-    )
+    console.log('nodeThatStoreOurParitionFull:' + utils.stringifyReduce(homeNode.nodeThatStoreOurParitionFull))
     let { homePartition: partition } = ShardFunctions.addressToPartition(shardGlobals, debugAccount)
 
     let ourNodeData = nodeShardDataMap.get(debugNode.id)

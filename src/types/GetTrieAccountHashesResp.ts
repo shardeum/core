@@ -79,11 +79,7 @@ export function deserializeGetTrieAccountHashesResp(stream: VectorBufferStream):
   }
 }
 
-export function serializeRadixAndChildHashes(
-  stream: VectorBufferStream,
-  req: RadixAndChildHashes,
-  root = false
-): void {
+export function serializeRadixAndChildHashes(stream: VectorBufferStream, req: RadixAndChildHashes, root = false): void {
   if (root) {
     stream.writeUInt16(TypeIdentifierEnum.cRadixAndChildHashes)
   }

@@ -52,14 +52,7 @@ function getClosestNodes(shardGlobals, parititionShardDataMap, activeNodes, hash
   let homeNode = ShardFunctions.findHomeNode(shardGlobals, hash, parititionShardDataMap)
   let homeNodeIndex = homeNode.ourNodeIndex
   let idToExclude = ''
-  let results = ShardFunctions.getNodesByProximity(
-    shardGlobals,
-    activeNodes,
-    homeNodeIndex,
-    idToExclude,
-    count,
-    true
-  )
+  let results = ShardFunctions.getNodesByProximity(shardGlobals, activeNodes, homeNodeIndex, idToExclude, count, true)
 
   return results
 }
@@ -167,10 +160,8 @@ function syncRangeCalculations(currentCycleShardData) {
 
   let rangesToSync = []
   if (nodeShardData.storedPartitions.rangeIsSplit === true) {
-    partitionsCovered =
-      nodeShardData.storedPartitions.partitionEnd1 - nodeShardData.storedPartitions.partitionStart1
-    partitionsCovered +=
-      nodeShardData.storedPartitions.partitionEnd2 - nodeShardData.storedPartitions.partitionStart2
+    partitionsCovered = nodeShardData.storedPartitions.partitionEnd1 - nodeShardData.storedPartitions.partitionStart1
+    partitionsCovered += nodeShardData.storedPartitions.partitionEnd2 - nodeShardData.storedPartitions.partitionStart2
     partitionsPerRange = Math.max(Math.floor(partitionsCovered / syncRangeGoal), 1)
     if (logFlags.console)
       console.log(
@@ -185,11 +176,7 @@ function syncRangeCalculations(currentCycleShardData) {
     let i = 0
     while (currentEnd < end) {
       currentEnd = Math.min(currentStart + partitionsPerRange, end)
-      let range = ShardFunctions.partitionToAddressRange2(
-        currentCycleShardData.shardGlobals,
-        currentStart,
-        currentEnd
-      )
+      let range = ShardFunctions.partitionToAddressRange2(currentCycleShardData.shardGlobals, currentStart, currentEnd)
 
       let { address1, address2 } = ShardFunctions.getNextAdjacentAddresses(range.high)
       range.high = address1
@@ -215,11 +202,7 @@ function syncRangeCalculations(currentCycleShardData) {
 
     while (currentEnd < end) {
       currentEnd = Math.min(currentStart + partitionsPerRange, end)
-      let range = ShardFunctions.partitionToAddressRange2(
-        currentCycleShardData.shardGlobals,
-        currentStart,
-        currentEnd
-      )
+      let range = ShardFunctions.partitionToAddressRange2(currentCycleShardData.shardGlobals, currentStart, currentEnd)
 
       let { address1, address2 } = ShardFunctions.getNextAdjacentAddresses(range.high)
       range.high = address1
@@ -235,8 +218,7 @@ function syncRangeCalculations(currentCycleShardData) {
       rangesToSync.push(range)
     }
   } else {
-    partitionsCovered =
-      nodeShardData.storedPartitions.partitionEnd - nodeShardData.storedPartitions.partitionStart
+    partitionsCovered = nodeShardData.storedPartitions.partitionEnd - nodeShardData.storedPartitions.partitionStart
     partitionsPerRange = Math.max(Math.floor(partitionsCovered / syncRangeGoal), 1)
     // if (logFlags.console)
     // console.log(
@@ -252,11 +234,7 @@ function syncRangeCalculations(currentCycleShardData) {
     let i = 0
     while (currentEnd < end) {
       currentEnd = Math.min(currentStart + partitionsPerRange, end)
-      let range = ShardFunctions.partitionToAddressRange2(
-        currentCycleShardData.shardGlobals,
-        currentStart,
-        currentEnd
-      )
+      let range = ShardFunctions.partitionToAddressRange2(currentCycleShardData.shardGlobals, currentStart, currentEnd)
 
       let { address1, address2 } = ShardFunctions.getNextAdjacentAddresses(range.high)
       range.high = address1
@@ -557,11 +535,7 @@ for (let i = 0; i < testIterations; i++) {
 
     //test if sync ranges can find valid nodes!
     for (let range of rangesToSync) {
-      let { dataSourceNode, dataSourceNodes } = getDataSourceNode(
-        currentCycleShardDataFake,
-        range.low,
-        range.high
-      )
+      let { dataSourceNode, dataSourceNodes } = getDataSourceNode(currentCycleShardDataFake, range.low, range.high)
       console.log(`dataSorurces  ${dataSourceNodes.length}  `)
       if (dataSourceNodes.length === 0) {
         console.log(`error dataSorurces  ${dataSourceNodes.length}  `)
@@ -613,11 +587,7 @@ for (let i = 0; i < testIterations; i++) {
   let testSendSize = 5
   let testDestSize = 5
 
-  let indicies = ShardFunctions.debugFastStableCorrespondingIndicies(
-    testSendSize,
-    testDestSize,
-    testIndex + 1
-  )
+  let indicies = ShardFunctions.debugFastStableCorrespondingIndicies(testSendSize, testDestSize, testIndex + 1)
   console.log(`debug:${testIndex} ${JSON.stringify(indicies)}`)
 
   let debugKey = txDebugKeys[1]
@@ -714,9 +684,7 @@ for (let i = 0; i < testIterations; i++) {
     console.log(` summary:${utils.stringifyReduce(summaryObject)}`)
     console.log(` relationString:${relationString}`)
     console.log('Home node for debug acc:' + utils.stringifyReduce(homeNode))
-    console.log(
-      'nodeThatStoreOurParitionFull:' + utils.stringifyReduce(homeNode.nodeThatStoreOurParitionFull)
-    )
+    console.log('nodeThatStoreOurParitionFull:' + utils.stringifyReduce(homeNode.nodeThatStoreOurParitionFull))
     let { homePartition: partition } = ShardFunctions.addressToPartition(shardGlobals, debugAccount)
 
     let ourNodeData = nodeShardDataMap.get(debugNode.id)

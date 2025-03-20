@@ -7,26 +7,26 @@ import {
 import { serializeWrappedData } from '../../../../src/types/WrappedData'
 import { initAjvSchemas } from '../../../../src/types/ajv/Helpers'
 import { TypeIdentifierEnum } from '../../../../src/types/enum/TypeIdentifierEnum'
-
-// Mock the Context module and its nested structure
-jest.mock('../../../../src/p2p/Context', () => ({
-  setDefaultConfigs: jest.fn(),
-  stateManager: {
-    app: {
-      binarySerializeObject: jest.fn((enumType, data) => Buffer.from(JSON.stringify(data), 'utf8')),
-      binaryDeserializeObject: jest.fn((enumType, buffer) => JSON.parse(buffer.toString('utf8'))),
-    },
-  },
-}))
-
 const cGetAccountDataRespVersion = 1
 
+import { beforeEachHandler } from './stateManagerSerializeMocks'
+
+jest.mock('../../../../src/p2p/Context', () => ({
+  stateManager: {
+    app: {
+      binarySerializeObject: jest.fn(),
+      binaryDeserializeObject: jest.fn(),
+    },
+  },
+  setDefaultConfigs: jest.fn(),
+}))
+
 describe('GetAccountDataRespSerializable Serialization and Deserialization', () => {
+  beforeEach(() => {
+    beforeEachHandler()
+  })
   beforeAll(() => {
     initAjvSchemas()
-  })
-  beforeEach(() => {
-    jest.clearAllMocks()
   })
 
   describe('Serialization', () => {
