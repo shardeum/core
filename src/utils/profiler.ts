@@ -134,7 +134,8 @@ class Profiler {
 
       if (this.statisticsInstance) this.statisticsInstance.clearRing('txProcessed')
 
-      // After clearing all counters but before the wait
+      // This interval is used to keep the connection alive by sending periodic empty writes.
+      // It checks if the response stream is still open and clears the interval if the stream is closed.
       const keepAliveInterval = setInterval(() => {
         try {
           if (!res.destroyed) {
