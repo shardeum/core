@@ -134,8 +134,23 @@ class Profiler {
 
       if (this.statisticsInstance) this.statisticsInstance.clearRing('txProcessed')
 
+      // After clearing all counters but before the wait
+      const keepAliveInterval = setInterval(() => {
+        try {
+          if (!res.destroyed) {
+            res.write(``)
+          } else {
+            clearInterval(keepAliveInterval)
+          }
+        } catch (err) {
+          console.error('Error writing keep-alive response:', err)
+          clearInterval(keepAliveInterval)
+        }
+      }, 2000)
+
       // wait X seconds
       await sleep(waitTime * 1000)
+      clearInterval(keepAliveInterval)
       res.write(`Results for ${waitTime} sec of sampling...`)
       res.write(`\n===========================\n`)
 

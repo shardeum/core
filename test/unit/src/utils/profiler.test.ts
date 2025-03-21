@@ -4,7 +4,7 @@
  * Note on Coverage:
  * ----------------
  * It's not possible to achieve 100% coverage for the profiler.ts file because of how constants
- * are handled in JavaScript/TypeScript. Specifically, line 383 in profiler.ts:
+ * are handled in JavaScript/TypeScript. Specifically, line 392 in profiler.ts:
  *
  *   if (profilerSelfReporting) return
  *
@@ -544,16 +544,16 @@ describe('Profiler', () => {
 
       // Mock all required methods if they don't exist
       if (!mockStatistics.clearRing) {
-        mockStatistics.clearRing = jest.fn();
+        mockStatistics.clearRing = jest.fn()
       }
-      
+
       // Mock getMultiStatReport to return a valid report object
       if (!mockStatistics.getMultiStatReport) {
         mockStatistics.getMultiStatReport = jest.fn().mockImplementation(() => ({
           avg: 0,
           max: 0,
-          allVals: []
-        }));
+          allVals: [],
+        }))
       }
 
       profiler.setStatisticsInstance(mockStatistics)
@@ -566,6 +566,114 @@ describe('Profiler', () => {
       expect(sleep).toHaveBeenCalled()
       expect(memoryReportingInstance.gatherReport).toHaveBeenCalled()
       expect(memoryReportingInstance.reportToStream).toHaveBeenCalled()
+    })
+
+    it('should handle error in keepAliveInterval for combined-debug endpoint', async () => {
+      // Mock setInterval to capture the callback function
+      const originalSetInterval = global.setInterval
+      let intervalCallback: () => void
+      const mockSetInterval = jest.fn().mockImplementation((callback: () => void, ms: number) => {
+        // Store the callback for later execution
+        intervalCallback = callback
+        return 123 // Mock interval ID
+      })
+      ;(global as any).setInterval = mockSetInterval
+
+      // Mock clearInterval
+      const originalClearInterval = global.clearInterval
+      const mockClearInterval = jest.fn()
+      ;(global as any).clearInterval = mockClearInterval
+
+      // Spy on console.error
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
+
+      profiler.registerEndpoints()
+
+      // Get the combined-debug endpoint handler
+      const combinedDebugHandler = (Context.network.registerExternalGet as jest.Mock).mock.calls.find(
+        (call) => call[0] === 'combined-debug'
+      )[2]
+
+      // Set up a response that will throw an error when write is called a second time
+      const mockErrorResponse = {
+        ...mockResponse,
+        write: jest
+          .fn()
+          .mockImplementationOnce(() => {}) // First call works fine
+          .mockImplementationOnce(() => {
+            throw new Error('Write error')
+          }), // Second call throws
+      }
+
+      // Start the handler but don't await it
+      const handlerPromise = combinedDebugHandler(mockRequest, mockErrorResponse)
+
+      // Execute the interval callback to trigger the error
+      if (intervalCallback) {
+        intervalCallback()
+      }
+
+      // Wait for the handler to complete
+      await handlerPromise
+
+      // Verify that the error was logged
+      expect(consoleErrorSpy).toHaveBeenCalledWith('Error writing keep-alive response:', expect.any(Error))
+
+      // Verify that clearInterval was called
+      expect(mockClearInterval).toHaveBeenCalled()
+
+      // Restore original functions
+      ;(global as any).setInterval = originalSetInterval
+      ;(global as any).clearInterval = originalClearInterval
+      consoleErrorSpy.mockRestore()
+    })
+
+    it('should handle destroyed response in keepAliveInterval for combined-debug endpoint', async () => {
+      // Mock setInterval to capture the callback function
+      const originalSetInterval = global.setInterval
+      let intervalCallback: () => void
+      const mockSetInterval = jest.fn().mockImplementation((callback: () => void, ms: number) => {
+        // Store the callback for later execution
+        intervalCallback = callback
+        return 123 // Mock interval ID
+      })
+      ;(global as any).setInterval = mockSetInterval
+
+      // Mock clearInterval
+      const originalClearInterval = global.clearInterval
+      const mockClearInterval = jest.fn()
+      ;(global as any).clearInterval = mockClearInterval
+
+      profiler.registerEndpoints()
+
+      // Get the combined-debug endpoint handler
+      const combinedDebugHandler = (Context.network.registerExternalGet as jest.Mock).mock.calls.find(
+        (call) => call[0] === 'combined-debug'
+      )[2]
+
+      // Set up a response that is destroyed
+      const mockDestroyedResponse = {
+        ...mockResponse,
+        destroyed: true,
+      }
+
+      // Start the handler but don't await it
+      const handlerPromise = combinedDebugHandler(mockRequest, mockDestroyedResponse)
+
+      // Execute the interval callback to trigger the destroyed branch
+      if (intervalCallback) {
+        intervalCallback()
+      }
+
+      // Wait for the handler to complete
+      await handlerPromise
+
+      // Verify that clearInterval was called when response is destroyed
+      expect(mockClearInterval).toHaveBeenCalled()
+
+      // Restore original functions
+      ;(global as any).setInterval = originalSetInterval
+      ;(global as any).clearInterval = originalClearInterval
     })
   })
 
