@@ -782,7 +782,20 @@ async function syncCycleChain(selfId: string, shardus: Shardus): Promise<void> {
   if (isFirst) {
     // If you're the first node in a restart network, you only need to sync the network generated tx list
     if (isRestartNetwork) {
-      await ServiceQueue.syncTxListFromArchiver()
+      // retry as needed to get the TX list
+      for(let i = 0; i < 100; i++){
+        try {        
+          nestedCountersInstance.countEvent('p2p', `syncCycleChain: syncTxListFromArchiver: getting tx list from archiver`)
+          await ServiceQueue.syncTxListFromArchiver()
+          nestedCountersInstance.countEvent('p2p', `syncCycleChain: syncTxListFromArchiver: got tx list from archiver: ${i}`)
+          break
+        }
+        catch(e){
+          nestedCountersInstance.countEvent('p2p', `syncCycleChain: syncTxListFromArchiver: getting tx list from archiver failed:${i}`)
+          info(`syncCycleChain: syncTxListFromArchiver: error getting tx list from archiver ${e.message}`)
+          await utils.sleep(1000)
+        }
+      }
     }
     return
   }
