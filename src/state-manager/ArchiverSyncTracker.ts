@@ -206,12 +206,22 @@ export default class ArchiverSyncTracker implements SyncTrackerInterface {
         /* prettier-ignore */ if (logFlags.debug) this.accountSync.mainLogger.debug(`ARCHIVER_DATASYNC: syncStateDataGlobals partition: ${partition} `)
 
         //this.accountSync.readyforTXs = true //Do not open the floodgates of queuing stuffs.
-
-        //Get globals list and hash.
-        const globalReport: GlobalAccountReportResp = await this.accountSync.getRobustGlobalReport(
-          'syncTrackerGlobal',
-          true
-        )
+        let globalReport: GlobalAccountReportResp 
+        let retries = 100
+        while(retries > 0){
+          try{
+            //Get globals list and hash.
+            globalReport = await this.accountSync.getRobustGlobalReport(
+              'syncTrackerGlobal',
+              true
+            )
+            break //if an error was not thrown we may proceed
+          } catch (error) {
+            await utils.sleep(3000)
+            retries--
+            nestedCountersInstance.countEvent('archiver_sync', `syncStateDataGlobals: syncTrackerGlobal retry`)
+          }
+        }
 
         // Added all archivers to the list of archivers to ask for data
         this.archiverDataSourceHelper.initWithList(getArchiversList())
@@ -335,7 +345,18 @@ export default class ArchiverSyncTracker implements SyncTrackerInterface {
           // add any new accounts to globalAccounts
           /* prettier-ignore */ if (logFlags.debug) this.accountSync.mainLogger.debug(`ARCHIVER_DATASYNC: syncStateDataGlobals get_account_data_by_list_archiver ${utils.stringifyReduce(result)} `)
 
-          globalReport2 = await this.accountSync.getRobustGlobalReport('syncTrackerGlobal2', true)
+          retries = 100
+          while(retries > 0){
+            try{
+              //Get globals list and hash.
+              globalReport2 = await this.accountSync.getRobustGlobalReport('syncTrackerGlobal2', true)
+              break //if an error was not thrown we may proceed
+            } catch (error) {
+              await utils.sleep(3000)
+              retries--
+              nestedCountersInstance.countEvent('archiver_sync', `syncStateDataGlobals: syncTrackerGlobal2 retry`)
+            }
+          }
 
           // Added all archivers to the list of archivers to ask for data
           this.archiverDataSourceHelper.initWithList(getArchiversList())

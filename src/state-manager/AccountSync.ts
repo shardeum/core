@@ -584,7 +584,7 @@ class AccountSync {
       this.syncStatement.timeBeforeDataSync = (shardusGetTime() - Self.p2pSyncEnd) / 1000
       this.syncStatement.timeBeforeDataSync2 = this.syncStatement.timeBeforeDataSync
 
-      /* prettier-ignore */ nestedCountersInstance.countEvent('sync', `sync comlete numCycles: ${this.syncStatement.numCycles} start:${this.syncStatement.cycleStarted} end:${this.syncStatement.cycleEnded}`)
+      /* prettier-ignore */ nestedCountersInstance.countEvent('sync', `seednode: sync comlete numCycles: ${this.syncStatement.numCycles} start:${this.syncStatement.cycleStarted} end:${this.syncStatement.cycleEnded}`)
 
       /* prettier-ignore */ if (logFlags.playback) this.logger.playbackLogNote('shrd_sync_syncStatement', ` `, `${utils.stringifyReduce(this.syncStatement)}`)
 
