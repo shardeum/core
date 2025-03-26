@@ -508,11 +508,6 @@ class AccountPatcher {
             return
           }
 
-          if (payload.repairInstructions.length > this.config.stateManager.patcherAccountsPerRequest) {
-            /* prettier-ignore */ this.mainLogger.warn(`repair_oos_accounts: too many repair instructions (${payload.repairInstructions.length}).`)
-            return
-          }
-
           // Gather unique accounts
           const uniqueAccounts = new Set<string>()
           for (const { accountID } of payload.repairInstructions) {
