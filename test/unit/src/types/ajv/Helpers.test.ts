@@ -15,76 +15,63 @@ jest.mock('../../../../../src/utils/serialization/SchemaHelpers', () => ({
   initializeSerialization: jest.fn(),
 }))
 
-// Define all schema modules we need to mock
-const mockModules = [
-  { path: 'ApoptosisProposalReq', init: 'initApoptosisProposalReq' },
-  { path: 'ApoptosisProposalResp', init: 'initApoptosisProposalResp' },
-  { path: 'BroadcastStateReq', init: 'initBroadcastStateReq' },
-  { path: 'CachedAppData', init: 'initCachedAppData' },
-  { path: 'CompareCert', init: 'initCompareCertReq' },
-  { path: 'GetAccountData3Req', init: 'initGetAccountData3Req' },
-  { path: 'GetAccountDataByHashesReq', init: 'initGetAccountDataByHashesReq' },
-  { path: 'GetAccountDataByHashesResp', init: 'initGetAccountDataByHashesResp' },
-  { path: 'GetAccountDataByListReq', init: 'initGetAccountDataByListReq' },
-  { path: 'GetAccountDataByListResp', init: 'initGetAccountDataByListResp' },
-  { path: 'GetAccountDataResp', init: 'initGetAccountDataRespSerializable' },
-  { path: 'GetAccountDataWithQueueHintsReq', init: 'initGetAccountDataWithQueueHintsReq' },
-  { path: 'GetAccountDataWithQueueHintsResp', init: 'initGetAccountDataWithQueueHintsResp' },
-  { path: 'GetAccountQueueCountReq', init: 'initGetAccountQueueCountReq' },
-  { path: 'GetAccountQueueCountResp', init: 'initGetAccountQueueCountResp' },
-  { path: 'GetAppliedVoteReq', init: 'initGetAppliedVoteReq' },
-  { path: 'GetAppliedVoteResp', init: 'initGetAppliedVoteResp' },
-  { path: 'GetCachedAppDataReq', init: 'initGetCachedAppDataReq' },
-  { path: 'GetCachedAppDataResp', init: 'initGetCachedAppDataResp' },
-  { path: 'GetTrieAccountHashesReq', init: 'initGetTrieAccountHashesReq' },
-  { path: 'GetTrieAccountHashesResp', init: 'initGetTrieAccountHashesResp' },
-  { path: 'GetTrieHashesReq', init: 'initGetTrieHashesReq' },
-  { path: 'GetTrieHashesResp', init: 'initGetTrieHashesResp' },
-  { path: 'GetTxTimestampReq', init: 'initGetTxTimestampReq' },
-  { path: 'GetTxTimestampResp', init: 'initGetTxTimestampResp' },
-  { path: 'GlobalAccountReportReq', init: 'initGlobalAccountReportReq' },
-  { path: 'GlobalAccountReportResp', init: 'initGlobalAccountReportResp' },
-  { path: 'LostReportReq', init: 'initLostReportReq' },
-  { path: 'MakeReceiptReq', init: 'initMakeReceiptReq' },
-  { path: 'SignAppDataReq', init: 'initSignAppDataReq' },
-  { path: 'SignAppDataResp', init: 'initSignAppDataResp' },
-  { path: 'RepairOOSAccountsReq', init: 'initRepairOOSAccountReq' },
-  { path: 'RequestReceiptForTxReq', init: 'initRequestReceiptForTxReq' },
-  { path: 'RequestReceiptForTxResp', init: 'initRequestReceiptForTxResp' },
-  { path: 'RequestStateForTxPostReq', init: 'initRequestStateForTxPostReq' },
-  { path: 'RequestStateForTxPostResp', init: 'initRequestStateForTxPostResp' },
-  { path: 'RequestStateForTxReq', init: 'initRequestStateForTxReq' },
-  { path: 'RequestStateForTxResp', init: 'initRequestStateForTxResp' },
-  { path: 'sendCachedAppDataReq', init: 'initSendCachedAppDataReq' },
-  { path: 'SpreadAppliedVoteHashReq', init: 'initSpreadAppliedVoteHashReq' },
-  { path: 'SpreadTxToGroupSyncingReq', init: 'initSpreadTxToGroupSyncingReq' },
-  { path: 'SyncTrieHashesReq', init: 'initSyncTrieHashesReq' },
-  { path: 'WrappedData', init: 'initWrappedData' },
-  { path: 'WrappedDataFromQueueSerializable', init: 'initWrappedDataFromQueueSerializable' },
-  { path: 'WrappedDataResponse', init: 'initWrappedDataResponse' },
-  { path: 'CycleRecordSchema', init: 'initCycleRecords' },
-  { path: 'JoinReq', init: 'initJoinReq' },
-  { path: 'AllowedArchiverResponse', init: 'initAllowedArchiverResponse' },
+// Define a list of all schema modules with their init functions
+const schemaModules = [
+  { path: '../../../../../src/types/ajv/ApoptosisProposalReq', init: 'initApoptosisProposalReq' },
+  { path: '../../../../../src/types/ajv/ApoptosisProposalResp', init: 'initApoptosisProposalResp' },
+  { path: '../../../../../src/types/ajv/BroadcastStateReq', init: 'initBroadcastStateReq' },
+  { path: '../../../../../src/types/ajv/CachedAppData', init: 'initCachedAppData' },
+  { path: '../../../../../src/types/ajv/CompareCert', init: 'initCompareCertReq' },
+  { path: '../../../../../src/types/ajv/GetAccountData3Req', init: 'initGetAccountData3Req' },
+  { path: '../../../../../src/types/ajv/GetAccountDataByHashesReq', init: 'initGetAccountDataByHashesReq' },
+  { path: '../../../../../src/types/ajv/GetAccountDataByHashesResp', init: 'initGetAccountDataByHashesResp' },
+  { path: '../../../../../src/types/ajv/GetAccountDataByListReq', init: 'initGetAccountDataByListReq' },
+  { path: '../../../../../src/types/ajv/GetAccountDataByListResp', init: 'initGetAccountDataByListResp' },
+  { path: '../../../../../src/types/ajv/GetAccountDataResp', init: 'initGetAccountDataRespSerializable' },
+  { path: '../../../../../src/types/ajv/GetAccountDataWithQueueHintsReq', init: 'initGetAccountDataWithQueueHintsReq' },
+  {
+    path: '../../../../../src/types/ajv/GetAccountDataWithQueueHintsResp',
+    init: 'initGetAccountDataWithQueueHintsResp',
+  },
+  { path: '../../../../../src/types/ajv/GetAccountQueueCountReq', init: 'initGetAccountQueueCountReq' },
+  { path: '../../../../../src/types/ajv/GetAccountQueueCountResp', init: 'initGetAccountQueueCountResp' },
+  { path: '../../../../../src/types/ajv/GetAppliedVoteReq', init: 'initGetAppliedVoteReq' },
+  { path: '../../../../../src/types/ajv/GetAppliedVoteResp', init: 'initGetAppliedVoteResp' },
+  { path: '../../../../../src/types/ajv/GetCachedAppDataReq', init: 'initGetCachedAppDataReq' },
+  { path: '../../../../../src/types/ajv/GetCachedAppDataResp', init: 'initGetCachedAppDataResp' },
+  { path: '../../../../../src/types/ajv/GetTrieAccountHashesReq', init: 'initGetTrieAccountHashesReq' },
+  { path: '../../../../../src/types/ajv/GetTrieAccountHashesResp', init: 'initGetTrieAccountHashesResp' },
+  { path: '../../../../../src/types/ajv/GetTrieHashesReq', init: 'initGetTrieHashesReq' },
+  { path: '../../../../../src/types/ajv/GetTrieHashesResp', init: 'initGetTrieHashesResp' },
+  { path: '../../../../../src/types/ajv/GetTxTimestampReq', init: 'initGetTxTimestampReq' },
+  { path: '../../../../../src/types/ajv/GetTxTimestampResp', init: 'initGetTxTimestampResp' },
+  { path: '../../../../../src/types/ajv/GlobalAccountReportReq', init: 'initGlobalAccountReportReq' },
+  { path: '../../../../../src/types/ajv/GlobalAccountReportResp', init: 'initGlobalAccountReportResp' },
+  { path: '../../../../../src/types/ajv/LostReportReq', init: 'initLostReportReq' },
+  { path: '../../../../../src/types/ajv/MakeReceiptReq', init: 'initMakeReceiptReq' },
+  { path: '../../../../../src/types/ajv/SignAppDataReq', init: 'initSignAppDataReq' },
+  { path: '../../../../../src/types/ajv/SignAppDataResp', init: 'initSignAppDataResp' },
+  { path: '../../../../../src/types/ajv/RepairOOSAccountsReq', init: 'initRepairOOSAccountReq' },
+  { path: '../../../../../src/types/ajv/RequestReceiptForTxReq', init: 'initRequestReceiptForTxReq' },
+  { path: '../../../../../src/types/ajv/RequestReceiptForTxResp', init: 'initRequestReceiptForTxResp' },
+  { path: '../../../../../src/types/ajv/RequestStateForTxPostReq', init: 'initRequestStateForTxPostReq' },
+  { path: '../../../../../src/types/ajv/RequestStateForTxPostResp', init: 'initRequestStateForTxPostResp' },
+  { path: '../../../../../src/types/ajv/RequestStateForTxReq', init: 'initRequestStateForTxReq' },
+  { path: '../../../../../src/types/ajv/RequestStateForTxResp', init: 'initRequestStateForTxResp' },
+  { path: '../../../../../src/types/ajv/sendCachedAppDataReq', init: 'initSendCachedAppDataReq' },
+  { path: '../../../../../src/types/ajv/SpreadAppliedVoteHashReq', init: 'initSpreadAppliedVoteHashReq' },
+  { path: '../../../../../src/types/ajv/SpreadTxToGroupSyncingReq', init: 'initSpreadTxToGroupSyncingReq' },
+  { path: '../../../../../src/types/ajv/SyncTrieHashesReq', init: 'initSyncTrieHashesReq' },
+  { path: '../../../../../src/types/ajv/WrappedData', init: 'initWrappedData' },
+  {
+    path: '../../../../../src/types/ajv/WrappedDataFromQueueSerializable',
+    init: 'initWrappedDataFromQueueSerializable',
+  },
+  { path: '../../../../../src/types/ajv/WrappedDataResponse', init: 'initWrappedDataResponse' },
+  { path: '../../../../../src/types/ajv/CycleRecordSchema', init: 'initCycleRecords' },
+  { path: '../../../../../src/types/ajv/JoinReq', init: 'initJoinReq' },
+  { path: '../../../../../src/types/ajv/AllowedArchiverResponse', init: 'initAllowedArchiverResponse' },
 ]
-
-// Create a helper function to generate mock modules with proper implementation
-const createMockModule = (initFunctionName: string) => ({
-  [initFunctionName]: jest.fn(),
-})
-
-// Apply all mocks for schema modules
-mockModules.forEach(({ path, init }) => {
-  jest.mock(`../../../../../src/types/ajv/${path}`, () => createMockModule(init))
-})
-
-// Create a mock registry to store all mock functions
-const mockRegistry = new Map<string, jest.Mock>()
-
-// Pre-load all mocked modules and store their functions in the registry
-mockModules.forEach(({ path, init }) => {
-  const mockModule = jest.requireMock(`../../../../../src/types/ajv/${path}`)
-  mockRegistry.set(init, mockModule[init])
-})
 
 // Helper function to create a mock verify function with proper typing
 const createMockVerifyFn = (isValid: boolean, errors: ErrorObject[] | null) => {
@@ -93,71 +80,56 @@ const createMockVerifyFn = (isValid: boolean, errors: ErrorObject[] | null) => {
   return mockFn
 }
 
-// Mock implementation for initAjvSchemas that calls all schema init functions
-const mockInitAjvSchemas = () => {
-  mockModules.forEach(({ init }) => {
-    const mockFn = mockRegistry.get(init)
-    if (mockFn) {
-      mockFn()
-    }
-  })
-}
-
-// Mock implementation for initAjvSchemas that throws an error
-const mockInitAjvSchemasWithError = () => {
-  const mockFn = mockRegistry.get('initGetAccountData3Req')
-  if (mockFn) {
-    mockFn()
-  }
-}
+// Set up all of our module spies
+const moduleSpies: { [key: string]: jest.SpyInstance } = {}
 
 //------------------------------------------------------------------------------
 // Tests
 //------------------------------------------------------------------------------
 
 describe('Helpers', () => {
-  // Reset all mocks before each test
+  // Set up and tear down spies for each test
   beforeEach(() => {
+    // Create spies for all schema init functions - just monitor, don't replace implementation
+    schemaModules.forEach((module) => {
+      // Dynamically import the module
+      const actualModule = jest.requireActual(module.path)
+      // Create a spy for the init function without changing its implementation
+      moduleSpies[module.init] = jest.spyOn(actualModule, module.init)
+    })
+
     jest.clearAllMocks()
+  })
+
+  afterEach(() => {
+    // Restore all spies
+    Object.values(moduleSpies).forEach((spy) => spy.mockRestore())
   })
 
   describe('initAjvSchemas', () => {
     it('should call all schema initialization functions', () => {
-      // Setup - Mock the implementation of initAjvSchemas for this test
-      const spy = jest.spyOn(Helpers, 'initAjvSchemas').mockImplementation(mockInitAjvSchemas)
-
       // Execute - Call the function under test
       Helpers.initAjvSchemas()
 
       // Verify - All initialization functions were called
-      mockModules.forEach(({ init }) => {
-        const mockFn = mockRegistry.get(init)
-        expect(mockFn).toHaveBeenCalled()
+      schemaModules.forEach((module) => {
+        expect(moduleSpies[module.init]).toHaveBeenCalled()
       })
-
-      // Cleanup - Restore the original implementation
-      spy.mockRestore()
     })
 
-    it('should handle errors in schema initialization', () => {
-      // Setup - Get the mock function for GetAccountData3Req and make it throw an error
-      const mockGetAccountData3Req = mockRegistry.get('initGetAccountData3Req')
-      if (mockGetAccountData3Req) {
-        mockGetAccountData3Req.mockImplementationOnce(() => {
-          throw new Error('Schema initialization error')
-        })
-      }
-
-      // Setup - Mock the implementation of initAjvSchemas for this test
-      const spy = jest.spyOn(Helpers, 'initAjvSchemas').mockImplementation(mockInitAjvSchemasWithError)
+    it('should propagate errors from schema initialization', () => {
+      // Setup - Make one of the spies throw an error
+      moduleSpies['initGetAccountData3Req'].mockImplementationOnce(() => {
+        throw new Error('Schema initialization error')
+      })
 
       // Verify - The error is propagated (not caught)
       expect(() => {
         Helpers.initAjvSchemas()
       }).toThrow('Schema initialization error')
 
-      // Cleanup - Restore the original implementation
-      spy.mockRestore()
+      // Verify the original function was called and replaced correctly
+      expect(moduleSpies['initGetAccountData3Req']).toHaveBeenCalled()
     })
   })
 
