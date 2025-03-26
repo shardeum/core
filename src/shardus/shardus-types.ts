@@ -1003,6 +1003,8 @@ export interface ServerConfiguration {
     enableShardKeyChanges: boolean
     // control the max content size for http responses
     maxResponseSize: number
+    // control if non-internal txs should be allowed to be injected
+    allowEndUserTxnInjections: boolean
   }
   /** Server IP configuration */
   ip?: {
