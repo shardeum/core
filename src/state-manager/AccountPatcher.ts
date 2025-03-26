@@ -504,8 +504,36 @@ class AccountPatcher {
           }
           // (Optional) Check verification data in the header
           const payload = deserializeRepairOOSAccountsReq(requestStream)
+          if (!payload?.repairInstructions) {
+            return
+          }
+
+          if (payload.repairInstructions.length > this.config.stateManager.patcherAccountsPerRequest) {
+            /* prettier-ignore */ this.mainLogger.warn(`repair_oos_accounts: too many repair instructions (${payload.repairInstructions.length}).`)
+            return
+          }
+
+          // Gather unique accounts
+          const uniqueAccounts = new Set<string>()
+          for (const { accountID } of payload.repairInstructions) {
+            uniqueAccounts.add(accountID)
+          }
+
+          // Build the storageGroupMap AND keep track of total node queries in a single pass
+          const storageGroupMap = new Map<string, Node[]>()
+          let totalPotentialQueries = 0
+          for (const accountId of uniqueAccounts) {
+            const nodes = this.stateManager.transactionQueue.getStorageGroupForAccount(accountId)
+            storageGroupMap.set(accountId, nodes)
+
+            totalPotentialQueries += nodes.length
+            if (totalPotentialQueries > this.config.stateManager.patcherAccountsPerUpdate) {
+              /* prettier-ignore */ this.mainLogger.warn(`repair_oos_accounts: would query ${totalPotentialQueries} nodes total, above max. Rejecting request.`)
+              return
+            }
+          }
           // verifyPayload(AJVSchemaEnum.RepairOOSAccountsReq', payload)
-          for (const repairInstruction of payload?.repairInstructions) {
+          for (const repairInstruction of payload.repairInstructions) {
             const { accountID, txId, hash, accountData, targetNodeId, signedReceipt } = repairInstruction
 
             // check if we are the target node
@@ -517,9 +545,10 @@ class AccountPatcher {
               continue
             }
 
-            // check if we cover this accountId
-            const storageNodes = this.stateManager.transactionQueue.getStorageGroupForAccount(accountID)
-            const isInStorageGroup = storageNodes.map((node) => node.id).includes(Self.id)
+            // Quick lookup in our precomputed map
+            const storageNodes = storageGroupMap.get(accountID) ?? []
+            // Check if node is in the account's storage group
+            const isInStorageGroup = storageNodes.some((node) => node.id === Self.id)
             if (!isInStorageGroup) {
               nestedCountersInstance.countEvent(
                 'accountPatcher',
