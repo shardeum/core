@@ -501,6 +501,7 @@ export default class ArchiverSyncTracker implements SyncTrackerInterface {
     }
 
     let receivedBusyMessageTimes = 0
+    let otherArchiverRetries = 0
 
     const retryWithNextArchiver = async (debugMessage: string, errorString: string) => {
       if (this.archiverDataSourceHelper.tryNextDataSourceArchiver(debugMessage) == false) {
@@ -514,6 +515,11 @@ export default class ArchiverSyncTracker implements SyncTrackerInterface {
           //we have not run out of attempts to keep asking archivers
           //perhaps it would have even broken the restore if there was more than two archivers
           //throw new Error(errorString)
+        }
+
+        if(otherArchiverRetries > this.archiverDataSourceHelper.getNumberArchivers()){
+          otherArchiverRetries = 0
+          await utils.sleep(10000)
         }
       }
     }
@@ -592,6 +598,7 @@ export default class ArchiverSyncTracker implements SyncTrackerInterface {
         if (askRetriesLeft > 0) {
           askRetriesLeft--
         } else {
+          otherArchiverRetries++
           await retryWithNextArchiver('syncAccountData1', 'out of archiver account sync retries')
         }
         continue
@@ -599,6 +606,7 @@ export default class ArchiverSyncTracker implements SyncTrackerInterface {
 
       if (result == null) {
         /* prettier-ignore */ if (logFlags.verbose) if (logFlags.error) this.accountSync.mainLogger.error(`ASK FAIL syncAccountData result == null archiver:${this.archiverDataSourceHelper.dataSourceArchiver.publicKey}`)
+        otherArchiverRetries++
         await retryWithNextArchiver('syncAccountData2', 'out of account archivers to ask: syncAccountData2')
         continue
       }
@@ -616,6 +624,7 @@ export default class ArchiverSyncTracker implements SyncTrackerInterface {
           await retryWithNextArchiver('archiver success:false', 'Archiver is busy serving other validators')
           /* prettier-ignore */ nestedCountersInstance.countEvent(`archiver_sync`, `archiver is busy`)
         } else {
+          otherArchiverRetries++
           await retryWithNextArchiver('archiver success:false', result.error)
           /* prettier-ignore */ nestedCountersInstance.countEvent(`archiver_sync`, `archiver is other error: ${result.error}`)
         }
@@ -626,6 +635,7 @@ export default class ArchiverSyncTracker implements SyncTrackerInterface {
 
       if (result.data == null) {
         /* prettier-ignore */ if (logFlags.verbose) if (logFlags.error) this.accountSync.mainLogger.error(`ASK FAIL syncAccountData result.data == null archiver:${this.archiverDataSourceHelper.dataSourceArchiver.publicKey}`)
+        otherArchiverRetries++
         await retryWithNextArchiver('syncAccountData3', 'out of account archivers to ask: syncAccountData3')
         continue
       }
