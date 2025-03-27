@@ -510,6 +510,11 @@ class AccountPatcher {
           }
 
           let [latestCycle] = Context.p2p.getLatestCycles(1)
+          if (!latestCycle) {
+            this.mainLogger.error('repair_oos_accounts: no latest cycle')
+            return
+          }
+
           if (this.repairRequestsMadeThisCycle.cycle !== latestCycle.counter) {
             this.repairRequestsMadeThisCycle.cycle = latestCycle.counter
             this.repairRequestsMadeThisCycle.numRequests = 0
