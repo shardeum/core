@@ -187,6 +187,7 @@ class AccountPatcher {
 
   nonStoredRanges: { low: string; high: string }[]
   radixIsStored: Map<string, boolean>
+  repairRequestsMadeThisCycle: { cycle: number; numRequests: number } = { cycle: -1, numRequests: 0 }
 
   lastRepairInfo: unknown
 
@@ -508,25 +509,12 @@ class AccountPatcher {
             return
           }
 
-          // Gather unique accounts
-          const uniqueAccounts = new Set<string>()
-          for (const { accountID } of payload.repairInstructions) {
-            uniqueAccounts.add(accountID)
+          let [latestCycle] = Context.p2p.getLatestCycles(1)
+          if (this.repairRequestsMadeThisCycle.cycle !== latestCycle.counter) {
+            this.repairRequestsMadeThisCycle.cycle = latestCycle.counter
+            this.repairRequestsMadeThisCycle.numRequests = 0
           }
 
-          // Build the storageGroupMap AND keep track of total node queries in a single pass
-          const storageGroupMap = new Map<string, Node[]>()
-          let totalPotentialQueries = 0
-          for (const accountId of uniqueAccounts) {
-            const nodes = this.stateManager.transactionQueue.getStorageGroupForAccount(accountId)
-            storageGroupMap.set(accountId, nodes)
-
-            totalPotentialQueries += nodes.length
-            if (totalPotentialQueries > this.config.stateManager.patcherAccountsPerUpdate) {
-              /* prettier-ignore */ this.mainLogger.warn(`repair_oos_accounts: would query ${totalPotentialQueries} nodes total, above max. Rejecting request.`)
-              return
-            }
-          }
           // verifyPayload(AJVSchemaEnum.RepairOOSAccountsReq', payload)
           for (const repairInstruction of payload.repairInstructions) {
             const { accountID, txId, hash, accountData, targetNodeId, signedReceipt } = repairInstruction
@@ -540,10 +528,9 @@ class AccountPatcher {
               continue
             }
 
-            // Quick lookup in our precomputed map
-            const storageNodes = storageGroupMap.get(accountID) ?? []
-            // Check if node is in the account's storage group
-            const isInStorageGroup = storageNodes.some((node) => node.id === Self.id)
+            // check if we cover this accountId
+            const storageNodes = this.stateManager.transactionQueue.getStorageGroupForAccount(accountID)
+            const isInStorageGroup = storageNodes.map((node) => node.id).includes(Self.id)
             if (!isInStorageGroup) {
               nestedCountersInstance.countEvent(
                 'accountPatcher',
@@ -603,6 +590,18 @@ class AccountPatcher {
               )
             }
 
+            if (
+                this.repairRequestsMadeThisCycle.numRequests + storageNodes.length >
+                this.config.stateManager.patcherRepairByReceiptPerUpdate
+            ) {
+              nestedCountersInstance.countEvent(
+                'accountPatcher',
+                `binary/repair_oos_accounts: too many repair requests this cycle`
+              )
+              this.mainLogger.warn(`binary/repair_oos_accounts: too many repair requests this cycle (${latestCycle.counter})`)
+              return
+            }
+
             // make sure tx hasn't been altered by robust querying for the proposal using request txid and timestamp
             const txReceipt = await robustQuery(storageNodes, queryFn)
             if (txReceipt.isRobustResult === false) {
@@ -612,6 +611,7 @@ class AccountPatcher {
               )
               continue
             }
+            this.repairRequestsMadeThisCycle.numRequests += storageNodes.length
 
             if (
               txReceipt.topResult.success !== true ||
