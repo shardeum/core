@@ -504,6 +504,7 @@ export default class ArchiverSyncTracker implements SyncTrackerInterface {
     let otherArchiverRetries = 0
 
     const retryWithNextArchiver = async (debugMessage: string, errorString: string) => {
+
       if (this.archiverDataSourceHelper.tryNextDataSourceArchiver(debugMessage) == false) {
         // If we have received busy message from more than half of the archivers, then try again from the start of the list of archivers after waiting for 10 seconds
         if (receivedBusyMessageTimes > this.archiverDataSourceHelper.getNumberArchivers() / 2) {
@@ -521,6 +522,20 @@ export default class ArchiverSyncTracker implements SyncTrackerInterface {
           otherArchiverRetries = 0
           await utils.sleep(10000)
         }
+
+        //select archiver 0 if we wrapped around.  This is a local fix,
+        //tryNextDataSourceArchiver is in need of a some refactoring but that is out of scope 
+        if(this.archiverDataSourceHelper.getNumberArchivers() > 0 &&
+          this.archiverDataSourceHelper.dataSourceArchiverIndex === 0){
+          this.archiverDataSourceHelper.dataSourceArchiver = this.archiverDataSourceHelper.dataSourceArchiverList[0]
+        }
+      }
+            
+      const dataSourceArchiver = this.archiverDataSourceHelper.dataSourceArchiver
+      if(dataSourceArchiver != null){
+        /* prettier-ignore */ nestedCountersInstance.countEvent(`archiver_sync`, `next archiver: ${dataSourceArchiver.ip}:${dataSourceArchiver.port} idx:${this.archiverDataSourceHelper.dataSourceArchiverIndex}`)
+      } else {
+        /* prettier-ignore */ nestedCountersInstance.countEvent(`archiver_sync`, `next archiver: null   idx:${this.archiverDataSourceHelper.dataSourceArchiverIndex}`)
       }
     }
 
@@ -788,6 +803,9 @@ export default class ArchiverSyncTracker implements SyncTrackerInterface {
 
       //process combinedAccountData right away and then clear it
       if (this.combinedAccountData.length > 0) {
+        const dataSourceArchiver = this.archiverDataSourceHelper.dataSourceArchiver
+        /* prettier-ignore */ nestedCountersInstance.countEvent('archiver_sync', `accounts synced from archiver ${dataSourceArchiver?.ip}`, this.combinedAccountData.length)
+
         const accountToSave = this.combinedAccountData.length
         const accountsSaved = await this.processAccountDataNoStateTable2()
         totalAccountsSaved += accountsSaved
