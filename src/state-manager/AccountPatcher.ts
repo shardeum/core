@@ -596,8 +596,8 @@ class AccountPatcher {
             }
 
             if (
-                this.repairRequestsMadeThisCycle.numRequests + storageNodes.length >
-                this.config.stateManager.patcherRepairByReceiptPerUpdate
+              this.repairRequestsMadeThisCycle.numRequests + 1 >
+              this.config.stateManager.patcherRepairByReceiptPerUpdate
             ) {
               nestedCountersInstance.countEvent(
                 'accountPatcher',
@@ -616,7 +616,7 @@ class AccountPatcher {
               )
               continue
             }
-            this.repairRequestsMadeThisCycle.numRequests += storageNodes.length
+            this.repairRequestsMadeThisCycle.numRequests++
 
             if (
               txReceipt.topResult.success !== true ||
