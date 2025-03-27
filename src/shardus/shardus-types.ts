@@ -1238,6 +1238,8 @@ export interface ServerConfiguration {
     patcherMaxLeafHashesPerRequest: number
     /** max number of child hashes that we can respond with */
     patcherMaxChildHashResponses: number
+    /** max number of requests for account data that execute any given cycle when receiving a repair request */
+    patcherRepairByReceiptPerUpdate: number
     /** max number of sync restarts allowed due to thrown exceptions before we go apop */
     maxDataSyncRestarts: number
     /** max number of sync restarts allowed due to thrown exceptions for each tracker instance */
