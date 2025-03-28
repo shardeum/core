@@ -366,8 +366,12 @@ export function extraSyncLogsEnabled(source: string = ''): boolean {
 }
 
 export function digestCycle(cycle: P2P.CycleCreatorTypes.CycleRecord, source: string) {
-  info(`digestCycle: c${CycleCreator.currentCycle}q${CycleCreator.currentQuarter} marker of cycle${cycle.counter} from ${source} before digest is ${CycleChain.computeCycleMarker(cycle)}`)
-  
+  info(
+    `digestCycle: c${CycleCreator.currentCycle}q${CycleCreator.currentQuarter} marker of cycle${
+      cycle.counter
+    } from ${source} before digest is ${CycleChain.computeCycleMarker(cycle)}`
+  )
+
   const extraSyncLogs = extraSyncLogsEnabled(source)
 
   // get the node list hashes *before* applying node changes
@@ -380,7 +384,10 @@ export function digestCycle(cycle: P2P.CycleCreatorTypes.CycleRecord, source: st
     // standby list, but not with the validator and archivers lists
 
     const newNodeListHash = NodeList.computeNewNodeListHash(extraSyncLogs)
-    if (newNodeListHash !== cycle.nodeListHash) warn(`sync:digestCycle source: ${source} cycle: ${cycle.counter} patching nodelisthash ${cycle.nodeListHash} -> ${newNodeListHash}`)
+    if (newNodeListHash !== cycle.nodeListHash)
+      warn(
+        `sync:digestCycle source: ${source} cycle: ${cycle.counter} patching nodelisthash ${cycle.nodeListHash} -> ${newNodeListHash}`
+      )
     cycle.nodeListHash = newNodeListHash
 
     const newArchiverListHash = Archivers.computeNewArchiverListHash()
@@ -443,7 +450,9 @@ export function digestCycle(cycle: P2P.CycleCreatorTypes.CycleRecord, source: st
   let newNodeListHash
   if (extraSyncLogs) {
     newNodeListHash = crypto.hash(NodeList.byJoinOrder) //computeNewNodeListHash not safe due to side effects
-    warn(`sync:digestCycle after applyNodeListChange source: ${source} cycle: ${cycle.counter} prev nodelisthash ${cycle.nodeListHash} next ${newNodeListHash}`)
+    warn(
+      `sync:digestCycle after applyNodeListChange source: ${source} cycle: ${cycle.counter} prev nodelisthash ${cycle.nodeListHash} next ${newNodeListHash}`
+    )
   }
 
   // for join v2, also add any new standby nodes to the standy node list

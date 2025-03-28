@@ -186,7 +186,7 @@ const SERVER_CONFIG: StrictServerConfiguration = {
     enableShardKeyChanges: true,
     maxResponseSize: 1024 * 1024 * 15, // 15MB
     allowEndUserTxnInjections: true,
-    newCycleCertScoring: false    
+    newCycleCertScoring: false,
   },
   ip: {
     externalIp: '0.0.0.0',

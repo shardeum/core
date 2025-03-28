@@ -206,15 +206,12 @@ export default class ArchiverSyncTracker implements SyncTrackerInterface {
         /* prettier-ignore */ if (logFlags.debug) this.accountSync.mainLogger.debug(`ARCHIVER_DATASYNC: syncStateDataGlobals partition: ${partition} `)
 
         //this.accountSync.readyforTXs = true //Do not open the floodgates of queuing stuffs.
-        let globalReport: GlobalAccountReportResp 
+        let globalReport: GlobalAccountReportResp
         let retries = 100
-        while(retries > 0){
-          try{
+        while (retries > 0) {
+          try {
             //Get globals list and hash.
-            globalReport = await this.accountSync.getRobustGlobalReport(
-              'syncTrackerGlobal',
-              true
-            )
+            globalReport = await this.accountSync.getRobustGlobalReport('syncTrackerGlobal', true)
             break //if an error was not thrown we may proceed
           } catch (error) {
             await utils.sleep(3000)
@@ -342,8 +339,8 @@ export default class ArchiverSyncTracker implements SyncTrackerInterface {
           /* prettier-ignore */ if (logFlags.debug) this.accountSync.mainLogger.debug(`ARCHIVER_DATASYNC: syncStateDataGlobals get_account_data_by_list_archiver ${utils.stringifyReduce(result)} `)
 
           retries = 100
-          while(retries > 0){
-            try{
+          while (retries > 0) {
+            try {
               //Get globals list and hash.
               globalReport2 = await this.accountSync.getRobustGlobalReport('syncTrackerGlobal2', true)
               break //if an error was not thrown we may proceed
@@ -500,35 +497,36 @@ export default class ArchiverSyncTracker implements SyncTrackerInterface {
     let otherArchiverRetries = 0
 
     const retryWithNextArchiver = async (debugMessage: string, errorString: string) => {
-
       if (this.archiverDataSourceHelper.tryNextDataSourceArchiver(debugMessage) == false) {
         // If we have received busy message from more than half of the archivers, then try again from the start of the list of archivers after waiting for 10 seconds
         if (receivedBusyMessageTimes > this.archiverDataSourceHelper.getNumberArchivers() / 2) {
           // Try again from the start of the list of archivers after waiting for 10 seconds
           receivedBusyMessageTimes = 0
           await utils.sleep(10000)
-        } else { 
-          //this throw made no sense... the else case here is the happy path, as in 
+        } else {
+          //this throw made no sense... the else case here is the happy path, as in
           //we have not run out of attempts to keep asking archivers
           //perhaps it would have even broken the restore if there was more than two archivers
           //throw new Error(errorString)
         }
 
-        if(otherArchiverRetries > this.archiverDataSourceHelper.getNumberArchivers()){
+        if (otherArchiverRetries > this.archiverDataSourceHelper.getNumberArchivers()) {
           otherArchiverRetries = 0
           await utils.sleep(10000)
         }
 
         //select archiver 0 if we wrapped around.  This is a local fix,
-        //tryNextDataSourceArchiver is in need of a some refactoring but that is out of scope 
-        if(this.archiverDataSourceHelper.getNumberArchivers() > 0 &&
-          this.archiverDataSourceHelper.dataSourceArchiverIndex === 0){
+        //tryNextDataSourceArchiver is in need of a some refactoring but that is out of scope
+        if (
+          this.archiverDataSourceHelper.getNumberArchivers() > 0 &&
+          this.archiverDataSourceHelper.dataSourceArchiverIndex === 0
+        ) {
           this.archiverDataSourceHelper.dataSourceArchiver = this.archiverDataSourceHelper.dataSourceArchiverList[0]
         }
       }
-            
+
       const dataSourceArchiver = this.archiverDataSourceHelper.dataSourceArchiver
-      if(dataSourceArchiver != null){
+      if (dataSourceArchiver != null) {
         /* prettier-ignore */ nestedCountersInstance.countEvent(`archiver_sync`, `next archiver: ${dataSourceArchiver.ip}:${dataSourceArchiver.port} idx:${this.archiverDataSourceHelper.dataSourceArchiverIndex}`)
       } else {
         /* prettier-ignore */ nestedCountersInstance.countEvent(`archiver_sync`, `next archiver: null   idx:${this.archiverDataSourceHelper.dataSourceArchiverIndex}`)

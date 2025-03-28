@@ -277,7 +277,7 @@ class AccountGlobals {
   async getGlobalListEarly(syncFromArchiver: boolean = false): Promise<void> {
     let retriesLeft = 10
 
-    if(syncFromArchiver){
+    if (syncFromArchiver) {
       retriesLeft = 100
     }
     //This will try up to 10 times to get the global list
@@ -305,7 +305,7 @@ class AccountGlobals {
       } catch (err) {
         /* prettier-ignore */ nestedCountersInstance.countEvent('sync', 'DATASYNC: getGlobalListEarly: getRobustGlobalReport results === null')
         await utils.sleep(10000)
-        if(syncFromArchiver){
+        if (syncFromArchiver) {
           await utils.sleep(60000)
         }
       } finally {

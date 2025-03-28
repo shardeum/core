@@ -311,7 +311,6 @@ function reset() {
   ;({ record, marker, cert } = makeCycleData(txs, CycleChain.newest || undefined))
   /* prettier-ignore */ if (logFlags.p2pSyncDebug) info(`updateMarker: reset C${currentCycle} Q${currentQuarter} counter: ${record.counter} oldMarker: ${oldMarker} marker: ${marker} prevMarker: ${prevMarkerCached}`)
 
-
   //todo some logging here.
 
   bestRecord = undefined
@@ -999,10 +998,7 @@ function scoreCert(cert: P2P.CycleCreatorTypes.CycleCert, prevMarker: P2P.CycleC
     const out = utils.XOR(markerToScore, hid)
 
     // if the cert is from a non-foundation node, reduce the potential score
-    if (
-      config.p2p.nerfNonFoundationCertScores &&
-      NodeList.byPubKey.get(cert.sign.owner).foundationNode === false
-    ) {
+    if (config.p2p.nerfNonFoundationCertScores && NodeList.byPubKey.get(cert.sign.owner).foundationNode === false) {
       return out & 0x0fffffff
     }
 

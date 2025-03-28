@@ -603,7 +603,9 @@ class AccountPatcher {
                 'accountPatcher',
                 `binary/repair_oos_accounts: too many repair requests this cycle`
               )
-              this.mainLogger.warn(`binary/repair_oos_accounts: too many repair requests this cycle (${latestCycle.counter})`)
+              this.mainLogger.warn(
+                `binary/repair_oos_accounts: too many repair requests this cycle (${latestCycle.counter})`
+              )
               return
             }
 
