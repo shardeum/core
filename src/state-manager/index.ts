@@ -2097,6 +2097,11 @@ class StateManager {
             return respond(BadRequest(`${route} invalid request`), serializeResponseError)
           }
           const req = deserializeGetAccountDataWithQueueHintsReq(requestStream)
+          const MAX_ACCOUNTS = this.config.stateManager.accountBucketSize
+          if (req.accountIds.length > MAX_ACCOUNTS) {
+            nestedCountersInstance.countEvent('internal', `${route}-too_many_accounts`)
+            return respond(BadRequest(`${route} too many accounts requested`), serializeResponseError)
+          }
           if (utils.isValidShardusAddress(req.accountIds) === false) {
             nestedCountersInstance.countEvent('internal', `${route}-invalid_account_ids`)
             return respond(BadRequest(`${route} invalid account_ids`), serializeResponseError)

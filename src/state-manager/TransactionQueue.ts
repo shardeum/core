@@ -1093,6 +1093,11 @@ class TransactionQueue {
       // Block invalid txs in case a node maliciously relays them to other nodes
       return null
     }
+    if (!internalTx && !this.config.p2p.allowEndUserTxnInjections) {
+      profilerInstance.profileSectionEnd('handleSharedTX')
+      /* prettier-ignore */ if (logFlags.playback) this.logger.playbackLogNote('tx_non_internal_tx_paused', '', 'execution paused for non-internal tx')
+      return null
+    }
     // Perform fast validation of the transaction fields
     profilerInstance.scopedProfileSectionStart('handleSharedTX_validateTX')
     const validateResult = this.app.validate(tx, appData)

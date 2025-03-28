@@ -1512,6 +1512,13 @@ class Shardus extends EventEmitter {
           status: 500,
         }
       }
+      if (!internalTx && !this.config.p2p.allowEndUserTxnInjections) {
+        return {
+          success: false,
+          reason: `Application transactions are turned off.`,
+          status: 500,
+        }
+      }
 
       const senderAddress = this.app.getTxSenderAddress(tx)
       /* prettier-ignore */ if (logFlags.seqdiagram) this.seqLogger.info(`0x53455106 ${shardusGetTime()} tx:${txId} Note over ${activeIdToPartition.get(Self.id)}: sender:${senderAddress}`)

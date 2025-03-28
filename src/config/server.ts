@@ -185,6 +185,7 @@ const SERVER_CONFIG: StrictServerConfiguration = {
     patchNetworkAccountSyncFixes: true,
     enableShardKeyChanges: true,
     maxResponseSize: 1024 * 1024 * 15, // 15MB
+    allowEndUserTxnInjections: true
   },
   ip: {
     externalIp: '0.0.0.0',
@@ -293,6 +294,7 @@ const SERVER_CONFIG: StrictServerConfiguration = {
     patcherMaxHashesPerRequest: 300,
     patcherMaxLeafHashesPerRequest: 300,
     patcherMaxChildHashResponses: 2000,
+    patcherRepairByReceiptPerUpdate: 100,
     maxDataSyncRestarts: 5,
     maxTrackerRestarts: 5,
     syncWithAccountOffset: true,
