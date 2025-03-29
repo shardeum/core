@@ -187,6 +187,7 @@ class AccountPatcher {
 
   nonStoredRanges: { low: string; high: string }[]
   radixIsStored: Map<string, boolean>
+  repairRequestsMadeThisCycle: { cycle: number; numRequests: number } = { cycle: -1, numRequests: 0 }
 
   lastRepairInfo: unknown
 
@@ -504,8 +505,23 @@ class AccountPatcher {
           }
           // (Optional) Check verification data in the header
           const payload = deserializeRepairOOSAccountsReq(requestStream)
+          if (!payload?.repairInstructions) {
+            return
+          }
+
+          let [latestCycle] = Context.p2p.getLatestCycles(1)
+          if (!latestCycle) {
+            this.mainLogger.error('repair_oos_accounts: no latest cycle')
+            return
+          }
+
+          if (this.repairRequestsMadeThisCycle.cycle !== latestCycle.counter) {
+            this.repairRequestsMadeThisCycle.cycle = latestCycle.counter
+            this.repairRequestsMadeThisCycle.numRequests = 0
+          }
+
           // verifyPayload(AJVSchemaEnum.RepairOOSAccountsReq', payload)
-          for (const repairInstruction of payload?.repairInstructions) {
+          for (const repairInstruction of payload.repairInstructions) {
             const { accountID, txId, hash, accountData, targetNodeId, signedReceipt } = repairInstruction
 
             // check if we are the target node
@@ -579,6 +595,20 @@ class AccountPatcher {
               )
             }
 
+            if (
+              this.repairRequestsMadeThisCycle.numRequests + 1 >
+              this.config.stateManager.patcherRepairByReceiptPerUpdate
+            ) {
+              nestedCountersInstance.countEvent(
+                'accountPatcher',
+                `binary/repair_oos_accounts: too many repair requests this cycle`
+              )
+              this.mainLogger.warn(
+                `binary/repair_oos_accounts: too many repair requests this cycle (${latestCycle.counter})`
+              )
+              return
+            }
+
             // make sure tx hasn't been altered by robust querying for the proposal using request txid and timestamp
             const txReceipt = await robustQuery(storageNodes, queryFn)
             if (txReceipt.isRobustResult === false) {
@@ -588,6 +618,7 @@ class AccountPatcher {
               )
               continue
             }
+            this.repairRequestsMadeThisCycle.numRequests++
 
             if (
               txReceipt.topResult.success !== true ||

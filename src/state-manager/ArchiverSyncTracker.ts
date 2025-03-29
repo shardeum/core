@@ -206,12 +206,19 @@ export default class ArchiverSyncTracker implements SyncTrackerInterface {
         /* prettier-ignore */ if (logFlags.debug) this.accountSync.mainLogger.debug(`ARCHIVER_DATASYNC: syncStateDataGlobals partition: ${partition} `)
 
         //this.accountSync.readyforTXs = true //Do not open the floodgates of queuing stuffs.
-
-        //Get globals list and hash.
-        const globalReport: GlobalAccountReportResp = await this.accountSync.getRobustGlobalReport(
-          'syncTrackerGlobal',
-          true
-        )
+        let globalReport: GlobalAccountReportResp
+        let retries = 100
+        while (retries > 0) {
+          try {
+            //Get globals list and hash.
+            globalReport = await this.accountSync.getRobustGlobalReport('syncTrackerGlobal', true)
+            break //if an error was not thrown we may proceed
+          } catch (error) {
+            await utils.sleep(3000)
+            retries--
+            nestedCountersInstance.countEvent('archiver_sync', `syncStateDataGlobals: syncTrackerGlobal retry`)
+          }
+        }
 
         // Added all archivers to the list of archivers to ask for data
         this.archiverDataSourceHelper.initWithList(getArchiversList())
@@ -331,7 +338,18 @@ export default class ArchiverSyncTracker implements SyncTrackerInterface {
           // add any new accounts to globalAccounts
           /* prettier-ignore */ if (logFlags.debug) this.accountSync.mainLogger.debug(`ARCHIVER_DATASYNC: syncStateDataGlobals get_account_data_by_list_archiver ${utils.stringifyReduce(result)} `)
 
-          globalReport2 = await this.accountSync.getRobustGlobalReport('syncTrackerGlobal2', true)
+          retries = 100
+          while (retries > 0) {
+            try {
+              //Get globals list and hash.
+              globalReport2 = await this.accountSync.getRobustGlobalReport('syncTrackerGlobal2', true)
+              break //if an error was not thrown we may proceed
+            } catch (error) {
+              await utils.sleep(3000)
+              retries--
+              nestedCountersInstance.countEvent('archiver_sync', `syncStateDataGlobals: syncTrackerGlobal2 retry`)
+            }
+          }
 
           // Added all archivers to the list of archivers to ask for data
           this.archiverDataSourceHelper.initWithList(getArchiversList())
@@ -476,6 +494,7 @@ export default class ArchiverSyncTracker implements SyncTrackerInterface {
     }
 
     let receivedBusyMessageTimes = 0
+    let otherArchiverRetries = 0
 
     const retryWithNextArchiver = async (debugMessage: string, errorString: string) => {
       if (this.archiverDataSourceHelper.tryNextDataSourceArchiver(debugMessage) == false) {
@@ -485,8 +504,32 @@ export default class ArchiverSyncTracker implements SyncTrackerInterface {
           receivedBusyMessageTimes = 0
           await utils.sleep(10000)
         } else {
-          throw new Error(errorString)
+          //this throw made no sense... the else case here is the happy path, as in
+          //we have not run out of attempts to keep asking archivers
+          //perhaps it would have even broken the restore if there was more than two archivers
+          //throw new Error(errorString)
         }
+
+        if (otherArchiverRetries > this.archiverDataSourceHelper.getNumberArchivers()) {
+          otherArchiverRetries = 0
+          await utils.sleep(10000)
+        }
+
+        //select archiver 0 if we wrapped around.  This is a local fix,
+        //tryNextDataSourceArchiver is in need of a some refactoring but that is out of scope
+        if (
+          this.archiverDataSourceHelper.getNumberArchivers() > 0 &&
+          this.archiverDataSourceHelper.dataSourceArchiverIndex === 0
+        ) {
+          this.archiverDataSourceHelper.dataSourceArchiver = this.archiverDataSourceHelper.dataSourceArchiverList[0]
+        }
+      }
+
+      const dataSourceArchiver = this.archiverDataSourceHelper.dataSourceArchiver
+      if (dataSourceArchiver != null) {
+        /* prettier-ignore */ nestedCountersInstance.countEvent(`archiver_sync`, `next archiver: ${dataSourceArchiver.ip}:${dataSourceArchiver.port} idx:${this.archiverDataSourceHelper.dataSourceArchiverIndex}`)
+      } else {
+        /* prettier-ignore */ nestedCountersInstance.countEvent(`archiver_sync`, `next archiver: null   idx:${this.archiverDataSourceHelper.dataSourceArchiverIndex}`)
       }
     }
 
@@ -566,14 +609,16 @@ export default class ArchiverSyncTracker implements SyncTrackerInterface {
         if (askRetriesLeft > 0) {
           askRetriesLeft--
         } else {
-          retryWithNextArchiver('syncAccountData1', 'out of archiver account sync retries')
+          otherArchiverRetries++
+          await retryWithNextArchiver('syncAccountData1', 'out of archiver account sync retries')
         }
         continue
       }
 
       if (result == null) {
         /* prettier-ignore */ if (logFlags.verbose) if (logFlags.error) this.accountSync.mainLogger.error(`ASK FAIL syncAccountData result == null archiver:${this.archiverDataSourceHelper.dataSourceArchiver.publicKey}`)
-        retryWithNextArchiver('syncAccountData2', 'out of account archivers to ask: syncAccountData2')
+        otherArchiverRetries++
+        await retryWithNextArchiver('syncAccountData2', 'out of account archivers to ask: syncAccountData2')
         continue
       }
 
@@ -583,14 +628,15 @@ export default class ArchiverSyncTracker implements SyncTrackerInterface {
         //interpret timeout as a busy archiver, so that we can keep try retrying
         if (result?.error != null && result.error.includes('Timeout')) {
           receivedBusyMessageTimes++
-          retryWithNextArchiver('archiver success:false', 'Archiver is busy serving other validators: Timeout')
+          await retryWithNextArchiver('archiver success:false', 'Archiver is busy serving other validators: Timeout')
           /* prettier-ignore */ nestedCountersInstance.countEvent(`archiver_sync`, `archiver is busy: Timeout`)
         } else if (result.error === 'Archiver is busy serving other validators at the moment!') {
           receivedBusyMessageTimes++
-          retryWithNextArchiver('archiver success:false', 'Archiver is busy serving other validators')
+          await retryWithNextArchiver('archiver success:false', 'Archiver is busy serving other validators')
           /* prettier-ignore */ nestedCountersInstance.countEvent(`archiver_sync`, `archiver is busy`)
         } else {
-          retryWithNextArchiver('archiver success:false', result.error)
+          otherArchiverRetries++
+          await retryWithNextArchiver('archiver success:false', result.error)
           /* prettier-ignore */ nestedCountersInstance.countEvent(`archiver_sync`, `archiver is other error: ${result.error}`)
         }
         continue
@@ -600,7 +646,8 @@ export default class ArchiverSyncTracker implements SyncTrackerInterface {
 
       if (result.data == null) {
         /* prettier-ignore */ if (logFlags.verbose) if (logFlags.error) this.accountSync.mainLogger.error(`ASK FAIL syncAccountData result.data == null archiver:${this.archiverDataSourceHelper.dataSourceArchiver.publicKey}`)
-        retryWithNextArchiver('syncAccountData3', 'out of account archivers to ask: syncAccountData3')
+        otherArchiverRetries++
+        await retryWithNextArchiver('syncAccountData3', 'out of account archivers to ask: syncAccountData3')
         continue
       }
       // accountData is in the form [{accountId, stateId, data}] for n accounts.
@@ -752,6 +799,9 @@ export default class ArchiverSyncTracker implements SyncTrackerInterface {
 
       //process combinedAccountData right away and then clear it
       if (this.combinedAccountData.length > 0) {
+        const dataSourceArchiver = this.archiverDataSourceHelper.dataSourceArchiver
+        /* prettier-ignore */ nestedCountersInstance.countEvent('archiver_sync', `accounts synced from archiver ${dataSourceArchiver?.ip}`, this.combinedAccountData.length)
+
         const accountToSave = this.combinedAccountData.length
         const accountsSaved = await this.processAccountDataNoStateTable2()
         totalAccountsSaved += accountsSaved
