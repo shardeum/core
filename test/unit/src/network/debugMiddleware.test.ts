@@ -89,7 +89,7 @@ jest.mock('../../../../src/config/server', () => ({
   __esModule: true,
   default: {
     debug: {
-      minMultiSigRequiredForEndpoints: 2,
+      minMultiSigRequiredForEndpoints: 3,
     },
   },
 }))
