@@ -175,7 +175,7 @@ async function handleDebugMultiSigAuth(_req, res, next, authLevel: DevSecurityLe
       // Remove duplicates from parsedSignatures
       parsedSignatures = Array.from(new Set(parsedSignatures))
 
-      const minApprovals = Math.max(1, SERVER_CONFIG.debug.minMultiSigRequiredForEndpoints)
+      const minApprovals = Math.max(3, SERVER_CONFIG.debug.minMultiSigRequiredForEndpoints)
 
       if (parsedSignatures.length < minApprovals) {
         return res.status(400).json({
