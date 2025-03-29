@@ -777,7 +777,7 @@ export async function syncTxListFromArchiver(): Promise<void> {
 
   if (!latestTxListHash) {
     warn('failed to get hash of latest tx list from cycle record')
-    return
+    throw Error('Fatal: Failed to get hash of latest tx list from cycle record')
   }
 
   if (latestTxListHash === crypto.hash(txListResult.value)) {
