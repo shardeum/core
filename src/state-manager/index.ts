@@ -938,7 +938,7 @@ class StateManager {
     this.accountSync.syncStatement.syncSeconds =
       (this.accountSync.syncStatement.syncEndTime - this.accountSync.syncStatement.syncStartTime) / 1000
 
-    /* prettier-ignore */ nestedCountersInstance.countEvent('sync', `sync comlete numCycles: ${this.accountSync.syncStatement.numCycles} start:${this.accountSync.syncStatement.cycleStarted} end:${this.accountSync.syncStatement.cycleEnded}`)
+    /* prettier-ignore */ nestedCountersInstance.countEvent('sync', `sync comlete numCycles: ${this.accountSync.syncStatement.numCycles} start:${this.accountSync.syncStatement.cycleStarted} end:${this.accountSync.syncStatement.cycleEnded} numAccounts: ${this.accountSync.syncStatement.numAccounts}`)
     if (this.accountSync.syncStatement.internalFlag === true) {
       /* prettier-ignore */ if (logFlags.playback) this.logger.playbackLogNote('shrd_sync_syncStatement', ` `, `${utils.stringifyReduce(this.accountSync.syncStatement)}`)
       this.accountSync.syncStatmentIsComplete()
@@ -2097,6 +2097,11 @@ class StateManager {
             return respond(BadRequest(`${route} invalid request`), serializeResponseError)
           }
           const req = deserializeGetAccountDataWithQueueHintsReq(requestStream)
+          const MAX_ACCOUNTS = this.config.stateManager.accountBucketSize
+          if (req.accountIds.length > MAX_ACCOUNTS) {
+            nestedCountersInstance.countEvent('internal', `${route}-too_many_accounts`)
+            return respond(BadRequest(`${route} too many accounts requested`), serializeResponseError)
+          }
           if (utils.isValidShardusAddress(req.accountIds) === false) {
             nestedCountersInstance.countEvent('internal', `${route}-invalid_account_ids`)
             return respond(BadRequest(`${route} invalid account_ids`), serializeResponseError)

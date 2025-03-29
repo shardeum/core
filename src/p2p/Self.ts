@@ -777,7 +777,28 @@ async function syncCycleChain(selfId: string, shardus: Shardus): Promise<void> {
   if (isFirst) {
     // If you're the first node in a restart network, you only need to sync the network generated tx list
     if (isRestartNetwork) {
-      await ServiceQueue.syncTxListFromArchiver()
+      // retry as needed to get the TX list
+      for (let i = 0; i < 100; i++) {
+        try {
+          nestedCountersInstance.countEvent(
+            'p2p',
+            `syncCycleChain: syncTxListFromArchiver: getting tx list from archiver`
+          )
+          await ServiceQueue.syncTxListFromArchiver()
+          nestedCountersInstance.countEvent(
+            'p2p',
+            `syncCycleChain: syncTxListFromArchiver: got tx list from archiver: ${i}`
+          )
+          break
+        } catch (e) {
+          nestedCountersInstance.countEvent(
+            'p2p',
+            `syncCycleChain: syncTxListFromArchiver: getting tx list from archiver failed:${i}`
+          )
+          info(`syncCycleChain: syncTxListFromArchiver: error getting tx list from archiver ${e.message}`)
+          await utils.sleep(1000)
+        }
+      }
     }
     return
   }
@@ -831,18 +852,44 @@ async function checkNodeId(nodeMatch: (node: any) => boolean, selfId: string): P
   // query the archiver for the latest cycles if we can't find the node in the current cycle
   if (!node) {
     //check the latest 4 cycles from the archiver
-    if (logFlags.p2pNonFatal) info('Getting latest cycles from archiver check node id')
-    const latestCycles = await getLatestCyclesFromArchiver(4)
+    info('syncCycleChain: checkNodeId: Getting last 4 cycles from archiver check node id')
+    let latestCycles = undefined
+    for (let i = 0; i < 30; i++) {
+      try {
+        const archiver = getRandomAvailableArchiver()
+        nestedCountersInstance.countEvent('p2p', `syncCycleChain: checkNodeId: getting latest cycles from archiver`)
+        latestCycles = await getLatestCyclesFromArchiver(6, archiver)
+        nestedCountersInstance.countEvent('p2p', `syncCycleChain: checkNodeId: got latest cycles from archiver: ${i}`)
+        break
+      } catch (e) {
+        nestedCountersInstance.countEvent(
+          'p2p',
+          `syncCycleChain: checkNodeId: getting latest cycles from archiver failed:${i}`
+        )
+        info(`syncCycleChain: checkNodeId: error getting latest cycles from archiver ${e.message}`)
+        await utils.sleep(1000)
+      }
+    }
     for (const cycle of latestCycles) {
       node = cycle.joinedConsensors.find(nodeMatch)
+      info(`syncCycleChain: checkNodeId: cycle ${cycle.counter} node ${node?.id}`)
       if (node) {
         break
       }
     }
   }
 
-  if (!node || node.id !== selfId) {
-    /* prettier-ignore */ nestedCountersInstance.countEvent('p2p', `syncCycleChain: ${idErrorMessage}`)
+  if (node == null) {
+    info(
+      `syncCycleChain: checkNodeId: checkNodeId node not found in joinedConsensors ${newestCycle.joinedConsensors.length}`
+    )
+    /* prettier-ignore */ nestedCountersInstance.countEvent('p2p', `syncCycleChain: checkNodeId: checkNodeId node not found in joinedConsensors for a recent cycle`)
+    // throw new Error(`checkNodeId node not found in joinedConsensors for a recent cycle`)
+    throw new Error(idErrorMessage) //keeping the same basic error as it is used in control flow, and do not have time to redo that part
+  }
+  if (node.id !== selfId) {
+    info(`syncCycleChain: checkNodeId: ${idErrorMessage} ${node.id} != ${selfId}`)
+    /* prettier-ignore */ nestedCountersInstance.countEvent('p2p', `syncCycleChain: checkNodeId: ${idErrorMessage} ${node.id} != ${selfId}`)
     throw new Error(idErrorMessage)
   }
 

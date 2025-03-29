@@ -1003,6 +1003,10 @@ export interface ServerConfiguration {
     enableShardKeyChanges: boolean
     // control the max content size for http responses
     maxResponseSize: number
+    // control if non-internal txs should be allowed to be injected
+    allowEndUserTxnInjections: boolean
+    // score cycle certs based on prevMarker instead of the cycle we are running consensus on
+    newCycleCertScoring: boolean
   }
   /** Server IP configuration */
   ip?: {
@@ -1236,6 +1240,8 @@ export interface ServerConfiguration {
     patcherMaxLeafHashesPerRequest: number
     /** max number of child hashes that we can respond with */
     patcherMaxChildHashResponses: number
+    /** max number of requests for account data that execute any given cycle when receiving a repair request */
+    patcherRepairByReceiptPerUpdate: number
     /** max number of sync restarts allowed due to thrown exceptions before we go apop */
     maxDataSyncRestarts: number
     /** max number of sync restarts allowed due to thrown exceptions for each tracker instance */

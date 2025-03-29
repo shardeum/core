@@ -698,7 +698,7 @@ export async function _removeNetworkTx(removeTx: P2P.ServiceQueueTypes.RemoveNet
 
 export async function processNetworkTransactions(record: P2P.CycleCreatorTypes.CycleRecord): Promise<void> {
   info('Process Network Transactions')
-  if (record.mode !== 'processing') {
+  if (record.mode !== 'processing' || !config.p2p.allowEndUserTxnInjections) {
     return
   }
   const processedSubQueueKeys = new Set<string>()
@@ -777,7 +777,7 @@ export async function syncTxListFromArchiver(): Promise<void> {
 
   if (!latestTxListHash) {
     warn('failed to get hash of latest tx list from cycle record')
-    return
+    throw Error('Fatal: Failed to get hash of latest tx list from cycle record')
   }
 
   if (latestTxListHash === crypto.hash(txListResult.value)) {
