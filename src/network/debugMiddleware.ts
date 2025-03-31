@@ -11,6 +11,7 @@ import * as CycleChain from '../p2p/CycleChain'
 import { contactArchiver, getStatusHistoryCopy } from '../p2p/Self'
 import { NodeStatus } from '@shardus/types/build/src/p2p/P2PTypes'
 import { getNewestCycle } from '../p2p/Sync'
+import { formatErrorMessage } from '../utils'
 
 const MAX_COUNTER_BUFFER_MILLISECONDS = 10000 // <- Nonce are essentially just timestamp. This number dictate how much time range we will tolerance.
 let lastCounter = Date.now() // <- when node is first load onto mem this used to be 0, but that would cause a replay attack. So now it is set to the current time with ntp offset accounted
@@ -115,22 +116,22 @@ async function handleDebugAuth(_req, res, next, authLevel) {
             }
           }
 
-
           const parsedCounter = parseInt(hashIncluded.count)
           if (Number.isNaN(parsedCounter)) {
             unauthorizedDBG = `Counter is not a number: ${hashIncluded.count}`
           } else {
-            unauthorizedDBG= `Counter is not larger than last counter: ${parsedCounter} <= ${lastCounter}`
+            unauthorizedDBG = `Counter is not larger than last counter: ${parsedCounter} <= ${lastCounter}`
           }
         }
       }
+    } else {
+      unauthorizedDBG = `sig or counter missing. sig: ${_req.query.sig} sig_counter: ${_req.query.sig_counter}`
     }
   } catch (error) {
     /* prettier-ignore */ if (logFlags.verbose) console.log('Error in handleDebugAuth:', error)
     nestedCountersInstance.countEvent('security', 'debug unauthorized failure - exception caught')
+    unauthorizedDBG = `Exception caught: ${formatErrorMessage(error)}`
   }
-
-
 
   return res.status(401).json({
     status: 401,
