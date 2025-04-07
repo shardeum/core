@@ -10,7 +10,8 @@
   "files": [
     "dist/*",
     "LICENSE",
-    "LICENSE_SHARDUS"
+    "LICENSE_SHARDUS",
+    "SHARDUS_SOFTWARE_LICENSE_2023-02-02.pdf"
   ],
   "config": {
     "dist": "./dist"
