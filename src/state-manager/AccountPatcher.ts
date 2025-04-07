@@ -943,6 +943,12 @@ class AccountPatcher {
         ): void => requestErrorHandler(route, errorType, header, opts)
 
         try {
+          const activeList = NodeList.activeByIdOrder
+          const isActive = activeList.some((node) => node.id === header.sender_id)
+          if (!isActive) {
+            return errorHandler(RequestErrorEnum.InvalidRequest)
+          }
+
           const stream = getStreamWithTypeCheck(payload, TypeIdentifierEnum.cSyncTrieHashesReq)
           if (!stream) {
             return errorHandler(RequestErrorEnum.InvalidRequest)
