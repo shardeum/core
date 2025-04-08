@@ -770,12 +770,15 @@ function makeCycleRecord(
 }
 
 export function makeCycleMarker(record: P2P.CycleCreatorTypes.CycleRecord) {
-  return crypto.hash(record)
+  const marker = crypto.hash(record)
+  info(`makeCycleCert for cycle ${record.counter} marker: ${marker} cycleRecord: ${Utils.safeStringify(record)}`)
+  return marker
 }
 
 function makeCycleCert(marker: P2P.CycleCreatorTypes.CycleMarker): P2P.CycleCreatorTypes.CycleCert {
-  info(`makeCycleCert for cycle ${record.counter} marker: ${marker} cycleRecord: ${UtilsTypes.safeStringify(record)}`)
-  return crypto.sign({ marker })
+  const cert = crypto.sign({ marker })
+  console.log(`makeCycleCert:  ${Utils.safeStringify(cert)}`)
+  return cert
 }
 
 function makeNetworkConfigHash() {
