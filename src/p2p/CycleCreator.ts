@@ -47,6 +47,7 @@ import { Utils } from '@shardeum-foundation/lib-types'
 import { nodeListFromStates } from './Join'
 import { AJVSchemaEnum } from '../types/enum/AJVSchemaEnum'
 import { log } from 'console'
+import { Utils as UtilsTypes } from '@shardeum-foundation/lib-types'
 
 /** CONSTANTS */
 
@@ -773,6 +774,7 @@ export function makeCycleMarker(record: P2P.CycleCreatorTypes.CycleRecord) {
 }
 
 function makeCycleCert(marker: P2P.CycleCreatorTypes.CycleMarker): P2P.CycleCreatorTypes.CycleCert {
+  info(`makeCycleCert for cycle ${record.counter} marker: ${marker} cycleRecord: ${UtilsTypes.safeStringify(record)}`)
   return crypto.sign({ marker })
 }
 
