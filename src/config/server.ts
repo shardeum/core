@@ -267,6 +267,7 @@ const SERVER_CONFIG: StrictServerConfiguration = {
     beforeStateFailChance: 0,
     logCSVPerfEvents: false,
     numOfPerfEventsNeededForLogging: 10,
+    enableDebugFlags: false,
   },
   statistics: { save: true, interval: 1 },
   loadDetection: {
