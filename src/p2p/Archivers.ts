@@ -53,7 +53,7 @@ export let connectedSockets = {}
 let lastSentCycle = -1
 let lastTimeForwardedArchivers = []
 export const RECEIPT_FORWARD_INTERVAL_MS = 5000
-const ALLOWED_ARCHIVERS_UPDATE_INTERVAL_MS = process.env.ALLOWED_ARCHIVERS_UPDATE_INTERVAL_MS || 60000
+const ALLOWED_ARCHIVERS_UPDATE_INTERVAL_MS = process.env.ALLOWED_ARCHIVERS_UPDATE_INTERVAL_MS || 601000
 const MAX_BODY_LENGTH_ALLOWED_ARCHIVERS = 1024 * 1024 * 1 // 1MB
 
 export enum DataRequestTypes {
@@ -102,19 +102,24 @@ export function init() {
     }
   })
 
-  // Set up interval to fetch allowed archivers
-  allowedArchiversInterval = setInterval(async () => {
-    try {
-      const newArchiversList = await getAllowedArchivers()
-      if (newArchiversList.length >= 1) {
-        allowedArchivers = newArchiversList
+
+  setTimeout(() => {
+    // Set up interval to fetch allowed archivers
+    allowedArchiversInterval = setInterval(async () => {
+      try {
+        
+        const newArchiversList = await getAllowedArchivers()
+        if (newArchiversList.length >= 1) {
+          allowedArchivers = newArchiversList
+        }
+      } catch (err) {
+        if (logFlags.important_as_fatal) {
+          console.error('Periodic update: failed to update allowedArchivers:', err)
+        }
       }
-    } catch (err) {
-      if (logFlags.important_as_fatal) {
-        console.error('Periodic update: failed to update allowedArchivers:', err)
-      }
-    }
-  }, Number(ALLOWED_ARCHIVERS_UPDATE_INTERVAL_MS)) // Default is 60 seconds
+    }, Number(ALLOWED_ARCHIVERS_UPDATE_INTERVAL_MS)) // Default is 60 seconds
+  }, randomInt(Number(ALLOWED_ARCHIVERS_UPDATE_INTERVAL_MS))) // Stagger 
+
 
   if (config.p2p.experimentalSnapshot && !receiptForwardInterval) {
     receiptForwardInterval = setInterval(forwardReceipts, RECEIPT_FORWARD_INTERVAL_MS)
@@ -195,6 +200,7 @@ async function getAllowedArchivers(): Promise<
     try {
       const response = await customFetch(`http://${ip}:${port}/allowed-archivers`)
       if (!response.ok) {
+        /* prettier-ignore */ nestedCountersInstance.countEvent('Archiver', `getAllowedArchivers: Response body not ok: ${ip}:${port} `)
         return null
       }
       const bodyText = await response.text()
@@ -204,6 +210,7 @@ async function getAllowedArchivers(): Promise<
         p2pLogger.warn(
           `Response body for allowed archivers is too large: ${bodyText.length} bytes. Max allowed is ${MAX_BODY_LENGTH_ALLOWED_ARCHIVERS} bytes.`
         )
+        /* prettier-ignore */ nestedCountersInstance.countEvent('Archiver', `getAllowedArchivers: Response body for allowed archivers is too large: ${bodyText.length} bytes.  ${ip}:${port} `)
         return null
       }
 
@@ -213,16 +220,19 @@ async function getAllowedArchivers(): Promise<
       const inValidResponse = verifyPayload(AJVSchemaEnum.AllowedArchiverResponse, data)
       if (inValidResponse) {
         p2pLogger.warn('getAllowedArchivers: invalid allowed archivers response')
+        /* prettier-ignore */ nestedCountersInstance.countEvent('Archiver', `getAllowedArchivers: invalid allowed archivers response  ${ip}:${port} `)
         return null
       }
       if (data.allowedArchivers?.length > 0 && verifyArchiverData(data)) {
         return data
       } else {
         p2pLogger.warn('getAllowedArchivers: invalid signatures or no allowed archivers')
+        /* prettier-ignore */ nestedCountersInstance.countEvent('Archiver', `getAllowedArchivers: invalid signatures or no allowed archivers  ${ip}:${port} `)
         return null
       }
     } catch (err) {
       console.error('getAllowedArchivers: Failed to get archiver data from ', ip, ':', port, err)
+      /* prettier-ignore */ nestedCountersInstance.countEvent('Archiver', `getAllowedArchivers: err ${ip}:${port} ${err.message}`)
       p2pLogger.warn(`Failed to get archiver data from ${ip}:${port}`)
     }
     return null
@@ -235,7 +245,10 @@ async function getAllowedArchivers(): Promise<
 
     const data = await fetchArchiverData(randomArchiver.ip, randomArchiver.port)
     if (data) {
+      /* prettier-ignore */ nestedCountersInstance.countEvent('Archiver', `getAllowedArchivers: got data from: ${randomArchiver.ip}:${randomArchiver.port}`)
       return data.allowedArchivers
+    } else {
+      /* prettier-ignore */ nestedCountersInstance.countEvent('Archiver', `getAllowedArchivers: failed to get data from: ${randomArchiver.ip}:${randomArchiver.port}`)
     }
   }
 
@@ -245,7 +258,10 @@ async function getAllowedArchivers(): Promise<
     for (const archiver of existingArchivers) {
       const data = await fetchArchiverData(archiver.ip, archiver.port)
       if (data) {
+        /* prettier-ignore */ nestedCountersInstance.countEvent('Archiver', `getAllowedArchivers: got data from fallback: ${archiver.ip}:${archiver.port}`)
         return data.allowedArchivers
+      } else {
+        /* prettier-ignore */ nestedCountersInstance.countEvent('Archiver', `getAllowedArchivers: failed to get data from fallback: ${archiver.ip}:${archiver.port}`)
       }
     }
   }
