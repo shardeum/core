@@ -1175,6 +1175,7 @@ export interface ServerConfiguration {
     logCSVPerfEvents: boolean
     /** controls how many perfEvents needs to accumulate before we log them */
     numOfPerfEventsNeededForLogging: number
+    enableDebugFlags: boolean
   }
   /** Options for the statistics module */
   statistics?: {
