@@ -1,7 +1,5 @@
 import { P2P } from '@shardeum-foundation/lib-types'
 import * as CycleChain from '../../../../src/p2p/CycleChain'
-import { crypto } from '@src/p2p/Context'
-import * as console from 'node:console'
 
 /**
  * Mock out the imports that CycleChain.ts depends on.
@@ -37,7 +35,7 @@ jest.mock('../../../../src/p2p/Context', () => {
     },
     stateManager: {
       // Provide methods that CycleChain.ts uses
-      getCurrentCycleShardData: jest.fn().mockReturnValue({
+      getCurrentCycleShardData: () => ({
         timestamp: 10000,
         timestampEndCycle: 20000,
         cycleNumber: 10,
@@ -323,7 +321,30 @@ describe('CycleChain.ts Tests', () => {
       // The cycle’s duration is 3600 by default in our createCycleRecord
       // but we rely on the appended cycles for actual durations in real logic.
       // For demonstration, we just check that it’s not returning 10.
+      const cycleRec = createCycleRecord(1)
+      CycleChain.append(cycleRec)
       const cycleNum = CycleChain.getCycleNumberFromTimestamp(30000)
+      expect(cycleNum).toBeGreaterThan(10)
+    })
+
+    test('handles allowOlder = false, older timestamp returns -1', () => {
+      // Our mocked data: currentCycleShardData.timestamp=10000, etc.
+      // So 5000 is older. Setting allowOlder = false should return -1.
+      const cycleNum = CycleChain.getCycleNumberFromTimestamp(5000, false)
+      expect(cycleNum).toBe(-1)
+    })
+
+    test('handles addSyncSettleTime = false, uses raw timestamp for within range', () => {
+      // Without the extra 5000 shift, offset=15000 => within [10000, 20000]
+      const cycleNum = CycleChain.getCycleNumberFromTimestamp(15000, true, false)
+      expect(cycleNum).toBe(10)
+    })
+
+    test('handles addSyncSettleTime = true, moves timestamp into future cycle', () => {
+      // With timestamp=19000 + 5000 => 24000 => future cycle
+      const cycleRec = createCycleRecord(1)
+      CycleChain.append(cycleRec)
+      const cycleNum = CycleChain.getCycleNumberFromTimestamp(19000, true, true)
       expect(cycleNum).toBeGreaterThan(10)
     })
   })
@@ -334,12 +355,12 @@ describe('CycleChain.ts Tests', () => {
       CycleChain.append(createCycleRecord(2))
       const debugStr = CycleChain.getDebug()
       expect(debugStr).toContain('CHAIN:')
-      expect(debugStr).toContain('prevHash') // from the record’s `previous`
+      expect(debugStr).toContain('prev:mock')
     })
 
     test('getNewestCycleInfoLogStr() returns string with cycle number, time, and message', () => {
       const mockTime = 123456789
-      jest.spyOn(Date, 'now').mockReturnValue(mockTime) // Mock Date.now to return a fixed value
+      jest.spyOn(Date, 'now').mockReturnValue(mockTime)
 
       CycleChain.append(createCycleRecord(42))
       const str = CycleChain.getNewestCycleInfoLogStr('Some message')
@@ -347,7 +368,7 @@ describe('CycleChain.ts Tests', () => {
       expect(str).toContain(`Time:${mockTime}`)
       expect(str).toContain('Some message')
 
-      jest.restoreAllMocks() // Restore original Date.now after the test
+      jest.restoreAllMocks()
     })
   })
 })
