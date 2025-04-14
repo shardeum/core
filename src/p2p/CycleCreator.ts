@@ -1,7 +1,7 @@
 import deepmerge from 'deepmerge'
 import { Logger } from 'log4js'
 import { logFlags } from '../logger'
-import { P2P } from '@shardeum-foundation/lib-types'
+import { P2P, P2P as P2PTypes } from '@shardeum-foundation/lib-types'
 import * as utils from '../utils'
 // don't forget to add new modules here
 import * as Active from './Active'
@@ -12,6 +12,7 @@ import { config, crypto, logger, stateManager, storage } from './Context'
 import * as CycleAutoScale from './CycleAutoScale'
 import * as CycleChain from './CycleChain'
 import * as Join from './Join'
+import * as JoinV2 from './Join/v2'
 import * as Lost from './Lost'
 import * as NodeList from './NodeList'
 import { profilerInstance } from '../utils/profiler'
@@ -138,6 +139,20 @@ let lastSavedData: P2P.CycleCreatorTypes.CycleRecord
 // Keeps track of consecutive fetchLatestCycle fails to initiate apoptosis if it happens too many times
 let fetchLatestRecordFails = 0
 const maxFetchLatestRecordFails = 5
+
+const ENABLE_EMPTY_HASH_TESTING = true
+const EMPTY_HASH_TEST_PROBABILITY = 20
+const ENABLE_EMPTY_HASH_TESTING_FIX = false
+let emptyHashTestCounter = 0
+
+// Add this new constant after the existing ENABLE_EMPTY_HASH_TESTING constants
+const ENABLE_HASH_POPULATION_TIMING_TEST = true
+const HASH_POPULATION_TEST_PROBABILITY = 50 // Higher probability to trigger the test
+let hashPopulationTestCounter = 0
+
+// Add this new constant for the direct archiver testing
+const ENABLE_DIRECT_ARCHIVER_MISMATCH_TEST = true
+const DIRECT_ARCHIVER_TEST_PROBABILITY = 100 // 100% when triggered to ensure we catch it
 
 /** ROUTES */
 
@@ -404,12 +419,27 @@ async function cycleCreator() {
         data.standbyNodeListHash = data.standbyNodeListHash || ''
         await storage.addCycles(data)
       }
+
+      // Apply the targeted chaos test to simulate hash population timing issues
+      const dataToSend = simulateHashPopulationAfterMarkerCreation({ ...data })
+
       lastSavedData = data
 
       /* prettier-ignore */ if (logFlags.verbose) info(`cc: cycle data created and stored. data.counter:${data.counter} ${callTag}`)
 
       // this event is currently only handled by non active snapshot system
       Self.emitter.emit('new_cycle_data', data)
+
+      // The original code doesn't pass data to Archivers.sendData(), so we need to
+      // modify our approach. Instead, we'll modify the bestRecord so it's used by Archivers.sendData()
+      if (dataToSend !== data) {
+        console.log(`[HASH TIMING TEST] Updating bestRecord with modified data for archiver sending`)
+        // Update the current bestRecord to use our modified data
+        bestRecord = dataToSend
+      }
+
+      // Call Archivers.sendData() as it was in the original code
+      Archivers.sendData()
     } catch (er) {
       /* prettier-ignore */ warn(`cc: Could not save prevRecord to DB. C${currentCycle} ${formatErrorMessage(er)}`)
     }
@@ -424,6 +454,16 @@ async function cycleCreator() {
     pruneCycleChain()
 
     /* prettier-ignore */ if (logFlags.verbose) info(`cc: pruned ${callTag}`)
+
+    // Run the direct archiver mismatch test if enabled
+    if (ENABLE_DIRECT_ARCHIVER_MISMATCH_TEST && prevRecord) {
+      const testableData = {
+        ...prevRecord,
+        marker: crypto.hash(prevRecord),
+        certificate: makeCycleCert(crypto.hash(prevRecord)),
+      }
+      directArchiverMismatchTest(testableData)
+    }
 
     // Send last cycle record, state hashes and receipt hashes to any subscribed archivers
     Archivers.sendData()
@@ -714,7 +754,12 @@ export function makeRecordZero(): P2P.CycleCreatorTypes.CycleRecord {
 }
 
 function makeCycleData(txs: P2P.CycleCreatorTypes.CycleTxs, prevRecord?: P2P.CycleCreatorTypes.CycleRecord) {
-  const record = makeCycleRecord(txs, prevRecord)
+  let record = makeCycleRecord(txs, prevRecord)
+
+  if (ENABLE_EMPTY_HASH_TESTING) {
+    record = randomlyCreateEmptyHashes(record)
+  }
+
   const marker = makeCycleMarker(record)
   const cert = makeCycleCert(marker)
   return { record, marker, cert }
@@ -770,6 +815,30 @@ function makeCycleRecord(
 }
 
 export function makeCycleMarker(record: P2P.CycleCreatorTypes.CycleRecord) {
+  // Check for empty hash values in production cycles
+  if (record.mode === 'processing' || record.mode === 'restore') {
+    const emptyHashes = []
+    if (record.nodeListHash === '') emptyHashes.push('nodeListHash')
+    if (record.archiverListHash === '') emptyHashes.push('archiverListHash')
+    if (record.standbyNodeListHash === '') emptyHashes.push('standbyNodeListHash')
+
+    if (emptyHashes.length > 0) {
+      console.log(
+        `[CRITICAL] Empty hash values detected in cycle ${record.counter} (${record.mode}): ${emptyHashes.join(', ')}`
+      )
+      console.log(`This may be due to an improper cycle record being used from certificate validation.`)
+
+      // Log diagnostic info about current state
+      console.log(`Current node state:`, {
+        activeNodes: NodeList.activeByIdOrder.length,
+        syncingNodes: NodeList.syncingByIdOrder.length,
+        byJoinOrder: NodeList.byJoinOrder.length,
+        networkMode: Modes.networkMode,
+        stackTrace: new Error().stack,
+      })
+    }
+  }
+
   const marker = crypto.hash(record)
   info(`makeCycleCert for cycle ${record.counter} marker: ${marker} cycleRecord: ${Utils.safeStringify(record)}`)
   return marker
@@ -1337,11 +1406,62 @@ async function gossipMyCycleCert() {
 
 function gossipHandlerCycleCert(inp: CompareCertReq, sender: P2P.NodeListTypes.Node['id'], tracker: string) {
   profilerInstance.profileSectionStart('CycleCreator-gossipHandlerCycleCert')
+
+  // Validate that the cycle record doesn't have empty hash values
+  if (inp.record && (inp.record.mode === 'processing' || inp.record.mode === 'restore')) {
+    const emptyHashes = []
+    if (inp.record.nodeListHash === '') emptyHashes.push('nodeListHash')
+    if (inp.record.archiverListHash === '') emptyHashes.push('archiverListHash')
+    if (inp.record.standbyNodeListHash === '') emptyHashes.push('standbyNodeListHash')
+
+    if (emptyHashes.length > 0) {
+      console.log(
+        `[CRITICAL] Received cycle record with empty hashes in gossip from ${sender}: ${emptyHashes.join(', ')}`
+      )
+      console.log(`This is likely a cycle record from certificate validation that was incorrectly propagated.`)
+
+      if (ENABLE_EMPTY_HASH_TESTING_FIX) {
+        if (CycleChain.newest) {
+          if (inp.record.nodeListHash === '' && CycleChain.newest.nodeListHash) {
+            console.log(`[FIX] Using nodeListHash from cycle ${CycleChain.newest.counter}`)
+            inp.record.nodeListHash = CycleChain.newest.nodeListHash
+          }
+          if (inp.record.archiverListHash === '' && CycleChain.newest.archiverListHash) {
+            console.log(`[FIX] Using archiverListHash from cycle ${CycleChain.newest.counter}`)
+            inp.record.archiverListHash = CycleChain.newest.archiverListHash
+          }
+          if (inp.record.standbyNodeListHash === '' && CycleChain.newest.standbyNodeListHash) {
+            console.log(`[FIX] Using standbyNodeListHash from cycle ${CycleChain.newest.counter}`)
+            inp.record.standbyNodeListHash = CycleChain.newest.standbyNodeListHash
+          }
+        } else {
+          if (inp.record.nodeListHash === '') {
+            console.log(`[FIX] Computing new nodeListHash for cycle ${inp.record.counter}`)
+            inp.record.nodeListHash = NodeList.computeNewNodeListHash()
+          }
+          if (inp.record.archiverListHash === '') {
+            console.log(`[FIX] Computing new archiverListHash for cycle ${inp.record.counter}`)
+            inp.record.archiverListHash = Archivers.computeNewArchiverListHash()
+          }
+          if (inp.record.standbyNodeListHash === '' && config.p2p.useJoinProtocolV2) {
+            console.log(`[FIX] Computing new standbyNodeListHash for cycle ${inp.record.counter}`)
+            inp.record.standbyNodeListHash = JoinV2.computeNewStandbyListHash()
+          }
+        }
+      }
+    }
+  }
+
   if (!validateCertsRecordTypes(inp, 'gossipHandlerCycleCert')) return
   const { certs: inpCerts, record: inpRecord } = inp
   if (!validateCerts(inpCerts, inpRecord, sender, 'gossipHandlerCycleCert')) {
     return
   }
+
+  if (ENABLE_EMPTY_HASH_TESTING) {
+    inp.record = randomlyCreateEmptyHashes(inpRecord)
+  }
+
   if (improveBestCert(inpCerts, inpRecord)) {
     // don't need the following line anymore since improveBestCert sets bestRecord if it improved
     // bestRecord = inpRecord
@@ -1352,23 +1472,43 @@ function gossipHandlerCycleCert(inp: CompareCertReq, sender: P2P.NodeListTypes.N
 
 // This gossips the best cert we have
 async function gossipCycleCert(sender: P2P.NodeListTypes.Node['id'], tracker?: string) {
+  profilerInstance.profileSectionStart('CycleCreator-gossipCycleCert')
+  if (bestRecord == null || bestCycleCert.get(bestMarker).length < 1) {
+    profilerInstance.profileSectionEnd('CycleCreator-gossipCycleCert')
+    return
+  }
+
+  if (ENABLE_EMPTY_HASH_TESTING) {
+    bestRecord = randomlyCreateEmptyHashes(bestRecord)
+  }
+
   const certGossip: CompareCertReq = {
     certs: bestCycleCert.get(bestMarker),
     record: bestRecord,
   }
+
   const signedCertGossip = crypto.sign(certGossip)
-  Comms.sendGossip(
-    'gossip-cert',
-    signedCertGossip,
-    tracker,
-    sender,
-    Join.nodeListFromStates([
-      P2P.P2PTypes.NodeStatus.ACTIVE,
-      P2P.P2PTypes.NodeStatus.READY,
-      P2P.P2PTypes.NodeStatus.SYNCING,
-    ]),
-    true
-  )
+  try {
+    Comms.sendGossip(
+      'gossip-cert',
+      signedCertGossip,
+      tracker,
+      sender,
+      Join.nodeListFromStates([
+        P2P.P2PTypes.NodeStatus.ACTIVE,
+        P2P.P2PTypes.NodeStatus.READY,
+        P2P.P2PTypes.NodeStatus.SYNCING,
+      ]),
+      true
+    )
+
+    madeCycle = true
+  } catch (err) {
+    nestedCountersInstance.countEvent('p2p', 'gossip-cycle-cert-exception')
+    error('gossip-cycle-cert exception:', err)
+  } finally {
+    profilerInstance.profileSectionEnd('CycleCreator-gossipCycleCert')
+  }
 }
 
 function pruneCycleChain() {
@@ -1403,4 +1543,254 @@ function error(...msg) {
 function fatal(...msg) {
   const entry = `CycleCreator: ${msg.join(' ')}`
   p2pLogger.fatal(entry)
+}
+
+function randomlyCreateEmptyHashes(record: P2P.CycleCreatorTypes.CycleRecord): P2P.CycleCreatorTypes.CycleRecord {
+  if (!ENABLE_EMPTY_HASH_TESTING) return record
+
+  if (record.mode !== 'processing' && record.mode !== 'restore') return record
+
+  const shouldTrigger = Math.random() * 100 < EMPTY_HASH_TEST_PROBABILITY
+
+  if (shouldTrigger) {
+    emptyHashTestCounter++
+    const whichHashes = Math.floor(Math.random() * 7) // 0-6 to select which hashes to clear
+
+    const recordCopy = { ...record }
+
+    if (whichHashes === 0 || whichHashes === 3 || whichHashes === 6) {
+      recordCopy.nodeListHash = ''
+      console.log(`[CHAOS TEST ${emptyHashTestCounter}] 🧪 Cleared nodeListHash on cycle ${record.counter}`)
+    }
+
+    if (whichHashes === 1 || whichHashes === 4 || whichHashes === 6) {
+      recordCopy.archiverListHash = ''
+      console.log(`[CHAOS TEST ${emptyHashTestCounter}] 🧪 Cleared archiverListHash on cycle ${record.counter}`)
+    }
+
+    if (whichHashes === 2 || whichHashes === 5 || whichHashes === 6) {
+      recordCopy.standbyNodeListHash = ''
+      console.log(`[CHAOS TEST ${emptyHashTestCounter}] 🧪 Cleared standbyNodeListHash on cycle ${record.counter}`)
+    }
+
+    return recordCopy
+  }
+
+  return record
+}
+
+/**
+ * More targeted chaos test that simulates the specific issue where hashes are populated
+ * after marker calculation, causing a mismatch between node and archiver
+ */
+function simulateHashPopulationAfterMarkerCreation(
+  data: P2P.CycleCreatorTypes.CycleData
+): P2P.CycleCreatorTypes.CycleData {
+  if (!ENABLE_HASH_POPULATION_TIMING_TEST) return data
+
+  // Only trigger in processing or restore mode
+  if (data.mode !== 'processing' && data.mode !== 'restore') return data
+
+  const shouldTrigger = Math.random() * 100 < HASH_POPULATION_TEST_PROBABILITY
+
+  if (shouldTrigger) {
+    hashPopulationTestCounter++
+
+    const originalMarker = data.marker
+
+    let changed = false
+
+    if (data.nodeListHash === '') {
+      data.nodeListHash = NodeList.computeNewNodeListHash()
+      changed = true
+      console.log(
+        `[HASH TIMING TEST ${hashPopulationTestCounter}] 🕒 Populated nodeListHash AFTER marker calculation for cycle ${data.counter}`
+      )
+    }
+
+    if (data.archiverListHash === '') {
+      data.archiverListHash = Archivers.computeNewArchiverListHash()
+      changed = true
+      console.log(
+        `[HASH TIMING TEST ${hashPopulationTestCounter}] 🕒 Populated archiverListHash AFTER marker calculation for cycle ${data.counter}`
+      )
+    }
+
+    if (data.standbyNodeListHash === '') {
+      if (config.p2p.useJoinProtocolV2) {
+        data.standbyNodeListHash = JoinV2.computeNewStandbyListHash()
+        changed = true
+        console.log(
+          `[HASH TIMING TEST ${hashPopulationTestCounter}] 🕒 Populated standbyNodeListHash AFTER marker calculation for cycle ${data.counter}`
+        )
+      }
+    }
+
+    if (changed) {
+      data.marker = originalMarker
+
+      const archiverExpectedData = simulateArchiverStripping({ ...data })
+      const archiverExpectedMarker = crypto.hash(archiverExpectedData)
+
+      console.log(`[HASH TIMING TEST ${hashPopulationTestCounter}] ⚠️ MARKER MISMATCH DETECTED!`)
+      console.log(`Node's marker (calculated with empty hashes): ${originalMarker}`)
+      console.log(`What marker would be if recalculated now with populated hashes: ${crypto.hash(data)}`)
+      console.log(`What archiver will calculate after stripping fields: ${archiverExpectedMarker}`)
+
+      const archiverValidationWouldFail = originalMarker !== archiverExpectedMarker
+      console.log(`Archiver validation would ${archiverValidationWouldFail ? 'FAIL ❌' : 'PASS ✅'}`)
+
+      if (Math.random() < 0.3) {
+        console.log(
+          `[HASH TIMING TEST ${hashPopulationTestCounter}] 🔧 Testing potential fix by updating marker to match what archiver expects`
+        )
+        data.marker = archiverExpectedMarker
+      }
+
+      const testCase = {
+        cycleCounter: data.counter,
+        testId: hashPopulationTestCounter,
+        mode: data.mode,
+        originalMarker,
+        populatedRecordMarker: crypto.hash(data),
+        archiverExpectedMarker,
+        wouldFail: archiverValidationWouldFail,
+        nodeListHashEmpty: data.nodeListHash === '',
+        archiverListHashEmpty: data.archiverListHash === '',
+        standbyNodeListHashEmpty: data.standbyNodeListHash === '',
+      }
+
+      try {
+        const logFilePath = path.join(process.cwd(), 'data-logs', 'hash-timing-tests.json')
+        fs.appendFileSync(logFilePath, JSON.stringify(testCase) + '\n')
+      } catch (err) {
+        console.error('Failed to write hash timing test to log file:', err)
+      }
+    }
+  }
+
+  return data
+}
+
+function simulateArchiverStripping<T extends P2P.CycleCreatorTypes.CycleRecord>(data: T): T {
+  const stripped = { ...data }
+
+  stripped.nodeListHash = ''
+  stripped.archiverListHash = ''
+  stripped.standbyNodeListHash = ''
+
+  return stripped
+}
+
+function debugArchiverMarkerCalculation(record: P2P.CycleCreatorTypes.CycleRecord): void {
+  console.log('---------- ARCHIVER MARKER CALCULATION DEBUG ----------')
+  console.log(`Analyzing cycle record ${record.counter}`)
+
+  const recordMarker = crypto.hash(record)
+  console.log(`Original record marker: ${recordMarker}`)
+
+  const strippedRecord = simulateArchiverStripping(record)
+  const archiverMarker = crypto.hash(strippedRecord)
+  console.log(`Marker after archiver field stripping: ${archiverMarker}`)
+
+  if (recordMarker !== archiverMarker) {
+    console.log('⚠️ MISMATCH DETECTED! Archiver validation would fail')
+
+    const fieldsWithValues = {
+      nodeListHash: record.nodeListHash !== '',
+      archiverListHash: record.archiverListHash !== '',
+      standbyNodeListHash: record.standbyNodeListHash !== '',
+    }
+
+    console.log('Fields with non-empty values (potential causes of mismatch):')
+    console.log(JSON.stringify(fieldsWithValues, null, 2))
+  } else {
+    console.log('✅ MATCH CONFIRMED! Archiver validation would succeed')
+  }
+  console.log('------------------------------------------------------')
+}
+
+if (process.env.DEBUG_ARCHIVER_MARKER_CALCULATION === 'true') {
+  setInterval(() => {
+    if (bestRecord) {
+      debugArchiverMarkerCalculation(bestRecord)
+    }
+  }, 30000) // Check every 30 seconds
+}
+
+function directArchiverMismatchTest(cycleData: P2P.CycleCreatorTypes.CycleData): void {
+  if (!ENABLE_DIRECT_ARCHIVER_MISMATCH_TEST) return
+
+  if (cycleData.mode !== 'processing' && cycleData.mode !== 'restore') return
+
+  if (Math.random() * 100 >= DIRECT_ARCHIVER_TEST_PROBABILITY) return
+
+  try {
+    console.log(`🧪🧪🧪 [ARCHIVER TEST] Starting direct archiver mismatch test for cycle ${cycleData.counter}`)
+
+    const testCycleData = { ...cycleData }
+
+    const originalHashes = {
+      nodeListHash: testCycleData.nodeListHash,
+      archiverListHash: testCycleData.archiverListHash,
+      standbyNodeListHash: testCycleData.standbyNodeListHash,
+    }
+
+    console.log(`[ARCHIVER TEST] Original hashes:`, originalHashes)
+
+    testCycleData.nodeListHash = ''
+    testCycleData.archiverListHash = ''
+    testCycleData.standbyNodeListHash = ''
+
+    const emptyHashMarker = crypto.hash(testCycleData)
+    console.log(`[ARCHIVER TEST] Marker calculated with empty hashes: ${emptyHashMarker}`)
+
+    testCycleData.nodeListHash = originalHashes.nodeListHash || NodeList.computeNewNodeListHash()
+    testCycleData.archiverListHash = originalHashes.archiverListHash || Archivers.computeNewArchiverListHash()
+    if (config.p2p.useJoinProtocolV2) {
+      testCycleData.standbyNodeListHash = originalHashes.standbyNodeListHash || JoinV2.computeNewStandbyListHash()
+    }
+
+    testCycleData.marker = emptyHashMarker
+
+    const correctMarker = crypto.hash(testCycleData)
+    console.log(`[ARCHIVER TEST] Marker with populated hashes would be: ${correctMarker}`)
+    console.log(`[ARCHIVER TEST] Mismatch detected: ${emptyHashMarker !== correctMarker}`)
+
+    console.log(`[ARCHIVER TEST] Preparing to send inconsistent data to archivers:`)
+    console.log(`  - Record with populated hash fields`)
+    console.log(`  - But marker calculated with empty hash fields`)
+    console.log(`  - This should cause archiver validation to fail`)
+
+    const testCase = {
+      timestamp: new Date().toISOString(),
+      cycleCounter: testCycleData.counter,
+      emptyHashMarker,
+      correctMarker,
+      populatedHashes: {
+        nodeListHash: testCycleData.nodeListHash !== '',
+        archiverListHash: testCycleData.archiverListHash !== '',
+        standbyNodeListHash: testCycleData.standbyNodeListHash !== '',
+      },
+    }
+
+    const logFilePath = path.join(process.cwd(), 'data-logs', 'archiver-mismatch-tests.json')
+    fs.appendFileSync(logFilePath, JSON.stringify(testCase) + '\n')
+
+    console.log(`[ARCHIVER TEST] Sending cycle ${testCycleData.counter} with marker mismatch to archivers`)
+
+    const originalBestRecord = bestRecord
+    const originalBestMarker = bestMarker
+
+    bestRecord = testCycleData
+    bestMarker = testCycleData.marker
+
+    Archivers.sendData()
+    console.log(`[ARCHIVER TEST] Test complete - archiver should reject this record due to marker mismatch`)
+
+    bestRecord = originalBestRecord
+    bestMarker = originalBestMarker
+  } catch (err) {
+    console.error(`[ARCHIVER TEST ERROR] Failed to execute archiver mismatch test:`, err)
+  }
 }
