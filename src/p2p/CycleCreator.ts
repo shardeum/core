@@ -1163,6 +1163,9 @@ function improveBestCert(inpCerts: P2P.CycleCreatorTypes.CycleCert[], inpRecord)
 
   //  warn(`improveBestCert: have:${JSON.stringify(have)}`)
   for (const cert of inpCerts) {
+    if (CycleChain.newest.activated.includes(cert.sign.owner)) {
+      continue
+    }
     // make sure we don't store more than one cert from the same owner with the same marker
     if (have[cert.sign.owner]) continue
     cert.score = scoreCert(cert, prevMarkerCached)
@@ -1186,6 +1189,9 @@ function improveBestCert(inpCerts: P2P.CycleCreatorTypes.CycleCert[], inpRecord)
     }
   }
   for (const cert of inpCerts) {
+    if (CycleChain.newest.activated.includes(cert.sign.owner)) {
+      continue
+    }
     let score = 0
     const bcerts = bestCycleCert.get(cert.marker)
     for (const bcert of bcerts) {
