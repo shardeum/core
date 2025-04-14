@@ -156,7 +156,7 @@ class AccountGlobals {
     //           result.accounts.push(report)
     //         }
     //       }
-    //       //TODO: SOON. PERF Disiable this in production or performance testing. (we need a global flag to specify if it is a release or debug build, could then implement this, along with turning off debug endpoints)
+    //       //TODO: SOON. PERF Disable this in production or performance testing. (we need a global flag to specify if it is a release or debug build, could then implement this, along with turning off debug endpoints)
     //       this.stateManager.testAccountDataWrapped(accountData)
 
     //       result.accounts.sort(utils.sort_id_Asc)
@@ -238,7 +238,7 @@ class AccountGlobals {
             }
           }
 
-          //TODO: SOON. PERF Disiable this in production or performance testing. (we need a global flag to specify if it is a release or debug build, could then implement this, along with turning off debug endpoints)
+          //TODO: SOON. PERF Disable this in production or performance testing. (we need a global flag to specify if it is a release or debug build, could then implement this, along with turning off debug endpoints)
           this.stateManager.testAccountDataWrapped(accountData)
 
           result.accounts.sort(utils.sort_id_Asc)
@@ -271,7 +271,7 @@ class AccountGlobals {
 
   /**
    * getGlobalListEarly
-   * sync requires having knowlege of what accounts are global very early in the process.
+   * sync requires having knowledge of what accounts are global very early in the process.
    * This will get an early global report (note does not have account data, just id,hash,timestamp)
    */
   async getGlobalListEarly(syncFromArchiver: boolean = false): Promise<void> {
