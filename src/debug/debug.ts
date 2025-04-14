@@ -170,18 +170,18 @@ class Debug {
         res.json({ success: false, error: e.message })
       }
     })
-    //NEVER EVER RELEASE THIS
-    this.network.registerExternalGet('unsafe_unlock', (req, res) => {
-      try {
-        unsafeUnlock = req.query.unlock === 'true' ? true : false
+    //NEVER EVER RELEASE THIS... can only uncommment for test branches
+    // this.network.registerExternalGet('unsafe_unlock', (req, res) => {
+    //   try {
+    //     unsafeUnlock = req.query.unlock === 'true' ? true : false
 
-      } catch (e) {
-        res.json({ success: false, error: e.message })
-        return
-      }
-      res.json({ success: true , unsafeUnlock})
-      return
-    })
+    //   } catch (e) {
+    //     res.json({ success: false, error: e.message })
+    //     return
+    //   }
+    //   res.json({ success: true , unsafeUnlock})
+    //   return
+    // })
   }
 }
 
