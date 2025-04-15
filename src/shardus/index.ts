@@ -45,7 +45,7 @@ import RateLimiting from '../rate-limiting'
 import Reporter from '../reporter'
 import * as ShardusTypes from '../shardus/shardus-types'
 import { AppObjEnum, DevSecurityLevel, OpaqueTransaction, WrappedData } from '../shardus/shardus-types'
-import * as Snapshot from '../snapshot'
+// import * as Snapshot from '../snapshot'
 import StateManager from '../state-manager'
 import { CachedAppData, NonceQueueItem, QueueCountsResult } from '../state-manager/state-manager-types'
 import { DebugComplete } from '../state-manager/TransactionQueue'
@@ -178,7 +178,7 @@ class Shardus extends EventEmitter {
     initAjvSchemas()
     this.logger = new Logger(config.baseDir, logsConfig, dynamicLogMode)
     Context.setLoggerContext(this.logger)
-    Snapshot.initLogger()
+    // Snapshot.initLogger()
 
     const logDir = path.join(config.baseDir, logsConfig.dir)
     logDir_global = logDir
@@ -721,11 +721,11 @@ class Shardus extends EventEmitter {
       this._createAndLinkStateManager()
       this._attemptCreateAppliedListener()
 
-      let disableSnapshots = !!(this.config && this.config.debug && this.config.debug.disableSnapshots === true)
-      if (disableSnapshots != true) {
-        // Start state snapshotting once you go active with an app
-        this.once('active', Snapshot.startSnapshotting)
-      }
+      // let disableSnapshots = !!(this.config && this.config.debug && this.config.debug.disableSnapshots === true)
+      // if (disableSnapshots != true) {
+      //   // Start state snapshotting once you go active with an app
+      //   this.once('active', Snapshot.startSnapshotting)
+      // }
     }
 
     this.reporter =
@@ -746,10 +746,10 @@ class Shardus extends EventEmitter {
     // this.io.on('disconnect')
 
     // Register listeners for P2P events
-    Self.emitter.on('witnessing', async (publicKey) => {
-      this.logger.playbackLogState('witnessing', '', publicKey)
-      await Snapshot.startWitnessMode()
-    })
+    // Self.emitter.on('witnessing', async (publicKey) => {
+    //   this.logger.playbackLogState('witnessing', '', publicKey)
+    //   await Snapshot.startWitnessMode()
+    // })
     Self.emitter.on('joining', (publicKey) => {
       // this.io.emit('DATA', `NODE JOINING ${publicKey}`)
       this.logger.playbackLogState('joining', '', publicKey)

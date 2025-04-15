@@ -17,7 +17,7 @@ import * as NodeList from './NodeList'
 import { profilerInstance } from '../utils/profiler'
 import * as Refresh from './Refresh'
 import * as Rotation from './Rotation'
-import * as SafetyMode from './SafetyMode'
+// import * as SafetyMode from './SafetyMode'
 import * as Modes from './Modes'
 import * as Self from './Self'
 import * as ServiceQueue from './ServiceQueue'
@@ -65,7 +65,7 @@ type submoduleTypes =
   | typeof Refresh
   | typeof Apoptosis
   | typeof Lost
-  | typeof SafetyMode
+  // | typeof SafetyMode
   | typeof Modes
   | typeof CycleAutoScale
   | typeof LostArchivers
@@ -263,7 +263,7 @@ export function init() {
 
 function moduleMigration() {
   // removing SafetyMode from submodules and adding Modes
-  submodules = submodules.filter((submodule) => submodule !== SafetyMode)
+  // submodules = submodules.filter((submodule) => submodule !== SafetyMode)
   if (!submodules.includes(Modes)) {
     submodules.push(Modes)
     submodules[submodules.length - 1].init()

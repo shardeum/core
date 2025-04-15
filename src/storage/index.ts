@@ -2,7 +2,7 @@ import Log4js from 'log4js'
 // const fs = require('fs')
 // const path = require('path')
 import Logger, { logFlags } from '../logger'
-import * as Snapshot from '../snapshot'
+// import * as Snapshot from '../snapshot'
 import StateManager from '../state-manager'
 import Profiler from '../utils/profiler'
 import * as ShardusTypes from './../shardus/shardus-types'
@@ -210,10 +210,10 @@ class Storage {
     this._queryOld = async (query, tableModel) => this.storage._rawQueryOld(query, tableModel) // or queryString, valueArray for non-sequelize
 
     this.initialized = true
-    if (Snapshot.oldDataPath) {
-      //temporarily disable safety mode, it seems to break rotation
-      //await Snapshot.initSafetyModeVals()
-    }
+    // if (Snapshot.oldDataPath) {
+    //   //temporarily disable safety mode, it seems to break rotation
+    //   //await Snapshot.initSafetyModeVals()
+    // }
   }
   async close() {
     await this.storage.close()

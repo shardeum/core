@@ -4,7 +4,7 @@ import fs from 'fs'
 import Log4js from 'log4js'
 import path from 'path'
 import * as Shardus from '../shardus/shardus-types'
-import * as Snapshot from '../snapshot'
+// import * as Snapshot from '../snapshot'
 import * as utils from '../utils'
 import Profiler from '../utils/profiler'
 import { config } from '../p2p/Context'
@@ -153,7 +153,7 @@ class Sqlite3Storage {
         fs.renameSync(dbDir, oldDirPath)
         if (oldDirPath) {
           this.mainLogger.info('Setting old data path. this will cause safety mode?' + oldDirPath)
-          Snapshot.setOldDataPath(oldDirPath)
+          // Snapshot.setOldDataPath(oldDirPath)
           this.oldDb = new sqlite3.Database(`${oldDirPath}/db.sqlite`)
         }
       } else {

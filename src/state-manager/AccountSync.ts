@@ -11,7 +11,7 @@ import * as Context from '../p2p/Context'
 import { P2PModuleContext as P2P } from '../p2p/Context'
 import * as Self from '../p2p/Self'
 import { robustQuery } from '../p2p/Utils'
-import { safetyModeVals } from '../snapshot'
+// import { safetyModeVals } from '../snapshot'
 import Storage from '../storage'
 import { verifyPayload } from '../types/ajv/Helpers'
 import { errorToStringFull } from '../utils'
@@ -540,7 +540,7 @@ class AccountSync {
    * @param requiredNodeCount
    */
   async initialSyncMain(requiredNodeCount: number): Promise<void> {
-    const safetyMode = safetyModeVals.safetyMode
+    // const safetyMode = safetyModeVals.safetyMode
 
     /* prettier-ignore */ nestedCountersInstance.countEvent(`sync`, `initialSyncMain-start time: ${shardusGetTime()}`)
 
@@ -549,7 +549,7 @@ class AccountSync {
     await this.app.deleteLocalAccountData()
 
     // Dont sync if first node
-    if ((this.p2p.isFirstSeed && networkMode !== 'restore') || safetyMode) {
+    if ((this.p2p.isFirstSeed && networkMode !== 'restore') /*|| safetyMode*/) {
       this.dataSyncMainPhaseComplete = true
       this.syncStatement.syncComplete = true
       this.initalSyncFinished = true
@@ -559,7 +559,7 @@ class AccountSync {
       this.readyforTXs = true
       if (logFlags.debug) {
         if (this.p2p.isFirstSeed) this.mainLogger.debug(`DATASYNC: isFirstSeed = true. skipping sync`)
-        if (safetyMode) this.mainLogger.debug(`DATASYNC: safetyMode = true. skipping sync`)
+        // if (safetyMode) this.mainLogger.debug(`DATASYNC: safetyMode = true. skipping sync`)
       }
 
       // various sync statement stats are zeroed out because we are the first node and dont sync

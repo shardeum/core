@@ -2,7 +2,7 @@ import { hexstring, P2P, publicKey, StateManager } from '@shardeum-foundation/li
 import deepmerge from 'deepmerge'
 import * as http from '../http'
 import { logFlags } from '../logger'
-import { getReceiptHashes, getReceiptMap, getStateHashes, getSummaryBlob, getSummaryHashes } from '../snapshot'
+//import { getReceiptHashes, getReceiptMap, getStateHashes, getSummaryBlob, getSummaryHashes } from '../snapshot'
 import { shuffleMapIterator, sleep, validateTypes } from '../utils'
 import { nestedCountersInstance } from '../utils/nestedCounters'
 import { profilerInstance } from '../utils/profiler'
@@ -920,30 +920,30 @@ export function sendData() {
           break
         }
         case P2P.SnapshotTypes.TypeNames.STATE_METADATA: {
-          // Identify request type
-          const typedRequest = request as P2P.ArchiversTypes.DataRequest<
-            P2P.SnapshotTypes.NamesToTypes['STATE_METADATA']
-          >
-          if (logFlags.console) console.log('STATE_METADATA typedRequest', typedRequest)
-          // Get latest state hash data since lastData
-          const stateHashes = getStateHashes(typedRequest.lastData + 1)
-          const receiptHashes = getReceiptHashes(typedRequest.lastData + 1)
-          const summaryHashes = getSummaryHashes(typedRequest.lastData + 1)
-          // Update lastData
-          if (stateHashes.length > 0) {
-            typedRequest.lastData = stateHashes[stateHashes.length - 1].counter
-          }
+          // // Identify request type
+          // const typedRequest = request as P2P.ArchiversTypes.DataRequest<
+          //   P2P.SnapshotTypes.NamesToTypes['STATE_METADATA']
+          // >
+          // if (logFlags.console) console.log('STATE_METADATA typedRequest', typedRequest)
+          // // Get latest state hash data since lastData
+          // const stateHashes = getStateHashes(typedRequest.lastData + 1)
+          // const receiptHashes = getReceiptHashes(typedRequest.lastData + 1)
+          // const summaryHashes = getSummaryHashes(typedRequest.lastData + 1)
+          // // Update lastData
+          // if (stateHashes.length > 0) {
+          //   typedRequest.lastData = stateHashes[stateHashes.length - 1].counter
+          // }
 
-          const metadata: P2P.SnapshotTypes.StateMetaData = {
-            counter: typedRequest.lastData >= 0 ? typedRequest.lastData : 0,
-            stateHashes,
-            receiptHashes,
-            summaryHashes,
-          }
-          // console.log('Metadata to send', metadata)
-          // console.log('Metadata to send: summary hashes', summaryHashes)
-          // Add to responses
-          responses.STATE_METADATA = [metadata]
+          // const metadata: P2P.SnapshotTypes.StateMetaData = {
+          //   counter: typedRequest.lastData >= 0 ? typedRequest.lastData : 0,
+          //   stateHashes,
+          //   receiptHashes,
+          //   summaryHashes,
+          // }
+          // // console.log('Metadata to send', metadata)
+          // // console.log('Metadata to send: summary hashes', summaryHashes)
+          // // Add to responses
+          // responses.STATE_METADATA = [metadata]
           break
         }
         default:
@@ -1185,46 +1185,47 @@ export function registerRoutes() {
   })
 
   network.registerExternalPost('querydata', (req, res) => {
-    let err = validateTypes(req, { body: 'o' })
-    if (err) {
-      warn(`querydata: bad req ${err}`)
-      res.json({ success: false, error: err })
-      return
-    }
-    err = validateTypes(req.body, {
-      publicKey: 's',
-      tag: 's',
-      nodeInfo: 'o',
-    })
-    if (err) {
-      warn(`querydata: bad req.body ${err}`)
-      res.json({ success: false, error: err })
-      return
-    }
-    // [TODO] Authenticate tag
+    res.json({ success: false, error: "deprecated" })
+    // let err = validateTypes(req, { body: 'o' })
+    // if (err) {
+    //   warn(`querydata: bad req ${err}`)
+    //   res.json({ success: false, error: err })
+    //   return
+    // }
+    // err = validateTypes(req.body, {
+    //   publicKey: 's',
+    //   tag: 's',
+    //   nodeInfo: 'o',
+    // })
+    // if (err) {
+    //   warn(`querydata: bad req.body ${err}`)
+    //   res.json({ success: false, error: err })
+    //   return
+    // }
+    // // [TODO] Authenticate tag
 
-    const queryRequest = req.body
-    /* prettier-ignore */ if (logFlags.p2pNonFatal) info('queryRequest received', Utils.safeStringify(queryRequest))
+    // const queryRequest = req.body
+    // /* prettier-ignore */ if (logFlags.p2pNonFatal) info('queryRequest received', Utils.safeStringify(queryRequest))
 
-    const foundArchiver = archivers.get(queryRequest.publicKey)
-    if (!foundArchiver) {
-      const archiverNotFoundErr = 'Archiver not found in list'
-      warn(archiverNotFoundErr)
-      res.json({ success: false, error: archiverNotFoundErr })
-      return
-    }
-    delete queryRequest.publicKey
-    delete queryRequest.tag
-    let data: {
-      [key: number]: StateManager.StateManagerTypes.ReceiptMapResult[] | StateManager.StateManagerTypes.StatsClump
-    }
-    if (queryRequest.type === 'RECEIPT_MAP') {
-      data = getReceiptMap(queryRequest.lastData)
-    } else if (queryRequest.type === 'SUMMARY_BLOB') {
-      data = getSummaryBlob(queryRequest.lastData)
-      // console.log('Summary blob to send', data)
-    }
-    res.json({ success: true, data: data })
+    // const foundArchiver = archivers.get(queryRequest.publicKey)
+    // if (!foundArchiver) {
+    //   const archiverNotFoundErr = 'Archiver not found in list'
+    //   warn(archiverNotFoundErr)
+    //   res.json({ success: false, error: archiverNotFoundErr })
+    //   return
+    // }
+    // delete queryRequest.publicKey
+    // delete queryRequest.tag
+    // let data: {
+    //   [key: number]: StateManager.StateManagerTypes.ReceiptMapResult[] | StateManager.StateManagerTypes.StatsClump
+    // }
+    // if (queryRequest.type === 'RECEIPT_MAP') {
+    //   data = getReceiptMap(queryRequest.lastData)
+    // } else if (queryRequest.type === 'SUMMARY_BLOB') {
+    //   data = getSummaryBlob(queryRequest.lastData)
+    //   // console.log('Summary blob to send', data)
+    // }
+    // res.json({ success: true, data: data })
   })
 
   network.registerExternalGet('archivers', (req, res) => {
