@@ -859,7 +859,7 @@ export function sendData() {
       cyclesWithMarker.push({
         ...cycleRecords[i],
         marker: computeCycleMarker(cycleRecords[i]),
-        certificates: CycleCreator.getBestCycleCerts(),
+        certificates: CycleCreator.getBestCycleCerts(cycleRecords[i].counter),
       })
     }
     // Update lastSentCycle

@@ -132,6 +132,8 @@ let bestCertScore: Map<P2P.CycleCreatorTypes.CycleMarker, number>
 
 const timers = {}
 
+let listOfCycleCerts: Map<number, P2P.CycleCreatorTypes.CycleCert[]> = new Map()
+
 // Keeps track of the last saved record in the DB in order to update it
 let lastSavedData: P2P.CycleCreatorTypes.CycleRecord
 
@@ -698,6 +700,12 @@ async function runQ4() {
     Certified cycle marker: ${Utils.safeStringify(marker)}
     Certified cycle cert: ${Utils.safeStringify(cert)}
   `)
+
+    listOfCycleCerts.set(currentCycle, bestCycleCert.get(bestMarker))
+    // prune listOfCycleCerts to 100 elements
+    if (listOfCycleCerts.size > 100) {
+      listOfCycleCerts.delete(currentCycle - 100)
+    }
   } finally {
     /* prettier-ignore */ if (logFlags.p2pNonFatal) info( `Q4: END: myC:${myC}  C${currentCycle} Q${currentQuarter} Certified cycle record: ${Utils.safeStringify(record.counter)}` )
     // Dont need this any more since we are not doing anything after this
@@ -1382,8 +1390,8 @@ function pruneCycleChain() {
   }
 }
 
-export function getBestCycleCerts() {
-  return bestCycleCert.get(bestMarker) ?? []
+export function getBestCycleCerts(counter: number) {
+  return listOfCycleCerts.get(counter) ?? []
 }
 
 function info(...msg) {
