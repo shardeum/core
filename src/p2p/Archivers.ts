@@ -31,6 +31,7 @@ import { DevSecurityLevel } from '../shardus/shardus-types'
 import { verifyPayload } from '../types/ajv/Helpers'
 import { AJVSchemaEnum } from '../types/enum/AJVSchemaEnum'
 import { customFetch } from '../http/customHttpFunctions'
+import { debugUseOldCertLogic } from '@src/debug'
 
 const clone = rfdc()
 
@@ -857,13 +858,28 @@ export function sendData() {
     for (let i = 0; i < cycleRecords.length; i++) {
       if (logFlags.console) console.log('cycleRecords counter to sent to the archiver', cycleRecords[i].counter)
       const marker = computeCycleMarker(cycleRecords[i])
-      const certs = CycleCreator.getCycleCertsForMarkerCached(marker)
+      let certs = CycleCreator.getCycleCertsForMarkerCached(marker)
 
       //TODO need to think about counters, logs and error handling if we are not able to get the certs
+      if(certs.length === 0){
+        nestedCountersInstance.countEvent('Archiver', `sending cycle data with no certs`)
+        //continue
+        //worried that skipping may break edge cases in early network time, but would 
+        //be nice if we could continue.
+        error(`Sending cycle data with empty certs array for cycle ${cycleRecords[i].counter} marker:${marker}`)
+      }
+
+      if (debugUseOldCertLogic) {
+        //stomp our certs with the old way of doing things
+        certs = CycleCreator.getBestCycleCerts()
+        nestedCountersInstance.countEvent('Archiver', `debug: sending cert data the old way ${cycleRecords[i].counter}`)
+      }
+
+      
 
       cyclesWithMarker.push({
         ...cycleRecords[i],
-        marker: computeCycleMarker(cycleRecords[i]),
+        marker: marker,
         certificates: certs,
       })
     }

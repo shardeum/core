@@ -15,6 +15,13 @@ const fs = require('fs')
 
 export let unsafeUnlock = false //REVIEWER WARNING: Never commit or merge this as true.  It disableds endpoint security for internal testing
 
+
+//The next two are controlled by the debug_skip_archiver_send endpoint
+//it is best to fill both query params to avoid unexpected behavoir 
+export let debugSkipArchiverSend = false //use this to have the validators stop sending data to the archiver. 
+// you can turn it back on later and they will flush unsent data to the archiver
+export let debugUseOldCertLogic = false // use this to test the old cert logic that was not cached
+
 interface Debug {
   baseDir: string
   network: NetworkClass
@@ -182,6 +189,20 @@ class Debug {
     //   res.json({ success: true , unsafeUnlock})
     //   return
     // })
+
+
+    this.network.registerExternalGet('debug_skip_archiver_send', isDebugModeMiddleware, (req, res) => {
+      try {
+        debugSkipArchiverSend = req.query.enable === 'true' ? true : false
+
+        debugUseOldCertLogic = req.query.old === 'true' ? true : false
+      } catch (e) {
+        res.json({ success: false, error: e.message })
+        return
+      }
+      res.json({ success: true , unsafeUnlock})
+      return
+    })
   }
 }
 

@@ -48,6 +48,7 @@ import { nodeListFromStates } from './Join'
 import { AJVSchemaEnum } from '../types/enum/AJVSchemaEnum'
 import { log } from 'console'
 import { Utils as UtilsTypes } from '@shardeum-foundation/lib-types'
+import { debugSkipArchiverSend } from '@src/debug'
 
 /** CONSTANTS */
 
@@ -428,10 +429,12 @@ async function cycleCreator() {
 
     /* prettier-ignore */ if (logFlags.verbose) info(`cc: pruned ${callTag}`)
 
-    // Send last cycle record, state hashes and receipt hashes to any subscribed archivers
-    Archivers.sendData()
-    /* prettier-ignore */ if (logFlags.verbose) info(`cc: acrhiver data sent ${callTag}`) //todo list time delta
-
+    if(debugSkipArchiverSend !== true){
+      // Send last cycle record, state hashes and receipt hashes to any subscribed archivers
+      Archivers.sendData()
+      /* prettier-ignore */ if (logFlags.verbose) info(`cc: acrhiver data sent ${callTag}`) //todo list time delta
+    }
+    
     let expectedCycle = currentCycle + 1
     // this is where we update the current cycle
     ;({ cycle: currentCycle, quarter: currentQuarter } = currentCycleQuarterByTime(prevRecord))
