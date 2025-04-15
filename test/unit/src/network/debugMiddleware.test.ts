@@ -48,6 +48,7 @@ jest.mock('../../../../src/p2p/Context', () => ({
       verifyMultiSigs: jest.fn(),
     },
   },
+  setDefaultConfigs: jest.fn(),
 }))
 
 jest.mock('@shardeum-foundation/lib-crypto-utils', () => ({
@@ -72,6 +73,13 @@ jest.mock('@shardeum-foundation/lib-types', () => ({
     safeStringify: jest.fn(),
     safeJsonParse: jest.fn(),
   },
+  StateManager: {
+    StateManagerTypes: {}
+  }
+}))
+
+jest.mock('../../../../src/network', () => ({
+  shardusGetTime: jest.fn().mockReturnValue(1000),
 }))
 
 jest.mock('../../../../src/p2p/CycleChain', () => cycleChainMock)
@@ -279,7 +287,8 @@ describe('debugMiddleware', () => {
       expect(res.status).toHaveBeenCalledWith(401)
       expect(res.json).toHaveBeenCalledWith({
         status: 401,
-        message: 'Unauthorized!',
+        message: 'Unauthorized! 2',
+        dbg: 'sig or counter missing. sig: undefined sig_counter: undefined',
       })
       expect(next).not.toHaveBeenCalled()
     })
@@ -299,7 +308,8 @@ describe('debugMiddleware', () => {
       expect(res.status).toHaveBeenCalledWith(401)
       expect(res.json).toHaveBeenCalledWith({
         status: 401,
-        message: 'Unauthorized!',
+        message: 'Unauthorized! 1',
+        dbg: 'ourPubkey: abcd not found in other1,other2',
       })
       expect(next).not.toHaveBeenCalled()
     })
@@ -374,9 +384,20 @@ describe('debugMiddleware', () => {
       mockSafeStringify.mockReturnValue('{"stringified":"payload"}')
       mockVerify.mockReturnValue(true)
       mockEnsureKeySecurity.mockReturnValue(false)
+      
+      // Mock Date.now() to return a fixed value
+      const realDateNow = Date.now
+      Date.now = jest.fn(() => currentTime)
+      
+      // Set lastCounter to a value less than validCounter to ensure the counter check passes
+      const lastCounterModule = require('../../../../src/network/debugMiddleware')
+      lastCounterModule.lastCounter = currentTime - 1000
 
       // Act
       await isDebugModeMiddlewareHigh(req, res, next)
+
+      // Restore Date.now
+      Date.now = realDateNow
 
       // Assert
       expect(mockVerify).toHaveBeenCalled()

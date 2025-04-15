@@ -13,6 +13,8 @@ import { nodes } from '../p2p/NodeList'
 const tar = require('tar-fs')
 const fs = require('fs')
 
+export let unsafeUnlock = false //REVIEWER WARNING: Never commit or merge this as true.  It disableds endpoint security for internal testing
+
 interface Debug {
   baseDir: string
   network: NetworkClass
@@ -168,6 +170,18 @@ class Debug {
         res.json({ success: false, error: e.message })
       }
     })
+    //NEVER EVER RELEASE THIS... can only uncommment for test branches
+    // this.network.registerExternalGet('unsafe_unlock', (req, res) => {
+    //   try {
+    //     unsafeUnlock = req.query.unlock === 'true' ? true : false
+
+    //   } catch (e) {
+    //     res.json({ success: false, error: e.message })
+    //     return
+    //   }
+    //   res.json({ success: true , unsafeUnlock})
+    //   return
+    // })
   }
 }
 
