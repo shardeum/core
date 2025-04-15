@@ -72,6 +72,8 @@ let p2pLogger: Logger
 let activeRequests: Map<P2P.NodeListTypes.Node['publicKey'], P2P.ActiveTypes.SignedActiveRequest>
 let queuedRequest: P2P.ActiveTypes.ActiveRequest
 export let activated: string[] = []
+export const enableSkipActivatedCert = process.env.enableSkipActivatedCert === 'true' ? true : false
+console.log('[restore-415] enableSkipActivatedCert', enableSkipActivatedCert)
 export let neverGoActive = false
 
 /** FUNCTIONS */
