@@ -13,7 +13,7 @@ import { nodes } from '../p2p/NodeList'
 const tar = require('tar-fs')
 const fs = require('fs')
 
-export let unsafeUnlock = false
+export let unsafeUnlock = false //REVIEWER WARNING: Never commit or merge this as true.  It disableds endpoint security for internal testing
 
 interface Debug {
   baseDir: string
