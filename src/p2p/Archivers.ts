@@ -859,6 +859,8 @@ export function sendData() {
       const marker = computeCycleMarker(cycleRecords[i])
       const certs = CycleCreator.getCycleCertsForMarkerCached(marker)
 
+      //TODO need to think about counters, logs and error handling if we are not able to get the certs
+
       cyclesWithMarker.push({
         ...cycleRecords[i],
         marker: computeCycleMarker(cycleRecords[i]),

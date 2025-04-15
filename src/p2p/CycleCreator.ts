@@ -1170,9 +1170,11 @@ function improveBestCert(inpCerts: P2P.CycleCreatorTypes.CycleCert[], inpRecord)
     if (have[cert.sign.owner]) continue
     cert.score = scoreCert(cert, prevMarkerCached)
     if (!bestCycleCert.get(cert.marker)) {
-      bestCycleCert.set(cert.marker, [cert])
 
-      bestCycleCertCache.set(cert.marker, [cert]) //note this is a FIFOCache
+      const certArrayRef = [cert]
+      bestCycleCert.set(cert.marker, certArrayRef)
+      //also push this to our FIFI cache were we store best certs for the most recent 100 markers
+      bestCycleCertCache.set(cert.marker, certArrayRef) //note this is a FIFOCache
     } else {
       let added = false
       const bcerts = bestCycleCert.get(cert.marker)
