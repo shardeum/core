@@ -856,10 +856,13 @@ export function sendData() {
     const cyclesWithMarker = []
     for (let i = 0; i < cycleRecords.length; i++) {
       if (logFlags.console) console.log('cycleRecords counter to sent to the archiver', cycleRecords[i].counter)
+      const marker = computeCycleMarker(cycleRecords[i])
+      const certs = CycleCreator.getCycleCertsForMarkerCached(marker)
+
       cyclesWithMarker.push({
         ...cycleRecords[i],
         marker: computeCycleMarker(cycleRecords[i]),
-        certificates: CycleCreator.getBestCycleCerts(),
+        certificates: certs,
       })
     }
     // Update lastSentCycle

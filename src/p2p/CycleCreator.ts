@@ -23,7 +23,7 @@ import * as Self from './Self'
 import * as ServiceQueue from './ServiceQueue'
 import * as LostArchivers from './LostArchivers'
 import { compareQuery, Comparison } from './Utils'
-import { errorToStringFull, formatErrorMessage } from '../utils'
+import { errorToStringFull, FIFOCache, formatErrorMessage } from '../utils'
 import { nestedCountersInstance } from '../utils/nestedCounters'
 import { randomBytes } from '@shardeum-foundation/lib-crypto-utils'
 import { digestCycle, syncNewCycles } from './Sync'
@@ -129,6 +129,9 @@ let bestRecord: P2P.CycleCreatorTypes.CycleRecord
 let bestMarker: P2P.CycleCreatorTypes.CycleMarker
 let bestCycleCert: Map<P2P.CycleCreatorTypes.CycleMarker, P2P.CycleCreatorTypes.CycleCert[]>
 let bestCertScore: Map<P2P.CycleCreatorTypes.CycleMarker, number>
+
+const FIFICACHE_CERT_SIZE = 100 
+let bestCycleCertCache: FIFOCache<P2P.CycleCreatorTypes.CycleMarker, P2P.CycleCreatorTypes.CycleCert[]> = new FIFOCache(FIFICACHE_CERT_SIZE)
 
 const timers = {}
 
@@ -1168,6 +1171,8 @@ function improveBestCert(inpCerts: P2P.CycleCreatorTypes.CycleCert[], inpRecord)
     cert.score = scoreCert(cert, prevMarkerCached)
     if (!bestCycleCert.get(cert.marker)) {
       bestCycleCert.set(cert.marker, [cert])
+
+      bestCycleCertCache.set(cert.marker, [cert]) //note this is a FIFOCache
     } else {
       let added = false
       const bcerts = bestCycleCert.get(cert.marker)
@@ -1384,6 +1389,10 @@ function pruneCycleChain() {
 
 export function getBestCycleCerts() {
   return bestCycleCert.get(bestMarker) ?? []
+}
+
+export function getCycleCertsForMarkerCached(marker:string) {
+  return bestCycleCertCache.get(marker) ?? []
 }
 
 function info(...msg) {
