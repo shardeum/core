@@ -21,7 +21,6 @@ let multiSigLstCounter = Date.now()
 async function handleDebugAuth(_req, res, next, authLevel) {
   let unauthorizedDBG = ''
 
-
   try {
     let statusHist = getStatusHistoryCopy()
     let statusNow = statusHist[statusHist.length - 1].moduleStatus || undefined
@@ -135,7 +134,7 @@ async function handleDebugAuth(_req, res, next, authLevel) {
   return res.status(401).json({
     status: 401,
     message: 'Unauthorized! 2',
-    dbg: unauthorizedDBG
+    dbg: unauthorizedDBG,
   })
 }
 
@@ -283,7 +282,7 @@ export const isDebugModeMiddleware = (_req, res, next) => {
 
 // Middleware for low security level
 export const isDebugModeMiddlewareLow = (_req, res, next) => {
-  if(unsafeUnlock)  {
+  if (unsafeUnlock) {
     next()
     return
   }
@@ -296,11 +295,11 @@ export const isDebugModeMiddlewareLow = (_req, res, next) => {
 
 // Middleware for medium security level
 export const isDebugModeMiddlewareMedium = (_req, res, next) => {
-  if(unsafeUnlock)  {
+  if (unsafeUnlock) {
     next()
     return
   }
-  
+
   const isDebug = isDebugMode()
   if (!isDebug) {
     handleDebugAuth(_req, res, next, DevSecurityLevel.Medium)
@@ -309,7 +308,7 @@ export const isDebugModeMiddlewareMedium = (_req, res, next) => {
 
 // Middleware for high security level
 export const isDebugModeMiddlewareHigh = (_req, res, next) => {
-  if(unsafeUnlock)  {
+  if (unsafeUnlock) {
     next()
     return
   }

@@ -102,12 +102,10 @@ export function init() {
     }
   })
 
-
   setTimeout(() => {
     // Set up interval to fetch allowed archivers
     allowedArchiversInterval = setInterval(async () => {
       try {
-        
         const newArchiversList = await getAllowedArchivers()
         if (newArchiversList.length >= 1) {
           allowedArchivers = newArchiversList
@@ -118,8 +116,7 @@ export function init() {
         }
       }
     }, Number(ALLOWED_ARCHIVERS_UPDATE_INTERVAL_MS)) // Default is 60 seconds
-  }, randomInt(Number(ALLOWED_ARCHIVERS_UPDATE_INTERVAL_MS))) // Stagger 
-
+  }, randomInt(Number(ALLOWED_ARCHIVERS_UPDATE_INTERVAL_MS))) // Stagger
 
   if (config.p2p.experimentalSnapshot && !receiptForwardInterval) {
     receiptForwardInterval = setInterval(forwardReceipts, RECEIPT_FORWARD_INTERVAL_MS)
