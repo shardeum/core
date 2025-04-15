@@ -282,10 +282,10 @@ export const isDebugModeMiddleware = (_req, res, next) => {
 
 // Middleware for low security level
 export const isDebugModeMiddlewareLow = (_req, res, next) => {
-  if (unsafeUnlock) {
-    next()
-    return
-  }
+  // if (unsafeUnlock) {
+  //   next()
+  //   return
+  // }
 
   const isDebug = isDebugMode()
   if (!isDebug) {
@@ -295,10 +295,10 @@ export const isDebugModeMiddlewareLow = (_req, res, next) => {
 
 // Middleware for medium security level
 export const isDebugModeMiddlewareMedium = (_req, res, next) => {
-  if (unsafeUnlock) {
-    next()
-    return
-  }
+  // if (unsafeUnlock) {
+  //   next()
+  //   return
+  // }
 
   const isDebug = isDebugMode()
   if (!isDebug) {
@@ -308,10 +308,10 @@ export const isDebugModeMiddlewareMedium = (_req, res, next) => {
 
 // Middleware for high security level
 export const isDebugModeMiddlewareHigh = (_req, res, next) => {
-  if (unsafeUnlock) {
-    next()
-    return
-  }
+  // if (unsafeUnlock) {
+  //   next()
+  //   return
+  // }
 
   const isDebug = isDebugMode()
   if (!isDebug) {
