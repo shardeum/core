@@ -71,6 +71,9 @@ let p2pLogger: Logger
 
 let activeRequests: Map<P2P.NodeListTypes.Node['publicKey'], P2P.ActiveTypes.SignedActiveRequest>
 let queuedRequest: P2P.ActiveTypes.ActiveRequest
+export let activated: string[] = []
+export const enableSkipActivatedCert = process.env.enableSkipActivatedCert === 'true' ? true : false
+console.log('[restore-415] enableSkipActivatedCert', enableSkipActivatedCert)
 export let neverGoActive = false
 
 /** FUNCTIONS */
@@ -100,6 +103,7 @@ export function init() {
 
 export function reset() {
   activeRequests = new Map()
+  activated = []
 }
 
 export function getTxs(): P2P.ActiveTypes.Txs {
@@ -137,7 +141,7 @@ export function updateRecord(
   _prev: P2P.CycleCreatorTypes.CycleRecord
 ) {
   const active = NodeList.activeByIdOrder.length
-  const activated = []
+  activated = []
   const activatedPublicKeys = []
 
   if (NodeList.readyByTimeAndIdOrder.length > 0) {

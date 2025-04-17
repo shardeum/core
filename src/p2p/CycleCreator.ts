@@ -132,6 +132,8 @@ let bestCertScore: Map<P2P.CycleCreatorTypes.CycleMarker, number>
 
 const timers = {}
 
+let cacheOfCycleCerts: utils.FIFOCache<number, P2P.CycleCreatorTypes.CycleCert[]>
+
 // Keeps track of the last saved record in the DB in order to update it
 let lastSavedData: P2P.CycleCreatorTypes.CycleRecord
 
@@ -241,6 +243,8 @@ export function init() {
   // Get a handle to write to p2p.log
   p2pLogger = logger.getLogger('p2p')
   cycleLogger = logger.getLogger('cycle')
+
+  cacheOfCycleCerts = new utils.FIFOCache<number, P2P.CycleCreatorTypes.CycleCert[]>(100)
 
   for (const submodule of submodules) {
     if (submodule.init) submodule.init()
@@ -698,6 +702,8 @@ async function runQ4() {
     Certified cycle marker: ${Utils.safeStringify(marker)}
     Certified cycle cert: ${Utils.safeStringify(cert)}
   `)
+
+    cacheOfCycleCerts.set(currentCycle, bestCycleCert.get(bestMarker))
   } finally {
     /* prettier-ignore */ if (logFlags.p2pNonFatal) info( `Q4: END: myC:${myC}  C${currentCycle} Q${currentQuarter} Certified cycle record: ${Utils.safeStringify(record.counter)}` )
     // Dont need this any more since we are not doing anything after this
@@ -1163,6 +1169,9 @@ function improveBestCert(inpCerts: P2P.CycleCreatorTypes.CycleCert[], inpRecord)
 
   //  warn(`improveBestCert: have:${JSON.stringify(have)}`)
   for (const cert of inpCerts) {
+    if (Active.enableSkipActivatedCert && Active.activated.includes(cert.sign.owner)) {
+      continue
+    }
     // make sure we don't store more than one cert from the same owner with the same marker
     if (have[cert.sign.owner]) continue
     cert.score = scoreCert(cert, prevMarkerCached)
@@ -1186,6 +1195,9 @@ function improveBestCert(inpCerts: P2P.CycleCreatorTypes.CycleCert[], inpRecord)
     }
   }
   for (const cert of inpCerts) {
+    if (Active.enableSkipActivatedCert && Active.activated.includes(cert.sign.owner)) {
+      continue
+    }
     let score = 0
     const bcerts = bestCycleCert.get(cert.marker)
     for (const bcert of bcerts) {
@@ -1382,8 +1394,8 @@ function pruneCycleChain() {
   }
 }
 
-export function getBestCycleCerts() {
-  return bestCycleCert.get(bestMarker) ?? []
+export function getBestCycleCerts(counter: number) {
+  return cacheOfCycleCerts.get(counter) ?? []
 }
 
 function info(...msg) {
