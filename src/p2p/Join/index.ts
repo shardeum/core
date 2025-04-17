@@ -489,6 +489,7 @@ export function updateRecord(txs: P2P.JoinTypes.Txs, record: P2P.CycleCreatorTyp
         record.joinedConsensors.push({ ...nodeInfo, cycleJoined, counterRefreshed, id })
       }
     }
+    record.joinedConsensors.forEach((jc) => (jc.syncingTimestamp = record.start))
 
     /* prettier-ignore */ if (logFlags.p2pNonFatal) console.log( `standbyRemoved_Age: ${standbyRemoved_Age} standbyRemoved_App: ${standbyRemoved_App}` )
 
@@ -554,9 +555,7 @@ export function parseRecord(record: P2P.CycleCreatorTypes.CycleRecord): P2P.Cycl
   const finishedSyncing = record.finishedSyncing
 
   for (const node of added) {
-    node.syncingTimestamp = record.start
     // finally, remove the node from the standby list
-
     const publicKey = node.publicKey
     /* prettier-ignore */ if (logFlags.p2pNonFatal) console.log(`join:parseRecord node-selcted cycle: ${record.counter} removed standby node ${publicKey}`)
     deleteStandbyNode(publicKey)
