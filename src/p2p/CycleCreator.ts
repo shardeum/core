@@ -132,7 +132,7 @@ let bestCertScore: Map<P2P.CycleCreatorTypes.CycleMarker, number>
 
 const timers = {}
 
-let listOfCycleCerts: Map<number, P2P.CycleCreatorTypes.CycleCert[]> = new Map()
+let cacheOfCycleCerts: utils.FIFOCache<number, P2P.CycleCreatorTypes.CycleCert[]>
 
 // Keeps track of the last saved record in the DB in order to update it
 let lastSavedData: P2P.CycleCreatorTypes.CycleRecord
@@ -243,6 +243,8 @@ export function init() {
   // Get a handle to write to p2p.log
   p2pLogger = logger.getLogger('p2p')
   cycleLogger = logger.getLogger('cycle')
+
+  cacheOfCycleCerts = new utils.FIFOCache<number, P2P.CycleCreatorTypes.CycleCert[]>(100)
 
   for (const submodule of submodules) {
     if (submodule.init) submodule.init()
@@ -701,11 +703,7 @@ async function runQ4() {
     Certified cycle cert: ${Utils.safeStringify(cert)}
   `)
 
-    listOfCycleCerts.set(currentCycle, bestCycleCert.get(bestMarker))
-    // prune listOfCycleCerts to 100 elements
-    if (listOfCycleCerts.size > 100) {
-      listOfCycleCerts.delete(currentCycle - 100)
-    }
+    cacheOfCycleCerts.set(currentCycle, bestCycleCert.get(bestMarker))
   } finally {
     /* prettier-ignore */ if (logFlags.p2pNonFatal) info( `Q4: END: myC:${myC}  C${currentCycle} Q${currentQuarter} Certified cycle record: ${Utils.safeStringify(record.counter)}` )
     // Dont need this any more since we are not doing anything after this
@@ -1397,7 +1395,7 @@ function pruneCycleChain() {
 }
 
 export function getBestCycleCerts(counter: number) {
-  return listOfCycleCerts.get(counter) ?? []
+  return cacheOfCycleCerts.get(counter) ?? []
 }
 
 function info(...msg) {

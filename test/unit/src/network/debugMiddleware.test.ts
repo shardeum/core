@@ -74,8 +74,8 @@ jest.mock('@shardeum-foundation/lib-types', () => ({
     safeJsonParse: jest.fn(),
   },
   StateManager: {
-    StateManagerTypes: {}
-  }
+    StateManagerTypes: {},
+  },
 }))
 
 jest.mock('../../../../src/network', () => ({
@@ -384,11 +384,11 @@ describe('debugMiddleware', () => {
       mockSafeStringify.mockReturnValue('{"stringified":"payload"}')
       mockVerify.mockReturnValue(true)
       mockEnsureKeySecurity.mockReturnValue(false)
-      
+
       // Mock Date.now() to return a fixed value
       const realDateNow = Date.now
       Date.now = jest.fn(() => currentTime)
-      
+
       // Set lastCounter to a value less than validCounter to ensure the counter check passes
       const lastCounterModule = require('../../../../src/network/debugMiddleware')
       lastCounterModule.lastCounter = currentTime - 1000
