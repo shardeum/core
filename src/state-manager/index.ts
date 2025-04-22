@@ -1107,7 +1107,9 @@ class StateManager {
     const accountsToAdd: unknown[] = []
     const wrappedAccountsToAdd: ShardusTypes.WrappedData[] = []
     const failedHashes: string[] = []
+    let i = 0
     for (const wrappedAccount of accountRecords) {
+      i++
       const { accountId, stateId, data: recordData, timestamp } = wrappedAccount
       const hash = this.app.calculateAccountHash(recordData)
       const cycleToRecordOn = CycleChain.getCycleNumberFromTimestamp(wrappedAccount.timestamp)
@@ -1117,6 +1119,8 @@ class StateManager {
           `checkAndSetAccountData cycleToRecordOn==-1 ${wrappedAccount.timestamp}`
         )
         failedHashes.push(accountId)
+        /* prettier-ignore */ nestedCountersInstance.countEvent('storage', `checkAndSetAccountData: fail: cycleToRecordOn==-1 `, accountRecords.length )
+        /* prettier-ignore */ if (logFlags.error) this.mainLogger.error(`checkAndSetAccountData: fail: cycleToRecordOn==-1 acc: ${utils.makeShortHash(accountId)} timestamp:${timestamp} ${i}/${accountRecords.length}`)
         return failedHashes
       }
       //TODO perf remove this when we are satisfied with the situation
@@ -1135,6 +1139,7 @@ class StateManager {
           )
 
           /* prettier-ignore */ if (logFlags.error) this.mainLogger.error(`setAccountData: abort. checkAndSetAccountData older timestamp note:${note} acc: ${utils.makeShortHash(accountId)} timestamp:${timestamp} accountMemData.t:${accountMemData.t} hash: ${utils.makeShortHash(hash)} cache:${utils.stringifyReduce(accountMemData)}`)
+          /* prettier-ignore */ nestedCountersInstance.countEvent('storage', 'checkAndSetAccountData: skipping save: checkAndSetAccountData older timestamp')
           continue //this is a major error need to skip the writing.
         }
       }
@@ -1176,6 +1181,7 @@ class StateManager {
               const accounts = await this.app.getAccountDataByList([wrappedAccount.accountId])
               /* prettier-ignore */ this.transactionQueue.setDebugLastAwaitedCallInner('ths.app.getAccountDataByList', DebugComplete.Completed)
               if (accounts != null && accounts.length === 1) {
+                /* prettier-ignore */ nestedCountersInstance.countEvent('storage', 'checkAndSetAccountData: statsDataSummaryUpdate')
                 this.partitionStats.statsDataSummaryUpdate(
                   cycleToRecordOn,
                   accounts[0].data,
@@ -1184,6 +1190,7 @@ class StateManager {
                 )
               }
             } else {
+              /* prettier-ignore */ nestedCountersInstance.countEvent('storage', 'checkAndSetAccountData: updateAccountHash')
               //old way
               this.accountCache.updateAccountHash(
                 wrappedAccount.accountId,
@@ -1193,6 +1200,7 @@ class StateManager {
               )
             }
           } else {
+            /* prettier-ignore */ nestedCountersInstance.countEvent('storage', 'checkAndSetAccountData: statsDataSummaryInit')
             //I think some work was done to fix diverging stats, but how did it turn out?
             this.partitionStats.statsDataSummaryInit(
               cycleToRecordOn,
@@ -1202,6 +1210,7 @@ class StateManager {
             )
           }
         } else {
+          /* prettier-ignore */ nestedCountersInstance.countEvent('storage', 'checkAndSetAccountData: updateAccountHash 3')
           //even if we do not process stats still need to update cache
           //todo maybe even take the stats out of the pipeline for updating cache? (but that is kinda tricky)
           this.accountCache.updateAccountHash(
@@ -1212,6 +1221,8 @@ class StateManager {
           )
         }
       } else {
+        /* prettier-ignore */ nestedCountersInstance.countEvent('storage', 'checkAndSetAccountData: hash test failed')
+
         /* prettier-ignore */ if (logFlags.error) this.mainLogger.error(`setAccountData hash test failed: setAccountData for account ${utils.makeShortHash(accountId)} expected account hash: ${utils.makeShortHash(stateId)} got ${utils.makeShortHash(hash)} `)
         /* prettier-ignore */ if (logFlags.error) this.mainLogger.error('setAccountData hash test failed: details: ' + utils.stringifyReduce(recordData))
         /* prettier-ignore */ if (logFlags.verbose) console.log(`setAccountData hash test failed: setAccountData for account ${utils.makeShortHash(accountId)} expected account hash: ${utils.makeShortHash(stateId)} got ${utils.makeShortHash(hash)} `)
@@ -1222,6 +1233,10 @@ class StateManager {
     /* prettier-ignore */ if (logFlags.debug) this.mainLogger.debug(`setAccountData toAdd:${accountsToAdd.length}  failed:${failedHashes.length}`)
     /* prettier-ignore */ if (logFlags.verbose) console.log(`setAccountData toAdd:${accountsToAdd.length}  failed:${failedHashes.length}`)
     /* prettier-ignore */ this.transactionQueue.setDebugLastAwaitedCallInner('ths.app.setAccountData')
+
+    /* prettier-ignore */ nestedCountersInstance.countEvent('storage', 'checkAndSetAccountData: accountsToAdd', accountsToAdd.length)
+    /* prettier-ignore */ nestedCountersInstance.countEvent('storage', 'checkAndSetAccountData: failedHashes', failedHashes.length)
+
     await this.app.setAccountData(accountsToAdd)
     /* prettier-ignore */ this.transactionQueue.setDebugLastAwaitedCallInner('ths.app.setAccountData', DebugComplete.Completed)
     this.transactionQueue.processNonceQueue(wrappedAccountsToAdd)
