@@ -392,6 +392,8 @@ class Logger {
     // logFlags.shardedCache = true
 
     //logFlags.rotation = true
+
+    logFlags.dataSync = true //temp on for restore testing
   }
 
   setDefaultFlags() {
