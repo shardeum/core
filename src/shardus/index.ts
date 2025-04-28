@@ -86,6 +86,7 @@ import * as NodeList from '../p2p/NodeList'
 import { P2P } from '@shardeum-foundation/lib-types'
 import * as csvPerfEvents from './../logger/csvPerfEvents'
 import { AJVSchemaEnum } from '../types/enum/AJVSchemaEnum'
+import { CoreFlags } from './coreFlags'
 
 // the following can be removed now since we are not using the old p2p code
 //const P2P = require('../p2p')
@@ -3539,6 +3540,52 @@ class Shardus extends EventEmitter {
 
   isOnStandbyList(publicKey: string): boolean {
     return JoinV2.isOnStandbyList(publicKey)
+  }
+  /**
+   * Fetches all core flags.
+   * @returns {CoreFlags} The current core flags.
+   */
+  fetchCoreFlags(): CoreFlags {
+    return CoreFlags
+  }
+
+  /**
+   * Fetches a specific core flag by key.
+   * @param {string} key - The key of the core flag to fetch.
+   * @returns {Object} An object containing the key and its corresponding value.
+   */
+  fetchCoreFlag(key: string): { [key: string]: string | number | boolean } {
+    return { [key]: CoreFlags[key] }
+  }
+
+  /**
+   * Updates a specific core flag.
+   * @param {string} key - The key of the core flag to update.
+   * @param {string | number | boolean} value - The new value to set for the core flag.
+   */
+  updateCoreFlag(key: string, value: string | number | boolean): void {
+    /* eslint-disable security/detect-object-injection */
+    try {
+      // Check if the core flag exists
+      if (CoreFlags[key] == null) {
+        console.log(`There is no shardus-core flag for ${key}`)
+        return
+      }
+
+      // Check if the type of the new value matches the existing flag's type
+      if (typeof CoreFlags[key] !== typeof value) {
+        console.log(`Type of incoming value is different from the type of existing flag ${key}`)
+        return
+      }
+
+      // Update the core flag with the new value
+      CoreFlags[key] = value
+      console.log(`Shardus-core flag ${key} is set to ${value}`)
+    } catch (e) {
+      // Log any unexpected errors
+      console.log(`Error: unexpected behaviour in updateCoreFlag`, e)
+    }
+    /* eslint-enable security/detect-object-injection */
   }
 }
 
