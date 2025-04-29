@@ -20,6 +20,7 @@ import { nestedCountersInstance } from '../utils/nestedCounters'
 import { profilerInstance } from '../utils/profiler'
 import NatAPI = require('nat-api')
 import { Utils } from '@shardeum-foundation/lib-types'
+import { CoreFlags } from '@src/shardus/coreFlags'
 
 /** TYPES */
 export interface IPInfo {
@@ -220,8 +221,8 @@ export class NetworkClass extends EventEmitter {
         }
         if (!this.internalRoutes[route]) throw new Error('Unable to handle request, invalid route.')
 
-        if (this.debugNetworkDelay > 0) {
-          await utils.sleep(this.debugNetworkDelay)
+        if (CoreFlags.enableNetworkLatency && CoreFlags.networkLatency > 0) {
+          await utils.sleep(CoreFlags.networkLatency)
         }
         profilerInstance.profileSectionStart('net-internl')
         profilerInstance.profileSectionStart(`net-internl-${route}`)
@@ -329,6 +330,9 @@ export class NetworkClass extends EventEmitter {
       }
 
       try {
+        if (CoreFlags.enableNetworkLatency && CoreFlags.networkLatency > 0) {
+          await utils.sleep(CoreFlags.networkLatency)
+        }
         await this.sn.multiSendWithHeader(ports, addresses, data, appHeader)
       } catch (err) {
         let errorGroup = ('' + err).slice(0, 20)
@@ -431,9 +435,6 @@ export class NetworkClass extends EventEmitter {
       /* prettier-ignore */ if (logFlags.net_verbose) this.mainLogger.info(`askBinary: route: ${route}, message: ${message} requestId: ${requestId}`)
 
       try {
-        if (this.debugNetworkDelay > 0) {
-          await utils.sleep(this.debugNetworkDelay)
-        }
         profilerInstance.profileSectionStart('net-askBinary')
         profilerInstance.profileSectionStart(`net-askBinary-${route}`)
 
@@ -453,6 +454,9 @@ export class NetworkClass extends EventEmitter {
         }
         /* prettier-ignore */ if (logFlags.playback && alreadyLogged === false) this.logger.playbackLog('self', node, 'InternalAsk', route, trackerId, message)
         try {
+          if (CoreFlags.enableNetworkLatency && CoreFlags.networkLatency > 0) {
+            await utils.sleep(CoreFlags.networkLatency)
+          }
           await this.sn.sendWithHeader(
             node.internalPort,
             node.internalIp,
