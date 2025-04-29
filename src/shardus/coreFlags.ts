@@ -3,10 +3,6 @@
  */
 export interface CoreFlags {
   /**
-   * Indicates whether the contract storage key silo feature is enabled.
-   */
-  contractStorageKeySilo: boolean
-  /**
    * Indicates whether the kill node flag is enabled.
    */
   killNodeFlag: boolean
@@ -18,16 +14,25 @@ export interface CoreFlags {
    * The delay in milliseconds for the network latency.
    */
   networkLatency: number
+  /**
+   * The delay in milliseconds for the syncV2 protocol.
+   */
+  delaySyncV2: number
+  /**
+   * Indicates whether the syncV2 delay is enabled.
+   */
+  enableSyncV2Delay: boolean
+  validatorSyncDelay: number
+  archiverSyncDelay: number
+  standbyNodeSyncDelay: number
+  txSyncDelay: number
+  latestCycleSyncDelay: number
 }
 
 /**
  * The default values for the core flags.
  */
 export const CoreFlags: CoreFlags = {
-  /**
-   * Enables the contract storage key silo feature by default.
-   */
-  contractStorageKeySilo: true,
   /**
    * Enables the kill node flag by default.
    */
@@ -40,4 +45,11 @@ export const CoreFlags: CoreFlags = {
    * The delay in milliseconds for the network latency.
    */
   networkLatency: 0,
+  delaySyncV2: 120000, // not used currently but can be used to delay syncV2 as a whole
+  enableSyncV2Delay: true,
+  validatorSyncDelay: 120000, // 2 minutes
+  archiverSyncDelay: 120000, // CUMULATIVE DELAY is 10 minutes (2+2+2+2+2)
+  standbyNodeSyncDelay: 120000,
+  txSyncDelay: 120000,
+  latestCycleSyncDelay: 120000,
 }
