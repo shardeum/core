@@ -10,6 +10,14 @@ export interface CoreFlags {
    * Indicates whether the kill node flag is enabled.
    */
   killNodeFlag: boolean
+  /**
+   * Indicates whether the network latency is enabled.
+   */
+  enableNetworkLatency: boolean
+  /**
+   * The delay in milliseconds for the network latency.
+   */
+  networkLatency: number
 }
 
 /**
@@ -24,4 +32,12 @@ export const CoreFlags: CoreFlags = {
    * Enables the kill node flag by default.
    */
   killNodeFlag: false,
+  /**
+   * Enables the network latency feature by default.
+   */
+  enableNetworkLatency: false,
+  /**
+   * The delay in milliseconds for the network latency.
+   */
+  networkLatency: 0,
 }
