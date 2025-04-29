@@ -32,7 +32,12 @@ import { makeCycleMarker } from '../CycleCreator'
 import { p2pLogger } from './queries'
 import { sleep } from '../../utils'
 import Shardus from '../../shardus'
-import { CoreFlags } from '@src/shardus/coreFlags'
+import { CoreFlags } from '../../shardus/coreFlags'
+
+/** Wraps the sleep function to return a ResultAsync */
+function sleepAsync(ms: number): ResultAsync<void, Error> {
+  return ResultAsync.fromPromise(sleep(ms), (e) => new Error(`Sleep error: ${e}`))
+}
 
 /** Initializes logging and endpoints for Sync V2. */
 export function init(): void {
@@ -71,7 +76,6 @@ export function syncV2(activeNodes: P2P.SyncTypes.ActiveNode[], shardus: Shardus
                 )
               )
             }
-            if (CoreFlags.enableSyncV2Delay) sleep(CoreFlags.delaySyncV2)
             return ResultAsync.fromPromise(
               shardus.earlyConfigFetchAndPatch(cycle.counter),
               (error) => new Error(`Failed to fetch and patch config: ${error}`)
@@ -143,13 +147,20 @@ export function syncV2(activeNodes: P2P.SyncTypes.ActiveNode[], shardus: Shardus
 function syncValidValidatorList(
   activeNodes: P2P.SyncTypes.ActiveNode[]
 ): ResultAsync<[P2P.NodeListTypes.Node[], hexstring], Error> {
-  if (CoreFlags.enableSyncV2Delay) sleep(CoreFlags.delaySyncV2)
   // run a robust query for the lastest node list hash
+  if (CoreFlags.enableSyncV2Delay) {
+    return sleepAsync(CoreFlags.delaySyncV2)
+      .andThen(() => robustQueryForValidatorListHash(activeNodes))
+      .andThen(({ value, winningNodes }) =>
+        getValidatorListFromNode(winningNodes[0], value.nodeListHash).andThen((nodeList) =>
+          verifyValidatorList(nodeList, value.nodeListHash).map(
+            () => [nodeList, value.nodeListHash] as [P2P.NodeListTypes.Node[], hexstring]
+          )
+        )
+      )
+  }
   return robustQueryForValidatorListHash(activeNodes).andThen(({ value, winningNodes }) =>
-    // get full node list from one of the winning nodes
     getValidatorListFromNode(winningNodes[0], value.nodeListHash).andThen((nodeList) =>
-      // verify a hash of the retrieved node list matches the hash from before.
-      // if it does, return the node list
       verifyValidatorList(nodeList, value.nodeListHash).map(
         () => [nodeList, value.nodeListHash] as [P2P.NodeListTypes.Node[], hexstring]
       )
@@ -173,11 +184,19 @@ function syncArchiverList(
   activeNodes: P2P.SyncTypes.ActiveNode[]
 ): ResultAsync<[P2P.ArchiversTypes.JoinedArchiver[], hexstring], Error> {
   // run a robust query for the lastest archiver list hash
+  if (CoreFlags.enableSyncV2Delay) {
+    return sleepAsync(CoreFlags.delaySyncV2)
+      .andThen(() => robustQueryForArchiverListHash(activeNodes))
+      .andThen(({ value, winningNodes }) =>
+        getArchiverListFromNode(winningNodes[0], value.archiverListHash).andThen((archiverList) =>
+          verifyArchiverList(archiverList, value.archiverListHash).map(
+            () => [archiverList, value.archiverListHash] as [P2P.ArchiversTypes.JoinedArchiver[], hexstring]
+          )
+        )
+      )
+  }
   return robustQueryForArchiverListHash(activeNodes).andThen(({ value, winningNodes }) =>
-    // get full archiver list from one of the winning nodes
     getArchiverListFromNode(winningNodes[0], value.archiverListHash).andThen((archiverList) =>
-      // verify a hash of the retrieved archiver list matches the hash from before.
-      // if it does, return the archiver list
       verifyArchiverList(archiverList, value.archiverListHash).map(
         () => [archiverList, value.archiverListHash] as [P2P.ArchiversTypes.JoinedArchiver[], hexstring]
       )
@@ -200,16 +219,28 @@ function syncArchiverList(
  */
 function syncStandbyNodeList(activeNodes: P2P.SyncTypes.ActiveNode[]): ResultAsync<JoinRequest[], Error> {
   // run a robust query for the lastest archiver list hash
-  return robustQueryForStandbyNodeListHash(activeNodes).andThen(({ value, winningNodes }) => {
-    // get full archiver list from one of the winning nodes
-    return getStandbyNodeListFromNode(winningNodes[0], value.standbyNodeListHash)
-  })
+  if (CoreFlags.enableSyncV2Delay) {
+    return sleepAsync(CoreFlags.delaySyncV2)
+      .andThen(() => robustQueryForStandbyNodeListHash(activeNodes))
+      .andThen(({ value, winningNodes }) => getStandbyNodeListFromNode(winningNodes[0], value.standbyNodeListHash))
+  }
+  return robustQueryForStandbyNodeListHash(activeNodes).andThen(({ value, winningNodes }) =>
+    getStandbyNodeListFromNode(winningNodes[0], value.standbyNodeListHash)
+  )
 }
 
 function syncTxList(
   activeNodes: P2P.SyncTypes.ActiveNode[]
 ): ResultAsync<{ hash: string; tx: P2P.ServiceQueueTypes.AddNetworkTx }[], Error> {
-  if (CoreFlags.enableSyncV2Delay) sleep(CoreFlags.delaySyncV2)
+  if (CoreFlags.enableSyncV2Delay) {
+    return sleepAsync(CoreFlags.delaySyncV2)
+      .andThen(() => robustQueryForTxListHash(activeNodes))
+      .andThen(({ value, winningNodes }) =>
+        getTxListFromNode(winningNodes[0], value.txListHash).andThen((txList) =>
+          verifyTxList(txList, value.txListHash).map(() => txList)
+        )
+      )
+  }
   return robustQueryForTxListHash(activeNodes).andThen(({ value, winningNodes }) =>
     getTxListFromNode(winningNodes[0], value.txListHash).andThen((txList) =>
       verifyTxList(txList, value.txListHash).map(() => txList)
@@ -234,11 +265,17 @@ function syncLatestCycleRecord(
   activeNodes: P2P.SyncTypes.ActiveNode[]
 ): ResultAsync<P2P.CycleCreatorTypes.CycleRecord, Error> {
   // run a robust query for the latest cycle record hash
+  if (CoreFlags.enableSyncV2Delay) {
+    return sleepAsync(CoreFlags.delaySyncV2)
+      .andThen(() => robustQueryForCycleRecordHash(activeNodes))
+      .andThen(({ value, winningNodes }) =>
+        getCycleDataFromNode(winningNodes[0], value.currentCycleHash).andThen((cycle) =>
+          verifyCycleRecord(cycle, value.currentCycleHash).map(() => cycle)
+        )
+      )
+  }
   return robustQueryForCycleRecordHash(activeNodes).andThen(({ value, winningNodes }) =>
-    // get current cycle record from node
     getCycleDataFromNode(winningNodes[0], value.currentCycleHash).andThen((cycle) =>
-      // verify the cycle record marker matches the hash from before. if it
-      // does, return the cycle
       verifyCycleRecord(cycle, value.currentCycleHash).map(() => cycle)
     )
   )
