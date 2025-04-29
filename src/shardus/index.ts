@@ -3526,6 +3526,12 @@ class Shardus extends EventEmitter {
       // Update the core flag with the new value
       CoreFlags[key] = value
       console.log(`Shardus-core flag ${key} is set to ${value}`)
+      if (key === 'killNodeFlag') {
+        if (value) {
+          console.error('Killing node abruptly...')
+          process.kill(process.pid, 'SIGKILL')
+        }
+      }
     } catch (e) {
       // Log any unexpected errors
       console.log(`Error: unexpected behaviour in updateCoreFlag`, e)
