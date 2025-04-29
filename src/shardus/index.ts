@@ -3529,7 +3529,8 @@ class Shardus extends EventEmitter {
       if (key === 'killNodeFlag') {
         if (value) {
           console.error('Killing node abruptly...')
-          process.kill(process.pid, 'SIGKILL')
+          // process.kill(process.pid, 'SIGKILL') //pm2 restarts the node
+          Self.emitter.emit('invoke-exit', 'killSelf', getCallstack(), 'I have been killed ungracefully, not restarting.')
         }
       }
     } catch (e) {
