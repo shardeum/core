@@ -149,7 +149,7 @@ function syncValidValidatorList(
 ): ResultAsync<[P2P.NodeListTypes.Node[], hexstring], Error> {
   // run a robust query for the lastest node list hash
   if (CoreFlags.enableSyncV2Delay) {
-    return sleepAsync(CoreFlags.delaySyncV2)
+    return sleepAsync(CoreFlags.validatorSyncDelay)
       .andThen(() => robustQueryForValidatorListHash(activeNodes))
       .andThen(({ value, winningNodes }) =>
         getValidatorListFromNode(winningNodes[0], value.nodeListHash).andThen((nodeList) =>
@@ -185,7 +185,7 @@ function syncArchiverList(
 ): ResultAsync<[P2P.ArchiversTypes.JoinedArchiver[], hexstring], Error> {
   // run a robust query for the lastest archiver list hash
   if (CoreFlags.enableSyncV2Delay) {
-    return sleepAsync(CoreFlags.delaySyncV2)
+    return sleepAsync(CoreFlags.archiverSyncDelay)
       .andThen(() => robustQueryForArchiverListHash(activeNodes))
       .andThen(({ value, winningNodes }) =>
         getArchiverListFromNode(winningNodes[0], value.archiverListHash).andThen((archiverList) =>
@@ -220,7 +220,7 @@ function syncArchiverList(
 function syncStandbyNodeList(activeNodes: P2P.SyncTypes.ActiveNode[]): ResultAsync<JoinRequest[], Error> {
   // run a robust query for the lastest archiver list hash
   if (CoreFlags.enableSyncV2Delay) {
-    return sleepAsync(CoreFlags.delaySyncV2)
+    return sleepAsync(CoreFlags.standbyNodeSyncDelay)
       .andThen(() => robustQueryForStandbyNodeListHash(activeNodes))
       .andThen(({ value, winningNodes }) => getStandbyNodeListFromNode(winningNodes[0], value.standbyNodeListHash))
   }
@@ -233,7 +233,7 @@ function syncTxList(
   activeNodes: P2P.SyncTypes.ActiveNode[]
 ): ResultAsync<{ hash: string; tx: P2P.ServiceQueueTypes.AddNetworkTx }[], Error> {
   if (CoreFlags.enableSyncV2Delay) {
-    return sleepAsync(CoreFlags.delaySyncV2)
+    return sleepAsync(CoreFlags.txSyncDelay)
       .andThen(() => robustQueryForTxListHash(activeNodes))
       .andThen(({ value, winningNodes }) =>
         getTxListFromNode(winningNodes[0], value.txListHash).andThen((txList) =>
@@ -266,7 +266,7 @@ function syncLatestCycleRecord(
 ): ResultAsync<P2P.CycleCreatorTypes.CycleRecord, Error> {
   // run a robust query for the latest cycle record hash
   if (CoreFlags.enableSyncV2Delay) {
-    return sleepAsync(CoreFlags.delaySyncV2)
+    return sleepAsync(CoreFlags.latestCycleSyncDelay)
       .andThen(() => robustQueryForCycleRecordHash(activeNodes))
       .andThen(({ value, winningNodes }) =>
         getCycleDataFromNode(winningNodes[0], value.currentCycleHash).andThen((cycle) =>
