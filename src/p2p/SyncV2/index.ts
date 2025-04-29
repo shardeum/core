@@ -32,6 +32,7 @@ import { makeCycleMarker } from '../CycleCreator'
 import { p2pLogger } from './queries'
 import { sleep } from '../../utils'
 import Shardus from '../../shardus'
+import { CoreFlags } from '@src/shardus/coreFlags'
 
 /** Initializes logging and endpoints for Sync V2. */
 export function init(): void {
@@ -70,7 +71,7 @@ export function syncV2(activeNodes: P2P.SyncTypes.ActiveNode[], shardus: Shardus
                 )
               )
             }
-
+            if (CoreFlags.enableSyncV2Delay) sleep(CoreFlags.delaySyncV2)
             return ResultAsync.fromPromise(
               shardus.earlyConfigFetchAndPatch(cycle.counter),
               (error) => new Error(`Failed to fetch and patch config: ${error}`)
@@ -142,6 +143,7 @@ export function syncV2(activeNodes: P2P.SyncTypes.ActiveNode[], shardus: Shardus
 function syncValidValidatorList(
   activeNodes: P2P.SyncTypes.ActiveNode[]
 ): ResultAsync<[P2P.NodeListTypes.Node[], hexstring], Error> {
+  if (CoreFlags.enableSyncV2Delay) sleep(CoreFlags.delaySyncV2)
   // run a robust query for the lastest node list hash
   return robustQueryForValidatorListHash(activeNodes).andThen(({ value, winningNodes }) =>
     // get full node list from one of the winning nodes
@@ -207,6 +209,7 @@ function syncStandbyNodeList(activeNodes: P2P.SyncTypes.ActiveNode[]): ResultAsy
 function syncTxList(
   activeNodes: P2P.SyncTypes.ActiveNode[]
 ): ResultAsync<{ hash: string; tx: P2P.ServiceQueueTypes.AddNetworkTx }[], Error> {
+  if (CoreFlags.enableSyncV2Delay) sleep(CoreFlags.delaySyncV2)
   return robustQueryForTxListHash(activeNodes).andThen(({ value, winningNodes }) =>
     getTxListFromNode(winningNodes[0], value.txListHash).andThen((txList) =>
       verifyTxList(txList, value.txListHash).map(() => txList)

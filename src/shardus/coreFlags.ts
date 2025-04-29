@@ -18,6 +18,14 @@ export interface CoreFlags {
    * The delay in milliseconds for the network latency.
    */
   networkLatency: number
+  /**
+   * The delay in milliseconds for the syncV2 protocol.
+   */
+  delaySyncV2: number
+  /**
+   * Indicates whether the syncV2 delay is enabled.
+   */
+  enableSyncV2Delay: boolean
 }
 
 /**
@@ -40,4 +48,6 @@ export const CoreFlags: CoreFlags = {
    * The delay in milliseconds for the network latency.
    */
   networkLatency: 0,
+  delaySyncV2: 0,
+  enableSyncV2Delay: false,
 }
