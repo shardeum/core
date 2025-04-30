@@ -47,7 +47,7 @@ export const CoreFlags: CoreFlags = {
    */
   networkLatency: 0,
   delaySyncV2: 120000, // not used currently but can be used to delay syncV2 as a whole
-  enableSyncV2Delay: true,
+  enableSyncV2Delay: false,
   validatorSyncDelay: 120000, // 2 minutes
   archiverSyncDelay: 120000, // CUMULATIVE DELAY is 10 minutes (2+2+2+2+2)
   standbyNodeSyncDelay: 120000,
