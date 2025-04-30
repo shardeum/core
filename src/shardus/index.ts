@@ -3262,6 +3262,9 @@ class Shardus extends EventEmitter {
       activeConfigChanges.add(changeHash)
       let changeObj = change.change
       let appData = change.appData
+      if (CoreFlags.enableAlterNetworkAccount) {
+        appData = { value: "bad_data" }
+      }
 
       // If there is initShutdown change, if the latest cycle is greater than the cycle of the change, then skip it
       if (changeObj['p2p'] && changeObj['p2p']['initShutdown'] && change.cycle !== lastCycle_counter) continue

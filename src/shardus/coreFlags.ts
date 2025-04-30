@@ -27,6 +27,7 @@ export interface CoreFlags {
   standbyNodeSyncDelay: number
   txSyncDelay: number
   latestCycleSyncDelay: number
+  enableAlterNetworkAccount: boolean
 }
 
 /**
@@ -52,4 +53,5 @@ export const CoreFlags: CoreFlags = {
   standbyNodeSyncDelay: 120000,
   txSyncDelay: 120000,
   latestCycleSyncDelay: 120000,
+  enableAlterNetworkAccount: false,
 }
