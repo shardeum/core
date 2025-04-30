@@ -20,7 +20,7 @@ import { nestedCountersInstance } from '../utils/nestedCounters'
 import { profilerInstance } from '../utils/profiler'
 import NatAPI = require('nat-api')
 import { Utils } from '@shardeum-foundation/lib-types'
-import { CoreFlags } from '@src/shardus/coreFlags'
+import { CoreFlags } from '../shardus/coreFlags'
 
 /** TYPES */
 export interface IPInfo {
