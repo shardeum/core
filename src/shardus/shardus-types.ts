@@ -1007,6 +1007,8 @@ export interface ServerConfiguration {
     allowEndUserTxnInjections: boolean
     // score cycle certs based on prevMarker instead of the cycle we are running consensus on
     newCycleCertScoring: boolean
+    // enable to not send apply receipts of type Stake in case Unstake and SecureTransfer fail
+    fixApplyReceiptType: boolean
   }
   /** Server IP configuration */
   ip?: {

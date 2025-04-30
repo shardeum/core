@@ -187,6 +187,7 @@ const SERVER_CONFIG: StrictServerConfiguration = {
     maxResponseSize: 1024 * 1024 * 15, // 15MB
     allowEndUserTxnInjections: true,
     newCycleCertScoring: true,
+    fixApplyReceiptType: false
   },
   ip: {
     externalIp: '0.0.0.0',
