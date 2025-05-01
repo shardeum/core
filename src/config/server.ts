@@ -38,7 +38,7 @@ const SERVER_CONFIG: StrictServerConfiguration = {
     ],
     syncLimit: 180, //180 seconds seems way to high to allow.
     useNTPOffsets: true,
-    useFakeTimeOffsets: true,
+    useFakeTimeOffsets: false,
     cycleDuration: 30,
     maxRejoinTime: 20,
     difficulty: 2,
@@ -177,7 +177,7 @@ const SERVER_CONFIG: StrictServerConfiguration = {
     dropNGTByGossipEnabled: false,
     timestampCacheFixSize: 10000,
     removedNodeIDCacheSize: 1000,
-    stuckNGTInQueueFix: false,
+    stuckNGTInQueueFix: true,
     nerfNonFoundationCertScores: true,
     addFoundationNodeAttribute: true,
     preferFoundationNodesForTimestamp: false,
