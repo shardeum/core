@@ -167,7 +167,7 @@ export let logFlags: LogFlags = {
 
   verboseNestedCounters: false,
 
-  node_rotation_debug: false,
+  node_rotation_debug: true,
 
   p2pSyncDebug: false,
 
