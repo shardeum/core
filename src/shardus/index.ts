@@ -1483,10 +1483,17 @@ class Shardus extends EventEmitter {
 
     // Now it is time to check rate limiting to see if our node can accept more transactions
     if (this.rateLimiting.isOverloaded(txId)) {
-      /* prettier-ignore */ if (logFlags.seqdiagram) this.seqLogger.info(`0x53455106 ${shardusGetTime()} tx:${txId} Note over ${activeIdToPartition.get(Self.id)}: reject_overload`)
-      this.statistics.incrementCounter('txRejected')
-      nestedCountersInstance.countEvent('rejected', 'isOverloaded')
-      return { success: false, reason: 'Maximum load exceeded.', status: 500 }
+      //Skip load rejection according to the app
+      const isMultiSigFoundationTx = this.app.isMultiSigFoundationTx(tx)
+      if (isMultiSigFoundationTx) {
+        //dont rate limit multisig txs 
+        nestedCountersInstance.countEvent('loadRelated', 'permitting foundation tx')
+      } else {
+        /* prettier-ignore */ if (logFlags.seqdiagram) this.seqLogger.info(`0x53455106 ${shardusGetTime()} tx:${txId} Note over ${activeIdToPartition.get(Self.id)}: reject_overload`)
+        this.statistics.incrementCounter('txRejected')
+        nestedCountersInstance.countEvent('rejected', 'isOverloaded')
+        return { success: false, reason: 'Maximum load exceeded.', status: 500 }
+      }
     }
 
     try {
@@ -2500,6 +2507,13 @@ class Shardus extends EventEmitter {
       if (typeof application.isInternalTx === 'function') {
         applicationInterfaceImpl.isInternalTx = (tx) => application.isInternalTx(tx)
       }
+
+      if (typeof application.isMultiSigFoundationTx === 'function') {
+        applicationInterfaceImpl.isMultiSigFoundationTx = (tx) => application.isMultiSigFoundationTx(tx)
+      } else {
+        applicationInterfaceImpl.isMultiSigFoundationTx = (tx) => false
+      }
+      
 
       if (typeof application.validate === 'function') {
         applicationInterfaceImpl.validate = (inTx, appData) => application.validate(inTx, appData)

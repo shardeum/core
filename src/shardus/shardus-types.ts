@@ -189,6 +189,14 @@ export interface App {
    */
   isInternalTx(tx: OpaqueTransaction): boolean
 
+
+  /**
+   * Checks if the incoming transaction is a multi-sig foundation transaction or not
+   *
+   * Returns a boolean value indicaing the same
+   */
+  isMultiSigFoundationTx(tx: OpaqueTransaction): boolean
+
   /**
    * Cracks open the transaction and returns its timestamp, id (hash), and any
    * involved keys.
