@@ -8881,7 +8881,13 @@ class TransactionQueue {
     }
   }
 
-  addressCountInQueue(address: string, limit:number): number {
+  /**
+   * Checks if an address appears in the queue more than the specified limit
+   * @param address The address to check
+   * @param limit The maximum allowed occurrences
+   * @returns The count if it exceeds the limit, otherwise the actual count
+   */
+  countAddressOccurrencesUpToLimit(address: string, limit: number): number {
     let count = 0
     for (const queueEntry of this._transactionQueue) {
       if (queueEntry.uniqueKeys.includes(address)) {

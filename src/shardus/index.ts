@@ -1174,7 +1174,7 @@ class Shardus extends EventEmitter {
         const addressToCheck = keys.targetKeys[0]
         const addressHitLimit = this.config.stateManager.checkDestLimitCount
         if(addressToCheck != '') {
-          const addressSeenCount = this.stateManager.transactionQueue.addressCountInQueue(addressToCheck, addressHitLimit)
+          const addressSeenCount = this.stateManager.transactionQueue.countAddressOccurrencesUpToLimit(addressToCheck, addressHitLimit)
           if(addressSeenCount >= addressHitLimit){
             /* prettier-ignore */ if(logFlags.error) this.shardus_fatal( `put_destLimitExceeded`, `Transaction has too many addresses in the queue: ${addressToCheck} ${utils.stringifyReduce(tx)}` )
             this.statistics.incrementCounter('txRejected')
