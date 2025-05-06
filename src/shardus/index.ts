@@ -1195,6 +1195,8 @@ class Shardus extends EventEmitter {
         // Log the error but continue processing the transaction
         this.mainLogger.error(`Error in destination limit check: ${utils.formatErrorMessage(err)}`)
         nestedCountersInstance.countEvent('destLimitCheck', 'error in check, error: ' + err?.message)
+        // if our dest check fails we must reject this tx
+        return { success: false, reason: 'Same destination load limit error', status: 400 }
       }
     }
 
