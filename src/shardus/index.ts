@@ -1166,25 +1166,35 @@ class Shardus extends EventEmitter {
     const { timestamp, id, keys, shardusMemoryPatterns } = this.app.crack(timestampedTx, appData)
     // console.log('app.crack results', timestamp, id, keys)
 
-    if (this.config.stateManager.checkDestLimits){
-      // does this TX need to be gated for potential infulencer-mode effects
-      const isDestLimitTx = this.app.isDestLimitTx(appData)
-      // shis code must be upgraded before we turn the EVM on
-      if(isDestLimitTx && keys.targetKeys?.length > 0){
-        const addressToCheck = keys.targetKeys[0]
-        const addressHitLimit = this.config.stateManager.checkDestLimitCount
-        if(addressToCheck != '') {
-          const addressSeenCount = this.stateManager.transactionQueue.addressCountInQueue(addressToCheck, addressHitLimit)
-          if(addressSeenCount >= addressHitLimit){
-            /* prettier-ignore */ if(logFlags.error) this.shardus_fatal( `put_destLimitExceeded`, `Transaction has too many addresses in the queue: ${addressToCheck} ${utils.stringifyReduce(tx)}` )
-            this.statistics.incrementCounter('txRejected')
-            nestedCountersInstance.countEvent('rejected', `addressSeenCount > ${addressHitLimit}`)
-            nestedCountersInstance.countEvent('destLimitCheck', `rejected addressSeenCount > ${addressHitLimit}`)
-            return { success: false, reason: 'Same destination load limit', status: 400 }
-          } else {
-            nestedCountersInstance.countEvent('destLimitCheck', `admitted: ${addressSeenCount}`)
+    if (this.config.stateManager.checkDestLimits) {
+      try {
+        // does this TX need to be gated for potential infulencer-mode effects
+        const isDestLimitTx = this.app.isDestLimitTx(appData)
+        // shis code must be upgraded before we turn the EVM on
+        if (isDestLimitTx && keys.targetKeys?.length > 0) {
+          const addressToCheck = keys.targetKeys[0]
+          const addressHitLimit = this.config.stateManager.checkDestLimitCount
+          // Add comprehensive check for addressToCheck validness
+          if (addressToCheck && typeof addressToCheck === 'string' && addressToCheck.trim() !== '') {
+            const addressSeenCount = this.stateManager.transactionQueue.addressCountInQueue(
+              addressToCheck,
+              addressHitLimit
+            )
+            if (addressSeenCount >= addressHitLimit) {
+              /* prettier-ignore */ if(logFlags.error) this.shardus_fatal( `put_destLimitExceeded`, `Transaction has too many addresses in the queue: ${addressToCheck} ${utils.stringifyReduce(tx)}` )
+              this.statistics.incrementCounter('txRejected')
+              nestedCountersInstance.countEvent('rejected', `addressSeenCount > ${addressHitLimit}`)
+              nestedCountersInstance.countEvent('destLimitCheck', `rejected addressSeenCount > ${addressHitLimit}`)
+              return { success: false, reason: 'Same destination load limit', status: 400 }
+            } else {
+              nestedCountersInstance.countEvent('destLimitCheck', `admitted: ${addressSeenCount}`)
+            }
           }
         }
+      } catch (err) {
+        // Log the error but continue processing the transaction
+        this.mainLogger.error(`Error in destination limit check: ${utils.formatErrorMessage(err)}`)
+        nestedCountersInstance.countEvent('destLimitCheck', 'error in check')
       }
     }
 

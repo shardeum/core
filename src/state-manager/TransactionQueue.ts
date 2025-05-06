@@ -8881,10 +8881,11 @@ class TransactionQueue {
     }
   }
 
-  addressCountInQueue(address: string, limit:number): number {
+  addressCountInQueue(address: string, limit: number): number {
     let count = 0
     for (const queueEntry of this._transactionQueue) {
-      if (queueEntry.uniqueKeys.includes(address)) {
+      // Add check to ensure uniqueKeys exists and is an array before calling includes
+      if (queueEntry.uniqueKeys && Array.isArray(queueEntry.uniqueKeys) && queueEntry.uniqueKeys.includes(address)) {
         count++
         if (count > limit) {
           return count
