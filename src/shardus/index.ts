@@ -1170,7 +1170,7 @@ class Shardus extends EventEmitter {
       try {
         // does this TX need to be gated for potential infulencer-mode effects
         const isDestLimitTx = this.app.isDestLimitTx(appData)
-        // shis code must be upgraded before we turn the EVM on
+        // this code must be upgraded before we turn the EVM on
         if (isDestLimitTx && keys.targetKeys?.length > 0) {
           const addressToCheck = keys.targetKeys[0]
           const addressHitLimit = this.config.stateManager.checkDestLimitCount
@@ -1194,7 +1194,7 @@ class Shardus extends EventEmitter {
       } catch (err) {
         // Log the error but continue processing the transaction
         this.mainLogger.error(`Error in destination limit check: ${utils.formatErrorMessage(err)}`)
-        nestedCountersInstance.countEvent('destLimitCheck', 'error in check')
+        nestedCountersInstance.countEvent('destLimitCheck', 'error in check, error: ' + err?.message)
       }
     }
 
