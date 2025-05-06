@@ -371,6 +371,8 @@ const SERVER_CONFIG: StrictServerConfiguration = {
     fallbackToCurrentCycleFortxGroup: false,
     maxCyclesShardDataToKeep: 20,
     avoidOurIndexInFactTell: false, //initial testing shows this may cause issues so leaving it off for now
+    checkDestLimits: true,
+    checkDestLimitCount: 5,
   },
   sharding: { nodesPerConsensusGroup: 5, nodesPerEdge: 2, executeInOneShard: false },
   mode: ServerMode.Release,

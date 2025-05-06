@@ -8880,6 +8880,20 @@ class TransactionQueue {
       }
     }
   }
+
+  addressCountInQueue(address: string, limit:number): number {
+    let count = 0
+    for (const queueEntry of this._transactionQueue) {
+      if (queueEntry.uniqueKeys.includes(address)) {
+        count++
+        if (count > limit) {
+          return count
+        }
+      }
+    }
+    return count
+  }
+
   clearQueueItems(minAge: number): number {
     let count = 0
     try {

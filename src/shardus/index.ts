@@ -1166,6 +1166,28 @@ class Shardus extends EventEmitter {
     const { timestamp, id, keys, shardusMemoryPatterns } = this.app.crack(timestampedTx, appData)
     // console.log('app.crack results', timestamp, id, keys)
 
+    if (this.config.stateManager.checkDestLimits){
+      // does this TX need to be gated for potential infulencer-mode effects
+      const isDestLimitTx = this.app.isDestLimitTx(appData)
+      // shis code must be upgraded before we turn the EVM on
+      if(isDestLimitTx && keys.targetKeys?.length > 0){
+        const addressToCheck = keys.targetKeys[0]
+        const addressHitLimit = this.config.stateManager.checkDestLimitCount
+        if(addressToCheck != '') {
+          const addressSeenCount = this.stateManager.transactionQueue.addressCountInQueue(addressToCheck, addressHitLimit)
+          if(addressSeenCount > addressHitLimit){
+            /* prettier-ignore */ if(logFlags.error) this.shardus_fatal( `put_destLimitExceeded`, `Transaction has too many addresses in the queue: ${addressToCheck} ${utils.stringifyReduce(tx)}` )
+            this.statistics.incrementCounter('txRejected')
+            nestedCountersInstance.countEvent('rejected', `addressSeenCount > ${addressHitLimit}`)
+            nestedCountersInstance.countEvent('destLimitCheck', `rejected addressSeenCount > ${addressHitLimit}`)
+            return { success: false, reason: 'Same destination load limit', status: 400 }
+          } else {
+            nestedCountersInstance.countEvent('destLimitCheck', `admitted: ${addressSeenCount}`)
+          }
+        }
+      }
+    }
+
     // Validate the transaction's sourceKeys & targetKeys
     if (this.config.debug.checkAddressFormat && !isValidShardusAddress(keys.allKeys)) {
       this.shardus_fatal(
@@ -2504,6 +2526,13 @@ class Shardus extends EventEmitter {
         // throw new Error('Invalid Application Instance')
         return null
       }
+
+      if (typeof application.isDestLimitTx === 'function') {
+        applicationInterfaceImpl.isDestLimitTx = (appData) => application.isDestLimitTx(appData)
+      } else {
+        applicationInterfaceImpl.isDestLimitTx = (appData) => false
+      }
+
       if (typeof application.isInternalTx === 'function') {
         applicationInterfaceImpl.isInternalTx = (tx) => application.isInternalTx(tx)
       }

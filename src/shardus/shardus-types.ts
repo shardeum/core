@@ -183,6 +183,13 @@ export interface App {
   validate(tx: OpaqueTransaction, appData: any): { success: boolean; reason: string; status: number }
 
   /**
+   * Checks if the incoming transaction needs limits on destination address usage
+   * 
+   * Returns a boolean value indicaing the same
+   */
+  isDestLimitTx(tx: OpaqueTransaction): boolean
+
+  /**
    * Checks if the incoming transaction is an internal tx or not
    *
    * Returns a boolean value indicaing the same
@@ -1400,6 +1407,10 @@ export interface ServerConfiguration {
     maxCyclesShardDataToKeep: number
     // make sure we send data to non-self nodes
     avoidOurIndexInFactTell: boolean
+    // check transactions to see if their target addresses are in the queue too many times
+    checkDestLimits: boolean
+    // how many times can this destination address show up in the queue before we avoid sending to it
+    checkDestLimitCount: number
   }
   /** Options for sharding calculations */
   sharding?: {
