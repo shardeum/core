@@ -1166,16 +1166,19 @@ class Shardus extends EventEmitter {
     const { timestamp, id, keys, shardusMemoryPatterns } = this.app.crack(timestampedTx, appData)
     // console.log('app.crack results', timestamp, id, keys)
 
-    if (this.config.stateManager.checkDestLimits){
+    if (this.config.stateManager.checkDestLimits) {
       // does this TX need to be gated for potential infulencer-mode effects
       const isDestLimitTx = this.app.isDestLimitTx(appData)
       // shis code must be upgraded before we turn the EVM on
-      if(isDestLimitTx && keys.targetKeys?.length > 0){
+      if (isDestLimitTx && keys.targetKeys?.length > 0) {
         const addressToCheck = keys.targetKeys[0]
         const addressHitLimit = this.config.stateManager.checkDestLimitCount
-        if(addressToCheck != '') {
-          const addressSeenCount = this.stateManager.transactionQueue.countAddressOccurrencesUpToLimit(addressToCheck, addressHitLimit)
-          if(addressSeenCount >= addressHitLimit){
+        if (addressToCheck != '') {
+          const addressSeenCount = this.stateManager.transactionQueue.countAddressOccurrencesUpToLimit(
+            addressToCheck,
+            addressHitLimit
+          )
+          if (addressSeenCount >= addressHitLimit) {
             /* prettier-ignore */ if(logFlags.error) this.shardus_fatal( `put_destLimitExceeded`, `Transaction has too many addresses in the queue: ${addressToCheck} ${utils.stringifyReduce(tx)}` )
             this.statistics.incrementCounter('txRejected')
             nestedCountersInstance.countEvent('rejected', `addressSeenCount > ${addressHitLimit}`)
@@ -1449,76 +1452,76 @@ class Shardus extends EventEmitter {
     global = false,
     inputAppData = null
   ): Promise<{ success: boolean; reason: string; status: number; txId?: string }> {
-    const noConsensus = set || global
-    const txId = this.app.calculateTxId(tx)
-    /* prettier-ignore */ if (logFlags.seqdiagram) this.seqLogger.info(`0x53455106 ${shardusGetTime()} tx:${txId} Note over ${activeIdToPartition.get(Self.id)}: inject:${shardusGetTime()}`)
+    try {
+      const noConsensus = set || global
+      const txId = this.app.calculateTxId(tx)
+      /* prettier-ignore */ if (logFlags.seqdiagram) this.seqLogger.info(`0x53455106 ${shardusGetTime()} tx:${txId} Note over ${activeIdToPartition.get(Self.id)}: inject:${shardusGetTime()}`)
 
-    // Check if Consensor is ready to receive txs before processing it further
-    if (!this.appProvided) throw new Error('Please provide an App object to Shardus.setup before calling Shardus.put')
-    if (logFlags.verbose)
-      this.mainLogger.debug(`Start of injectTransaction ${Utils.safeStringify(tx)} set:${set} global:${global}`) // not reducing tx here so we can get the long hashes
-    if (!this.stateManager.accountSync.dataSyncMainPhaseComplete) {
-      this.statistics.incrementCounter('txRejected')
-      nestedCountersInstance.countEvent('rejected', '!dataSyncMainPhaseComplete')
-      return { success: false, reason: 'Node is still syncing.', status: 500 }
-    }
-    if (!this.stateManager.hasCycleShardData()) {
-      this.statistics.incrementCounter('txRejected')
-      nestedCountersInstance.countEvent('rejected', '!hasCycleShardData')
-      return {
-        success: false,
-        reason: 'Not ready to accept transactions, shard calculations pending',
-        status: 500,
+      // Check if Consensor is ready to receive txs before processing it further
+      if (!this.appProvided) throw new Error('Please provide an App object to Shardus.setup before calling Shardus.put')
+      if (logFlags.verbose)
+        this.mainLogger.debug(`Start of injectTransaction ${Utils.safeStringify(tx)} set:${set} global:${global}`) // not reducing tx here so we can get the long hashes
+      if (!this.stateManager.accountSync.dataSyncMainPhaseComplete) {
+        this.statistics.incrementCounter('txRejected')
+        nestedCountersInstance.countEvent('rejected', '!dataSyncMainPhaseComplete')
+        return { success: false, reason: 'Node is still syncing.', status: 500 }
       }
-    }
-    // set === true (which is handled in the else case here) is a special kind of TX that is allowed only be the first node in the network
-    // this is used to create global network settings and other dawn of time accounts
-    if (set === false) {
-      if (!this.p2p.allowTransactions()) {
-        if (global === true && this.p2p.allowSet()) {
-          // This ok because we are initializing a global at the set time period
-        } else {
-          if (logFlags.verbose)
-            this.mainLogger.debug(`txRejected ${Utils.safeStringify(tx)} set:${set} global:${global}`)
+      if (!this.stateManager.hasCycleShardData()) {
+        this.statistics.incrementCounter('txRejected')
+        nestedCountersInstance.countEvent('rejected', '!hasCycleShardData')
+        return {
+          success: false,
+          reason: 'Not ready to accept transactions, shard calculations pending',
+          status: 500,
+        }
+      }
+      // set === true (which is handled in the else case here) is a special kind of TX that is allowed only be the first node in the network
+      // this is used to create global network settings and other dawn of time accounts
+      if (set === false) {
+        if (!this.p2p.allowTransactions()) {
+          if (global === true && this.p2p.allowSet()) {
+            // This ok because we are initializing a global at the set time period
+          } else {
+            if (logFlags.verbose)
+              this.mainLogger.debug(`txRejected ${Utils.safeStringify(tx)} set:${set} global:${global}`)
 
+            this.statistics.incrementCounter('txRejected')
+            nestedCountersInstance.countEvent('rejected', '!allowTransactions')
+            return {
+              success: false,
+              reason: 'Network conditions to allow transactions are not met.',
+              status: 500,
+            }
+          }
+        }
+      } else {
+        // this is where set is true.  check if we allow it (i.e. only one node active). if not, reject early
+        if (!this.p2p.allowSet()) {
           this.statistics.incrementCounter('txRejected')
-          nestedCountersInstance.countEvent('rejected', '!allowTransactions')
+          nestedCountersInstance.countEvent('rejected', '!allowTransactions2')
           return {
             success: false,
-            reason: 'Network conditions to allow transactions are not met.',
+            reason: 'Network conditions to allow app init via set',
             status: 500,
           }
         }
       }
-    } else {
-      // this is where set is true.  check if we allow it (i.e. only one node active). if not, reject early
-      if (!this.p2p.allowSet()) {
-        this.statistics.incrementCounter('txRejected')
-        nestedCountersInstance.countEvent('rejected', '!allowTransactions2')
-        return {
-          success: false,
-          reason: 'Network conditions to allow app init via set',
-          status: 500,
+
+      // Now it is time to check rate limiting to see if our node can accept more transactions
+      if (this.rateLimiting.isOverloaded(txId)) {
+        //Skip load rejection according to the app
+        const isMultiSigFoundationTx = this.app.isMultiSigFoundationTx(tx)
+        if (isMultiSigFoundationTx) {
+          //dont rate limit multisig txs
+          nestedCountersInstance.countEvent('loadRelated', 'permitting foundation tx')
+        } else {
+          /* prettier-ignore */ if (logFlags.seqdiagram) this.seqLogger.info(`0x53455106 ${shardusGetTime()} tx:${txId} Note over ${activeIdToPartition.get(Self.id)}: reject_overload`)
+          this.statistics.incrementCounter('txRejected')
+          nestedCountersInstance.countEvent('rejected', 'isOverloaded')
+          return { success: false, reason: 'Maximum load exceeded.', status: 500 }
         }
       }
-    }
 
-    // Now it is time to check rate limiting to see if our node can accept more transactions
-    if (this.rateLimiting.isOverloaded(txId)) {
-      //Skip load rejection according to the app
-      const isMultiSigFoundationTx = this.app.isMultiSigFoundationTx(tx)
-      if (isMultiSigFoundationTx) {
-        //dont rate limit multisig txs 
-        nestedCountersInstance.countEvent('loadRelated', 'permitting foundation tx')
-      } else {
-        /* prettier-ignore */ if (logFlags.seqdiagram) this.seqLogger.info(`0x53455106 ${shardusGetTime()} tx:${txId} Note over ${activeIdToPartition.get(Self.id)}: reject_overload`)
-        this.statistics.incrementCounter('txRejected')
-        nestedCountersInstance.countEvent('rejected', 'isOverloaded')
-        return { success: false, reason: 'Maximum load exceeded.', status: 500 }
-      }
-    }
-
-    try {
       // Perform basic validation of the transaction fields
       if (logFlags.verbose) this.mainLogger.debug('Performing initial validation of the transaction')
 
@@ -2542,7 +2545,6 @@ class Shardus extends EventEmitter {
       } else {
         applicationInterfaceImpl.isMultiSigFoundationTx = (tx) => false
       }
-      
 
       if (typeof application.validate === 'function') {
         applicationInterfaceImpl.validate = (inTx, appData) => application.validate(inTx, appData)
