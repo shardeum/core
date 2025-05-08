@@ -87,6 +87,11 @@ import { PoqoDataAndReceiptReq, serializePoqoDataAndReceiptReq } from '../types/
 import { AJVSchemaEnum } from '../types/enum/AJVSchemaEnum'
 import { getGlobalTxReceipt } from '../p2p/GlobalAccounts'
 
+
+
+let counter = 0
+let firstSawTx
+
 interface Receipt {
   tx: AcceptedTx
 }
@@ -5697,6 +5702,11 @@ class TransactionQueue {
           nestedCountersInstance.countEvent('processing', 'error: null queue entry. skipping to next TX')
           continue
         }
+        if (counter == 0) {
+          counter++
+          firstSawTx = queueEntry?.acceptedTx.txId
+        }
+        if (firstSawTx !== queueEntry?.acceptedTx.txId && queueEntry?.txKeys.timestamp - currentTime < 180000) continue
         if (logFlags.seqdiagram)
           this.mainLogger.info(
             `0x10052024 ${ipInfo.externalIp} ${shardusGetTime()} 0x0001 currentIndex:${currentIndex} txId:${
