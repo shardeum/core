@@ -721,9 +721,11 @@ async function forwardDataToSubscribedArchivers(responses, publicKey, recipient)
   const taggedDataResponse = crypto.tag(dataResponse, recipient.curvePk)
   if (logFlags.console) console.log('Sending data to subscribed archivers', taggedDataResponse)
   try {
+    /* prettier-ignore */ if (logFlags.p2pNonFatal) info('Sending data to subscribed archivers: ', Utils.safeStringify(taggedDataResponse))
     if (io.sockets.sockets[connectedSockets[publicKey]]) {
       if (logFlags.console) console.log('Forwarded Archiver', recipient.nodeInfo.ip + ':' + recipient.nodeInfo.port)
       io.sockets.sockets[connectedSockets[publicKey]].emit('DATA', Utils.safeStringify(taggedDataResponse))
+      nestedCountersInstance.countEvent('forwardDataToSubscribedArchivers', `archiver connected — ${publicKey}`)
     } else {
       warn(`Subscribed Archiver ${publicKey} is not connected over socket connection`)
       // Call into LostArchivers to report Archiver as lost
@@ -731,7 +733,7 @@ async function forwardDataToSubscribedArchivers(responses, publicKey, recipient)
       reportLostArchiver(publicKey, 'forwardDataToSubscribedArchivers() error')
     }
   } catch (e) {
-    error('Run into issue in forwarding data', e)
+    error('Run into issue in forwarding data to - ', publicKey, e)
     // Call into LostArchivers to report Archiver as lost
     nestedCountersInstance.countEvent('forwardDataToSubscribedArchivers', `unknown error — ${publicKey}`)
     reportLostArchiver(publicKey, 'forwardDataToSubscribedArchivers() error')
