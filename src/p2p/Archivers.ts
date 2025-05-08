@@ -727,11 +727,13 @@ async function forwardDataToSubscribedArchivers(responses, publicKey, recipient)
     } else {
       warn(`Subscribed Archiver ${publicKey} is not connected over socket connection`)
       // Call into LostArchivers to report Archiver as lost
+      nestedCountersInstance.countEvent('forwardDataToSubscribedArchivers', `archiver not connected — ${publicKey}`)
       reportLostArchiver(publicKey, 'forwardDataToSubscribedArchivers() error')
     }
   } catch (e) {
     error('Run into issue in forwarding data', e)
     // Call into LostArchivers to report Archiver as lost
+    nestedCountersInstance.countEvent('forwardDataToSubscribedArchivers', `unknown error — ${publicKey}`)
     reportLostArchiver(publicKey, 'forwardDataToSubscribedArchivers() error')
   }
 }
