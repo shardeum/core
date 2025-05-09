@@ -7653,16 +7653,30 @@ class TransactionQueue {
   }
 
   async getArchiverReceiptFromQueueEntry(queueEntry: QueueEntry): Promise<ArchiverReceipt> {
-    if (!queueEntry.preApplyTXResult || !queueEntry.preApplyTXResult.applyResponse) return null as ArchiverReceipt
+    console.log('[GARFQ] Entering getArchiverReceiptFromQueueEntry')
+    if (!queueEntry.preApplyTXResult || !queueEntry.preApplyTXResult.applyResponse) {
+      console.log('[GARFQ]  The archiver receipt is null')
+      return null as ArchiverReceipt
+    }
 
     const txId = queueEntry.acceptedTx.txId
     const timestamp = queueEntry.acceptedTx.timestamp
     const globalModification = queueEntry.globalModification
+    console.log(
+      '[GARFQ]  The queueEntry has txId: ',
+      txId,
+      ' timestamp: ',
+      timestamp,
+      ' globalModification: ',
+      globalModification
+    )
 
     let signedReceipt = null as SignedReceipt | P2PTypes.GlobalAccountsTypes.GlobalTxReceipt
     if (globalModification) {
+      console.log('[GARFQ]  The archiver receipt is for global modification')
       signedReceipt = getGlobalTxReceipt(queueEntry.acceptedTx.txId) as P2PTypes.GlobalAccountsTypes.GlobalTxReceipt
     } else {
+      console.log('[GARFQ]  The archiver receipt is for local modification')
       signedReceipt = this.stateManager.getSignedReceipt(queueEntry) as SignedReceipt
     }
     if (!signedReceipt) {
@@ -7675,10 +7689,12 @@ class TransactionQueue {
 
     const accountsToAdd: { [accountId: string]: Shardus.AccountsCopy } = {}
     const beforeAccountsToAdd: { [accountId: string]: Shardus.AccountsCopy } = {}
+    console.log('[GARFQ] Initialized accountsToAdd and beforeAccountsToAdd')
 
     if (globalModification) {
       signedReceipt = signedReceipt as P2PTypes.GlobalAccountsTypes.GlobalTxReceipt
       if (signedReceipt.tx && signedReceipt.tx.addressHash != '' && !beforeAccountsToAdd[signedReceipt.tx.address]) {
+        console.log('[GARFQ] Checking globalModification account stateId and addressHash')
         console.log(queueEntry.collectedData[signedReceipt.tx.address].stateId, signedReceipt.tx.addressHash)
         if (queueEntry.collectedData[signedReceipt.tx.address].stateId === signedReceipt.tx.addressHash) {
           const isGlobal = this.stateManager.accountGlobals.isGlobalAccount(signedReceipt.tx.addressHash)
@@ -7691,6 +7707,7 @@ class TransactionQueue {
             isGlobal,
           } as Shardus.AccountsCopy
           beforeAccountsToAdd[account.accountId] = accountCopy
+          console.log('[GARFQ]  The globalModification accountCopy is: ', accountCopy)
         } else {
           console.log(
             `getArchiverReceiptFromQueueEntry: before stateId does not match addressHash for txId: ${txId} timestamp: ${timestamp} globalModification: ${globalModification}`
@@ -7698,8 +7715,10 @@ class TransactionQueue {
         }
       }
     } else if (this.config.stateManager.includeBeforeStatesInReceipts) {
+      console.log('[GARFQ]  Processing local modification with before states')
       // simulate debug case
       if (configContext.mode === 'debug' && configContext.debug.beforeStateFailChance > Math.random()) {
+        console.log('[GARFQ]  Simulating debug case for before state failure')
         for (const accountId in queueEntry.collectedData) {
           const account = queueEntry.collectedData[accountId]
           account.stateId = 'debugFail2'
@@ -7708,12 +7727,14 @@ class TransactionQueue {
 
       const fileredBeforeStateToSend = []
       const badBeforeStateAccounts = []
+      console.log('[GARFQ] Initialized fileredBeforeStateToSend and badBeforeStateAccounts')
 
       for (const account of Object.values(queueEntry.collectedData)) {
         if (typeof this.app.beforeStateAccountFilter !== 'function' || this.app.beforeStateAccountFilter(account)) {
           fileredBeforeStateToSend.push(account.accountId)
         }
       }
+      console.log('[GARFQ] Filtered before state accounts to send:', fileredBeforeStateToSend)
 
       // prepare before state accounts
       for (const accountId of fileredBeforeStateToSend) {
@@ -7730,6 +7751,7 @@ class TransactionQueue {
           badBeforeStateAccounts.push(accountId)
         }
       }
+      console.log('[GARFQ] Bad before state accounts:', badBeforeStateAccounts)
 
       if (badBeforeStateAccounts.length > 0) {
         nestedCountersInstance.countEvent(
@@ -7739,6 +7761,7 @@ class TransactionQueue {
         )
 
         // repair bad before state accounts
+        console.log('[GARFQ] Repairing bad before state accounts')
         const wrappedResponses: WrappedResponses = await this.requestInitialData(queueEntry, badBeforeStateAccounts)
         for (const accountId in wrappedResponses) {
           queueEntry.collectedData[accountId] = wrappedResponses[accountId]
@@ -7758,10 +7781,12 @@ class TransactionQueue {
         } as Shardus.AccountsCopy
         beforeAccountsToAdd[account.accountId] = accountCopy
       }
+      console.log('[GARFQ] Added before state accounts:', beforeAccountsToAdd)
     }
 
     let isAccountsMatchWithReceipt2 = true
     const accountWrites = queueEntry.preApplyTXResult?.applyResponse?.accountWrites
+    console.log('[GARFQ] Checking account writes against receipt2')
 
     if (globalModification) {
       if (accountWrites === null || accountWrites.length === 0) {
@@ -7775,7 +7800,12 @@ class TransactionQueue {
       for (const account of accountWrites) {
         const indexInVote = signedReceipt.proposal.accountIDs.indexOf(account.accountId)
         if (signedReceipt.proposal.afterStateHashes[indexInVote] !== account.data.stateId) {
-          // console.log('Found afterStateHash mismatch', account.accountId, receipt2.proposal.afterStateHashes[indexInVote], account.data.stateId)
+          console.log(
+            'Found afterStateHash mismatch',
+            account.accountId,
+            signedReceipt.proposal.afterStateHashes[indexInVote],
+            account.data.stateId
+          )
           isAccountsMatchWithReceipt2 = false
           break
         }
@@ -7783,12 +7813,15 @@ class TransactionQueue {
     } else {
       isAccountsMatchWithReceipt2 = false
     }
+    console.log('[GARFQ] Accounts match with receipt2:', isAccountsMatchWithReceipt2)
 
     let finalAccounts = []
     let appReceiptData = queueEntry.preApplyTXResult?.applyResponse?.appReceiptData || null
     if (isAccountsMatchWithReceipt2) {
+      console.log('[GARFQ]  Accounts match with receipt2')
       finalAccounts = accountWrites
     } else {
+      console.log('[GARFQ]  Accounts do not match with receipt2, requesting final data')
       signedReceipt = signedReceipt as SignedReceipt
       // request the final accounts and appReceiptData
       let success = false
@@ -7799,6 +7832,7 @@ class TransactionQueue {
       // retry 3 times if the request fails
       while (success === false && count < maxRetry) {
         count++
+        console.log(`[GARFQ]  Attempt ${count} to request final data`)
         const requestedData = await this.requestFinalData(
           queueEntry,
           signedReceipt.proposal.accountIDs,
@@ -7806,6 +7840,7 @@ class TransactionQueue {
           true
         )
         if (requestedData && requestedData.wrappedResponses && requestedData.appReceiptData) {
+          console.log('[GARFQ]  Successfully retrieved final data')
           success = true
           for (const accountId in requestedData.wrappedResponses) {
             finalAccounts.push(requestedData.wrappedResponses[accountId])
@@ -7827,18 +7862,7 @@ class TransactionQueue {
       } as Shardus.AccountsCopy
       accountsToAdd[account.accountId] = accountCopy
     }
-
-    // MIGHT NOT NEED THIS NOW WITH THE POQo RECEIPT REWRITE. NEED TO CONFIRM
-    // if (!globalModification && this.useNewPOQ === false) {
-    //   appliedReceipt = appliedReceipt as AppliedReceipt2
-    //   if (appliedReceipt.appliedVote) {
-    //     delete appliedReceipt.appliedVote.node_id
-    //     delete appliedReceipt.appliedVote.sign
-    //     delete appliedReceipt.confirmOrChallenge
-    //     // Update the app_data_hash with the app_data_hash from the appliedVote
-    //     appliedReceipt.app_data_hash = appliedReceipt.appliedVote.app_data_hash
-    //   }
-    // }
+    console.log('[GARFQ] Final accounts to add:', accountsToAdd)
 
     const archiverReceipt: ArchiverReceipt = {
       tx: {
@@ -7853,6 +7877,7 @@ class TransactionQueue {
       cycle: queueEntry.txGroupCycle,
       globalModification,
     }
+    console.log('[GARFQ] Exiting getArchiverReceiptFromQueueEntry with archiverReceipt:', archiverReceipt)
     return archiverReceipt
   }
 
@@ -7872,9 +7897,12 @@ class TransactionQueue {
   async addReceiptToForward(queueEntry: QueueEntry, debugString = ''): Promise<void> {
     if (logFlags.verbose)
       console.log('addReceiptToForward', queueEntry.acceptedTx.txId, queueEntry.acceptedTx.timestamp, debugString)
+    console.log('[ARTF] Adding receipt to forward', queueEntry.acceptedTx.txId, queueEntry.acceptedTx.timestamp, debugString)
     const archiverReceipt = await this.getArchiverReceiptFromQueueEntry(queueEntry)
+    console.log('[ARTF] Archiver receipt', archiverReceipt)
     Archivers.instantForwardReceipts([archiverReceipt])
     this.receiptsForwardedTimestamp = shardusGetTime()
+    console.log('[ARTF] Receipts forwarded timestamp', this.receiptsForwardedTimestamp)
     this.forwardedReceiptsByTimestamp.set(this.receiptsForwardedTimestamp, archiverReceipt)
     // this.receiptsToForward.push(archiverReceipt)
   }

@@ -1749,23 +1749,29 @@ class TransactionConsenus {
   }
 
   verifyAppliedReceipt(receipt: SignedReceipt, executionGroupNodes: Set<string>): boolean {
+    console.log('[VAP] Verifying applied receipt', receipt)
     if (!receipt.sign) {
       // Missing final sign by aggregator
+      console.log('[VAP] Missing final sign by aggregator')
       return false
     }
 
     if (!executionGroupNodes.has(receipt.sign.owner)) {
       // aggregator not in execution group
+      console.log('[VAP] Aggregator not in execution group')
       return false
     }
 
     if (!this.crypto.verify(receipt as SignedObject, receipt.sign.owner)) {
       // Final aggregator sign is invalid
+      console.log('[VAP] Final aggregator sign is invalid')
       return false
     }
 
     // Remove duplicates signatures
     receipt.signaturePack = removeDuplicateSignatures(receipt.signaturePack)
+    console.log('[VAP] After removing duplicates signatures', receipt.signaturePack.length)
+    console.log('[VAP] The signatures are', receipt.signaturePack)
 
     if (receipt.signaturePack.length !== receipt.voteOffsets.length) {
       // Invalid receipt
@@ -1780,21 +1786,32 @@ class TransactionConsenus {
     }
 
     if (receipt.proposalHash !== this.stateManager.transactionConsensus.calculateVoteHash(receipt.proposal)) {
+      console.log('[VAP] Proposal hash mismatch')
       return false
     }
 
     for (let i = 0; i < receipt.signaturePack.length; i++) {
       const sign = receipt.signaturePack[i]
-      if (!executionGroupNodes.has(sign.owner)) continue
+      console.log('[VAP] Sign', sign)
+      if (!executionGroupNodes.has(sign.owner)) {
+        console.log('[VAP] Sign owner not in execution group')
+        continue
+      } 
       appliedVoteHash.voteTime = receipt.voteOffsets[i]
+      console.log('[VAP] Applied vote hash', appliedVoteHash, 'and vote time', appliedVoteHash.voteTime)
       const signedObject = { ...appliedVoteHash, sign }
+      console.log('[VAP] Signed object', signedObject)
       if (this.crypto.verify(signedObject, sign.owner)) {
+        console.log('[VAP] Signature is valid')
         validSignatures++
+      } else {
+        console.log('[VAP] Signature is invalid')
       }
     }
 
     const totalNodes = Math.max(executionGroupNodes.size, this.config.sharding.nodesPerConsensusGroup)
     const requiredMajority = Math.ceil(totalNodes * this.config.p2p.requiredVotesPercentage)
+    console.log('[VAP] Valid signatures', validSignatures, 'required majority', requiredMajority)
     return validSignatures >= requiredMajority
   }
 
@@ -2239,6 +2256,7 @@ class TransactionConsenus {
     try {
       if (queueEntry.waitForReceiptOnly === true) {
         if (logFlags.debug) this.mainLogger.debug(`tryProduceReceipt ${queueEntry.logID} waitForReceiptOnly === true`)
+        console.log('[TPR]tryProduceReceipt waitForReceiptOnly === true')
         nestedCountersInstance.countEvent(`consensus`, 'tryProduceReceipt waitForReceiptOnly === true')
         return null
       }
@@ -2251,6 +2269,7 @@ class TransactionConsenus {
       if (queueEntry.signedReceipt != null) {
         nestedCountersInstance.countEvent(`consensus`, 'tryProduceReceipt appliedReceipt != null')
         if (logFlags.debug) this.mainLogger.debug(`tryProduceReceipt ${queueEntry.logID} appliedReceipt != null`)
+        console.log('[TPR]tryProduceReceipt appliedReceipt != null')
         return queueEntry.signedReceipt
       }
 
@@ -2259,6 +2278,7 @@ class TransactionConsenus {
           `consensus`,
           'tryProduceReceipt in the middle of robust query confirm or challenge'
         )
+        console.log('[TPR]tryProduceReceipt in the middle of robust query confirm or challenge')
         return null
       }
 
@@ -2267,22 +2287,27 @@ class TransactionConsenus {
 
       if (this.stateManager.transactionQueue.usePOQo === true) {
         votingGroup = queueEntry.executionGroup
+        console.log('[TPR]tryProduceReceipt usePOQo === true')
       } else if (
         this.stateManager.transactionQueue.executeInOneShard &&
         this.stateManager.transactionQueue.useNewPOQ === false
       ) {
         //use execuiton group instead of full transaciton group, since only the execution group will run the transaction
         votingGroup = queueEntry.executionGroup
+        console.log('[TPR]tryProduceReceipt executeInOneShard && useNewPOQ === false')
       } else {
         votingGroup = this.stateManager.transactionQueue.queueEntryGetTransactionGroup(queueEntry)
+        console.log('[TPR]tryProduceReceipt queueEntryGetTransactionGroup')
       }
 
       // if (this.stateManager.transactionQueue.usePOQo === true) {
       if (Math.random() < this.debugFailPOQo) {
+        console.log('[TPR]tryProduceReceipt debug fail no receipt produced')
         nestedCountersInstance.countEvent('poqo', 'debug fail no receipt produced')
         return null
       }
       if (queueEntry.ourVote === undefined) {
+        console.log('[TPR]tryProduceReceipt ourVote === undefined')
         // Cannot produce receipt just yet. Wait further.
         // In V2 of POQo, we may not have to check this.
         // further versions could ask other nodes for proposal blob
@@ -2290,15 +2315,17 @@ class TransactionConsenus {
       }
 
       const majorityCount = Math.ceil(votingGroup.length * this.config.p2p.requiredVotesPercentage)
-
+      console.log('[TPR]tryProduceReceipt majorityCount', majorityCount)
       const numVotes = queueEntry.collectedVoteHashes.length
-
+      console.log('[TPR]tryProduceReceipt numVotes', numVotes)
       if (numVotes < majorityCount) {
         // we need more votes
+        console.log('[TPR]tryProduceReceipt numVotes < majorityCount')
         return null
       }
       // be smart an only recalculate votes when we see a new vote show up.
       if (queueEntry.newVotes === false) {
+        console.log('[TPR]tryProduceReceipt queueEntry.newVotes === false')
         return null
       }
       queueEntry.newVotes = false
@@ -2308,9 +2335,12 @@ class TransactionConsenus {
       for (let i = 0; i < numVotes; i++) {
         // eslint-disable-next-line security/detect-object-injection
         const currentVote = queueEntry.collectedVoteHashes[i]
+        console.log('[TPR]tryProduceReceipt currentVote', currentVote)
         const voteCount = hashCounts.get(currentVote.voteHash) || 0
+        console.log('[TPR]tryProduceReceipt voteCount', voteCount)
         hashCounts.set(currentVote.voteHash, voteCount + 1)
         if (voteCount + 1 > majorityCount) {
+          console.log('[TPR]tryProduceReceipt voteCount + 1 > majorityCount')
           winningVoteHash = currentVote.voteHash
           break
         }
@@ -2321,6 +2351,7 @@ class TransactionConsenus {
         // If not, do not generate a receipt and log it
         // In later versions of POQo, we should get the proposal blob from a winning node
         if (queueEntry.ourVoteHash !== winningVoteHash) {
+          console.log('[TPR]tryProduceReceipt ourVoteHash !== winningVoteHash')
           nestedCountersInstance.countEvent(
             'poqo',
             'My votehash did not match consensed vote hash. Not producing receipt.'
@@ -2342,8 +2373,11 @@ class TransactionConsenus {
           if (currentVote.voteHash === winningVoteHash) {
             receipt.signaturePack.push(currentVote.sign)
             receipt.voteOffsets.push(currentVote.voteTime)
+            console.log('[TPR]tryProduceReceipt currentVote', currentVote, currentVote.voteTime, currentVote.voteHash, currentVote.sign)
+            
           }
         }
+        console.log('[TPR]tryProduceReceipt receipt', receipt, receipt.signaturePack, receipt.voteOffsets)
         const signedReceipt: SignedReceipt = this.crypto.sign(receipt)
         // now send it !!!
 
@@ -2388,6 +2422,7 @@ class TransactionConsenus {
         // it is still important to gossip this receipt so and move forward so we can remove it from the queue.
         // This means we dont want to panic on a missing preApplyTXResult
         if (queueEntry.preApplyTXResult != null && queueEntry.preApplyTXResult.applyResponse != null) {
+          console.log('[TPR]tryProduceReceipt queueEntry.preApplyTXResult != null && queueEntry.preApplyTXResult.applyResponse != null')
           // Corresponding tell of receipt+data to entire transaction group
           this.stateManager.transactionQueue.factTellCorrespondingNodesFinalData(queueEntry)
         } else {
@@ -2395,13 +2430,15 @@ class TransactionConsenus {
           // as this may be an error condition to look out for
           // note: appliedReceipt2.result comes from queueEntry.ourVote.transaction_result which comes from PreApplyAcceptedTransactionResult.passed
           // it will be false if the apply funciton throws an error to signal that it was not possible apply
-
+          console.log('[TPR]tryProduceReceipt signedReceipt.proposal.applied', signedReceipt.proposal.applied)
           if (signedReceipt.proposal.applied === true) {
             // if we have a receipt with a positive result we should not have a null preApplyTXResult
             /* prettier-ignore */ nestedCountersInstance.countEvent('poqo', `error: unexpected preApplyTXResult == null while result === true.  preApplyTXResult:${queueEntry.preApplyTXResult != null} applyResponse:${queueEntry.preApplyTXResult?.applyResponse != null}`)
             /* prettier-ignore */ if (logFlags.error) this.mainLogger.error(`error: unexpected preApplyTXResult == null while result === true ${queueEntry.logID}   preApplyTXResult:${queueEntry.preApplyTXResult != null}  applyResponse:${queueEntry.preApplyTXResult?.applyResponse != null}`)
+            console.log('[TPR]tryProduceReceipt error: unexpected preApplyTXResult == null while result === true')
           } else {
             /* prettier-ignore */ nestedCountersInstance.countEvent('poqo', `expected skip fact tell preApplyTXResult == null while result === false.  preApplyTXResult:${queueEntry.preApplyTXResult != null}  applyResponse:${queueEntry.preApplyTXResult?.applyResponse != null}`)
+            console.log('[TPR]tryProduceReceipt expected skip fact tell preApplyTXResult == null while result === false')
           }
         }
         // Kick off receipt-gossip
@@ -2418,6 +2455,7 @@ class TransactionConsenus {
           '',
           true
         )
+        console.log('[TPR]tryProduceReceipt signedReceipt', signedReceipt)
         return signedReceipt
       }
       // } else if (this.stateManager.transactionQueue.useNewPOQ === false) {
@@ -2841,6 +2879,7 @@ class TransactionConsenus {
       //       )
       //   }
       // }
+      console.log('[TPR]tryProduceReceipt exiting tryProduceReceipt and returning null')
       return null
     } catch (e) {
       //if (logFlags.error) this.mainLogger.error(`tryProduceReceipt: error ${queueEntry.logID} error: ${e.message}`)
