@@ -1167,7 +1167,7 @@ class TransactionConsenus {
           return
         }
 
-        queueEntry.signedReceipt = payload
+        queueEntry.signedReceipt = { ...payload }
         payload.txGroupCycle = queueEntry.txGroupCycle
         Comms.sendGossip(
           'poqo-receipt-gossip',
