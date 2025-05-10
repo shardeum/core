@@ -7653,7 +7653,15 @@ class TransactionQueue {
   }
 
   async getArchiverReceiptFromQueueEntry(queueEntry: QueueEntry): Promise<ArchiverReceipt> {
-    if (!queueEntry.preApplyTXResult || !queueEntry.preApplyTXResult.applyResponse) return null as ArchiverReceipt
+    if (!queueEntry.preApplyTXResult || !queueEntry.preApplyTXResult.applyResponse) {
+      if (logFlags.verbose)
+        console.log('getArchiverReceiptFromQueueEntry : no preApplyTXResult or applyResponse, returning null receipt')
+      nestedCountersInstance.countEvent(
+        'stateManager',
+        'getArchiverReceiptFromQueueEntry no preApplyTXResult or applyResponse'
+      )
+      return null as ArchiverReceipt
+    }
 
     const txId = queueEntry.acceptedTx.txId
     const timestamp = queueEntry.acceptedTx.timestamp
@@ -7662,8 +7670,46 @@ class TransactionQueue {
     let signedReceipt = null as SignedReceipt | P2PTypes.GlobalAccountsTypes.GlobalTxReceipt
     if (globalModification) {
       signedReceipt = getGlobalTxReceipt(queueEntry.acceptedTx.txId) as P2PTypes.GlobalAccountsTypes.GlobalTxReceipt
+
+      if (logFlags.important_as_error) {
+        console.log('getArchiverReceiptFromQueueEntry : globalModification signedReceipt txid', txId)
+        console.log(
+          'getArchiverReceiptFromQueueEntry : globalModification signedReceipt signs',
+          txId,
+          Utils.safeStringify(signedReceipt.signs)
+        )
+        console.log(
+          'getArchiverReceiptFromQueueEntry : globalModification signedReceipt tx',
+          txId,
+          Utils.safeStringify(signedReceipt.tx)
+        )
+      }
     } else {
       signedReceipt = this.stateManager.getSignedReceipt(queueEntry) as SignedReceipt
+
+      if (logFlags.important_as_error) {
+        console.log('getArchiverReceiptFromQueueEntry : nonGlobal signedReceipt txid', txId)
+        console.log(
+          'getArchiverReceiptFromQueueEntry : nonGlobal signedReceipt proposal',
+          txId,
+          Utils.safeStringify(signedReceipt.proposal)
+        )
+        console.log(
+          'getArchiverReceiptFromQueueEntry : nonGlobal signedReceipt proposalHash',
+          txId,
+          Utils.safeStringify(signedReceipt.proposalHash)
+        )
+        console.log(
+          'getArchiverReceiptFromQueueEntry : nonGlobal signedReceipt signaturePack',
+          txId,
+          Utils.safeStringify(signedReceipt.signaturePack)
+        )
+        console.log(
+          'getArchiverReceiptFromQueueEntry : nonGlobal signedReceipt voteOffsets',
+          txId,
+          Utils.safeStringify(signedReceipt.voteOffsets)
+        )
+      }
     }
     if (!signedReceipt) {
       nestedCountersInstance.countEvent('stateManager', 'getArchiverReceiptFromQueueEntry no signedReceipt')
@@ -7853,6 +7899,15 @@ class TransactionQueue {
       cycle: queueEntry.txGroupCycle,
       globalModification,
     }
+    if (logFlags.important_as_error) {
+      console.log('getArchiverReceiptFromQueueEntry : archiverReceipt', txId, Utils.safeStringify(archiverReceipt))
+      console.log(
+        'getArchiverReceiptFromQueueEntry : originalTxData object',
+        txId,
+        Utils.safeStringify(archiverReceipt.tx.originalTxData)
+      )
+    }
+
     return archiverReceipt
   }
 
