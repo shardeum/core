@@ -184,7 +184,7 @@ export interface App {
 
   /**
    * Checks if the incoming transaction needs limits on destination address usage
-   * 
+   *
    * Returns a boolean value indicaing the same
    */
   isDestLimitTx(tx: OpaqueTransaction): boolean
@@ -195,7 +195,6 @@ export interface App {
    * Returns a boolean value indicaing the same
    */
   isInternalTx(tx: OpaqueTransaction): boolean
-
 
   /**
    * Checks if the incoming transaction is a multi-sig foundation transaction or not

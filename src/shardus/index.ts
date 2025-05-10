@@ -1520,7 +1520,7 @@ class Shardus extends EventEmitter {
       //Skip load rejection according to the app
       const isMultiSigFoundationTx = this.app.isMultiSigFoundationTx(tx)
       if (isMultiSigFoundationTx) {
-        //dont rate limit multisig txs 
+        //dont rate limit multisig txs
         nestedCountersInstance.countEvent('loadRelated', 'permitting foundation tx')
       } else {
         /* prettier-ignore */ if (logFlags.seqdiagram) this.seqLogger.info(`0x53455106 ${shardusGetTime()} tx:${txId} Note over ${activeIdToPartition.get(Self.id)}: reject_overload`)
@@ -2554,7 +2554,6 @@ class Shardus extends EventEmitter {
       } else {
         applicationInterfaceImpl.isMultiSigFoundationTx = (tx) => false
       }
-      
 
       if (typeof application.validate === 'function') {
         applicationInterfaceImpl.validate = (inTx, appData) => application.validate(inTx, appData)
