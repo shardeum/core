@@ -1485,7 +1485,7 @@ function validateJoinRequestTimestamp(joinRequestTimestamp: number): JoinRequest
   //TODO - figure out why joinRequest is send with previous cycle marker instead of current cycle marker
   /*
    CONTEXT: when node create join request the cycleMarker is (current - 1).
-   The reason join request didn't use current cycleMarker is most likely the the current cycle is potential not agreed upon yet.
+   The reason join request didn't use current cycleMarker is most likely the current cycle is potential not agreed upon yet.
    but the joinRequestTimestamp is Date.now
    so checking if the timestamp is within its cycleMarker is gurantee to fail
    let request cycle marker be X, then X+1 is current cycle, then we check if the timestamp is in the current cycleMarker

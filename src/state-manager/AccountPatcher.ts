@@ -4085,7 +4085,7 @@ class AccountPatcher {
 
         /* prettier-ignore */ nestedCountersInstance.countEvent(`accountPatcher`, `inSync again. ${Utils.safeStringify(this.syncFailHistory[this.syncFailHistory.length -1])}`)
 
-        //this is not really a fatal log so should be removed eventually. is is somewhat usefull context though when debugging.
+        //this is not really a fatal log so should be removed eventually. is somewhat usefull context though when debugging.
         this.statemanager_fatal(`inSync again`, Utils.safeStringify(this.syncFailHistory))
       }
     }

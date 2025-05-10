@@ -1232,7 +1232,7 @@ async function isDownCheck(node) {
         /* prettier-ignore */ nestedCountersInstance.countEvent('p2p', 'isDownCheck-down-1', 1)
         return 'down'
       }
-      //adding this check so that a node can repond that is is down. aka, realizes it is not funcitonal and wants to be removed from the network
+      //adding this check so that a node can repond that is down. aka, realizes it is not funcitonal and wants to be removed from the network
       if (res.s === nodeDownString) {
         /* prettier-ignore */ nestedCountersInstance.countEvent('p2p', 'isDownCheck-down-self-reported-zombie', 1)
         return 'down'

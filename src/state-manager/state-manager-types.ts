@@ -1069,7 +1069,7 @@ export type AccountHashCache = {
 
 /**
  * History for a single account
- * Recent history, and a index to to the last list it was written to
+ * Recent history, and a index to the last list it was written to
  */
 export type AccountHashCacheHistory = {
   lastSeenCycle: number

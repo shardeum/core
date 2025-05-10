@@ -5747,7 +5747,7 @@ class TransactionQueue {
 
             // For normal didSync===false TXs we are expiring them after M3*2
             //     This gives a bit of room to attempt a repair.
-            //     if a repair or reciept process fails there are cases below to expire the the
+            //     if a repair or reciept process fails there are cases below to expire the
             //     tx as early as time > M3
             if (txAge > timeM3 * 2 && queueEntry.didSync == false) {
               //this.statistics.incrementCounter('txExpired')
@@ -6511,7 +6511,7 @@ class TransactionQueue {
                 // 7.  Manually request missing state
                 try {
                   nestedCountersInstance.countEvent('processing', 'data missing at t>M2. request data')
-                  // Await note: current thinking is that is is best to not await this call.
+                  // Await note: current thinking is that is best to not await this call.
                   this.queueEntryRequestMissingData(queueEntry)
                 } catch (ex) {
                   /* prettier-ignore */ if (logFlags.debug) this.mainLogger.debug('processAcceptedTxQueue2 queueEntryRequestMissingData:' + ex.name + ': ' + ex.message + ' at ' + ex.stack)
