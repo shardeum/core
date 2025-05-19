@@ -1164,6 +1164,25 @@ class Shardus extends EventEmitter {
 
     // Ask App to crack open tx and return timestamp, id (hash), and keys
     const { timestamp, id, keys, shardusMemoryPatterns } = this.app.crack(timestampedTx, appData)
+
+    const uniqueTags = this.app.getUniqueAppTags?.(tx)
+    if (uniqueTags && Object.keys(uniqueTags).length > 0) {
+      const existingEntry = this.stateManager.transactionQueue.findEntryWithAnyTag(uniqueTags)
+      if (existingEntry) {
+        if (logFlags.debug) {
+          this.mainLogger.debug(
+            `Transaction rejected - unique app tag already in use by tx: ${existingEntry.acceptedTx.txId}`
+          )
+        }
+        nestedCountersInstance.countEvent('rejected', 'duplicateUniqueAppTag')
+        return {
+          success: false,
+          reason: 'Transaction contains a unique app tag that is already in use',
+          status: 400,
+        }
+      }
+    }
+
     // console.log('app.crack results', timestamp, id, keys)
 
     if (this.config.stateManager.checkDestLimits) {
@@ -3004,6 +3023,10 @@ class Shardus extends EventEmitter {
         applicationInterfaceImpl.isNGT = (tx) => application.isNGT(tx)
       }
 
+      if (typeof application.getUniqueAppTags === 'function') {
+        applicationInterfaceImpl.getUniqueAppTags = (tx) => application.getUniqueAppTags(tx)
+      }
+
       if (typeof application.verifyAppJoinData === 'function') {
         applicationInterfaceImpl.verifyAppJoinData = (data) => application.verifyAppJoinData(data)
       }
@@ -3538,6 +3561,23 @@ class Shardus extends EventEmitter {
 
   isOnStandbyList(publicKey: string): boolean {
     return JoinV2.isOnStandbyList(publicKey)
+  }
+
+  isTxInQueue(txId: string): boolean {
+    if (!txId) {
+      nestedCountersInstance.countEvent('txQueue', 'checkTxEmpty')
+      return false
+    }
+
+    const queueEntry = this.stateManager?.transactionQueue.getQueueEntry(txId)
+    const exists = queueEntry !== null
+
+    if (logFlags.debug) {
+      this.mainLogger.debug(`isTxInQueue check for tx:${txId} exists:${exists}`)
+    }
+
+    nestedCountersInstance.countEvent('txQueue', exists ? 'txFound' : 'txNotFound')
+    return exists
   }
 }
 

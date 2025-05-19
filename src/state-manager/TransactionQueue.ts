@@ -1935,6 +1935,7 @@ class TransactionQueue {
         eligibleNodeIdsToConfirm: new Set(),
         eligibleNodeIdsToVote: new Set(),
         acceptedTx: acceptedTx,
+        uniqueTags: this.app.getUniqueAppTags?.(acceptedTx.data.tx),
         txKeys: keysResponse,
         executionShardKey: null,
         isInExecutionHome: true,
@@ -8905,6 +8906,30 @@ class TransactionQueue {
       }
     }
     return count
+  }
+
+  findEntryWithAnyTag(tags: { [key: string]: string }): QueueEntry | null {
+    for (const entry of this.pendingTransactionQueue) {
+      if (entry.uniqueTags) {
+        for (const [key, value] of Object.entries(tags)) {
+          if (entry.uniqueTags[key] === value) {
+            return entry
+          }
+        }
+      }
+    }
+
+    for (const entry of this._transactionQueue) {
+      if (entry.uniqueTags) {
+        for (const [key, value] of Object.entries(tags)) {
+          if (entry.uniqueTags[key] === value) {
+            return entry
+          }
+        }
+      }
+    }
+
+    return null
   }
 
   clearQueueItems(minAge: number): number {
