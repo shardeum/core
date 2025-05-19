@@ -8908,13 +8908,14 @@ class TransactionQueue {
     return count
   }
 
-  findEntryWithAnyTag(tags: { [key: string]: string }): QueueEntry | null {
+  findEntryWithAnyTag(tags: { [key: string]: string }): { entry: QueueEntry; matchedKey: string } | null {
     const tagEntries = Object.entries(tags)
+
     for (const entry of this.pendingTransactionQueue) {
       if (entry.uniqueTags) {
         for (const [key, value] of tagEntries) {
           if (value && entry.uniqueTags[key] === value) {
-            return entry
+            return { entry, matchedKey: key }
           }
         }
       }
@@ -8924,7 +8925,7 @@ class TransactionQueue {
       if (entry.uniqueTags) {
         for (const [key, value] of tagEntries) {
           if (value && entry.uniqueTags[key] === value) {
-            return entry
+            return { entry, matchedKey: key }
           }
         }
       }
