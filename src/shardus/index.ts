@@ -1167,17 +1167,20 @@ class Shardus extends EventEmitter {
 
     const uniqueTags = this.app.getUniqueAppTags?.(tx)
     if (uniqueTags && Object.keys(uniqueTags).length > 0) {
-      const existingEntry = this.stateManager.transactionQueue.findEntryWithAnyTag(uniqueTags)
-      if (existingEntry) {
-        if (logFlags.debug) {
+      const result = this.stateManager.transactionQueue.findEntryWithAnyTag(uniqueTags)
+      if (result) {
+        const { entry: existingEntry, matchedKey } = result
+
+        if (logFlags.important_as_error) {
           this.mainLogger.debug(
-            `Transaction rejected - unique app tag already in use by tx: ${existingEntry.acceptedTx.txId}`
+            `Transaction rejected - unique app tag key ${matchedKey} already in use by tx: ${existingEntry.acceptedTx.txId}`
           )
         }
+
         nestedCountersInstance.countEvent('rejected', 'duplicateUniqueAppTag')
         return {
           success: false,
-          reason: 'Transaction contains a unique app tag that is already in use',
+          reason: `Transaction contains a unique app tag ("${matchedKey}") that is already in use`,
           status: 400,
         }
       }
