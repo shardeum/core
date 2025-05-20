@@ -40,6 +40,8 @@ export type QueueEntry = {
   eligibleNodeIdsToVote: Set<string>
   eligibleNodeIdsToConfirm: Set<string>
   acceptedTx: Shardus.AcceptedTx
+  uniqueTags?: { [key: string]: string } | null
+
   txKeys: Shardus.TransactionKeys
   /** This is data that is collected or loaded locally before it attemps to call apply() */
   collectedData: WrappedResponses
