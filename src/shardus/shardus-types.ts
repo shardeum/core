@@ -390,6 +390,7 @@ export interface App {
   ) => boolean
   isNGT(acceptedTx: OpaqueTransaction): boolean
   verifyAppJoinData?: (data: unknown) => string[] | null
+  getUniqueAppTags?: (tx: OpaqueTransaction) => { [key: string]: string } | null | undefined
 }
 
 export interface TransactionKeys {
