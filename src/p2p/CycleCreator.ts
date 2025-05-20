@@ -48,6 +48,7 @@ import { nodeListFromStates } from './Join'
 import { AJVSchemaEnum } from '../types/enum/AJVSchemaEnum'
 import { log } from 'console'
 import { Utils as UtilsTypes } from '@shardeum-foundation/lib-types'
+import * as JoinV2 from '../p2p/Join/v2'
 
 /** CONSTANTS */
 
@@ -755,9 +756,9 @@ function makeCycleRecord(
     lostSyncing: [],
     refuted: [],
     apoptosized: [],
-    nodeListHash: '',
-    archiverListHash: '',
-    standbyNodeListHash: '',
+    nodeListHash: NodeList.computeNewNodeListHash(),
+    archiverListHash: Archivers.computeNewArchiverListHash(),
+    standbyNodeListHash: JoinV2.computeNewStandbyListHash(),
     random: config.debug.randomCycleData ? Math.floor(Math.random() * 1000) + 1 : 0,
     txadd: [],
     txremove: [],
