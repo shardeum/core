@@ -53,7 +53,7 @@ jobs:
       pull-requests: write
       contents: write
     with:
-      node-version: ${{ vars.NODE_VERSION }}
+      node-version: 20
       lint-required: ${{ vars.IS_LINT_REQUIRED == 'true' }}
       format-check-required: ${{ vars.IS_FORMAT_CHECK_REQUIRED == 'true' }}
       apply-patches-required: ${{ vars.IS_APPLY_PATCHES_REQUIRED == 'true' }}
@@ -68,7 +68,7 @@ jobs:
       pull-requests: write
       contents: write
     with:
-      node-version: ${{ vars.NODE_VERSION }}
+      node-version: 20
       lint-required: ${{ vars.IS_LINT_REQUIRED == 'true' }}
       format-check-required: ${{ vars.IS_FORMAT_CHECK_REQUIRED == 'true' }}
       apply-patches-required: ${{ vars.IS_APPLY_PATCHES_REQUIRED == 'true' }}
