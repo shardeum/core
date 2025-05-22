@@ -24,6 +24,16 @@ import { Utils } from '@shardeum-foundation/lib-types'
 import { finishedSyncingCycle } from '../p2p/Join'
 import { currentCycle } from '../p2p/CycleCreator'
 import process from 'process'
+import { safetyModeVals } from '../snapshot'
+import type {
+  JoinReportPayload,
+  JoinedReportPayload,
+  ActiveReportPayload,
+  SyncStatementPayload,
+  RemovedReportPayload,
+  HeartbeatReportData,
+  HeartbeatReportPayload,
+} from './reporter-types'
 
 const http = require('../http')
 const allZeroes64 = '0'.repeat(64)
@@ -103,73 +113,78 @@ class Reporter {
     this.statisticsReport.txProcessed += this.statistics ? this.statistics.getPreviousElement('txProcessed') : 0
   }
 
-  async reportJoining(publicKey) {
+  async reportJoining(publicKey: string): Promise<void> {
     if (!this.hasRecipient) {
       return
     }
     try {
       const nodeIpInfo = ipInfo
       const appData = this.getAppData()
-      await http.post(`${this.config.recipient}/joining`, {
+      const payload: JoinReportPayload = {
         publicKey,
         nodeIpInfo,
         appData,
-      })
+      }
+      await http.post(`${this.config.recipient}/joining`, payload)
     } catch (e) {
       if (logFlags.error) this.mainLogger.error('reportJoining: ' + e.name + ': ' + e.message + ' at ' + e.stack)
       console.error(e)
     }
   }
 
-  async reportJoined(nodeId, publicKey) {
+  async reportJoined(nodeId: string, publicKey: string): Promise<void> {
     if (!this.hasRecipient) {
       return
     }
     try {
       const nodeIpInfo = ipInfo
       const appData = this.getAppData()
-      await http.post(`${this.config.recipient}/joined`, {
+      const payload: JoinedReportPayload = {
         publicKey,
         nodeId,
         nodeIpInfo,
         appData,
-      })
+      }
+      await http.post(`${this.config.recipient}/joined`, payload)
     } catch (e) {
       if (logFlags.error) this.mainLogger.error('reportJoined: ' + e.name + ': ' + e.message + ' at ' + e.stack)
       console.error(e)
     }
   }
 
-  async reportActive(nodeId) {
+  async reportActive(nodeId: string): Promise<void> {
     if (!this.hasRecipient) {
       return
     }
     try {
-      await http.post(`${this.config.recipient}/active`, { nodeId })
+      const payload: ActiveReportPayload = { nodeId }
+      await http.post(`${this.config.recipient}/active`, payload)
     } catch (e) {
       if (logFlags.error) this.mainLogger.error('reportActive: ' + e.name + ': ' + e.message + ' at ' + e.stack)
       console.error(e)
     }
   }
 
-  async reportSyncStatement(nodeId, syncStatement) {
+  async reportSyncStatement(nodeId: string, syncStatement: unknown): Promise<void> {
     if (!this.hasRecipient) {
       return
     }
     try {
-      await http.post(`${this.config.recipient}/sync-statement`, { nodeId, syncStatement })
+      const payload: SyncStatementPayload = { nodeId, syncStatement }
+      await http.post(`${this.config.recipient}/sync-statement`, payload)
     } catch (e) {
       if (logFlags.error) this.mainLogger.error('reportSyncStatement: ' + e.name + ': ' + e.message + ' at ' + e.stack)
       console.error(e)
     }
   }
 
-  async reportRemoved(nodeId) {
+  async reportRemoved(nodeId: string): Promise<void> {
     if (!this.hasRecipient) {
       return
     }
     try {
-      await http.post(`${this.config.recipient}/removed`, { nodeId })
+      const payload: RemovedReportPayload = { nodeId }
+      await http.post(`${this.config.recipient}/removed`, payload)
     } catch (e) {
       if (logFlags.error) this.mainLogger.error('reportRemoved: ' + e.name + ': ' + e.message + ' at ' + e.stack)
       console.error(e)
@@ -180,7 +195,7 @@ class Reporter {
   }
 
   // Sends a report
-  async _sendReport(data) {
+  async _sendReport(data: HeartbeatReportData): Promise<void> {
     if (logFlags.debug)
       this.mainLogger.debug(
         Utils.safeStringify({ method: '_sendReport', script: 'reporter/index', hasRecipient: this.hasRecipient })
@@ -192,7 +207,7 @@ class Reporter {
     if (logFlags.debug)
       this.mainLogger.debug(Utils.safeStringify({ method: '_sendReport', script: 'reporter/index', nodeId: nodeId }))
     if (!nodeId) throw new Error('No node ID available to the Reporter module.')
-    const report = {
+    const report: HeartbeatReportPayload = {
       nodeId,
       data,
     }
@@ -247,7 +262,7 @@ class Reporter {
     return false
   }
 
-  async report() {
+  async report(): Promise<void> {
     /*
     Stop calling getAccountsStateHash() since this is not of use in a sharded network, also expensive to compute.
       let appState = this.stateManager
@@ -262,7 +277,7 @@ class Reporter {
       this.restartReportInterval()
       return
     }
-    let appState = allZeroes64 // monititor server will set color based on partition report
+    let appState = safetyModeVals.networkStateHash || allZeroes64
     const cycleMarker = CycleChain.newest.previous || '' // [TODO] Replace with cycle creator
     const cycleCounter = CycleChain.newest.counter
     const networkId = CycleChain.newest.networkId
@@ -301,8 +316,10 @@ class Reporter {
 
       repairsStarted = this.stateManager.dataRepairsStarted
       repairsFinished = this.stateManager.dataRepairsCompleted
-      // Hack to code a green or red color for app state:
-      appState = globalSync ? '00ff00ff' : 'ff0000ff'
+      if (!safetyModeVals.networkStateHash) {
+        // fallback to color code when network state hash is unavailable
+        appState = globalSync ? '00ff00ff' : 'ff0000ff'
+      }
     }
 
     let partitions = 0
@@ -350,7 +367,7 @@ class Reporter {
     const lastInSyncResult = this.stateManager.accountPatcher.lastInSyncResult
 
     try {
-      await this._sendReport({
+      const payload: HeartbeatReportData = {
         repairsStarted,
         repairsFinished,
         isDataSynced,
@@ -396,7 +413,8 @@ class Reporter {
         cycleFinishedSyncing,
         stillNeedsInitialPatchPostActive,
         memory: process.memoryUsage(),
-      })
+      }
+      await this._sendReport(payload)
       if (this.stateManager != null && config.mode === 'debug' && !config.debug.disableTxCoverageReport) {
         this.stateManager.transactionQueue.resetTxCoverageMap()
       }
