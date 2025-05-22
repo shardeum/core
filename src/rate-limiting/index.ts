@@ -86,7 +86,11 @@ class RateLimiting {
           queueLoad.executeQueueLength
         }`
       )
-      nestedCountersInstance.countEvent('loadRelated', 'txRejected:' + loadType)
+      if (Context.shardus && typeof Context.shardus.monitorEvent === 'function') {
+        Context.shardus.monitorEvent('loadRelated', 'txRejected:' + loadType, 1, '')
+      } else {
+        nestedCountersInstance.countEvent('loadRelated', 'txRejected:' + loadType)
+      }
     }
 
     return overloaded
