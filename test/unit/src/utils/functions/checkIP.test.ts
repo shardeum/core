@@ -21,6 +21,15 @@ describe('isIPv6', () => {
     expect(isIPv6('2001:0db8:85g3:0000:0000:8a2e:0370:7334')).toBe(false) // 'g' is not a valid hex character
   })
 
+  test('should validate individual IPv6 segments', () => {
+    // Segment with one hex digit should be valid
+    expect(isIPv6('2001:db8:85a3:0:0:8a2e:7:1')).toBe(true)
+    // Empty segment should be invalid
+    expect(isIPv6('2001:db8:85a3:0:0:8a2e:7:')).toBe(false)
+    // Segment longer than four characters should be invalid
+    expect(isIPv6('2001:db8:85a3:00000:0:8a2e:7:1')).toBe(false)
+  })
+
   test('should return false for IPv4 addresses', () => {
     expect(isIPv6('192.168.1.1')).toBe(false)
     expect(isIPv6('127.0.0.1')).toBe(false)
@@ -273,8 +282,7 @@ describe('Implementation-specific edge cases', () => {
   })
 
   test('isIPv6 should check segment length correctly', () => {
-    // The current implementation has a bug: str.length < 0 is always false
-    // Let's test empty segments to ensure they're handled correctly
+    // Ensure empty segments are rejected
     expect(isIPv6('2001:0db8:85a3:0000:0000:8a2e:0370:')).toBe(false)
     expect(isIPv6('2001:0db8:85a3:0000:0000:8a2e::7334')).toBe(false)
     expect(isIPv6('2001:0db8:85a3:0000:0000:8a2e:::')).toBe(false)
@@ -319,9 +327,8 @@ describe('Implementation-specific edge cases', () => {
 })
 
 describe('Potential implementation bugs', () => {
-  test('isIPv6 should correctly handle the str.length < 0 condition', () => {
-    // The condition str.length < 0 in isIPv6 is always false since string length can't be negative
-    // This test is to document this potential issue
+  test('isIPv6 should correctly handle empty segments', () => {
+    // Empty segments should cause validation to fail
     expect(isIPv6('2001:0db8:85a3:0000:0000:8a2e:0370:7334')).toBe(true)
     expect(isIPv6('2001:0db8:85a3:0000:0000:8a2e:0370:')).toBe(false) // Empty segment
     expect(isIPv6('2001:0db8:85a3:0000:0000:8a2e::7334')).toBe(false) // Empty segment
