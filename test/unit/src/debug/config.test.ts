@@ -1,5 +1,5 @@
 import SERVER_CONFIG from '../../../../src/config/server'
-import { setConfig } from '../../../../src/p2p/Context'
+import { setConfig, getConfig, isNonceMode } from '../../../../src/p2p/Context'
 import { ServerMode, StrictServerConfiguration } from '../../../../src/shardus/shardus-types'
 import { DebugConfigurations, isDebugMode, isDebugModeAnd } from '../../../../src/debug/index'
 
@@ -106,4 +106,27 @@ test('debug > isDebugModeAnd > Should return true if predicate is false', () => 
   const result = isDebugModeAnd(() => false)
 
   expect(result).toEqual(false)
+})
+
+test('context > setConfig/getConfig > nonceMode propagates correctly', () => {
+  const config = { ...SERVER_CONFIG, nonceMode: false }
+
+  setConfig(config as StrictServerConfiguration)
+
+  const updated = getConfig()
+
+  expect(updated?.nonceMode).toBe(false)
+})
+
+test('context > isNonceMode > reflects config changes', () => {
+  const config = { ...SERVER_CONFIG, nonceMode: true }
+
+  setConfig(config as StrictServerConfiguration)
+
+  expect(isNonceMode()).toBe(true)
+
+  config.nonceMode = false
+  setConfig(config as StrictServerConfiguration)
+
+  expect(isNonceMode()).toBe(false)
 })

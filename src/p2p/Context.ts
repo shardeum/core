@@ -63,6 +63,14 @@ export function setConfig(conf: ShardusTypes.StrictServerConfiguration) {
   config = conf
 }
 
+export function getConfig(): ShardusTypes.StrictServerConfiguration | undefined {
+  return config
+}
+
+export function isNonceMode(): boolean {
+  return !!config?.nonceMode
+}
+
 export function setDefaultConfigs(conf) {
   defaultConfigs = conf
 }
