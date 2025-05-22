@@ -7,6 +7,10 @@ describe('isIPv6', () => {
     expect(isIPv6('2001:db8:0:0:1:0:0:1')).toBe(true)
     expect(isIPv6('ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff')).toBe(true)
     expect(isIPv6('0000:0000:0000:0000:0000:0000:0000:0000')).toBe(true)
+    // Compressed forms
+    expect(isIPv6('2001:db8::1')).toBe(true)
+    expect(isIPv6('::1')).toBe(true)
+    expect(isIPv6('::')).toBe(true)
   })
 
   test('should return false for invalid IPv6 addresses with wrong segment count', () => {
@@ -118,8 +122,8 @@ describe('isInvalidIP', () => {
 // Test edge cases for all functions
 describe('Edge cases', () => {
   test('isIPv6 edge cases', () => {
-    // Empty segments
-    expect(isIPv6('2001:db8::1:0:0:1')).toBe(false) // Contains :: notation which is not handled by current implementation
+    // Compressed notation
+    expect(isIPv6('2001:db8::1:0:0:1')).toBe(true)
 
     // Zero-length segments
     expect(isIPv6('2001:0db8:85a3:0000:0000:8a2e:0370:')).toBe(false)
@@ -264,19 +268,15 @@ describe('Comprehensive boundary testing', () => {
 })
 
 describe('Implementation-specific edge cases', () => {
-  test('isIPv6 should handle empty string segments correctly', () => {
-    // The current implementation doesn't handle IPv6 compression (::)
-    // but we should test that it fails gracefully
-    expect(isIPv6('2001:db8::1')).toBe(false)
-    expect(isIPv6('::1')).toBe(false)
-    expect(isIPv6('::')).toBe(false)
+  test('isIPv6 should handle IPv6 compression correctly', () => {
+    expect(isIPv6('2001:db8::1')).toBe(true)
+    expect(isIPv6('::1')).toBe(true)
+    expect(isIPv6('::')).toBe(true)
   })
 
   test('isIPv6 should check segment length correctly', () => {
-    // The current implementation has a bug: str.length < 0 is always false
-    // Let's test empty segments to ensure they're handled correctly
     expect(isIPv6('2001:0db8:85a3:0000:0000:8a2e:0370:')).toBe(false)
-    expect(isIPv6('2001:0db8:85a3:0000:0000:8a2e::7334')).toBe(false)
+    expect(isIPv6('2001:0db8:85a3:0000:0000:8a2e::7334')).toBe(true)
     expect(isIPv6('2001:0db8:85a3:0000:0000:8a2e:::')).toBe(false)
 
     // Test with segments that are exactly 4 characters (maximum allowed)
@@ -324,7 +324,7 @@ describe('Potential implementation bugs', () => {
     // This test is to document this potential issue
     expect(isIPv6('2001:0db8:85a3:0000:0000:8a2e:0370:7334')).toBe(true)
     expect(isIPv6('2001:0db8:85a3:0000:0000:8a2e:0370:')).toBe(false) // Empty segment
-    expect(isIPv6('2001:0db8:85a3:0000:0000:8a2e::7334')).toBe(false) // Empty segment
+    expect(isIPv6('2001:0db8:85a3:0000:0000:8a2e::7334')).toBe(true)
   })
 
   test('getIpArr should correctly handle the num.toString() !== number check', () => {
