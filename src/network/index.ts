@@ -27,6 +27,10 @@ export interface IPInfo {
   internalIp: string
   externalPort: number
   externalIp: string
+  /** Optional IP/interface to bind the external server */
+  externalBindIp?: string
+  /** Optional IP/interface to bind the internal server */
+  internalBindIp?: string
 }
 
 /** STATE */
@@ -130,7 +134,7 @@ export class NetworkClass extends EventEmitter {
     next()
   }
 
-  // TODO: Allow for binding to a specified network interface
+  // Bind external server to configured interface if provided
   _setupExternal() {
     return new Promise((resolve, reject) => {
       const self = this
@@ -163,11 +167,15 @@ export class NetworkClass extends EventEmitter {
         })
       })
 
-      this.extServer = this.app.listen(this.ipInfo.externalPort, () => {
-        const msg = `External server running on port ${this.ipInfo.externalPort}...`
-        console.log(msg)
-        this.mainLogger.info('Network: ' + msg)
-      })
+      this.extServer = this.app.listen(
+        this.ipInfo.externalPort,
+        this.ipInfo.externalBindIp,
+        () => {
+          const msg = `External server running on port ${this.ipInfo.externalPort}...`
+          console.log(msg)
+          this.mainLogger.info('Network: ' + msg)
+        }
+      )
       this.extServer.setTimeout(config.network.timeout * 1000)
 
       this.io = require('socket.io')(this.extServer)
@@ -175,10 +183,11 @@ export class NetworkClass extends EventEmitter {
     })
   }
 
-  // TODO: Allow for binding to a specified network interface
+  // Bind internal server to configured interface if provided
   async _setupInternal() {
     this.sn = Sn({
       port: this.ipInfo.internalPort,
+      address: this.ipInfo.internalBindIp,
       senderOpts: {
         useLruCache: this.useLruCacheForSocketMgmt,
         lruSize: this.lruCacheSizeForSocketMgmt,
@@ -686,11 +695,16 @@ export async function init() {
     (config.ip.internalPort === 'auto' ? await getNextExternalPort(internalIp) : config.ip.internalPort) ||
     defaults['internalPort']
 
+  const externalBindIp = config.ip.externalBindIp || defaults['externalBindIp']
+  const internalBindIp = config.ip.internalBindIp || defaults['internalBindIp']
+
   ipInfo = {
     externalIp,
     externalPort,
     internalIp,
     internalPort,
+    externalBindIp,
+    internalBindIp,
   }
 
   if (logFlags.info) {

@@ -194,6 +194,8 @@ const SERVER_CONFIG: StrictServerConfiguration = {
     externalPort: 9001,
     internalIp: '0.0.0.0',
     internalPort: 10001,
+    externalBindIp: '0.0.0.0',
+    internalBindIp: '0.0.0.0',
   },
   network: { timeout: 5 },
   reporting: {
