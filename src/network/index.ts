@@ -72,6 +72,11 @@ export class NetworkClass extends EventEmitter {
 
   constructor(config: Shardus.StrictServerConfiguration, logger: Logger) {
     super()
+    // Allow more listeners to attach to this EventEmitter to avoid memory leak warnings
+    // if various modules register network-related events.
+    // 100 was chosen as a reasonable upper bound; monitor logs for MaxListenersExceeded warnings
+    // and adjust if needed.
+    this.setMaxListeners(100)
     this.app = express()
     this.sn = null
     this.logger = logger
