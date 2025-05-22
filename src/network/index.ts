@@ -512,8 +512,8 @@ export class NetworkClass extends EventEmitter {
     try {
       const promises = []
       if (this.extServer) promises.push(closeServer(this.extServer))
-      // [TODO] - need to see why it is taking minutes for stopListening promises to return; for now Omar decided to comment this out
-      //      if (this.sn) promises.push(this.sn.stopListening(this.intServer))
+      if (this.sn && this.intServer)
+        promises.push(stopListeningWithTimeout(this.sn, this.intServer, this.mainLogger))
       if (natClient) promises.push(natClient.es6.destroy())
       await Promise.all(promises)
     } catch (e) {
@@ -949,4 +949,17 @@ function closeServer(server) {
     server.unref()
     resolve()
   })
+}
+
+async function stopListeningWithTimeout(sn, server, logger, timeout = 5000) {
+  try {
+    await Promise.race([
+      sn.stopListening(server),
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('stopListening timeout')), timeout)
+      ),
+    ])
+  } catch (err) {
+    logger?.warn(`Network: stopListening timed out: ${err.message ?? err}`)
+  }
 }
