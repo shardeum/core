@@ -38,6 +38,7 @@ import { drainNewStandbyRefreshRequests, addStandbyRefresh } from './v2/standbyR
 import rfdc from 'rfdc'
 import { Utils } from '@shardeum-foundation/lib-types'
 import { neverGoActive } from '../Active'
+import { shouldCheckStandbyNode } from '../StandbyChecker'
 
 /** STATE */
 
@@ -60,7 +61,8 @@ let cyclesToDelaySyncFinished = -1
 
 // whats this for? I was just going to use newStandbyRefreshRequests
 //let keepInStandbyCollector: Map<string, StandbyRefreshRequest>
-//let localStandbyCheckerJobs: Set<string>
+// A local set of standby nodes this node should verify.
+let localStandbyCheckerJobs: Set<string> = new Set()
 
 let lastLoggedCycle = 0
 
@@ -320,45 +322,22 @@ export function updateRecord(txs: P2P.JoinTypes.Txs, record: P2P.CycleCreatorTyp
     const standbyList = getLastHashedStandbyList()
 
     if (config.p2p.standbyAgeScrub) {
-      // scrub the stanby list of nodes that have been in it too long.  > standbyListCyclesTTL num cycles
+      // scrub the standby list of nodes that have been in it too long
+      const ourIndex = getOurNodeIndex()
       for (const joinRequest of standbyList) {
-        /*
-        const maxAge = record.duration * config.p2p.standbyListCyclesTTL
         const key = joinRequest.nodeInfo.publicKey
-        let lastStandbyTimerRefresh = joinRequest.nodeInfo.joinRequestTimestamp
-        //check the refresh map to get a more up to date cycle age for this node
-        if(standbyNodesRefresh.has(key)){
-          lastStandbyTimerRefresh = standbyNodesRefresh.get(key)
-        }
-        //check 2 cycles before we would remove this node
-        if (record.start - lastStandbyTimerRefresh > maxAge - 2) {
-
-          if (standbyListMap.has(key) === false) {
-            skipped++
-            continue
-          }
-
-          // is this done? what else is needed?
-          //TODO deterministic selection of a node to query if the standby node is up
-          //this checked response will become a cycle TX for the next cycle.
-
-          const offset = getPrefixInt(key, 8)
-          const numActiveNodes = NodeList.activeByIdOrder.length
-          const numCheckerNodes = 1
-          const queueStandbyCheck = fastIsPicked(ourIndex, numActiveNodes, numCheckerNodes, offset)
-
-          //schedule a job or us to check on
-          if(queueStandbyCheck){
-            localStandbyCheckerJobs.add(key)
-          }
-
-          // should be in parseRecord then
-          //WE only set this map when digesting the cycle record if this node did a proper refresh action
-          //use this cycle start time as an updated time in the mapp of standby nodes refresh
-          //standbyNodesRefresh.set(key, record.start)
-        }
-        */
         const lastRefreshed = joinRequest.nodeInfo.refreshedCounter
+
+        // Choose a deterministic set of nodes to verify standby status a couple of cycles before removal
+        if (
+          config.p2p.standbyAgeCheck &&
+          record.counter - lastRefreshed === config.p2p.standbyListCyclesTTL - 2 &&
+          standbyListMap.has(key) &&
+          ourIndex !== null &&
+          shouldCheckStandbyNode(key, ourIndex)
+        ) {
+          localStandbyCheckerJobs.add(key)
+        }
         if (record.counter - lastRefreshed >= config.p2p.standbyListCyclesTTL) {
           if (standbyListMap.has(joinRequest.nodeInfo.publicKey) === false) {
             skipped++
