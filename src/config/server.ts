@@ -64,6 +64,7 @@ const SERVER_CONFIG: StrictServerConfiguration = {
     seedNodeOffset: 4,
     nodeExpiryAge: 30,
     maxJoinedPerCycle: 1,
+    maxJoinLimit: 1,
     maxSyncingPerCycle: 5,
     syncBoostEnabled: true,
     maxSyncTimeFloor: 1200,

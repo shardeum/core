@@ -31,6 +31,8 @@ export let scalingRequestsCollector: Map<
 >
 export let desiredCount: number
 export let targetCount: number
+/** max nodes allowed to join per cycle; autoscaling modules may adjust */
+export let joinLimit: number
 
 reset()
 
@@ -72,6 +74,7 @@ const routes = {
 export function init() {
   p2pLogger = logger.getLogger('p2p')
   desiredCount = config.p2p.minNodes
+  joinLimit = config?.p2p?.maxJoinLimit ?? config?.p2p?.maxJoinedPerCycle ?? 1
 
   for (const [name, handler] of Object.entries(routes.gossip)) {
     Comms.registerGossipHandler(name, handler)
@@ -84,6 +87,7 @@ export function reset() {
   scalingRequestsCollector = new Map()
   requestedScalingType = null
   approvedScalingType = null
+  joinLimit = config?.p2p?.maxJoinLimit ?? config?.p2p?.maxJoinedPerCycle ?? 1
 }
 
 export function getDesiredCount(): number {
@@ -94,6 +98,14 @@ export function getDesiredCount(): number {
   } else {
     return desiredCount
   }
+}
+
+export function getJoinLimit(): number {
+  return joinLimit
+}
+
+export function setJoinLimit(limit: number): void {
+  joinLimit = limit
 }
 
 function createScaleRequest(scaleType): P2P.CycleAutoScaleTypes.SignedScaleRequest {
@@ -449,6 +461,7 @@ export function configUpdated() {
   //   //we may still want this, but need some special testing to be sure
   //   //requestNetworkDownsize()
   // }
+  joinLimit = config?.p2p?.maxJoinLimit ?? config?.p2p?.maxJoinedPerCycle ?? 1
 }
 
 export function queueRequest(request) {}

@@ -756,6 +756,8 @@ export interface ServerConfiguration {
 
     /** The maxJoinedPerCycle parameter is an Integer specifying the maximum number of nodes that can join the syncing phase each cycle. */
     maxJoinedPerCycle?: number
+    /** Autoscaled limit for nodes that can join each cycle */
+    maxJoinLimit?: number
     /** The maxSyncingPerCycle parameter is an Integer specifying the maximum number of nodes that can be in the syncing phase each cycle. */
     maxSyncingPerCycle?: number
     /** allow syncing more nodes in a small network. only works well if we are not loading a lot of data */
