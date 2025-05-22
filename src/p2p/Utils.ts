@@ -512,15 +512,7 @@ export interface AttemptOptions {
 }
 
 export function generateUUID(): string {
-  const buffer = crypto.randomBytes(16)
-  buffer[6] = (buffer[6] & 0x0f) | 0x40 // Version 4
-  buffer[8] = (buffer[8] & 0x3f) | 0x80 // Variant
-
-  const uuid = buffer.toString('hex')
-  return `${uuid.substring(0, 8)}-${uuid.substring(8, 4)}-${uuid.substring(12, 4)}-${uuid.substring(
-    16,
-    4
-  )}-${uuid.substring(20)}`
+  return crypto.randomUUID()
 }
 
 export function getOurNodeIndex(): number | null {
