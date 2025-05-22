@@ -12,18 +12,15 @@ export type RepairOOSAccountsReq = {
 
 export const cRepairOOSAccountsReqVersion = 1
 
-//TODO: add file in /ajv folder
-// Two enums
-
 export const serializeRepairOOSAccountsReq = (
   stream: VectorBufferStream,
   inp: RepairOOSAccountsReq,
   root = false
 ): void => {
-  // const errors = verifyPayload(AJVSchemaEnum.RepairOOSAccountsReq', inp)
-  // if (errors && errors.length > 0) {
-  //   throw new Error('Data validation error')
-  // }
+  const errors = verifyPayload(AJVSchemaEnum.RepairOOSAccountsReq, inp)
+  if (errors && errors.length > 0) {
+    throw new Error('Data validation error')
+  }
   if (root) {
     stream.writeUInt16(TypeIdentifierEnum.cRepairOOSAccountsReq)
   }
