@@ -1,0 +1,18 @@
+name: Create TODO Issues
+
+on:
+  push:
+    branches:
+      - dev
+      - main
+  workflow_dispatch:
+
+jobs:
+  todo-issues:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: alstr/todo-to-issue-action@v4
+        with:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+

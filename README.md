@@ -67,3 +67,21 @@ This command will guide you through the steps necessary to release the package.
 ## Contributing
 
 Contributions are very welcome! Everyone interacting in our codebases, issue trackers, and any other form of communication, including chat rooms and mailing lists, is expected to follow our [code of conduct](./CODE_OF_CONDUCT.md) so we can all enjoy the effort we put into this project.
+
+## TODO tracking
+
+This project uses an automated workflow to convert `TODO` comments into GitHub issues.
+Whenever you push changes to the `dev` or `main` branches, the **Create TODO Issues**
+GitHub Action scans the repository for `TODO:` markers and opens issues for any
+new entries.
+
+If you already have an issue that relates to a TODO, reference the issue number
+directly in the comment so it links back to the code location:
+
+```ts
+// TODO(#123): handle reconnect logic
+```
+
+Linking code and issues in this way keeps outstanding work visible and easy to
+track.
+
