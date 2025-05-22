@@ -12,13 +12,19 @@ npm i @shardeum-foundation/core
 
 ## Installing and Building Locally
 
-Make sure you have Node.js and npm installed on your system. Run the following command to install the necessary dependencies:
+To quickly get a development environment with the correct Node.js version and Rust toolchain, run the setup script:
+
+```sh
+./scripts/setup.sh
+```
+
+If you prefer to install the prerequisites manually, make sure you have Node.js and npm installed on your system and run:
 
 ```sh
 npm install
 ```
 
-> Please note that you need to have the [Rust toolchain](https://opensource.com/article/20/3/rust-cargo) installed. We're working on a fix for this, but for now you'll need it. Specifically, `cargo` must be in your `PATH`.
+> The setup script installs the [Rust toolchain](https://opensource.com/article/20/3/rust-cargo) for you. If you skip the script you'll need to ensure `cargo` is in your `PATH`.
 
 For building the project, run the following command:
 
