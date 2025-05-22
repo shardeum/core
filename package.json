@@ -48,7 +48,8 @@
     "release:minor": "npm run prepare && npm version minor && git push --follow-tags && npm publish",
     "release:major": "npm run prepare && npm version major && git push --follow-tags && npm publish",
     "format-check": "prettier --check \"**/*.{js,jsx,ts,tsx,json}\"",
-    "format-fix": "prettier --write \"**/*.{js,jsx,ts,tsx,json}\""
+    "format-fix": "prettier --write \"**/*.{js,jsx,ts,tsx,json}\"",
+    "postinstall": "husky install"
   },
   "repository": {
     "type": "git",
@@ -107,6 +108,7 @@
     "npm-run-all": "4.1.5",
     "prettier": "2.8.1",
     "replace-in-file": "6.3.5",
+    "husky": "^9.0.11",
     "shx": "0.3.4",
     "ts-jest": "27.0.5",
     "typescript": "4.9.4",
