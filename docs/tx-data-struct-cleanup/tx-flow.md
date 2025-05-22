@@ -16,7 +16,7 @@ sequenceDiagram
     Note over S: Validates tx timestamp within acceptable range
 
     S ->> A: Calls App fn to verify tx signature
-    Note over S, A: [TODO] Need to call App.validateTransaction at some point
+    Note over S, A: StateManager calls App.validateTransaction before queuing the tx
     A -->> S: Returns tx signature verification passed/failed
 ```
 

@@ -13,14 +13,40 @@ jest.mock('../../../../src/p2p/Context', () => {
   }
 })
 
+jest.mock('../../../../src/utils/profiler', () => ({
+  profilerInstance: {
+    profileSectionStart: jest.fn(),
+    profileSectionEnd: jest.fn(),
+    scopedProfileSectionStart: jest.fn(),
+    scopedProfileSectionEnd: jest.fn(),
+  },
+}))
+
+jest.mock('../../../../src/p2p/Modes', () => ({
+  networkMode: 'processing',
+  isInternalTxAllowed: jest.fn(() => true),
+}))
+
 describe('TransactionQueue', () => {
   let transactionQueue: TransactionQueue
 
   beforeEach(() => {
     // Mock dependencies
-    const mockStateManager = {} as any
+    const mockStateManager = { queueSitTime: 1000 } as any
     const mockProfiler = {} as any
-    const mockApp = {} as any
+    const mockApp = {
+      isInternalTx: jest.fn().mockReturnValue(false),
+      validate: jest.fn().mockReturnValue({ success: true }),
+      crack: jest
+        .fn()
+        .mockReturnValue({
+          timestamp: Date.now(),
+          id: 'txid',
+          keys: { allKeys: ['a'], sourceKeys: ['a'], targetKeys: [] },
+          shardusMemoryPatterns: {},
+        }),
+      validateTransaction: jest.fn().mockReturnValue({ success: true }),
+    } as any
     const mockLogger = {
       getLogger: jest.fn().mockReturnValue({
         error: jest.fn(),
@@ -47,6 +73,7 @@ describe('TransactionQueue', () => {
       mockCrypto,
       config
     )
+    transactionQueue.getQueueEntrySafe = jest.fn().mockReturnValueOnce(null).mockReturnValue({})
   })
 
   describe('addTransactionToNonceQueue', () => {
@@ -157,6 +184,37 @@ describe('TransactionQueue', () => {
       expect(transactionQueue.nonceQueue.get('account1')?.[0].txId).toEqual(thirdEntry.txId)
       expect(transactionQueue.nonceQueue.get('account1')?.[1].txId).toEqual(secondEntry.txId)
       expect(transactionQueue.nonceQueue.get('account1')?.[2].txId).toEqual(firstEntry.txId)
+    })
+  })
+
+  describe('handleSharedTX', () => {
+    it('should not queue tx when validateTransaction fails', () => {
+      const { config } = require('../../../../src/p2p/Context')
+      config.p2p = { allowEndUserTxnInjections: true }
+      config.transactionExpireTime = 1
+
+      const mockSender = { id: 'node1' } as any
+      transactionQueue.routeAndQueueAcceptedTransaction = jest.fn()
+      transactionQueue.app.validateTransaction = jest.fn().mockReturnValue({ success: false })
+
+      const result = transactionQueue.handleSharedTX({ tx: {} } as any, {}, mockSender)
+
+      expect(result).toBeNull()
+      expect(transactionQueue.routeAndQueueAcceptedTransaction).not.toHaveBeenCalled()
+    })
+
+    it('should queue tx when validateTransaction passes', () => {
+      const { config } = require('../../../../src/p2p/Context')
+      config.p2p = { allowEndUserTxnInjections: true }
+      config.transactionExpireTime = 1
+
+      const mockSender = { id: 'node1' } as any
+      transactionQueue.routeAndQueueAcceptedTransaction = jest.fn().mockReturnValue(true)
+      
+      const result = transactionQueue.handleSharedTX({ tx: {} } as any, {}, mockSender)
+
+      expect(transactionQueue.routeAndQueueAcceptedTransaction).toHaveBeenCalled()
+      // result can be null since queueEntry lookup is mocked
     })
   })
 })
