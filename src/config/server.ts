@@ -120,6 +120,7 @@ const SERVER_CONFIG: StrictServerConfiguration = {
     validateArchiverAppData: false,
     useNetworkModes: true,
     useJoinProtocolV2: true,
+    enableAcceptedRoute: false,
     randomJoinRequestWait: 2000, //todo set this to 1000 before release
     standbyListCyclesTTL: 10, //todo release should be > 1000
     standbyListMaxRemoveTTL: 100, //todo set this be 100 for production

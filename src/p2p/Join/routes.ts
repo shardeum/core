@@ -380,8 +380,9 @@ const joinedRoute: P2P.P2PTypes.Route<Handler> = {
 }
 
 /**
- * todo deprecate this or, finish it
- * for now deprecating the accepted path.  does not seem to have any value
+ * Deprecated route used by early join protocol implementations. It is now
+ * disabled by default and can be enabled for legacy testing via the
+ * `enableAcceptedRoute` config flag.
  */
 const acceptedRoute: P2P.P2PTypes.Route<Handler> = {
   method: 'POST',
@@ -784,7 +785,15 @@ const gossipStandbyRefresh: P2P.P2PTypes.GossipHandler<
 }
 
 export const routes = {
-  external: [cycleMarkerRoute, joinRoute, joinedRoute, joinedV2Route, acceptedRoute, unjoinRoute, standbyRefreshRoute],
+  external: [
+    cycleMarkerRoute,
+    joinRoute,
+    joinedRoute,
+    joinedV2Route,
+    ...(config?.p2p?.enableAcceptedRoute ? [acceptedRoute] : []),
+    unjoinRoute,
+    standbyRefreshRoute,
+  ],
   gossip: {
     'gossip-join': gossipJoinRoute,
     'gossip-valid-join-requests': gossipValidJoinRequests,
