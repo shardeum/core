@@ -2,7 +2,7 @@
   "name": "@shardeum-foundation/core",
   "version": "2.15.3",
   "engines": {
-    "node": "18.19.1"
+    "node": "20.11.1"
   },
   "description": "The Shardus Global Server",
   "main": "./dist/index.js",
