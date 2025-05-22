@@ -1,3 +1,6 @@
+import { logFlags } from '../../logger'
+import * as Context from '../../p2p/Context'
+
 export function isIPv6(ip: string): boolean {
   const slicedArr = ip.split(':')
   if (slicedArr.length !== 8) return false
@@ -24,7 +27,7 @@ export function isBogonIP(ip): boolean {
   try {
     ipArr = getIpArr(ip)
   } catch (e) {
-    console.log(ip, e)
+    if (logFlags.debug) Context.logger.getLogger('app').debug(`${ip} ${e}`)
     return true
   }
   return isPrivateIP(ipArr) || isReservedIP(ipArr)
@@ -41,7 +44,7 @@ export function isInvalidIP(ip): boolean {
   try {
     ipArr = getIpArr(ip)
   } catch (e) {
-    console.log(ip, e)
+    if (logFlags.debug) Context.logger.getLogger('app').debug(`${ip} ${e}`)
     return true
   }
   return isReservedIP(ipArr)

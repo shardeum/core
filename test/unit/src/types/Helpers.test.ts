@@ -1,3 +1,16 @@
+// Define mock logger functions within the Context mock so they are available when the module is loaded
+jest.mock('@src/p2p/Context', () => {
+  const errorMock = jest.fn()
+  const debugMock = jest.fn()
+  return {
+    logger: {
+      getLogger: jest.fn(() => ({ error: errorMock, debug: debugMock })),
+    },
+    errorMock,
+    debugMock,
+  }
+})
+
 import { AppHeader } from '@shardeum-foundation/lib-net/build/src/types'
 import { VectorBufferStream } from '../../../../src/utils/serialization/VectorBufferStream'
 import {
@@ -31,18 +44,14 @@ jest.mock('../../../../src/logger', () => ({
   logFlags: {
     error: true,
     console: true,
+    debug: true,
   },
 }))
 
-// Mock console.log to prevent output during tests
-const originalConsoleLog = console.log
-beforeAll(() => {
-  console.log = jest.fn()
-})
+// Access the mocks exported from the Context mock
+const { errorMock, debugMock } = jest.requireMock('@src/p2p/Context')
 
-afterAll(() => {
-  console.log = originalConsoleLog
-})
+
 
 describe('Helpers', () => {
   afterEach(() => {
@@ -213,7 +222,7 @@ describe('Helpers', () => {
 
       // Assert
       expect(result).toBeNull()
-      expect(console.log).toHaveBeenCalled()
+      expect(errorMock).toHaveBeenCalled()
     })
 
     it('should include custom error log in the console message', () => {
@@ -227,7 +236,7 @@ describe('Helpers', () => {
       getStreamWithTypeCheck(buffer.getBuffer(), TypeIdentifierEnum.cWrappedResp, customError)
 
       // Assert
-      expect(console.log).toHaveBeenCalledWith(expect.stringContaining(customError))
+      expect(errorMock).toHaveBeenCalledWith(expect.stringContaining(customError))
     })
   })
 
@@ -298,11 +307,11 @@ describe('Helpers', () => {
       requestErrorHandler(apiRoute, errorType, header)
 
       // Assert
-      expect(console.log).toHaveBeenCalledWith(expect.stringContaining(apiRoute))
-      expect(console.log).toHaveBeenCalledWith(expect.stringContaining(errorType))
-      expect(console.log).toHaveBeenCalledWith(expect.stringContaining(header.sender_id))
-      expect(console.log).toHaveBeenCalledWith(expect.stringContaining(header.tracker_id))
-      expect(console.log).toHaveBeenCalledWith(expect.stringContaining(header.verification_data))
+      expect(errorMock).toHaveBeenCalledWith(expect.stringContaining(apiRoute))
+      expect(errorMock).toHaveBeenCalledWith(expect.stringContaining(errorType))
+      expect(errorMock).toHaveBeenCalledWith(expect.stringContaining(header.sender_id))
+      expect(errorMock).toHaveBeenCalledWith(expect.stringContaining(header.tracker_id))
+      expect(errorMock).toHaveBeenCalledWith(expect.stringContaining(header.verification_data))
     })
 
     it('should include custom error log in the message', () => {
@@ -320,7 +329,7 @@ describe('Helpers', () => {
       requestErrorHandler(apiRoute, errorType, header, { customErrorLog })
 
       // Assert
-      expect(console.log).toHaveBeenCalledWith(expect.stringContaining(customErrorLog))
+      expect(errorMock).toHaveBeenCalledWith(expect.stringContaining(customErrorLog))
     })
 
     it('should increment the correct counter in nestedCountersInstance', () => {

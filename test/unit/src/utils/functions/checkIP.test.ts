@@ -1,3 +1,7 @@
+jest.mock('@src/p2p/Context', () => ({
+  logger: { getLogger: jest.fn(() => ({ debug: jest.fn() })) },
+}))
+
 import { isIPv6, isBogonIP, isInvalidIP } from '../../../../../src/utils/functions/checkIP'
 
 describe('isIPv6', () => {
