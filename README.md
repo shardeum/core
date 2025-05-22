@@ -52,6 +52,20 @@ If you prefer to run off the fully compiled release version of your current code
 
 > Note: Running any of the `build:` prefixed commands will not publish anything to npm. They simply populate the `dist/` directory with the compiled code. You can run these commands safely as often as you wish.
 
+## Updating instrumentation log formatting
+
+The script `prettier-ignore-log-lines.js` automatically adds `/* prettier-ignore */`
+comments to long instrumentation log statements. Run it whenever you add or modify
+logging counters so that Prettier doesn't wrap these lines:
+
+```sh
+node prettier-ignore-log-lines.js
+```
+
+Execute the command from the repository root (or pass a working directory containing
+a `src/` folder). The script scans `src/**/*.ts` files and only updates lines that
+match known instrumentation patterns and exceed the configured print width.
+
 ## Releasing
 
 If you're a core developer on this project and need to cut a release, simply run:
