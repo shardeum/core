@@ -263,7 +263,7 @@ class Reporter {
       return
     }
     let appState = allZeroes64 // monititor server will set color based on partition report
-    const cycleMarker = CycleChain.newest.previous || '' // [TODO] Replace with cycle creator
+    const cycleMarker = CycleChain.getCurrentCycleMarker() || ''
     const cycleCounter = CycleChain.newest.counter
     const networkId = CycleChain.newest.networkId
     const desiredNodes = getDesiredCount()
