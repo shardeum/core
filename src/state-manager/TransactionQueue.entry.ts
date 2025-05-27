@@ -3,7 +3,7 @@ import * as Shardus from '../shardus/shardus-types'
 import { logFlags } from '../logger'
 import * as utils from '../utils'
 import { nestedCountersInstance } from '../utils/nestedCounters'
-import { config as configContext } from '../p2p/Context'
+import { config as configContext, P2PModuleContext } from '../p2p/Context'
 import * as Context from '../p2p/Context'
 import * as CycleChain from '../p2p/CycleChain'
 import { shardusGetTime } from '../network'
@@ -13,11 +13,11 @@ import { activeByIdOrder, byPubKey, potentiallyRemoved } from '../p2p/NodeList'
 import * as Self from '../p2p/Self'
 import { SpreadTxToGroupSyncingReq, serializeSpreadTxToGroupSyncingReq } from '../types/SpreadTxToGroupSyncingReq'
 import { InternalRouteEnum } from '../types/enum/InternalRouteEnum'
-import { Utils, StateManager as StateManagerTypes } from '@shardus-global/p2p-state-sync'
-import { Node } from '@shardus-global/p2p-state-sync/build/src/p2p/NodeListTypes'
+import { Utils, StateManager as StateManagerTypes } from '@shardeum-foundation/lib-types'
+import { Node } from '@shardeum-foundation/lib-types/build/src/p2p/NodeListTypes'
 import { profilerInstance } from '../utils/profiler'
 import { errorToStringFull } from '../utils'
-import { SignedObject } from '@shardus-global/p2p-state-sync/build/src/shardus/shardus-types'
+import { SignedObject } from '@shardeum-foundation/lib-crypto-utils'
 import { RequestStateForTxReq, serializeRequestStateForTxReq } from '../types/RequestStateForTxReq'
 import { RequestStateForTxRespSerialized, deserializeRequestStateForTxResp } from '../types/RequestStateForTxResp'
 import { ResponseError } from '../types/ResponseError'
@@ -33,7 +33,7 @@ interface TransactionQueueContext {
   isAccountInQueue: (accountId: string) => boolean
   pendingTransactionQueueByID: Map<string, QueueEntry>
   pendingTransactionQueue: QueueEntry[]
-  p2p: any
+  p2p: P2PModuleContext
   config: Shardus.StrictServerConfiguration
   app: Shardus.App
   executeInOneShard: boolean
@@ -379,9 +379,9 @@ export const entryMethods = {
           //This is needed so that consensus will expect less nodes to be voting
           const unRankedExecutionGroup = homeShardData.homeNodes[0].consensusNodeForOurNodeFull.slice()
           if (this.usePOQo) {
-            txQueueEntry.executionGroup = this.orderNodesByRank(unRankedExecutionGroup, txQueueEntry)
+            txQueueEntry.executionGroup = this.orderNodesByRank(unRankedExecutionGroup, txQueueEntry.acceptedTx.txId)
           } else if (this.useNewPOQ) {
-            txQueueEntry.executionGroup = this.orderNodesByRank(unRankedExecutionGroup, txQueueEntry)
+            txQueueEntry.executionGroup = this.orderNodesByRank(unRankedExecutionGroup, txQueueEntry.acceptedTx.txId)
           } else {
             txQueueEntry.executionGroup = unRankedExecutionGroup
           }
@@ -389,11 +389,10 @@ export const entryMethods = {
           txQueueEntry.executionNodeIdSorted = txQueueEntry.executionGroup.map((node) => node.id).sort()
 
           if (txQueueEntry.isInExecutionHome) {
-            txQueueEntry.ourNodeRank = this.computeNodeRank(
+            txQueueEntry.ourNodeRank = BigInt(this.computeNodeRank(
               cycleShardData.ourNode.id,
-              txQueueEntry.acceptedTx.txId,
-              txQueueEntry.acceptedTx.timestamp
-            )
+              txQueueEntry.acceptedTx.txId
+            ))
           }
 
           const minNodesToVote = 3

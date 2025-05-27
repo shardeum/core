@@ -12,9 +12,9 @@ import { BroadcastStateReq, serializeBroadcastStateReq } from '../types/Broadcas
 import { verificationDataCombiner } from '../types/Helpers'
 import { InternalRouteEnum } from '../types/enum/InternalRouteEnum'
 import * as Self from '../p2p/Self'
-import { config as configContext } from '../p2p/Context'
+import { config as configContext, P2PModuleContext } from '../p2p/Context'
 import * as Context from '../p2p/Context'
-import { P2P as P2PTypes } from '@shardus-global/p2p-state-sync'
+import { P2P as P2PTypes } from '@shardeum-foundation/lib-types'
 import { StringNodeObjectMap, WrappedResponses } from './state-manager-types'
 import * as NodeList from '../p2p/NodeList'
 import { verifyCorrespondingSender } from '../utils/fastAggregatedCorrespondingTell'
@@ -32,16 +32,16 @@ interface TransactionQueueContext {
   profiler: any
   app: Shardus.App
   setDebugLastAwaitedCallInner: (call: string, status?: DebugComplete) => void
-  queueEntryAddData: (queueEntry: QueueEntry, data: any) => void
+  queueEntryAddData: (queueEntry: QueueEntry, data: any, signatureCheck?: boolean) => void
   useNewPOQ: boolean
   txDebugStartTiming: (queueEntry: QueueEntry, tag: string) => void
   txDebugEndTiming: (queueEntry: QueueEntry, tag: string) => void
-  p2p: any
+  p2p: P2PModuleContext
   config: Shardus.StrictServerConfiguration
   factValidateCorrespondingTellSender: (queueEntry: QueueEntry, accountId: string, senderId: string) => boolean
   validateCorrespondingTellSender: (queueEntry: QueueEntry, dataKey: string, senderNodeId: string) => boolean
   crypto: any
-  broadcastState: (queueEntry: QueueEntry, dataKeys: string[], dataValues: any[]) => void
+  broadcastState: (nodes: Shardus.Node[], message: { stateList: Shardus.WrappedResponse[]; txid: string }, context: string) => Promise<void>
   statemanager_fatal: (key: string, log: string) => void
   getStartAndEndIndexOfTargetGroup: (targetGroup: string[], transactionGroup: any[]) => { startIndex: number; endIndex: number }
   executeInOneShard: boolean

@@ -2286,7 +2286,7 @@ class TransactionQueue {
 
 // Define interface for methods added via Object.assign
 interface TransactionQueue {
-  // Method from entryMethods
+  // Methods from entryMethods
   routeAndQueueAcceptedTransaction(
     acceptedTx: AcceptedTx,
     sendGossip: boolean,
@@ -2294,6 +2294,32 @@ interface TransactionQueue {
     globalModification: boolean,
     noConsensus: boolean
   ): string | boolean
+  
+  // Methods from nonceMethods
+  isTxInPendingNonceQueue(accountId: string, txId: string): boolean
+  addTransactionToNonceQueue(nonceQueueItem: NonceQueueItem): { success: boolean; reason?: string; alreadyAdded?: boolean }
+  processNonceQueue(wrappedAccountsToAdd: any[]): void
+  getPendingCountInNonceQueue(): number
+  
+  // Methods from coreMethods
+  processTransactions(forceToRun?: boolean): Promise<void>
+  removeFromQueue(queueEntry: QueueEntry, currentIndex: number): void
+  
+  // Methods from handlers
+  setupHandlers(): void
+  handleSharedTX(tx: Shardus.TimestampedTx, appData: unknown, sender: Shardus.Node): QueueEntry
+  
+  // Methods from factMethods
+  getQueueEntrySafe(txId: string): QueueEntry | null
+  getQueueEntryArchived(txId: string, route: string): QueueEntry | null
+  getQueueEntry(txId: string): QueueEntry | null
+  queueEntryGetTransactionGroup(queueEntry: QueueEntry, tryUpdate?: boolean): Shardus.Node[]
+  queueEntryGetConsensusGroup(queueEntry: QueueEntry): Shardus.Node[]
+  queueEntryGetConsensusGroupForAccount(queueEntry: QueueEntry, account: string, cycle?: number): Shardus.Node[]
+  getStartAndEndIndexOfTargetGroup(targetGroup: string[], transactionGroup: any[]): { startIndex: number; endIndex: number }
+  factValidateCorrespondingTellFinalDataSender(queueEntry: QueueEntry, sender: string): boolean
+  factTellCorrespondingNodesFinalData(queueEntry: QueueEntry): void
+  getArchivedQueueEntryByAccountIdAndHash(accountId: string, hash: string, msg: string): QueueEntry | null
 }
 
 Object.assign(TransactionQueue.prototype, handlers);

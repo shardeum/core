@@ -33,7 +33,6 @@ import TransactionQueue, { DebugComplete } from './TransactionQueue'
 import TransactionRepair from './TransactionRepair'
 import TransactionConsenus from './TransactionConsensus'
 import PartitionObjects from './PartitionObjects'
-import Deprecated from './Deprecated'
 import AccountPatcher from './AccountPatcher'
 import CachedAppDataManager from './CachedAppDataManager'
 import {

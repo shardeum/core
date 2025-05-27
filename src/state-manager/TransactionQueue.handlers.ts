@@ -10,7 +10,7 @@ import { deserializeBroadcastStateReq } from '../types/BroadcastStateReq'
 import * as utils from '../utils'
 import { logFlags } from '../logger'
 import * as Shardus from '../shardus/shardus-types'
-import { configContext, P2PModuleContext as P2P } from '../p2p/Context'
+import { config as configContext, P2PModuleContext as P2P } from '../p2p/Context'
 import * as Self from '../p2p/Self'
 import { SpreadTxToGroupSyncingReq, deserializeSpreadTxToGroupSyncingReq } from '../types/SpreadTxToGroupSyncingReq'
 import { verifyPayload } from '../types/ajv/Helpers'
@@ -29,7 +29,7 @@ import { Utils } from '@shardeum-foundation/lib-types'
 interface TransactionQueueContext {
   getQueueEntrySafe: (txId: string) => QueueEntry | null
   getQueueEntryArchived: (txId: string, route: string) => QueueEntry | null
-  queueEntryAddData: (queueEntry: QueueEntry, data: any) => void
+  queueEntryAddData: (queueEntry: QueueEntry, data: any, signatureCheck?: boolean) => void
   logger: any
   mainLogger: any
   stateManager: any
