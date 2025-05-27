@@ -161,7 +161,6 @@ class StateManager {
   partitionObjects: PartitionObjects
   accountPatcher: AccountPatcher
   cachedAppDataManager: CachedAppDataManager
-  depricated: Deprecated
 
   // syncTrackers:SyncTracker[];
   shardValuesByCycle: Map<number, CycleShardData>
@@ -329,7 +328,6 @@ class StateManager {
 
     this.transactionConsensus = new TransactionConsenus(this, profiler, app, logger, storage, p2p, crypto, config)
     this.partitionObjects = new PartitionObjects(this, profiler, app, logger, storage, p2p, crypto, config)
-    this.depricated = new Deprecated(this, profiler, app, logger, storage, p2p, crypto, config)
     this.accountPatcher = new AccountPatcher(this, profiler, app, logger, p2p, crypto, config)
     this.cachedAppDataManager = new CachedAppDataManager(this, profiler, app, logger, crypto, p2p, config)
 
@@ -1272,8 +1270,6 @@ class StateManager {
     // alternatively we would need to query for accepted tx.
 
     this.accountGlobals.setupHandlers()
-
-    this.depricated.setupHandlers()
 
     if (this.partitionObjects != null) {
       this.partitionObjects.setupHandlers()
