@@ -1708,3 +1708,4 @@ export interface ValidatorNodeDetails {
   port: number
   publicKey: string
 }
+
