@@ -1,11 +1,22 @@
 import { nestedCountersInstance } from '../utils/nestedCounters'
 import { shardusGetTime, ipInfo } from '../network'
 import * as utils from '../utils'
+import { withTimeout } from '../utils'
 import { logFlags } from '../logger'
 import * as NodeList from '../p2p/NodeList'
 import * as Self from '../p2p/Self'
-import { SeenAccounts, ProcessQueueStats, QueueEntry } from './state-manager-types'
+import { SeenAccounts, ProcessQueueStats, QueueEntry, PreApplyAcceptedTransactionResult, SignedReceipt } from './state-manager-types'
 import * as Shardus from '../shardus/shardus-types'
+import { config as configContext } from '../p2p/Context'
+import { profilerInstance } from '../utils/profiler'
+import ShardFunctions from './shardFunctions'
+import { StateManager as StateManagerTypes } from '@shardeum-foundation/lib-types'
+import { Utils } from '@shardeum-foundation/lib-types'
+
+enum DebugComplete {
+  Incomplete = 0,
+  Completed = 1,
+}
 
 interface TransactionQueueContext {
   lastProcessStats: { [limitName: string]: ProcessQueueStats }
@@ -35,8 +46,6 @@ interface TransactionQueueContext {
   updateTxState: (queueEntry: QueueEntry, state: string, note?: string) => void
   config: Shardus.StrictServerConfiguration
   processQueueEntry: (queueEntry: QueueEntry, processStats: ProcessQueueStats, seenAccounts: SeenAccounts) => Promise<string>
-  setTXExpired: (queueEntry: QueueEntry, currentIndex: number, reason: string) => void
-  removeFromQueue: (queueEntry: QueueEntry, deleteById?: boolean) => void
   archiveQueueEntry: (queueEntry: QueueEntry) => void
   queueStopped: boolean
   checkReadyForTxApply: () => Promise<void>
@@ -2214,7 +2223,7 @@ export const coreMethods = {
 
       this.profiler.profileSectionEnd('processQ')
     }
-  }
+  },
 
   setTXExpired(this: TransactionQueueContext, queueEntry: QueueEntry, currentIndex: number, message: string): void {
     /* prettier-ignore */ if (logFlags.verbose || this.stateManager.consensusLog) this.mainLogger.debug(`setTXExpired tx:${queueEntry.logID} ${message}  ts:${queueEntry.acceptedTx.timestamp} debug:${utils.stringifyReduce(queueEntry.debug)} state: ${queueEntry.state}, isInExecution: ${queueEntry.isInExecutionHome}`)
@@ -2244,7 +2253,8 @@ export const coreMethods = {
       nestedCountersInstance.countEvent('repair1', 'setTXExpired: no receipt to repair')
       /* prettier-ignore */ if (logFlags.debug) this.mainLogger.debug(`setTXExpired. no receipt to repair ${queueEntry.logID}`)
     }
-  }
+  },
+  
   setTxAlmostExpired(this: TransactionQueueContext, queueEntry: QueueEntry, currentIndex: number, message: string): void {
     /* prettier-ignore */ if (logFlags.verbose || this.stateManager.consensusLog) this.mainLogger.debug(`setTxAlmostExpired tx:${queueEntry.logID} ${message}  ts:${queueEntry.acceptedTx.timestamp} debug:${utils.stringifyReduce(queueEntry.debug)}`)
     // this.updateTxState(queueEntry, 'almostExpired')

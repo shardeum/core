@@ -409,7 +409,7 @@ export const handlers = {
             res.json((result = { success: false, reason: e }))
           }
         })
-      }
+      },
       handleSharedTX(this: TransactionQueueContext, tx: Shardus.TimestampedTx, appData: unknown, sender: Shardus.Node): QueueEntry {
         profilerInstance.profileSectionStart('handleSharedTX')
         const internalTx = this.app.isInternalTx(tx)

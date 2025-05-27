@@ -751,7 +751,7 @@ export const entryMethods = {
     }
     this.profiler.scopedProfileSectionEnd('queueEntryPrePush')
     this.profiler.profileSectionStart('queueEntryPrePush', true)
-  }
+  },
 
   /***
    *     #######           ###     ######   ######  ########  ######   ######
@@ -863,7 +863,7 @@ export const entryMethods = {
       this.statemanager_fatal(`getArchivedQueueEntryByAccountIdAndHash`, `error: ${e.message}`)
       return null
     }
-  }
+  },
   /**
    * getQueueEntryArchived
    * get a queue entry from the archive queue only
@@ -1404,7 +1404,7 @@ export const entryMethods = {
     if (gotReceipt === false) {
       queueEntry.requestingReceiptFailed = true
     }
-  }
+  },
 
   /**
      * queueEntryGetTransactionGroup
@@ -1584,7 +1584,7 @@ export const entryMethods = {
       // }
   
       return txGroup
-    }
+    },
   
     /**
      * queueEntryGetConsensusGroup
@@ -1660,7 +1660,7 @@ export const entryMethods = {
       }
       queueEntry.conensusGroup = txGroup
       return txGroup
-    }
+    },
   
     /**
      * queueEntryGetConsensusGroupForAccount
@@ -1736,7 +1736,7 @@ export const entryMethods = {
         txGroup.push(v)
       }
       return txGroup
-    }
+    },
 
     /**
        * removeFromQueue remove an item from the queue and place it in the archivedQueueEntries list for awhile in case we have to access it again

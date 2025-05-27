@@ -2284,6 +2284,18 @@ class TransactionQueue {
   }
 }
 
+// Define interface for methods added via Object.assign
+interface TransactionQueue {
+  // Method from entryMethods
+  routeAndQueueAcceptedTransaction(
+    acceptedTx: AcceptedTx,
+    sendGossip: boolean,
+    sender: Shardus.Node | null,
+    globalModification: boolean,
+    noConsensus: boolean
+  ): string | boolean
+}
+
 Object.assign(TransactionQueue.prototype, handlers);
 Object.assign(TransactionQueue.prototype, coreMethods);
 Object.assign(TransactionQueue.prototype, factMethods);

@@ -629,7 +629,7 @@ export const factMethods = {
     } catch (error) {
       /* prettier-ignore */ this.statemanager_fatal( `factTellCorrespondingNodes_ex`, 'factTellCorrespondingNodes' + utils.formatErrorMessage(error) )
     }
-  }
+  },
 
   validateCorrespondingTellSender(this: TransactionQueueContext, queueEntry: QueueEntry, dataKey: string, senderNodeId: string): boolean {
     /* prettier-ignore */ if (logFlags.verbose) this.mainLogger.debug(`validateCorrespondingTellSender: data key: ${dataKey} sender node id: ${senderNodeId}`)
@@ -1098,7 +1098,7 @@ export const factMethods = {
           )
         }
       }
-    }
+    },
   
     async gossipCompleteData(queueEntry: QueueEntry): Promise<void> {
       if (queueEntry.hasAll === false || queueEntry.gossipedCompleteData) {
