@@ -1,98 +1,61 @@
-import * as Context from '../p2p/Context'
-import { P2P as P2PTypes, StateManager as StateManagerTypes } from '@shardeum-foundation/lib-types'
+import { P2P as P2PTypes, StateManager as StateManagerTypes, Utils } from '@shardeum-foundation/lib-types'
+import { Logger as L4jsLogger } from 'log4js'
 import StateManager from '.'
 import Crypto from '../crypto'
 import Logger, { logFlags } from '../logger'
+import { shardusGetTime } from '../network'
 import * as Apoptosis from '../p2p/Apoptosis'
 import * as Archivers from '../p2p/Archivers'
-import { P2PModuleContext as P2P, network as networkContext, config as configContext } from '../p2p/Context'
+import * as Comms from '../p2p/Comms'
+import * as Context from '../p2p/Context'
+import { P2PModuleContext as P2P, config as configContext } from '../p2p/Context'
 import * as CycleChain from '../p2p/CycleChain'
-import { nodes, byPubKey, potentiallyRemoved, activeByIdOrder } from '../p2p/NodeList'
+import { getGlobalTxReceipt } from '../p2p/GlobalAccounts'
+import * as NodeList from '../p2p/NodeList'
+import { byPubKey, nodes } from '../p2p/NodeList'
+import * as Self from '../p2p/Self'
+import { isNodeInRotationBounds } from '../p2p/Utils'
 import * as Shardus from '../shardus/shardus-types'
 import Storage from '../storage'
+import { BroadcastStateReq, serializeBroadcastStateReq } from '../types/BroadcastStateReq'
+import {
+  verificationDataCombiner
+} from '../types/Helpers'
+import { RequestTxAndStateReq, serializeRequestTxAndStateReq } from '../types/RequestTxAndStateReq'
+import { RequestTxAndStateResp, deserializeRequestTxAndStateResp } from '../types/RequestTxAndStateResp'
+import { InternalRouteEnum } from '../types/enum/InternalRouteEnum'
 import * as utils from '../utils'
-import { getCorrespondingNodes, verifyCorrespondingSender } from '../utils/fastAggregatedCorrespondingTell'
-import { Signature, SignedObject } from '@shardeum-foundation/lib-crypto-utils'
-import { errorToStringFull, inRangeOfCurrentTime, withTimeout, XOR } from '../utils'
-import { Utils } from '@shardeum-foundation/lib-types'
-import * as Self from '../p2p/Self'
-import * as Comms from '../p2p/Comms'
 import { nestedCountersInstance } from '../utils/nestedCounters'
-import Profiler, { cUninitializedSize, profilerInstance } from '../utils/profiler'
+import Profiler, { profilerInstance } from '../utils/profiler'
+import { XOR } from '../utils/functions/general'
 import ShardFunctions from './shardFunctions'
-import * as NodeList from '../p2p/NodeList'
 import {
   AcceptedTx,
   AccountFilter,
+  ArchiverReceipt,
   CommitConsensedTransactionResult,
+  NonceQueueItem,
   PreApplyAcceptedTransactionResult,
   ProcessQueueStats,
   QueueCountsResult,
   QueueEntry,
-  RequestReceiptForTxResp_old,
-  RequestStateForTxReq,
-  RequestStateForTxResp,
-  SeenAccounts,
+  RequestFinalDataResp,
+  SignedReceipt,
   SimpleNumberStats,
-  StringBoolObjectMap,
-  StringNodeObjectMap,
   TxDebug,
   WrappedResponses,
-  ArchiverReceipt,
-  NonceQueueItem,
-  SignedReceipt,
-  Proposal,
-  RequestFinalDataResp,
+  SeenAccounts,
 } from './state-manager-types'
-import { isInternalTxAllowed, networkMode } from '../p2p/Modes'
-import { Node } from '@shardeum-foundation/lib-types/build/src/p2p/NodeListTypes'
-import { Logger as L4jsLogger } from 'log4js'
-import { getNetworkTimeOffset, ipInfo, shardusGetTime } from '../network'
-import { InternalBinaryHandler } from '../types/Handler'
-import { BroadcastStateReq, deserializeBroadcastStateReq, serializeBroadcastStateReq } from '../types/BroadcastStateReq'
-import {
-  getStreamWithTypeCheck,
-  requestErrorHandler,
-  verificationDataCombiner,
-  verificationDataSplitter,
-} from '../types/Helpers'
-import { RequestErrorEnum } from '../types/enum/RequestErrorEnum'
-import { InternalRouteEnum } from '../types/enum/InternalRouteEnum'
-import { TypeIdentifierEnum } from '../types/enum/TypeIdentifierEnum'
-import {
-  BroadcastFinalStateReq,
-  deserializeBroadcastFinalStateReq,
-  serializeBroadcastFinalStateReq,
-} from '../types/BroadcastFinalStateReq'
-import { verifyPayload } from '../types/ajv/Helpers'
-import {
-  SpreadTxToGroupSyncingReq,
-  deserializeSpreadTxToGroupSyncingReq,
-  serializeSpreadTxToGroupSyncingReq,
-} from '../types/SpreadTxToGroupSyncingReq'
-import { RequestTxAndStateReq, serializeRequestTxAndStateReq } from '../types/RequestTxAndStateReq'
-import { RequestTxAndStateResp, deserializeRequestTxAndStateResp } from '../types/RequestTxAndStateResp'
-import { deserializeRequestStateForTxReq, serializeRequestStateForTxReq } from '../types/RequestStateForTxReq'
-import {
-  deserializeRequestStateForTxResp,
-  RequestStateForTxRespSerialized,
-  serializeRequestStateForTxResp,
-} from '../types/RequestStateForTxResp'
-import { deserializeRequestReceiptForTxResp, RequestReceiptForTxRespSerialized } from '../types/RequestReceiptForTxResp'
-import { RequestReceiptForTxReqSerialized, serializeRequestReceiptForTxReq } from '../types/RequestReceiptForTxReq'
-import { isNodeInRotationBounds } from '../p2p/Utils'
-import { BadRequest, ResponseError, serializeResponseError } from '../types/ResponseError'
-import { error } from 'console'
-import { PoqoDataAndReceiptReq, serializePoqoDataAndReceiptReq } from '../types/PoqoDataAndReceiptReq'
-import { AJVSchemaEnum } from '../types/enum/AJVSchemaEnum'
-import { getGlobalTxReceipt } from '../p2p/GlobalAccounts'
 
-import { handlers } from './TransactionQueue.handlers';
-import { factMethods } from './TransactionQueue.fact';
-import { coreMethods } from './TransactionQueue.core';
-import { entryMethods } from './TransactionQueue.entry';
-import { nonceMethods } from './TransactionQueue.nonce';
-import { seenMethods } from './TransactionQueue.seen';
+import { archiverMethods } from './TransactionQueue.archiver'
+import { coreMethods } from './TransactionQueue.core'
+import { debugMethods } from './TransactionQueue.debug'
+import { entryMethods } from './TransactionQueue.entry'
+import { expiredMethods } from './TransactionQueue.expired'
+import { factMethods } from './TransactionQueue.fact'
+import { handlers } from './TransactionQueue.handlers'
+import { nonceMethods } from './TransactionQueue.nonce'
+import { seenMethods } from './TransactionQueue.seen'
 
 interface Receipt {
   tx: AcceptedTx
@@ -958,587 +921,7 @@ class TransactionQueue {
     return nodeListWithRankData.sort((a: Shardus.NodeWithRank, b: Shardus.NodeWithRank) => {
       return b.rank > a.rank ? 1 : -1
     })
-  }
-
-  async broadcastState(
-    nodes: Shardus.Node[],
-    message: { stateList: Shardus.WrappedResponse[]; txid: string },
-    context: string
-  ): Promise<void> {
-    // if (this.config.p2p.useBinarySerializedEndpoints && this.config.p2p.broadcastStateBinary) {
-    // convert legacy message to binary supported type
-    const request = message as BroadcastStateReq
-    if (logFlags.seqdiagram) {
-      for (const node of nodes) {
-        if (context == 'tellCorrespondingNodes') {
-          /* prettier-ignore */ if (logFlags.seqdiagram) this.seqLogger.info(`0x53455102 ${shardusGetTime()} tx:${message.txid} ${NodeList.activeIdToPartition.get(Self.id)}-->>${NodeList.activeIdToPartition.get(node.id)}: ${'broadcast_state_nodes'}`)
-        } else {
-          /* prettier-ignore */ if (logFlags.seqdiagram) this.seqLogger.info(`0x53455102 ${shardusGetTime()} tx:${message.txid} ${NodeList.activeIdToPartition.get(Self.id)}-->>${NodeList.activeIdToPartition.get(node.id)}: ${'broadcast_state_neighbour'}`)
-        }
-      }
-    }
-    this.p2p.tellBinary<BroadcastStateReq>(
-      nodes,
-      InternalRouteEnum.binary_broadcast_state,
-      request,
-      serializeBroadcastStateReq,
-      {
-        verification_data: verificationDataCombiner(
-          message.txid,
-          message.stateList.length.toString(),
-          request.stateList[0].accountId
-        ),
-      }
-    )
-    // return
-    // }
-    // this.p2p.tell(nodes, 'broadcast_state', message)
-  }
-
-  dumpTxDebugToStatList(queueEntry: QueueEntry): void {
-    this.txDebugStatList.set(queueEntry.acceptedTx.txId, { ...queueEntry.txDebug })
-  }
-
-  clearTxDebugStatList(): void {
-    this.txDebugStatList.clear()
-  }
-
-  printTxDebugByTxId(txId: string): string {
-    // get the txStat from the txDebugStatList
-    const txStat = this.txDebugStatList.get(txId)
-    if (txStat == null) {
-      return 'No txStat found'
-    }
-    let resultStr = ''
-    for (const key in txStat.duration) {
-      resultStr += `${key}: start:${txStat.startTimestamp[key]} end:${txStat.endTimestamp[key]} ${txStat.duration[key]} ms\n`
-    }
-    return resultStr
-  }
-
-  printTxDebug(): string {
-    const collector = {}
-    const totalTxCount = this.txDebugStatList.size()
-
-    const indexes = [
-      'aging',
-      'processing',
-      'awaiting data',
-      'preApplyTransaction',
-      'consensing',
-      'commiting',
-      'await final data',
-      'expired',
-      'total_queue_time',
-      'pass',
-      'fail',
-    ]
-
-    /* eslint-disable security/detect-object-injection */
-    for (const [txId, txStat] of this.txDebugStatList.entries()) {
-      for (const key in txStat.duration) {
-        if (!collector[key]) {
-          collector[key] = {}
-          for (const bucket of txStatBucketSize.default) {
-            collector[key][bucket] = []
-          }
-        }
-        const duration = txStat.duration[key]
-        for (const bucket of txStatBucketSize.default) {
-          if (duration < bucket) {
-            collector[key][bucket].push(duration)
-            break
-          }
-        }
-      }
-    }
-    const sortedCollector = {}
-    for (const key of indexes) {
-      sortedCollector[key] = { ...collector[key] }
-    }
-    /* eslint-enable security/detect-object-injection */
-    const lines = []
-    lines.push(`=> Total Transactions: ${totalTxCount}`)
-    for (const [key, collectorForThisKey] of Object.entries(sortedCollector)) {
-      lines.push(`\n => Tx ${key}: \n`)
-      for (let i = 0; i < Object.keys(collectorForThisKey).length; i++) {
-        // eslint-disable-next-line security/detect-object-injection
-        const time = Object.keys(collectorForThisKey)[i]
-        // eslint-disable-next-line security/detect-object-injection
-        const arr = collectorForThisKey[time]
-        if (!arr) continue
-        const percentage = (arr.length / totalTxCount) * 100
-        const blockCount = Math.round(percentage / 2)
-        const blockStr = '|'.repeat(blockCount)
-        const lowerLimit = i === 0 ? 0 : Object.keys(collectorForThisKey)[i - 1]
-        const upperLimit = time
-        const bucketDescription = `${lowerLimit} ms - ${upperLimit} ms:`.padEnd(19, ' ')
-        lines.push(`${bucketDescription}  ${arr.length} ${percentage.toFixed(1).padEnd(5, ' ')}%  ${blockStr} `)
-      }
-    }
-
-    const strToPrint = lines.join('\n')
-    return strToPrint
-  }
-
-  async getArchiverReceiptFromQueueEntry(queueEntry: QueueEntry): Promise<ArchiverReceipt> {
-    if (!queueEntry.preApplyTXResult || !queueEntry.preApplyTXResult.applyResponse) {
-      /* prettier-ignore */ if (logFlags.verbose) console.log('getArchiverReceiptFromQueueEntry : no preApplyTXResult or applyResponse, returning null receipt')
-      /* prettier-ignore */ nestedCountersInstance.countEvent('stateManager', 'getArchiverReceiptFromQueueEntry no preApplyTXResult or applyResponse')
-      return null as ArchiverReceipt
-    }
-
-    const txId = queueEntry.acceptedTx.txId
-    const timestamp = queueEntry.acceptedTx.timestamp
-    const globalModification = queueEntry.globalModification
-
-    let signedReceipt = null as SignedReceipt | P2PTypes.GlobalAccountsTypes.GlobalTxReceipt
-    if (globalModification) {
-      signedReceipt = getGlobalTxReceipt(queueEntry.acceptedTx.txId) as P2PTypes.GlobalAccountsTypes.GlobalTxReceipt
-      /* prettier-ignore */ if (logFlags.important_as_error) console.log('getArchiverReceiptFromQueueEntry : globalModification signedReceipt txid', txId)
-      /* prettier-ignore */ if (logFlags.important_as_error) console.log('getArchiverReceiptFromQueueEntry : globalModification signedReceipt signs', txId, Utils.safeStringify(signedReceipt.signs))
-      /* prettier-ignore */ if (logFlags.important_as_error) console.log('getArchiverReceiptFromQueueEntry : globalModification signedReceipt tx', txId, Utils.safeStringify(signedReceipt.tx))
-    } else {
-      signedReceipt = this.stateManager.getSignedReceipt(queueEntry) as SignedReceipt
-      /* prettier-ignore */ if (logFlags.important_as_error) console.log('getArchiverReceiptFromQueueEntry : nonGlobal signedReceipt txid', txId)
-      /* prettier-ignore */ if (logFlags.important_as_error) console.log('getArchiverReceiptFromQueueEntry : nonGlobal signedReceipt proposal', txId, Utils.safeStringify(signedReceipt.proposal))
-      /* prettier-ignore */ if (logFlags.important_as_error) console.log('getArchiverReceiptFromQueueEntry : nonGlobal signedReceipt proposalHash', txId, Utils.safeStringify(signedReceipt.proposalHash))
-      /* prettier-ignore */ if (logFlags.important_as_error) console.log('getArchiverReceiptFromQueueEntry : nonGlobal signedReceipt signaturePack', txId, Utils.safeStringify(signedReceipt.signaturePack))
-      /* prettier-ignore */ if (logFlags.important_as_error) console.log('getArchiverReceiptFromQueueEntry : nonGlobal signedReceipt voteOffsets', txId, Utils.safeStringify(signedReceipt.voteOffsets))
-    }
-    if (!signedReceipt) {
-      /* prettier-ignore */ nestedCountersInstance.countEvent('stateManager', 'getArchiverReceiptFromQueueEntry no signedReceipt')
-      /* prettier-ignore */ if (logFlags.important_as_error) console.log(`getArchiverReceiptFromQueueEntry: signedReceipt is null for txId: ${txId} timestamp: ${timestamp} globalModification: ${globalModification}`)
-      return null as ArchiverReceipt
-    }
-
-    const accountsToAdd: { [accountId: string]: Shardus.AccountsCopy } = {}
-    const beforeAccountsToAdd: { [accountId: string]: Shardus.AccountsCopy } = {}
-
-    if (globalModification) {
-      signedReceipt = signedReceipt as P2PTypes.GlobalAccountsTypes.GlobalTxReceipt
-      if (signedReceipt.tx && signedReceipt.tx.addressHash != '' && !beforeAccountsToAdd[signedReceipt.tx.address]) {
-        console.log(queueEntry.collectedData[signedReceipt.tx.address].stateId, signedReceipt.tx.addressHash)
-        if (queueEntry.collectedData[signedReceipt.tx.address].stateId === signedReceipt.tx.addressHash) {
-          const isGlobal = this.stateManager.accountGlobals.isGlobalAccount(signedReceipt.tx.addressHash)
-          const account = queueEntry.collectedData[signedReceipt.tx.address]
-          const accountCopy = {
-            accountId: account.accountId,
-            data: account.data,
-            hash: account.stateId,
-            timestamp: account.timestamp,
-            isGlobal,
-          } as Shardus.AccountsCopy
-          beforeAccountsToAdd[account.accountId] = accountCopy
-        } else {
-          console.log(
-            `getArchiverReceiptFromQueueEntry: before stateId does not match addressHash for txId: ${txId} timestamp: ${timestamp} globalModification: ${globalModification}`
-          )
-        }
-      }
-    } else if (this.config.stateManager.includeBeforeStatesInReceipts) {
-      // simulate debug case
-      if (configContext.mode === 'debug' && configContext.debug.beforeStateFailChance > Math.random()) {
-        for (const accountId in queueEntry.collectedData) {
-          const account = queueEntry.collectedData[accountId]
-          account.stateId = 'debugFail2'
-        }
-      }
-
-      const fileredBeforeStateToSend = []
-      const badBeforeStateAccounts = []
-
-      for (const account of Object.values(queueEntry.collectedData)) {
-        if (typeof this.app.beforeStateAccountFilter !== 'function' || this.app.beforeStateAccountFilter(account)) {
-          fileredBeforeStateToSend.push(account.accountId)
-        }
-      }
-
-      // prepare before state accounts
-      for (const accountId of fileredBeforeStateToSend) {
-        signedReceipt = signedReceipt as SignedReceipt
-        // check if our beforeState account hash is the same as the vote in the receipt2
-        const index = signedReceipt.proposal.accountIDs.indexOf(accountId)
-        if (index === -1) continue
-        const account = queueEntry.collectedData[accountId]
-        if (account == null) {
-          badBeforeStateAccounts.push(accountId)
-          continue
-        }
-        if (account.stateId !== signedReceipt.proposal.beforeStateHashes[index]) {
-          badBeforeStateAccounts.push(accountId)
-        }
-      }
-
-      if (badBeforeStateAccounts.length > 0) {
-        nestedCountersInstance.countEvent(
-          'stateManager',
-          'badBeforeStateAccounts in getArchiverReceiptFromQueueEntry',
-          badBeforeStateAccounts.length
-        )
-
-        // repair bad before state accounts
-        const wrappedResponses: WrappedResponses = await this.requestInitialData(queueEntry, badBeforeStateAccounts)
-        for (const accountId in wrappedResponses) {
-          queueEntry.collectedData[accountId] = wrappedResponses[accountId]
-        }
-      }
-
-      // add before state accounts
-      for (const accountId of fileredBeforeStateToSend) {
-        const account = queueEntry.collectedData[accountId]
-        const isGlobal = this.stateManager.accountGlobals.isGlobalAccount(account.accountId)
-        const accountCopy = {
-          accountId: account.accountId,
-          data: account.data,
-          hash: account.stateId,
-          timestamp: account.timestamp,
-          isGlobal,
-        } as Shardus.AccountsCopy
-        beforeAccountsToAdd[account.accountId] = accountCopy
-      }
-    }
-
-    let isAccountsMatchWithReceipt2 = true
-    const accountWrites = queueEntry.preApplyTXResult?.applyResponse?.accountWrites
-
-    if (globalModification) {
-      if (accountWrites === null || accountWrites.length === 0) {
-        console.log('No account update in global Modification tx', txId, timestamp)
-      }
-    } else if (
-      accountWrites != null &&
-      accountWrites.length === (signedReceipt as SignedReceipt).proposal.accountIDs.length
-    ) {
-      signedReceipt = signedReceipt as SignedReceipt
-      for (const account of accountWrites) {
-        const indexInVote = signedReceipt.proposal.accountIDs.indexOf(account.accountId)
-        if (signedReceipt.proposal.afterStateHashes[indexInVote] !== account.data.stateId) {
-          // console.log('Found afterStateHash mismatch', account.accountId, receipt2.proposal.afterStateHashes[indexInVote], account.data.stateId)
-          isAccountsMatchWithReceipt2 = false
-          break
-        }
-      }
-    } else {
-      isAccountsMatchWithReceipt2 = false
-    }
-
-    let finalAccounts = []
-    let appReceiptData = queueEntry.preApplyTXResult?.applyResponse?.appReceiptData || null
-    if (isAccountsMatchWithReceipt2) {
-      finalAccounts = accountWrites
-    } else {
-      signedReceipt = signedReceipt as SignedReceipt
-      // request the final accounts and appReceiptData
-      let success = false
-      let count = 0
-      const maxRetry = 3
-      const nodesToAskKeys = signedReceipt.signaturePack?.map((signature) => signature.owner)
-
-      // retry 3 times if the request fails
-      while (success === false && count < maxRetry) {
-        count++
-        const requestedData = await this.requestFinalData(
-          queueEntry,
-          signedReceipt.proposal.accountIDs,
-          nodesToAskKeys,
-          true
-        )
-        if (requestedData && requestedData.wrappedResponses && requestedData.appReceiptData) {
-          success = true
-          for (const accountId in requestedData.wrappedResponses) {
-            finalAccounts.push(requestedData.wrappedResponses[accountId])
-          }
-          appReceiptData = requestedData.appReceiptData
-        }
-      }
-    }
-
-    // override with the accounts in accountWrites
-    for (const account of finalAccounts) {
-      const isGlobal = this.stateManager.accountGlobals.isGlobalAccount(account.accountId)
-      const accountCopy = {
-        accountId: account.accountId,
-        data: account.data.data,
-        timestamp: account.timestamp,
-        hash: account.data.stateId,
-        isGlobal,
-      } as Shardus.AccountsCopy
-      accountsToAdd[account.accountId] = accountCopy
-    }
-
-    // MIGHT NOT NEED THIS NOW WITH THE POQo RECEIPT REWRITE. NEED TO CONFIRM
-    // if (!globalModification && this.useNewPOQ === false) {
-    //   appliedReceipt = appliedReceipt as AppliedReceipt2
-    //   if (appliedReceipt.appliedVote) {
-    //     delete appliedReceipt.appliedVote.node_id
-    //     delete appliedReceipt.appliedVote.sign
-    //     delete appliedReceipt.confirmOrChallenge
-    //     // Update the app_data_hash with the app_data_hash from the appliedVote
-    //     appliedReceipt.app_data_hash = appliedReceipt.appliedVote.app_data_hash
-    //   }
-    // }
-
-    const archiverReceipt: ArchiverReceipt = {
-      tx: {
-        originalTxData: queueEntry.acceptedTx.data,
-        txId: queueEntry.acceptedTx.txId,
-        timestamp: queueEntry.acceptedTx.timestamp,
-      },
-      signedReceipt,
-      appReceiptData,
-      beforeStates: [...Object.values(beforeAccountsToAdd)],
-      afterStates: [...Object.values(accountsToAdd)],
-      cycle: queueEntry.txGroupCycle,
-      globalModification,
-    }
-    /* prettier-ignore */ if (logFlags.important_as_error) console.log('getArchiverReceiptFromQueueEntry : archiverReceipt', txId, Utils.safeStringify(archiverReceipt))
-    /* prettier-ignore */ if (logFlags.important_as_error) console.log('getArchiverReceiptFromQueueEntry : originalTxData object', txId, Utils.safeStringify(archiverReceipt.tx.originalTxData))
-
-    return archiverReceipt
-  }
-
-  addOriginalTxDataToForward(queueEntry: QueueEntry): void {
-    if (logFlags.verbose) console.log('originalTxData', queueEntry.acceptedTx.txId, queueEntry.acceptedTx.timestamp)
-    const { acceptedTx } = queueEntry
-    const originalTxData = {
-      txId: acceptedTx.txId,
-      originalTxData: acceptedTx.data,
-      cycle: queueEntry.cycleToRecordOn,
-      timestamp: acceptedTx.timestamp,
-    }
-    // const signedOriginalTxData: any = this.crypto.sign(originalTxData) // maybe we don't need to send by signing it
-    Archivers.instantForwardOriginalTxData(originalTxData)
-  }
-
-  async addReceiptToForward(queueEntry: QueueEntry, debugString = ''): Promise<void> {
-    if (logFlags.verbose)
-      console.log('addReceiptToForward', queueEntry.acceptedTx.txId, queueEntry.acceptedTx.timestamp, debugString)
-    const archiverReceipt = await this.getArchiverReceiptFromQueueEntry(queueEntry)
-    Archivers.instantForwardReceipts([archiverReceipt])
-    this.receiptsForwardedTimestamp = shardusGetTime()
-    this.forwardedReceiptsByTimestamp.set(this.receiptsForwardedTimestamp, archiverReceipt)
-    // this.receiptsToForward.push(archiverReceipt)
-  }
-
-  getReceiptsToForward(): ArchiverReceipt[] {
-    return [...this.forwardedReceiptsByTimestamp.values()]
-  }
-
-  // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-  async requestFinalData(
-    queueEntry: QueueEntry,
-    accountIds: string[],
-    nodesToAskKeys: string[] | null = null,
-    includeAppReceiptData = false
-  ): Promise<RequestFinalDataResp> {
-    profilerInstance.profileSectionStart('requestFinalData')
-    /* prettier-ignore */ if (logFlags.debug) this.mainLogger.debug(`requestFinalData: txid: ${queueEntry.logID} accountIds: ${utils.stringifyReduce(accountIds)}`);
-    const message = { txid: queueEntry.acceptedTx.txId, accountIds, includeAppReceiptData }
-    let success = false
-    let successCount = 0
-    let validAppReceiptData = includeAppReceiptData === false ? true : false
-
-    // first check if we have received final data
-    for (const accountId of accountIds) {
-      // eslint-disable-next-line security/detect-object-injection
-      if (queueEntry.collectedFinalData[accountId] != null) {
-        successCount++
-      }
-    }
-    if (successCount === accountIds.length && includeAppReceiptData === false) {
-      nestedCountersInstance.countEvent('stateManager', 'requestFinalDataAlreadyReceived')
-      /* prettier-ignore */ if (logFlags.debug) this.mainLogger.debug(`requestFinalData: txid: ${queueEntry.logID} already received all data`)
-      // no need to request data
-      return
-    }
-
-    try {
-      let nodeToAsk: Shardus.Node
-      if (nodesToAskKeys && nodesToAskKeys.length > 0) {
-        const randomIndex = Math.floor(Math.random() * nodesToAskKeys.length)
-        // eslint-disable-next-line security/detect-object-injection
-        const randomNodeToAskKey = nodesToAskKeys[randomIndex]
-        nodeToAsk = byPubKey.get(randomNodeToAskKey)
-      } else {
-        const randomIndex = Math.floor(Math.random() * queueEntry.executionGroup.length)
-        // eslint-disable-next-line security/detect-object-injection
-        const randomExeNode = queueEntry.executionGroup[randomIndex]
-        nodeToAsk = nodes.get(randomExeNode.id)
-      }
-
-      if (!nodeToAsk) {
-        /* prettier-ignore */ if (logFlags.error) this.mainLogger.error('requestFinalData: could not find node from execution group')
-        throw new Error('requestFinalData: could not find node from execution group')
-      }
-
-      /* prettier-ignore */ if (logFlags.debug) this.mainLogger.debug( `requestFinalData: txid: ${queueEntry.acceptedTx.txId} accountIds: ${utils.stringifyReduce( accountIds )}, asking node: ${nodeToAsk.id} ${nodeToAsk.externalPort} at timestamp ${shardusGetTime()}` )
-
-      // if (this.config.p2p.useBinarySerializedEndpoints && this.config.p2p.requestTxAndStateBinary) {
-      const requestMessage = message as RequestTxAndStateReq
-      /* prettier-ignore */ if (logFlags.seqdiagram) this.seqLogger.info(`0x53455101 ${shardusGetTime()} tx:${queueEntry.acceptedTx.txId} ${NodeList.activeIdToPartition.get(Self.id)}-->>${NodeList.activeIdToPartition.get(nodeToAsk.id)}: ${'request_tx_and_state'}`)
-      const response = await Comms.askBinary<RequestTxAndStateReq, RequestTxAndStateResp>(
-        nodeToAsk,
-        InternalRouteEnum.binary_request_tx_and_state,
-        requestMessage,
-        serializeRequestTxAndStateReq,
-        deserializeRequestTxAndStateResp,
-        {}
-      )
-      // } else response = await Comms.ask(nodeToAsk, 'request_tx_and_state', message)
-
-      if (response && response.stateList && response.stateList.length > 0) {
-        /* prettier-ignore */ if (logFlags.debug) this.mainLogger.debug(`requestFinalData: txid: ${queueEntry.logID} received data for ${response.stateList.length} accounts`)
-      } else {
-        /* prettier-ignore */ if (logFlags.error) this.mainLogger.error(`requestFinalData: txid: ${queueEntry.logID} response is null`)
-        nestedCountersInstance.countEvent(
-          'stateManager',
-          'requestFinalData: failed: response or response.stateList null or statelist length 0'
-        )
-        return
-      }
-
-      for (const data of response.stateList) {
-        if (data == null) {
-          /* prettier-ignore */
-          if (logFlags.error && logFlags.debug) this.mainLogger.error(`requestFinalData data == null for tx ${queueEntry.logID}`);
-          success = false
-          break
-        }
-        const indexInVote = queueEntry.signedReceipt.proposal.accountIDs.indexOf(data.accountId)
-        if (indexInVote === -1) continue
-        const afterStateIdFromVote = queueEntry.signedReceipt.proposal.afterStateHashes[indexInVote]
-        if (data.stateId !== afterStateIdFromVote) {
-          nestedCountersInstance.countEvent('stateManager', 'requestFinalDataMismatch')
-          continue
-        }
-        if (queueEntry.collectedFinalData[data.accountId] == null) {
-          // todo: check the state hashes and verify
-          queueEntry.collectedFinalData[data.accountId] = data
-          successCount++
-          /* prettier-ignore */
-          if (logFlags.debug) this.mainLogger.debug(`requestFinalData: txid: ${queueEntry.logID} success accountId: ${data.accountId} stateId: ${data.stateId}`);
-        }
-      }
-      if (includeAppReceiptData && response.appReceiptData) {
-        const receivedAppReceiptDataHash = this.crypto.hash(response.appReceiptData)
-        const receipt2 = this.stateManager.getSignedReceipt(queueEntry)
-        if (receipt2 != null) {
-          validAppReceiptData = receivedAppReceiptDataHash === receipt2.proposal.appReceiptDataHash
-        }
-      }
-      if (successCount === accountIds.length && validAppReceiptData === true) {
-        success = true
-
-        //setting this for completeness. if our node is awaiting final data it will utilize what was looked up here
-        queueEntry.hasValidFinalData = true
-        return { wrappedResponses: queueEntry.collectedFinalData, appReceiptData: response.appReceiptData }
-      } else {
-        nestedCountersInstance.countEvent(
-          'stateManager',
-          `requestFinalData: failed: did not get enough data: ${successCount} <  ${accountIds.length}`
-        )
-      }
-    } catch (e) {
-      nestedCountersInstance.countEvent('stateManager', 'requestFinalData: failed: Error')
-      /* prettier-ignore */ if (logFlags.error) this.mainLogger.error(`requestFinalData: txid: ${queueEntry.logID} error: ${e.message}`)
-    } finally {
-      if (success === false) {
-        nestedCountersInstance.countEvent('stateManager', 'requestFinalData: failed: success === false')
-        /* prettier-ignore */ if (logFlags.error) this.mainLogger.error(`requestFinalData: txid: ${queueEntry.logID} failed. successCount: ${successCount} accountIds: ${accountIds.length}`);
-      }
-    }
-    profilerInstance.profileSectionEnd('requestFinalData')
-  }
-
-  async requestInitialData(queueEntry: QueueEntry, accountIds: string[]): Promise<WrappedResponses> {
-    profilerInstance.profileSectionStart('requestInitialData')
-    this.mainLogger.debug(
-      `requestInitialData: txid: ${queueEntry.logID} accountIds: ${utils.stringifyReduce(accountIds)}`
-    )
-    const message = { txid: queueEntry.acceptedTx.txId, accountIds }
-    let success = false
-    let successCount = 0
-    let retries = 0
-    const maxRetry = 3
-    const triedNodes = new Set<string>()
-
-    if (queueEntry.executionGroup == null) return
-
-    while (retries < maxRetry) {
-      const executionNodeIds = queueEntry.executionGroup.map((node) => node.id)
-      const randomExeNodeId = utils.getRandom(executionNodeIds, 1)[0]
-      if (triedNodes.has(randomExeNodeId)) continue
-      if (randomExeNodeId === Self.id) continue
-      const nodeToAsk = nodes.get(randomExeNodeId)
-      if (!nodeToAsk) {
-        if (logFlags.error) this.mainLogger.error('requestInitialData: could not find node from execution group')
-        throw new Error('requestInitialData: could not find node from execution group')
-      }
-      triedNodes.add(randomExeNodeId)
-      retries++
-      try {
-        if (logFlags.debug)
-          this.mainLogger.debug(
-            `requestInitialData: txid: ${queueEntry.acceptedTx.txId} accountIds: ${utils.stringifyReduce(
-              accountIds
-            )}, asking node: ${nodeToAsk.id} ${nodeToAsk.externalPort} at timestamp ${shardusGetTime()}`
-          )
-
-        const requestMessage = message as RequestTxAndStateReq
-        /* prettier-ignore */ if (logFlags.seqdiagram) this.seqLogger.info(`0x53455101 ${shardusGetTime()} tx:${queueEntry.acceptedTx.txId} ${NodeList.activeIdToPartition.get(Self.id)}-->>${NodeList.activeIdToPartition.get(nodeToAsk.id)}: ${'request_tx_and_state'}`)
-        const response = await Comms.askBinary<RequestTxAndStateReq, RequestTxAndStateResp>(
-          nodeToAsk,
-          InternalRouteEnum.binary_request_tx_and_state_before,
-          requestMessage,
-          serializeRequestTxAndStateReq,
-          deserializeRequestTxAndStateResp,
-          {}
-        )
-
-        if (response && response.stateList && response.stateList.length === accountIds.length) {
-          this.mainLogger.debug(
-            `requestInitialData: txid: ${queueEntry.logID} received data for ${response.stateList.length} accounts`
-          )
-        } else {
-          this.mainLogger.error(`requestInitialData: txid: ${queueEntry.logID} response is null or incomplete`)
-          continue
-        }
-
-        const results: WrappedResponses = {}
-        const receipt2 = this.stateManager.getSignedReceipt(queueEntry)
-        if (receipt2 == null) {
-          return
-        }
-        if (receipt2.proposal.accountIDs.length !== response.stateList.length) {
-          if (logFlags.error && logFlags.debug)
-            this.mainLogger.error(`requestInitialData data.length not matching for tx ${queueEntry.logID}`)
-          return
-        }
-        for (const data of response.stateList) {
-          if (data == null) {
-            /* prettier-ignore */
-            if (logFlags.error && logFlags.debug) this.mainLogger.error(`requestInitialData data == null for tx ${queueEntry.logID}`);
-            success = false
-            break
-          }
-          const indexInVote = receipt2.proposal.accountIDs.indexOf(data.accountId)
-          if (data.stateId === receipt2.proposal.beforeStateHashes[indexInVote]) {
-            successCount++
-            results[data.accountId] = data
-            /* prettier-ignore */
-            if (logFlags.debug) this.mainLogger.debug(`requestInitialData: txid: ${queueEntry.logID} success accountId: ${data.accountId} stateId: ${data.stateId}`);
-          }
-        }
-        return results
-      } catch (e) {
-        nestedCountersInstance.countEvent('stateManager', 'requestInitialDataError')
-        /* prettier-ignore */ if (logFlags.error) this.mainLogger.error(`requestInitialData: txid: ${queueEntry.logID} error: ${e.message}`)
-      }
-    }
-    /* prettier-ignore */ if (logFlags.error) this.mainLogger.error(`requestInitialData: txid: ${queueEntry.logID} failed. successCount: ${successCount} accountIds: ${accountIds.length}`);
-    profilerInstance.profileSectionEnd('requestInitialData')
-  }
+  }  
 
   resetReceiptsToForward(): void {
     const MAX_RECEIPT_AGE_MS = 15000 // 15s
@@ -1965,52 +1348,7 @@ class TransactionQueue {
     })
 
     return stuckTxs
-  }
-
-  getDebugProccessingStatus(): unknown {
-    let txDebug = ''
-    if (this.debugRecentQueueEntry != null) {
-      const app = this.app
-      const queueEntry = this.debugRecentQueueEntry
-      txDebug = `logID:${queueEntry.logID} state:${queueEntry.state} hasAll:${queueEntry.hasAll} globalMod:${queueEntry.globalModification}`
-      txDebug += ` qId: ${queueEntry.entryID} values: ${this.processQueue_debugAccountData(
-        queueEntry,
-        app
-      )} AcceptedTransaction: ${utils.stringifyReduce(queueEntry.acceptedTx)}`
-    }
-    return {
-      isStuckProcessing: this.isStuckProcessing,
-      transactionProcessingQueueRunning: this.transactionProcessingQueueRunning,
-      stuckProcessingCount: this.stuckProcessingCount,
-      stuckProcessingCyclesCount: this.stuckProcessingCyclesCount,
-      stuckProcessingQueueLockedCyclesCount: this.stuckProcessingQueueLockedCyclesCount,
-      processingLastRunTime: this.processingLastRunTime,
-      debugLastProcessingQueueStartTime: this.debugLastProcessingQueueStartTime,
-      debugLastAwaitedCall: this.debugLastAwaitedCall,
-      debugLastAwaitedCallInner: this.debugLastAwaitedCallInner,
-      debugLastAwaitedAppCall: this.debugLastAwaitedAppCall,
-      debugLastAwaitedCallInnerStack: this.debugLastAwaitedCallInnerStack,
-      debugLastAwaitedAppCallStack: this.debugLastAwaitedAppCallStack,
-      txDebug,
-      //todo get the transaction we are stuck on. what type is it? id etc.
-    }
-  }
-
-  clearStuckProcessingDebugVars(): void {
-    this.isStuckProcessing = false
-    this.debugLastAwaitedCall = ''
-    this.debugLastAwaitedCallInner = ''
-    this.debugLastAwaitedAppCall = ''
-    this.debugLastAwaitedCallInnerStack = {}
-    this.debugLastAwaitedAppCallStack = {}
-
-    this.debugRecentQueueEntry = null
-    this.debugLastProcessingQueueStartTime = 0
-
-    this.stuckProcessingCount = 0
-    this.stuckProcessingCyclesCount = 0
-    this.stuckProcessingQueueLockedCyclesCount = 0
-  }
+  }  
 
   /**
    * Used to unblock and restart the processing queue if it gets stuck
@@ -2030,69 +1368,7 @@ class TransactionQueue {
     }
 
     this.stateManager.tryStartTransactionProcessingQueue()
-  }
-
-  setDebugLastAwaitedCall(label: string, complete = DebugComplete.Incomplete): void {
-    this.debugLastAwaitedCall = label + (complete === DebugComplete.Completed ? ' complete' : '')
-    this.debugLastAwaitedCallInner = ''
-    this.debugLastAwaitedAppCall = ''
-  }
-
-  setDebugLastAwaitedCallInner(label: string, complete = DebugComplete.Incomplete): void {
-    this.debugLastAwaitedCallInner = label + (complete === DebugComplete.Completed ? ' complete' : '')
-    this.debugLastAwaitedAppCall = ''
-
-    if (complete === DebugComplete.Incomplete) {
-      // eslint-disable-next-line security/detect-object-injection
-      if (this.debugLastAwaitedCallInnerStack[label] == null) {
-        // eslint-disable-next-line security/detect-object-injection
-        this.debugLastAwaitedCallInnerStack[label] = 1
-      } else {
-        // eslint-disable-next-line security/detect-object-injection
-        this.debugLastAwaitedCallInnerStack[label]++
-      }
-    } else {
-      //decrement the count if it is greater than 1, delete the key if the count is 1
-      // eslint-disable-next-line security/detect-object-injection
-      if (this.debugLastAwaitedCallInnerStack[label] != null) {
-        // eslint-disable-next-line security/detect-object-injection
-        if (this.debugLastAwaitedCallInnerStack[label] > 1) {
-          // eslint-disable-next-line security/detect-object-injection
-          this.debugLastAwaitedCallInnerStack[label]--
-        } else {
-          // eslint-disable-next-line security/detect-object-injection
-          delete this.debugLastAwaitedCallInnerStack[label]
-        }
-      }
-    }
-  }
-  setDebugSetLastAppAwait(label: string, complete = DebugComplete.Incomplete): void {
-    this.debugLastAwaitedAppCall = label + (complete === DebugComplete.Completed ? ' complete' : '')
-
-    if (complete === DebugComplete.Incomplete) {
-      // eslint-disable-next-line security/detect-object-injection
-      if (this.debugLastAwaitedAppCallStack[label] == null) {
-        // eslint-disable-next-line security/detect-object-injection
-        this.debugLastAwaitedAppCallStack[label] = 1
-      } else {
-        // eslint-disable-next-line security/detect-object-injection
-        this.debugLastAwaitedAppCallStack[label]++
-      }
-    } else {
-      //decrement the count if it is greater than 1, delete the key if the count is 1
-      // eslint-disable-next-line security/detect-object-injection
-      if (this.debugLastAwaitedAppCallStack[label] != null) {
-        // eslint-disable-next-line security/detect-object-injection
-        if (this.debugLastAwaitedAppCallStack[label] > 1) {
-          // eslint-disable-next-line security/detect-object-injection
-          this.debugLastAwaitedAppCallStack[label]--
-        } else {
-          // eslint-disable-next-line security/detect-object-injection
-          delete this.debugLastAwaitedAppCallStack[label]
-        }
-      }
-    }
-  }
+  }  
 
   addressCountInQueue(address: string, limit: number): number {
     let count = 0
@@ -2163,44 +1439,7 @@ class TransactionQueue {
     if (this.archivedQueueEntriesByID.has(txId)) return this.getDebugQueueInfo(this.archivedQueueEntriesByID.get(txId))
     return null
   }
-  getDebugQueueInfo(queueEntry: QueueEntry): any {
-    return {
-      txId: queueEntry.acceptedTx.txId,
-      tx: queueEntry.acceptedTx,
-      logID: queueEntry.logID,
-      nodeId: Self.id,
-      state: queueEntry.state,
-      hasAll: queueEntry.hasAll,
-      hasShardInfo: queueEntry.hasShardInfo,
-      isExecutionNode: queueEntry.isInExecutionHome,
-      globalModification: queueEntry.globalModification,
-      entryID: queueEntry.entryID,
-      txGroupCyle: queueEntry.txGroupCycle,
-      uniqueKeys: queueEntry.uniqueKeys,
-      collectedData: queueEntry.collectedData,
-      finalData: queueEntry.collectedFinalData,
-      preApplyResult: queueEntry.preApplyTXResult,
-      txAge: shardusGetTime() - queueEntry.acceptedTx.timestamp,
-      lastFinalDataRequestTimestamp: queueEntry.lastFinalDataRequestTimestamp,
-      dataSharedTimestamp: queueEntry.dataSharedTimestamp,
-      firstVoteTimestamp: queueEntry.firstVoteReceivedTimestamp,
-      lastVoteTimestamp: queueEntry.lastVoteReceivedTimestamp,
-      // firstConfirmationsTimestamp: queueEntry.firstConfirmOrChallengeTimestamp,
-      // robustBestConfirmation: queueEntry.receivedBestConfirmation,
-      // robustBestVote: queueEntry.receivedBestVote,
-      // robustBestChallenge: queueEntry.receivedBestChallenge,
-      // completedRobustVote: queueEntry.robustQueryVoteCompleted,
-      // completedRobustChallenge: queueEntry.robustQueryConfirmOrChallengeCompleted,
-      txDebug: queueEntry.txDebug,
-      executionDebug: queueEntry.executionDebug,
-      waitForReceiptOnly: queueEntry.waitForReceiptOnly,
-      ourVote: queueEntry.ourVote || null,
-      signedReceipt: this.stateManager.getSignedReceipt(queueEntry) || null,
-      // uniqueChallenges: queueEntry.uniqueChallengesCount,
-      collectedVoteCount: queueEntry.collectedVoteHashes.length,
-      simpleDebugStr: this.app.getSimpleTxDebugValue ? this.app.getSimpleTxDebugValue(queueEntry.acceptedTx?.data) : '',
-    }
-  }
+  
   // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
   removeTxFromArchivedQueue(txId: string) {
     // remove from the archived queue array and map by txId
@@ -2222,35 +1461,7 @@ class TransactionQueue {
     this.txDebugMarkEndTime(queueEntry, currentState)
     queueEntry.state = nextState
     this.txDebugMarkStartTime(queueEntry, nextState)
-  }
-  txDebugMarkStartTime(queueEntry: QueueEntry, state: string): void {
-    if (queueEntry.txDebug.startTime[state] == null) {
-      queueEntry.txDebug.startTime[state] = process.hrtime()
-      queueEntry.txDebug.startTimestamp[state] = shardusGetTime()
-    }
-  }
-  txDebugMarkEndTime(queueEntry: QueueEntry, state: string): void {
-    if (queueEntry.txDebug.startTime[state]) {
-      const endTime = process.hrtime(queueEntry.txDebug.startTime[state])
-      queueEntry.txDebug.endTime[state] = endTime
-      queueEntry.txDebug.endTimestamp[state] = shardusGetTime()
-
-      const durationInNanoseconds = endTime[0] * 1e9 + endTime[1]
-      const durationInMilliseconds = durationInNanoseconds / 1e6
-
-      queueEntry.txDebug.duration[state] = durationInMilliseconds
-
-      delete queueEntry.txDebug.startTime[state]
-      delete queueEntry.txDebug.endTime[state]
-    }
-  }
-  clearDebugAwaitStrings(): void {
-    this.debugLastAwaitedCall = ''
-    this.debugLastAwaitedCallInner = ''
-    this.debugLastAwaitedAppCall = ''
-    this.debugLastAwaitedCallInnerStack = {}
-    this.debugLastAwaitedAppCallStack = {}
-  }
+  }  
 
   getQueueLengthBuckets(): any {
     try {
@@ -2320,6 +1531,33 @@ interface TransactionQueue {
   factValidateCorrespondingTellFinalDataSender(queueEntry: QueueEntry, sender: string): boolean
   factTellCorrespondingNodesFinalData(queueEntry: QueueEntry): void
   getArchivedQueueEntryByAccountIdAndHash(accountId: string, hash: string, msg: string): QueueEntry | null
+  requestFinalData(queueEntry: QueueEntry, accountIds: string[], nodesToAskKeys?: string[] | null, includeAppReceiptData?: boolean): Promise<RequestFinalDataResp>
+  
+  // Methods from archiverMethods
+  getArchiverReceiptFromQueueEntry(queueEntry: QueueEntry): Promise<ArchiverReceipt>
+  addOriginalTxDataToForward(queueEntry: QueueEntry): void
+  addReceiptToForward(queueEntry: QueueEntry, debugString?: string): Promise<void>
+  getReceiptsToForward(): ArchiverReceipt[]
+  
+  // Methods from debugMethods
+  setDebugLastAwaitedCall(label: string, complete?: DebugComplete): void
+  setDebugSetLastAppAwait(label: string, complete?: DebugComplete): void
+  setDebugLastAwaitedCallInner(label: string, complete?: DebugComplete): void
+  clearTxDebugStatList(): void
+  printTxDebug(): string
+  printTxDebugByTxId(txId: string): string
+  dumpTxDebugToStatList(queueEntry: QueueEntry): void
+  txDebugMarkStartTime(queueEntry: QueueEntry, state: string): void
+  txDebugMarkEndTime(queueEntry: QueueEntry, state: string): void
+  getDebugProccessingStatus(): unknown
+  clearStuckProcessingDebugVars(): void
+  getDebugQueueInfo(queueEntry: QueueEntry): any
+  
+  // Methods from other split files that need to be added
+  processQueue_accountSeen(seenAccounts: SeenAccounts, queueEntry: QueueEntry): boolean
+  processQueue_markAccountsSeen(seenAccounts: SeenAccounts, queueEntry: QueueEntry): void
+  processQueue_clearAccountsSeen(seenAccounts: SeenAccounts, queueEntry: QueueEntry): void
+  processQueue_debugAccountData(queueEntry: QueueEntry, app: any): string
 }
 
 Object.assign(TransactionQueue.prototype, handlers);
@@ -2328,5 +1566,8 @@ Object.assign(TransactionQueue.prototype, factMethods);
 Object.assign(TransactionQueue.prototype, nonceMethods);
 Object.assign(TransactionQueue.prototype, entryMethods);
 Object.assign(TransactionQueue.prototype, seenMethods);
+Object.assign(TransactionQueue.prototype, expiredMethods);
+Object.assign(TransactionQueue.prototype, debugMethods);
+Object.assign(TransactionQueue.prototype, archiverMethods);
 
 export default TransactionQueue

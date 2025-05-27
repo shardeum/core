@@ -15,8 +15,9 @@ import * as Self from '../p2p/Self'
 import { config as configContext, P2PModuleContext } from '../p2p/Context'
 import * as Context from '../p2p/Context'
 import { P2P as P2PTypes } from '@shardeum-foundation/lib-types'
-import { StringNodeObjectMap, WrappedResponses } from './state-manager-types'
+import { StringNodeObjectMap, WrappedResponses, RequestFinalDataResp } from './state-manager-types'
 import * as NodeList from '../p2p/NodeList'
+import { byPubKey, nodes } from '../p2p/NodeList'
 import { verifyCorrespondingSender } from '../utils/fastAggregatedCorrespondingTell'
 import { BroadcastFinalStateReq, serializeBroadcastFinalStateReq } from '../types/BroadcastFinalStateReq'
 import { PoqoDataAndReceiptReq, serializePoqoDataAndReceiptReq } from '../types/PoqoDataAndReceiptReq'
@@ -24,6 +25,8 @@ import { profilerInstance } from '../utils/profiler'
 import ShardFunctions from './shardFunctions'
 import { DebugComplete } from './TransactionQueue'
 import { Utils } from '@shardeum-foundation/lib-types'
+import { RequestTxAndStateReq, serializeRequestTxAndStateReq } from '../types/RequestTxAndStateReq'
+import { RequestTxAndStateResp, deserializeRequestTxAndStateResp } from '../types/RequestTxAndStateResp'
 
 interface TransactionQueueContext {
   stateManager: any
@@ -953,7 +956,7 @@ export const factMethods = {
 
           // if (this.usePOQo) {
           // && this.config.p2p.useBinarySerializedEndpoints && Context.config.p2p.poqoDataAndReceiptBinary) {
-          this.p2p.tellBinary<PoqoDataAndReceiptReq>(
+          Comms.tellBinary<PoqoDataAndReceiptReq>(
             filterdCorrespondingAccNodes,
             InternalRouteEnum.binary_poqo_data_and_receipt,
             {
@@ -1142,5 +1145,254 @@ export const factMethods = {
           )
         }
       }
+    },
+    async broadcastState(
+      nodes: Shardus.Node[],
+      message: { stateList: Shardus.WrappedResponse[]; txid: string },
+      context: string
+    ): Promise<void> {
+      // if (this.config.p2p.useBinarySerializedEndpoints && this.config.p2p.broadcastStateBinary) {
+      // convert legacy message to binary supported type
+      const request = message as BroadcastStateReq
+      if (logFlags.seqdiagram) {
+        for (const node of nodes) {
+          if (context == 'tellCorrespondingNodes') {
+            /* prettier-ignore */ if (logFlags.seqdiagram) this.seqLogger.info(`0x53455102 ${shardusGetTime()} tx:${message.txid} ${NodeList.activeIdToPartition.get(Self.id)}-->>${NodeList.activeIdToPartition.get(node.id)}: ${'broadcast_state_nodes'}`)
+          } else {
+            /* prettier-ignore */ if (logFlags.seqdiagram) this.seqLogger.info(`0x53455102 ${shardusGetTime()} tx:${message.txid} ${NodeList.activeIdToPartition.get(Self.id)}-->>${NodeList.activeIdToPartition.get(node.id)}: ${'broadcast_state_neighbour'}`)
+          }
+        }
+      }
+      Comms.tellBinary<BroadcastStateReq>(
+        nodes,
+        InternalRouteEnum.binary_broadcast_state,
+        request,
+        serializeBroadcastStateReq,
+        {
+          verification_data: verificationDataCombiner(
+            message.txid,
+            message.stateList.length.toString(),
+            request.stateList[0].accountId
+          ),
+        }
+      )
+      // return
+      // }
+      // this.p2p.tell(nodes, 'broadcast_state', message)
+    },    
+  
+    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+    async requestFinalData(
+      queueEntry: QueueEntry,
+      accountIds: string[],
+      nodesToAskKeys: string[] | null = null,
+      includeAppReceiptData = false
+    ): Promise<RequestFinalDataResp> {
+      profilerInstance.profileSectionStart('requestFinalData')
+      /* prettier-ignore */ if (logFlags.debug) this.mainLogger.debug(`requestFinalData: txid: ${queueEntry.logID} accountIds: ${utils.stringifyReduce(accountIds)}`);
+      const message = { txid: queueEntry.acceptedTx.txId, accountIds, includeAppReceiptData }
+      let success = false
+      let successCount = 0
+      let validAppReceiptData = includeAppReceiptData === false ? true : false
+  
+      // first check if we have received final data
+      for (const accountId of accountIds) {
+        // eslint-disable-next-line security/detect-object-injection
+        if (queueEntry.collectedFinalData[accountId] != null) {
+          successCount++
+        }
+      }
+      if (successCount === accountIds.length && includeAppReceiptData === false) {
+        nestedCountersInstance.countEvent('stateManager', 'requestFinalDataAlreadyReceived')
+        /* prettier-ignore */ if (logFlags.debug) this.mainLogger.debug(`requestFinalData: txid: ${queueEntry.logID} already received all data`)
+        // no need to request data
+        return
+      }
+  
+      try {
+        let nodeToAsk: Shardus.Node
+        if (nodesToAskKeys && nodesToAskKeys.length > 0) {
+          const randomIndex = Math.floor(Math.random() * nodesToAskKeys.length)
+          // eslint-disable-next-line security/detect-object-injection
+          const randomNodeToAskKey = nodesToAskKeys[randomIndex]
+          nodeToAsk = byPubKey.get(randomNodeToAskKey)
+        } else {
+          const randomIndex = Math.floor(Math.random() * queueEntry.executionGroup.length)
+          // eslint-disable-next-line security/detect-object-injection
+          const randomExeNode = queueEntry.executionGroup[randomIndex]
+          nodeToAsk = nodes.get(randomExeNode.id)
+        }
+  
+        if (!nodeToAsk) {
+          /* prettier-ignore */ if (logFlags.error) this.mainLogger.error('requestFinalData: could not find node from execution group')
+          throw new Error('requestFinalData: could not find node from execution group')
+        }
+  
+        /* prettier-ignore */ if (logFlags.debug) this.mainLogger.debug( `requestFinalData: txid: ${queueEntry.acceptedTx.txId} accountIds: ${utils.stringifyReduce( accountIds )}, asking node: ${nodeToAsk.id} ${nodeToAsk.externalPort} at timestamp ${shardusGetTime()}` )
+  
+        // if (this.config.p2p.useBinarySerializedEndpoints && this.config.p2p.requestTxAndStateBinary) {
+        const requestMessage = message as RequestTxAndStateReq
+        /* prettier-ignore */ if (logFlags.seqdiagram) this.seqLogger.info(`0x53455101 ${shardusGetTime()} tx:${queueEntry.acceptedTx.txId} ${NodeList.activeIdToPartition.get(Self.id)}-->>${NodeList.activeIdToPartition.get(nodeToAsk.id)}: ${'request_tx_and_state'}`)
+        const response = await Comms.askBinary<RequestTxAndStateReq, RequestTxAndStateResp>(
+          nodeToAsk,
+          InternalRouteEnum.binary_request_tx_and_state,
+          requestMessage,
+          serializeRequestTxAndStateReq,
+          deserializeRequestTxAndStateResp,
+          {}
+        )
+        // } else response = await Comms.ask(nodeToAsk, 'request_tx_and_state', message)
+  
+        if (response && response.stateList && response.stateList.length > 0) {
+          /* prettier-ignore */ if (logFlags.debug) this.mainLogger.debug(`requestFinalData: txid: ${queueEntry.logID} received data for ${response.stateList.length} accounts`)
+        } else {
+          /* prettier-ignore */ if (logFlags.error) this.mainLogger.error(`requestFinalData: txid: ${queueEntry.logID} response is null`)
+          nestedCountersInstance.countEvent(
+            'stateManager',
+            'requestFinalData: failed: response or response.stateList null or statelist length 0'
+          )
+          return
+        }
+  
+        for (const data of response.stateList) {
+          if (data == null) {
+            /* prettier-ignore */
+            if (logFlags.error && logFlags.debug) this.mainLogger.error(`requestFinalData data == null for tx ${queueEntry.logID}`);
+            success = false
+            break
+          }
+          const indexInVote = queueEntry.signedReceipt.proposal.accountIDs.indexOf(data.accountId)
+          if (indexInVote === -1) continue
+          const afterStateIdFromVote = queueEntry.signedReceipt.proposal.afterStateHashes[indexInVote]
+          if (data.stateId !== afterStateIdFromVote) {
+            nestedCountersInstance.countEvent('stateManager', 'requestFinalDataMismatch')
+            continue
+          }
+          if (queueEntry.collectedFinalData[data.accountId] == null) {
+            // todo: check the state hashes and verify
+            queueEntry.collectedFinalData[data.accountId] = data
+            successCount++
+            /* prettier-ignore */
+            if (logFlags.debug) this.mainLogger.debug(`requestFinalData: txid: ${queueEntry.logID} success accountId: ${data.accountId} stateId: ${data.stateId}`);
+          }
+        }
+        if (includeAppReceiptData && response.appReceiptData) {
+          const receivedAppReceiptDataHash = this.crypto.hash(response.appReceiptData)
+          const receipt2 = this.stateManager.getSignedReceipt(queueEntry)
+          if (receipt2 != null) {
+            validAppReceiptData = receivedAppReceiptDataHash === receipt2.proposal.appReceiptDataHash
+          }
+        }
+        if (successCount === accountIds.length && validAppReceiptData === true) {
+          success = true
+  
+          //setting this for completeness. if our node is awaiting final data it will utilize what was looked up here
+          queueEntry.hasValidFinalData = true
+          return { wrappedResponses: queueEntry.collectedFinalData, appReceiptData: response.appReceiptData }
+        } else {
+          nestedCountersInstance.countEvent(
+            'stateManager',
+            `requestFinalData: failed: did not get enough data: ${successCount} <  ${accountIds.length}`
+          )
+        }
+      } catch (e) {
+        nestedCountersInstance.countEvent('stateManager', 'requestFinalData: failed: Error')
+        /* prettier-ignore */ if (logFlags.error) this.mainLogger.error(`requestFinalData: txid: ${queueEntry.logID} error: ${e.message}`)
+      } finally {
+        if (success === false) {
+          nestedCountersInstance.countEvent('stateManager', 'requestFinalData: failed: success === false')
+          /* prettier-ignore */ if (logFlags.error) this.mainLogger.error(`requestFinalData: txid: ${queueEntry.logID} failed. successCount: ${successCount} accountIds: ${accountIds.length}`);
+        }
+      }
+      profilerInstance.profileSectionEnd('requestFinalData')
+    },
+  
+    async requestInitialData(queueEntry: QueueEntry, accountIds: string[]): Promise<WrappedResponses> {
+      profilerInstance.profileSectionStart('requestInitialData')
+      this.mainLogger.debug(
+        `requestInitialData: txid: ${queueEntry.logID} accountIds: ${utils.stringifyReduce(accountIds)}`
+      )
+      const message = { txid: queueEntry.acceptedTx.txId, accountIds }
+      let success = false
+      let successCount = 0
+      let retries = 0
+      const maxRetry = 3
+      const triedNodes = new Set<string>()
+  
+      if (queueEntry.executionGroup == null) return
+  
+      while (retries < maxRetry) {
+        const executionNodeIds = queueEntry.executionGroup.map((node) => node.id)
+        const randomExeNodeId = utils.getRandom(executionNodeIds, 1)[0]
+        if (triedNodes.has(randomExeNodeId)) continue
+        if (randomExeNodeId === Self.id) continue
+        const nodeToAsk = nodes.get(randomExeNodeId)
+        if (!nodeToAsk) {
+          if (logFlags.error) this.mainLogger.error('requestInitialData: could not find node from execution group')
+          throw new Error('requestInitialData: could not find node from execution group')
+        }
+        triedNodes.add(randomExeNodeId)
+        retries++
+        try {
+          if (logFlags.debug)
+            this.mainLogger.debug(
+              `requestInitialData: txid: ${queueEntry.acceptedTx.txId} accountIds: ${utils.stringifyReduce(
+                accountIds
+              )}, asking node: ${nodeToAsk.id} ${nodeToAsk.externalPort} at timestamp ${shardusGetTime()}`
+            )
+  
+          const requestMessage = message as RequestTxAndStateReq
+          /* prettier-ignore */ if (logFlags.seqdiagram) this.seqLogger.info(`0x53455101 ${shardusGetTime()} tx:${queueEntry.acceptedTx.txId} ${NodeList.activeIdToPartition.get(Self.id)}-->>${NodeList.activeIdToPartition.get(nodeToAsk.id)}: ${'request_tx_and_state'}`)
+          const response = await Comms.askBinary<RequestTxAndStateReq, RequestTxAndStateResp>(
+            nodeToAsk,
+            InternalRouteEnum.binary_request_tx_and_state_before,
+            requestMessage,
+            serializeRequestTxAndStateReq,
+            deserializeRequestTxAndStateResp,
+            {}
+          )
+  
+          if (response && response.stateList && response.stateList.length === accountIds.length) {
+            this.mainLogger.debug(
+              `requestInitialData: txid: ${queueEntry.logID} received data for ${response.stateList.length} accounts`
+            )
+          } else {
+            this.mainLogger.error(`requestInitialData: txid: ${queueEntry.logID} response is null or incomplete`)
+            continue
+          }
+  
+          const results: WrappedResponses = {}
+          const receipt2 = this.stateManager.getSignedReceipt(queueEntry)
+          if (receipt2 == null) {
+            return
+          }
+          if (receipt2.proposal.accountIDs.length !== response.stateList.length) {
+            if (logFlags.error && logFlags.debug)
+              this.mainLogger.error(`requestInitialData data.length not matching for tx ${queueEntry.logID}`)
+            return
+          }
+          for (const data of response.stateList) {
+            if (data == null) {
+              /* prettier-ignore */
+              if (logFlags.error && logFlags.debug) this.mainLogger.error(`requestInitialData data == null for tx ${queueEntry.logID}`);
+              success = false
+              break
+            }
+            const indexInVote = receipt2.proposal.accountIDs.indexOf(data.accountId)
+            if (data.stateId === receipt2.proposal.beforeStateHashes[indexInVote]) {
+              successCount++
+              results[data.accountId] = data
+              /* prettier-ignore */
+              if (logFlags.debug) this.mainLogger.debug(`requestInitialData: txid: ${queueEntry.logID} success accountId: ${data.accountId} stateId: ${data.stateId}`);
+            }
+          }
+          return results
+        } catch (e) {
+          nestedCountersInstance.countEvent('stateManager', 'requestInitialDataError')
+          /* prettier-ignore */ if (logFlags.error) this.mainLogger.error(`requestInitialData: txid: ${queueEntry.logID} error: ${e.message}`)
+        }
+      }
+      /* prettier-ignore */ if (logFlags.error) this.mainLogger.error(`requestInitialData: txid: ${queueEntry.logID} failed. successCount: ${successCount} accountIds: ${accountIds.length}`);
+      profilerInstance.profileSectionEnd('requestInitialData')
     }
 }

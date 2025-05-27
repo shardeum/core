@@ -1,84 +1,32 @@
-import { AcceptedTx, QueueEntry, StringBoolObjectMap, StringNodeObjectMap, SignedReceipt, Proposal } from './state-manager-types'
-import * as Shardus from '../shardus/shardus-types'
+import { SignedObject } from '@shardeum-foundation/lib-crypto-utils'
+import { StateManager as StateManagerTypes, Utils } from '@shardeum-foundation/lib-types'
+import { Node } from '@shardeum-foundation/lib-types/build/src/p2p/NodeListTypes'
 import { logFlags } from '../logger'
-import * as utils from '../utils'
-import { nestedCountersInstance } from '../utils/nestedCounters'
-import { config as configContext, P2PModuleContext } from '../p2p/Context'
-import * as Context from '../p2p/Context'
-import * as CycleChain from '../p2p/CycleChain'
 import { shardusGetTime } from '../network'
-import ShardFunctions from './shardFunctions'
+import * as Context from '../p2p/Context'
+import { config as configContext } from '../p2p/Context'
+import * as CycleChain from '../p2p/CycleChain'
 import * as NodeList from '../p2p/NodeList'
 import { activeByIdOrder, byPubKey, potentiallyRemoved } from '../p2p/NodeList'
 import * as Self from '../p2p/Self'
-import { SpreadTxToGroupSyncingReq, serializeSpreadTxToGroupSyncingReq } from '../types/SpreadTxToGroupSyncingReq'
-import { InternalRouteEnum } from '../types/enum/InternalRouteEnum'
-import { Utils, StateManager as StateManagerTypes } from '@shardeum-foundation/lib-types'
-import { Node } from '@shardeum-foundation/lib-types/build/src/p2p/NodeListTypes'
-import { profilerInstance } from '../utils/profiler'
-import { errorToStringFull } from '../utils'
-import { SignedObject } from '@shardeum-foundation/lib-crypto-utils'
+import * as Shardus from '../shardus/shardus-types'
+import { RequestReceiptForTxReqSerialized, serializeRequestReceiptForTxReq } from '../types/RequestReceiptForTxReq'
+import { RequestReceiptForTxRespSerialized, deserializeRequestReceiptForTxResp } from '../types/RequestReceiptForTxResp'
 import { RequestStateForTxReq, serializeRequestStateForTxReq } from '../types/RequestStateForTxReq'
 import { RequestStateForTxRespSerialized, deserializeRequestStateForTxResp } from '../types/RequestStateForTxResp'
 import { ResponseError } from '../types/ResponseError'
-import { RequestReceiptForTxReqSerialized, serializeRequestReceiptForTxReq } from '../types/RequestReceiptForTxReq'
-import { RequestReceiptForTxRespSerialized, deserializeRequestReceiptForTxResp } from '../types/RequestReceiptForTxResp'
+import { SpreadTxToGroupSyncingReq, serializeSpreadTxToGroupSyncingReq } from '../types/SpreadTxToGroupSyncingReq'
+import { InternalRouteEnum } from '../types/enum/InternalRouteEnum'
+import * as utils from '../utils'
+import { errorToStringFull } from '../utils'
+import { nestedCountersInstance } from '../utils/nestedCounters'
+import { profilerInstance } from '../utils/profiler'
+import ShardFunctions from './shardFunctions'
+import { AcceptedTx, Proposal, QueueEntry, SignedReceipt, StringBoolObjectMap, StringNodeObjectMap } from './state-manager-types'
 
-interface TransactionQueueContext {
-  stateManager: any
-  logger: any
-  mainLogger: any
-  profiler: any
-  queueEntryCounter: number
-  isAccountInQueue: (accountId: string) => boolean
-  pendingTransactionQueueByID: Map<string, QueueEntry>
-  pendingTransactionQueue: QueueEntry[]
-  p2p: P2PModuleContext
-  config: Shardus.StrictServerConfiguration
-  app: Shardus.App
-  executeInOneShard: boolean
-  updateTxState: (queueEntry: QueueEntry, state: string, note?: string) => void
-  _transactionQueueByID: Map<string, QueueEntry>
-  txDebugStartTiming: (queueEntry: QueueEntry, tag: string) => void
-  txDebugMarkStartTime: (queueEntry: QueueEntry, tag: string) => void
-  isTxInPendingNonceQueue: (accountId: string, txId: string) => boolean
-  addTransactionToNonceQueue: (nonceQueueItem: any) => { success: boolean; reason?: string; alreadyAdded?: boolean }
-  getQueueEntrySafe: (txId: string) => QueueEntry | null
-  updateHomeInformation: (queueEntry: QueueEntry) => void
-  usePOQo: boolean
-  useNewPOQ: boolean
-  orderNodesByRank: (nodes: any[], key: string) => any[]
-  computeNodeRank: (node: any, key: string) => number
-  seqLogger: any
-  statemanager_fatal: (key: string, log: string) => void
-  queueEntryGetTransactionGroup: (queueEntry: QueueEntry, tryUpdate?: boolean) => Shardus.Node[]
-  queueEntryGetConsensusGroup: (queueEntry: QueueEntry) => Shardus.Node[]
-  getStartAndEndIndexOfTargetGroup: (targetGroup: string[], transactionGroup: any[]) => { startIndex: number; endIndex: number }
-  addOriginalTxDataToForward: (queueEntry: QueueEntry) => void
-  computeTxSieveTime: (queueEntry: QueueEntry) => number
-  queueEntryPrePush: (queueEntry: QueueEntry) => void
-  archivedQueueEntries: QueueEntry[]
-  archivedQueueEntriesByID: Map<string, QueueEntry>
-  _transactionQueue: QueueEntry[]
-  archivedQueueEntryMaxCount: number
-  crypto: any
-  shareCompleteDataToNeighbours: (queueEntry: QueueEntry) => Promise<void>
-  archiveQueueEntry: (queueEntry: QueueEntry) => void
-  queueEntryAddData: (queueEntry: QueueEntry, data: Shardus.WrappedResponse, signatureCheck?: boolean) => void
-  txDebugMarkEndTime: (queueEntry: QueueEntry, tag: string) => void
-  dumpTxDebugToStatList: (queueEntry: QueueEntry) => void
-}
+import { TransactionQueueContext } from './TransactionQueue.context'
 
 export const entryMethods = {
-    /***
-   *    ######## ##    ##  #######  ##     ## ######## ##     ## ########
-   *    ##       ###   ## ##     ## ##     ## ##       ##     ## ##
-   *    ##       ####  ## ##     ## ##     ## ##       ##     ## ##
-   *    ######   ## ## ## ##     ## ##     ## ######   ##     ## ######
-   *    ##       ##  #### ##  ## ## ##     ## ##       ##     ## ##
-   *    ##       ##   ### ##    ##  ##     ## ##       ##     ## ##
-   *    ######## ##    ##  ##### ##  #######  ########  #######  ########
-   */
 
   routeAndQueueAcceptedTransaction(
     this: TransactionQueueContext,
@@ -488,30 +436,6 @@ export const entryMethods = {
         // Check to see if any keys are inside of a syncing range.
         // If it is a global key in a non-globalModification TX then we dont care about it
 
-        // COMPLETE HACK!!!!!!!!!
-        // for (let key of txQueueEntry.uniqueKeys) {
-        //   let syncTracker = this.stateManager.accountSync.getSyncTracker(key)
-        //   // only look at syncing for accounts that are changed.
-        //   // if the sync range is for globals and the tx is not a global modifier then skip it!
-
-        //   // todo take another look at this condition and syncTracker.globalAddressMap
-        //   if (syncTracker != null && (syncTracker.isGlobalSyncTracker === false || txQueueEntry.globalModification === true)) {
-        //     if (this.stateManager.accountSync.softSync_noSyncDelay === true) {
-        //       //no delay means that don't pause the TX in state = 'syncing'
-        //     } else {
-        //       txQueueEntry.state = 'syncing'
-        //       txQueueEntry.syncCounter++
-        //       syncTracker.queueEntries.push(txQueueEntry) // same tx may get pushed in multiple times. that's ok.
-        //       syncTracker.keys[key] = true //mark this key for fast testing later
-        //     }
-
-        //     txQueueEntry.didSync = true // mark that this tx had to sync, this flag should never be cleared, we will use it later to not through stuff away.
-        //     txQueueEntry.syncKeys.push(key) // used later to instruct what local data we should JIT load
-        //     txQueueEntry.localKeys[key] = true // used for the filter.  TODO review why this is set true here!!! seems like this may flag some keys not owned by this node!
-        //     /* prettier-ignore */ if (logFlags.playback) this.logger.playbackLogNote('shrd_sync_queued_and_set_syncing', `${txQueueEntry.logID}`, `${txQueueEntry.logID} qId: ${txQueueEntry.entryID} account:${utils.stringifyReduce(key)}`)
-        //   }
-        // }
-
         if (age > this.stateManager.queueSitTime * 0.9) {
           if (txQueueEntry.didSync === true) {
             /* prettier-ignore */ nestedCountersInstance.countEvent('stateManager', `enqueue old TX didSync === true queuedBeforeMainSyncComplete:${txQueueEntry.queuedBeforeMainSyncComplete}`)
@@ -633,11 +557,7 @@ export const entryMethods = {
                       `share to syncing neighbors`,
                       cycleShardData.syncingNeighborsTxGroup
                     )
-                    //this.p2p.sendGossipAll('spread_tx_to_group', acceptedTx, '', sender, cycleShardData.syncingNeighborsTxGroup)
-                    // if (
-                    //   this.stateManager.config.p2p.useBinarySerializedEndpoints &&
-                    //   this.stateManager.config.p2p.spreadTxToGroupSyncingBinary
-                    // ) {
+
                     if (logFlags.seqdiagram) {
                       for (const node of cycleShardData.syncingNeighborsTxGroup) {
                         /* prettier-ignore */ if (logFlags.seqdiagram) this.seqLogger.info(`0x53455102 ${shardusGetTime()} tx:${acceptedTx.txId} ${NodeList.activeIdToPartition.get(Self.id)}-->>${NodeList.activeIdToPartition.get(node.id)}: ${'spread_tx_to_group_syncing'}`)
@@ -651,13 +571,6 @@ export const entryMethods = {
                       serializeSpreadTxToGroupSyncingReq,
                       {}
                     )
-                    // } else {
-                    //   this.p2p.tell(
-                    //     cycleShardData.syncingNeighborsTxGroup,
-                    //     'spread_tx_to_group_syncing',
-                    //     acceptedTx
-                    //   )
-                    // }
                   } else {
                     /* prettier-ignore */ if (logFlags.verbose) this.mainLogger.debug(`routeAndQueueAcceptedTransaction: bugfix detected. avoid forwarding txs where globalModification == true ${txQueueEntry.logID}`)
                   }
@@ -751,16 +664,6 @@ export const entryMethods = {
     this.profiler.scopedProfileSectionEnd('queueEntryPrePush')
     this.profiler.profileSectionStart('queueEntryPrePush', true)
   },
-
-  /***
-   *     #######           ###     ######   ######  ########  ######   ######
-   *    ##     ##         ## ##   ##    ## ##    ## ##       ##    ## ##    ##
-   *    ##     ##        ##   ##  ##       ##       ##       ##       ##
-   *    ##     ##       ##     ## ##       ##       ######    ######   ######
-   *    ##  ## ##       ######### ##       ##       ##             ##       ##
-   *    ##    ##        ##     ## ##    ## ##    ## ##       ##    ## ##    ##
-   *     ##### ##       ##     ##  ######   ######  ########  ######   ######
-   */
 
   /**
    * getQueueEntry
@@ -1063,10 +966,6 @@ export const entryMethods = {
 
     /* prettier-ignore */ if (logFlags.playback) this.logger.playbackLogNote('shrd_queueEntryRequestMissingData_start', `${queueEntry.acceptedTx.txId}`, `qId: ${queueEntry.entryID} AccountsMissing:${utils.stringifyReduce(allKeys)}`)
 
-    // consensus group should have all the data.. may need to correct this later
-    //let consensusGroup = this.queueEntryGetConsensusGroup(queueEntry)
-    //let consensusGroup = this.queueEntryGetTransactionGroup(queueEntry)
-
     for (const key of queueEntry.uniqueKeys) {
       // eslint-disable-next-line security/detect-object-injection
       if (queueEntry.collectedData[key] == null && queueEntry.requests[key] == null) {
@@ -1220,10 +1119,6 @@ export const entryMethods = {
 
           // queueEntry.homeNodes[key] = null
           for (const key2 of allKeys) {
-            //consider deleteing these instead?
-            //TSConversion changed to a delete opertaion should double check this
-            //queueEntry.requests[key2] = null
-            // eslint-disable-next-line security/detect-object-injection
             delete queueEntry.requests[key2]
           }
 
@@ -1286,7 +1181,6 @@ export const entryMethods = {
       `queueEntryRequestMissingReceipt`,
       consensusGroup
     )
-    //let consensusGroup = this.queueEntryGetTransactionGroup(queueEntry)
     //the outer loop here could just use the transaction group of nodes instead. but already had this working in a similar function
     //TODO change it to loop the transaction group untill we get a good receipt
 
@@ -1361,9 +1255,6 @@ export const entryMethods = {
           this.statemanager_fatal(`queueEntryRequestMissingReceipt`, `error: ${e.message}`)
           /* prettier-ignore */ this.mainLogger.error(`askBinary error: ${InternalRouteEnum.binary_request_receipt_for_tx} asked to ${node.externalIp}:${node.externalPort}:${node.id}`)
         }
-        // } else {
-        //   result = await this.p2p.ask(node, 'request_receipt_for_tx', message) // not sure if we should await this.
-        // }
 
         if (result == null) {
           if (logFlags.verbose) {
@@ -1517,16 +1408,6 @@ export const entryMethods = {
           /* prettier-ignore */ if (logFlags.playback && logFlags.verbose) this.logger.playbackLogNote('queueEntryGetTransactionGroup', `queueEntryGetTransactionGroup executeInOneShard ${queueEntry.logID} isInExecutionHome:${queueEntry.isInExecutionHome} executionGroup:${Utils.safeStringify(executionKeys)}`)
         }
   
-        // if(queueEntry.globalModification === false && this.executeInOneShard && key === queueEntry.executionShardKey){
-        //   let ourNodeShardData: StateManagerTypes.shardFunctionTypes.NodeShardData = this.stateManager.currentCycleShardData.nodeShardData
-        //   let nodeStoresThisPartition = ShardFunctions.testInRange(homePartition, ourNodeShardData.storedPartitions)
-        //   if(nodeStoresThisPartition === false){
-        //     queueEntry.isInExecutionHome = false
-        //     queueEntry.waitForReceiptOnly = true
-        //   }
-        //   /* prettier-ignore */ if (logFlags.verbose) this.mainLogger.debug(`queueEntryGetTransactionGroup ${queueEntry.logID} isInExecutionHome:${queueEntry.isInExecutionHome} waitForReceiptOnly:${queueEntry.waitForReceiptOnly}`)
-        //   /* prettier-ignore */ if (logFlags.playback) this.logger.playbackLogNote('queueEntryGetTransactionGroup', `queueEntryGetTransactionGroup ${queueEntry.logID} isInExecutionHome:${queueEntry.isInExecutionHome} waitForReceiptOnly:${queueEntry.waitForReceiptOnly}`)
-        // }
       }
       queueEntry.ourNodeInTransactionGroup = true
       if (uniqueNodes[cycleShardData.ourNode.id] == null) {
@@ -1568,19 +1449,6 @@ export const entryMethods = {
         queueEntry.updatedTxGroupCycle = this.stateManager.currentCycleShardData.cycleNumber
         queueEntry.transactionGroup = txGroup
       }
-  
-      // let uniqueNodes = {}
-      // for (let n of gossipGroup) {
-      //   uniqueNodes[n.id] = n
-      // }
-      // for (let n of updatedGroup) {
-      //   uniqueNodes[n.id] = n
-      // }
-      // let values = Object.values(uniqueNodes)
-      // let finalGossipGroup =
-      // for (let n of updatedGroup) {
-      //   uniqueNodes[n.id] = n
-      // }
   
       return txGroup
     },
@@ -1796,11 +1664,7 @@ export const entryMethods = {
         queueEntry.signedReceiptFinal = queueEntry.signedReceipt
     
         delete queueEntry.receivedSignedReceipt
-        delete queueEntry.signedReceiptForRepair
-    
-        //delete queueEntry.appliedReceiptFinal
-    
-        //delete queueEntry.preApplyTXResult //turn this off for now, until we can do some refactor of queueEntry.preApplyTXResult.applyResponse
+        delete queueEntry.signedReceiptForRepair    
     
         this.archivedQueueEntries.push(queueEntry)
     
