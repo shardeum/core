@@ -1,4 +1,7 @@
 import { isDebugMode, getDevPublicKeys, ensureKeySecurity, getMultisigPublicKeys, unsafeUnlock } from '../debug'
+
+// Re-export isDebugMode
+export { isDebugMode }
 import * as Context from '../p2p/Context'
 import * as crypto from '@shardeum-foundation/lib-crypto-utils'
 import { DevSecurityLevel } from '../shardus/shardus-types'

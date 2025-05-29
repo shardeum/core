@@ -20,3 +20,4 @@ export function startSaving(baseDir: string): void {
   // Monkey patch the global console with a new one that uses our passthroughs
   console = new Console({ stdout: outPass, stderr: errPass }) // eslint-disable-line no-global-assign
 }
+
