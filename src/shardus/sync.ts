@@ -70,14 +70,14 @@ export const syncMethods = {
       await this.app.sync()
       console.log('syncAppData - sync')
       this.stateManager.appFinishedSyncing = true
-      this.p2p.setIgnoreJoinRequests(false)
+      Self.setp2pIgnoreJoinRequests(false)
       console.log('p2pIgnoreJoinRequests = false')
     } else {
       await this.stateManager.startCatchUpQueue()
       console.log('syncAppData - startCatchUpQueue')
       await this.app.sync()
       console.log('syncAppData - sync')
-      this.p2p.setIgnoreJoinRequests(false)
+      Self.setp2pIgnoreJoinRequests(false)
       console.log('p2pIgnoreJoinRequests = false')
 
       await queueFinishedSyncingRequest()

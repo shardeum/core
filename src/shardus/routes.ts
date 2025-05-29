@@ -12,12 +12,21 @@ import { Utils } from '@shardeum-foundation/lib-types'
 import * as Comms from '../p2p/Comms'
 import { Node } from '@shardeum-foundation/lib-types/build/src/p2p/NodeListTypes'
 import * as ServiceQueue from '../p2p/ServiceQueue'
-import { shardusGetTime } from '../network'
+import { shardusGetTime, calculateFakeTimeOffset, clearFakeTimeOffset } from '../network'
 import { profilerInstance } from '../utils/profiler'
 import * as utils from '../utils'
 import * as JoinV2 from '../p2p/Join/v2'
 import { config } from '../p2p/Context'
-// Binary route types not available, will use any for now
+import { getSocketReport } from '../utils/debugUtils'
+import { lostArchiversMap } from '../p2p/LostArchivers/state'
+import { InternalBinaryHandler } from '../types/Handler'
+import { InternalRouteEnum } from '../types/enum/InternalRouteEnum'
+import { RequestErrorEnum } from '../types/enum/RequestErrorEnum'
+import { getStreamWithTypeCheck, requestErrorHandler } from '../types/Helpers'
+import { TypeIdentifierEnum } from '../types/enum/TypeIdentifierEnum'
+import { SignAppDataReq, deserializeSignAppDataReq, serializeSignAppDataReq } from '../types/SignAppDataReq'
+import { SignAppDataResp, deserializeSignAppDataResp, serializeSignAppDataResp } from '../types/SignAppDataResp'
+import { Route } from '@shardeum-foundation/lib-types/build/src/p2p/P2PTypes'
 
 // Local deepReplace function
 function deepReplace(obj: object | ArrayLike<any>, find: any, replace: any): any {
@@ -76,7 +85,7 @@ export const routesMethods = {
           currentQuarter: CycleCreator.currentQuarter,
           currentCycleMarker: CycleChain.getCurrentCycleMarker() ?? null,
           newestCycle: CycleChain.getNewest() ?? null,
-          lostArchiversMap: {},
+          lostArchiversMap: lostArchiversMap,
         }
       }
       res.json(result)
@@ -119,54 +128,102 @@ export const routesMethods = {
     })
 
     this.network.registerExternalGet('socketReport', isDebugModeMiddlewareLow, async (_req, res) => {
-      res.json({}) // getSocketReport not available
+      const report = getSocketReport()
+      res.json(report)
     })
-    this.network.registerExternalGet('forceCycleSync', isDebugModeMiddlewareLow, async (req, res) => {
+    this.network.registerExternalGet('forceCycleSync', isDebugModeMiddlewareHigh, async (req, res) => {
       let enable = req.query.enable === 'true' || false
       this.config.p2p.hackForceCycleSyncComplete = enable
-      res.json({success: true})
+      res.json(await getSocketReport())
     })
 
     this.network.registerExternalGet('calculate-fake-time-offset', isDebugModeMiddlewareHigh, async (req, res) => {
       const shift = req.query.shift ? parseInt(req.query.shift as string) : 0
       const spread = req.query.spread ? parseInt(req.query.spread as string) : 0
-      // calculateFakeTimeOffset not available
-      const offset = 0
+      const offset = calculateFakeTimeOffset(shift, spread)
       /* prettier-ignore */ this.mainLogger.debug({ message: "Calculated fakeTimeOffset", data: { shift, spread, offset } });
       res.json({ success: true })
     })
 
     this.network.registerExternalGet('clear-fake-time-offset', isDebugModeMiddlewareHigh, async (_req, res) => {
-      // clearFakeTimeOffset not available  
-      const offset = 0
+      const offset = clearFakeTimeOffset()
       /* prettier-ignore */ this.mainLogger.debug({ message: "Cleared fakeTimeOffset", data: { offset } });
       res.json({ success: true })
     })
 
-    // this.p2p.registerInternal(
-    //   'sign-app-data',
-    //   async (
-    //     payload: {
-    //       type: string
-    //       nodesToSign: string
-    //       hash: string
-    //       appData: any
-    //     },
-    //     respond: (arg0: any) => any
-    //   ) => {
-    //     const { type, nodesToSign, hash, appData } = payload
-    //     const { success, signature } = await this.app.signAppData?.(type, hash, Number(nodesToSign), appData)
+    this.p2p.registerInternal(
+      'sign-app-data',
+      async (
+        payload: {
+          type: string
+          nodesToSign: string
+          hash: string
+          appData: any
+        },
+        respond: (arg0: any) => any
+      ) => {
+        const { type, nodesToSign, hash, appData } = payload
+        const { success, signature } = await this.app.signAppData?.(type, hash, Number(nodesToSign), appData)
 
-    //     await respond({ success, signature })
-    //   }
-    // )
+        await respond({ success, signature })
+      }
+    )
 
-    // Binary handler removed - types not available
-    // const signAppDataBinaryHandler: Route<InternalBinaryHandler<Buffer>> = {...}
-    // this.p2p.registerInternalBinary(signAppDataBinaryHandler.name, signAppDataBinaryHandler.handler)
+    // Binary handler for sign-app-data
+    const signAppDataBinaryHandler: Route<InternalBinaryHandler<Buffer>> = {
+      name: InternalRouteEnum.binary_sign_app_data,
+      handler: async (payload, respond) => {
+        const route = InternalRouteEnum.binary_sign_app_data
+        nestedCountersInstance.countEvent('internal', route)
+        this.profiler.scopedProfileSectionStart(route)
+
+        const errorHandler = (errorType: RequestErrorEnum, opts?: any): boolean => {
+          nestedCountersInstance.countEvent('internal', `${route}-${errorType}`)
+          if (logFlags.error) {
+            const { nodeId } = opts || {}
+            const errorMsg = `Error in ${route}: ${errorType} from node ${nodeId ?? 'unknown'}`
+            this.mainLogger.error(errorMsg)
+          }
+          return false
+        }
+
+        try {
+          const stream = getStreamWithTypeCheck(payload, TypeIdentifierEnum.cSignAppDataReq)
+          if (!stream) {
+            respond(errorHandler(RequestErrorEnum.InvalidRequest), null)
+            return
+          }
+
+          const req: SignAppDataReq = deserializeSignAppDataReq(stream)
+          const { type, hash, nodesToSign, appData } = req
+          const { success, signature } = await this.app.signAppData?.(type, hash, nodesToSign, appData)
+
+          const response: SignAppDataResp = { success, signature }
+          respond(response, serializeSignAppDataResp)
+        } catch (ex) {
+          if (logFlags.error) {
+            this.mainLogger.error(`${route}: ${ex.message}`)
+          }
+          nestedCountersInstance.countEvent('internal', `${route}-exception`)
+          respond(errorHandler(RequestErrorEnum.InvalidRequest), null)
+        } finally {
+          this.profiler.scopedProfileSectionEnd(route)
+        }
+      }
+    }
+    this.p2p.registerInternalBinary(signAppDataBinaryHandler.name, signAppDataBinaryHandler.handler)
+
+    this.network.registerExternalGet('debug-toggle-foreverloop', isDebugModeMiddlewareHigh, (req, res) => {
+      this.debugForeverLoopsEnabled = !this.debugForeverLoopsEnabled
+      //optionally check the query param set and use that instead
+      if (req.query.set) {
+        this.debugForeverLoopsEnabled = req.query.set === 'true'
+      }
+      res.json({ debugForeverLoopsEnabled: this.debugForeverLoopsEnabled })
+    })
 
     // FOR internal testing. NEEDS to be removed for security purposes
-    this.network.registerExternalPost('testGlobalAccountTX', isDebugModeMiddlewareMedium, async (req, res) => {
+    this.network.registerExternalPost('testGlobalAccountTX', isDebugModeMiddlewareHigh, async (req, res) => {
       try {
         this.mainLogger.debug(`testGlobalAccountTX: req:${utils.stringifyReduce(req.body)}`)
         const tx = req.body.tx
@@ -181,7 +238,7 @@ export const routesMethods = {
       }
     })
 
-    this.network.registerExternalPost('testGlobalAccountTXSet', isDebugModeMiddlewareMedium, async (req, res) => {
+    this.network.registerExternalPost('testGlobalAccountTXSet', isDebugModeMiddlewareHigh, async (req, res) => {
       try {
         this.mainLogger.debug(`testGlobalAccountTXSet: req:${utils.stringifyReduce(req.body)}`)
         const tx = req.body.tx

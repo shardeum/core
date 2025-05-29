@@ -620,7 +620,5 @@ export const startMethods = {
       this.updateDebug(lastCycle)
     })
 
-    //setup debug endpoints
-    this.setupDebugEndpoints()
   }
 }
