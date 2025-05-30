@@ -99,29 +99,6 @@ export function reset(caller: string) {
   selectedById = new Map()
 }
 
-const isRefuteCyclesEnabled = (cycle: P2P.CycleCreatorTypes.CycleRecord | null) => {
-  if (cycle === null) {
-    nestedCountersInstance.countEvent('p2p', `initRefuteCycles: cycle is null when initializing refute cycles`)
-    /* prettier-ignore */ if (logFlags.p2pNonFatal) console.log('initRefuteCycles: cycle is null when initializing refute cycles')
-    return false
-  }
-
-  if (config.p2p.enableProblematicNodeRemoval && cycle.counter >= config.p2p.enableProblematicNodeRemovalOnCycle) {
-    return true
-  }
-
-  return false
-}
-
-const initRefuteCyclesForNode = (node: P2P.NodeListTypes.Node, cycle: P2P.CycleCreatorTypes.CycleRecord | null) => {
-  if (isRefuteCyclesEnabled(cycle)) {
-    // This if check is a critical fix.  This is because initRefuteCyclesForNode gets called
-    // as part of addNode and addNode gets called in syncV2 after we download the nodelist and then
-    // pass it to addNodes.   having the check here will make sure we dont wipe out existing
-    // data in refuteCycles that we just downloaded.
-    if (node.refuteCycles == null) node.refuteCycles = []
-  }
-}
 
 export function addNode(node: P2P.NodeListTypes.Node, caller: string, cycle: P2P.CycleCreatorTypes.CycleRecord | null) {
   if (node == null) {
@@ -135,8 +112,6 @@ export function addNode(node: P2P.NodeListTypes.Node, caller: string, cycle: P2P
     warn(`NodeList.addNode: tried to add duplicate ${node.externalPort}: ${Utils.safeStringify(node)}\n` + `${caller}`)
     return
   }
-
-  initRefuteCyclesForNode(node, cycle)
 
   nodes.set(node.id, node)
   byPubKey.set(node.publicKey, node)
@@ -348,8 +323,6 @@ export function updateNode(
 ) {
   const node = nodes.get(update.id)
   if (node) {
-    initRefuteCyclesForNode(node, cycle)
-
     // Update node properties
     for (const key of Object.keys(update)) {
       node[key] = update[key]
@@ -425,41 +398,6 @@ export function updateNodes(
   */
 }
 
-export function updateProblematicNodeTracking(cycle: P2P.CycleCreatorTypes.CycleRecord | null) {
-  if (isRefuteCyclesEnabled(cycle)) {
-    if (logFlags.p2pNonFatal) console.log('p2p: updating refute cycles')
-
-    for (const node of nodes.values()) {
-      if (!node.refuteCycles) {
-        nestedCountersInstance.countEvent('p2p', `updateProblematicNodeTracking: initializing refute cycles for node`)
-        if (logFlags.p2pNonFatal) console.log('p2p: initializing refute cycles for node', node.id)
-        node.refuteCycles = []
-      }
-
-      // Track refutes if this update is from a cycle record
-      if (cycle && cycle.refuted?.includes(node.id)) {
-        if (!node.refuteCycles.includes(cycle.counter)) {
-          nestedCountersInstance.countEvent('p2p', `updateProblematicNodeTracking: tracking refute cycle for node`)
-          if (logFlags.p2pNonFatal) console.log(`p2p: tracking refute cycle for node ${node.id} - ${cycle.counter}`)
-          node.refuteCycles.push(cycle.counter)
-        }
-      }
-
-      const numRefuteCyclesBeforeClean = node.refuteCycles.length
-      // Clean up old refutes using sliding window
-      const windowStart = Math.max(1, cycle.counter - config.p2p.problematicNodeHistoryLength)
-      node.refuteCycles = node.refuteCycles.filter((c) => c >= windowStart)
-      const numRefuteCyclesAfterClean = node.refuteCycles.length
-      if (numRefuteCyclesBeforeClean > numRefuteCyclesAfterClean) {
-        nestedCountersInstance.countEvent('p2p', `updateProblematicNodeTracking: cleaned up refute cycles for node`)
-        if (logFlags.p2pNonFatal)
-          console.log(
-            `p2p: cleaned up refute cycles for node ${node.id} - ${numRefuteCyclesBeforeClean} -> ${numRefuteCyclesAfterClean}`
-          )
-      }
-    }
-  }
-}
 
 export function isNodeLeftNetworkEarly(node: P2P.NodeListTypes.Node) {
   return CycleChain.newest && CycleChain.newest.lost.includes(node.id)

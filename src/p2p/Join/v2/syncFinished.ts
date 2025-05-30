@@ -78,6 +78,27 @@ export function addFinishedSyncing(finishedSyncRequest: FinishedSyncingRequest):
     }
   }
 
+  // Verify cycle history completeness for problematic node detection
+  if (config.p2p.requireCompleteCycleHistory) {
+    const hasCompleteHistory = CycleChain.hasCompleteAnalysisWindow()
+    if (!hasCompleteHistory) {
+      const cycleWindowManager = CycleChain.getCycleWindowManager()
+      const cycleCount = cycleWindowManager ? cycleWindowManager.getCycleCount() : 0
+      const requiredCycles = config.p2p.problematicNodeAnalysisWindow || 30
+      
+      if (logFlags.console) {
+        console.log(`addFinishedSyncing(): Node ${finishedSyncRequest.nodeId} does not have complete cycle history (${cycleCount}/${requiredCycles})`)
+      }
+      /* prettier-ignore */ nestedCountersInstance.countEvent('syncFinished.ts', `addFinishedSyncing(): incomplete cycle history` )
+      
+      return {
+        success: false,
+        reason: `Node must have complete cycle history (${cycleCount}/${requiredCycles} cycles) before going active`,
+        fatal: false,
+      }
+    }
+  }
+
   /* prettier-ignore */ if (logFlags.verbose) console.log(`addFinishedSyncing: ${finishedSyncRequest.nodeId} port:${node?.externalPort}`)
   newSyncFinishedNodes.set(finishedSyncRequest.nodeId, finishedSyncRequest)
   /* prettier-ignore */ nestedCountersInstance.countEvent('syncFinished.ts', `addFinishedSyncing(): success` )

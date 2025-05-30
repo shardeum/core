@@ -4,6 +4,7 @@
  */
 
 import { P2P } from '@shardeum-foundation/lib-types'
+import './types'
 import { Handler } from 'express'
 import * as CycleChain from '../CycleChain'
 import { network } from '../Context'
@@ -191,6 +192,49 @@ const newestCycleRecordRoute: P2P.P2PTypes.Route<Handler> = {
   },
 }
 
+/** An endpoint that returns both current and historical cycles in a single atomic response. */
+const syncCycleHistoryRoute: P2P.P2PTypes.Route<Handler> = {
+  method: 'GET',
+  name: 'sync-cycle-history',
+  handler: (req, res) => {
+    let respondSize = 0
+    profilerInstance.scopedProfileSectionStart('sync-cycle-history', false)
+    
+    try {
+      const requestedHistoryLength = parseInt(req.query.requestedHistoryLength as string) || 33
+      
+      // Get the current cycle
+      const currentCycle = CycleChain.newest
+      if (!currentCycle) {
+        res.status(404).json({ error: 'No cycles available' })
+        return
+      }
+      
+      // Calculate the range of cycles to return
+      const endCounter = currentCycle.counter
+      const startCounter = Math.max(0, endCounter - requestedHistoryLength + 1)
+      
+      // Get historical cycles
+      const historicalCycles = CycleChain.getCycleChain(startCounter, endCounter)
+      
+      // Build response
+      const response: P2P.SyncV2.CycleHistorySyncResponse = {
+        currentCycle: currentCycle,
+        historicalCycles: historicalCycles,
+        oldestAvailable: CycleChain.oldest?.counter || 0,
+        newestAvailable: currentCycle.counter
+      }
+      
+      respondSize = jsonHttpResWithSize(res, response)
+    } catch (error) {
+      /* prettier-ignore */ if (logFlags.error) Utils.logger.error('sync-cycle-history error:', error)
+      res.status(500).json({ error: 'Internal server error' })
+    } finally {
+      profilerInstance.scopedProfileSectionEnd('sync-cycle-history', respondSize)
+    }
+  },
+}
+
 /** Registers all routes as external routes. */
 export function initRoutes(): void {
   const routes = [
@@ -205,6 +249,7 @@ export function initRoutes(): void {
     txListRoute,
     cycleByMarkerRoute,
     newestCycleRecordRoute,
+    syncCycleHistoryRoute,
   ]
 
   for (const route of routes) {

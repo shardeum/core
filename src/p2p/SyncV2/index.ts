@@ -5,6 +5,7 @@
 
 import { errAsync, okAsync, ResultAsync } from 'neverthrow'
 import { hexstring, P2P, Utils } from '@shardeum-foundation/lib-types'
+import './types'
 import {
   getCycleDataFromNode,
   initLogger,
@@ -29,9 +30,13 @@ import { JoinRequest } from '@shardeum-foundation/lib-types/build/src/p2p/JoinTy
 import { addStandbyJoinRequests } from '../Join/v2'
 import { logFlags } from '../../logger'
 import { makeCycleMarker } from '../CycleCreator'
-import { p2pLogger } from './queries'
+import { p2pLogger, robustQueryForCycleHistory, getCycleByMarkerFromNode } from './queries'
 import { sleep } from '../../utils'
 import Shardus from '../../shardus'
+import * as RefuteCacheSync from '../RefuteCacheSync'
+import { CycleHistoryTracker } from '../CycleHistoryTracker'
+import { config } from '../Context'
+import * as RefuteCycleCache from '../RefuteCycleCache'
 
 /** Initializes logging and endpoints for Sync V2. */
 export function init(): void {
@@ -115,6 +120,22 @@ export function syncV2(activeNodes: P2P.SyncTypes.ActiveNode[], shardus: Shardus
               info('syncV2: archiverList hash ', CycleChain.newest.archiverListHash)
               info('syncV2: standbyNodeList hash ', CycleChain.newest.standbyNodeListHash)
               info('syncV2: CycleChain.newest ', Utils.safeStringify(CycleChain.newest))
+
+              // Sync cycle history for problematic node detection
+              syncCycleHistory(activeNodes, cycle.counter).then((success) => {
+                if (success) {
+                  info('Cycle history sync successful')
+                  
+                  // Build RefuteCache from the synced cycles
+                  const allCycles = CycleChain.cycles
+                  RefuteCycleCache.buildCacheFromCycles(allCycles)
+                  info('RefuteCache built from cycle history')
+                } else {
+                  warn('Cycle history sync failed, will collect cycles gradually')
+                }
+              }).catch((error) => {
+                warn('Cycle history sync error:', error)
+              })
 
               return okAsync(void 0)
             })
@@ -241,7 +262,107 @@ function syncLatestCycleRecord(
   )
 }
 
+/**
+ * Sync cycle history from active nodes with fallback to legacy method
+ * @param activeNodes - Array of active nodes to query
+ * @param currentCycleCounter - Current cycle counter
+ * @returns Promise indicating success or failure
+ */
+async function syncCycleHistory(activeNodes: P2P.SyncTypes.ActiveNode[], currentCycleCounter: number): Promise<boolean> {
+  try {
+    const requestedHistoryLength = config.p2p.problematicNodeHistoryLength || 33
+    
+    // Try atomic cycle history sync first
+    const atomicResult = await robustQueryForCycleHistory(activeNodes, requestedHistoryLength)
+    
+    if (atomicResult.isOk()) {
+      const { value, winningNodes } = atomicResult.value
+      const { currentCycle, historicalCycles } = value
+      
+      // Verify the current cycle matches what we expected
+      if (currentCycle.counter !== currentCycleCounter) {
+        warn(`Cycle counter mismatch: expected ${currentCycleCounter}, got ${currentCycle.counter}`)
+        return false
+      }
+      
+      // Add all historical cycles to CycleChain
+      for (const cycle of historicalCycles) {
+        // Validate cycle chain integrity
+        if (historicalCycles.indexOf(cycle) > 0) {
+          const prevCycle = historicalCycles[historicalCycles.indexOf(cycle) - 1]
+          if (!CycleChain.validate(prevCycle, cycle)) {
+            warn(`Cycle validation failed at cycle ${cycle.counter}`)
+            return false
+          }
+        }
+        
+        // Prepend historical cycles (they're older than current)
+        CycleChain.prepend(cycle)
+      }
+      
+      info(`Successfully synced ${historicalCycles.length} historical cycles atomically`)
+      return true
+    } else {
+      // Fallback to legacy sync method
+      info('Atomic cycle history sync failed, falling back to legacy method')
+      return await syncCycleHistoryLegacy(activeNodes, currentCycleCounter, requestedHistoryLength)
+    }
+  } catch (error) {
+    warn('Error in syncCycleHistory:', error)
+    return false
+  }
+}
+
+/**
+ * Legacy fallback method for syncing cycle history
+ * @param activeNodes - Array of active nodes to query
+ * @param currentCycleCounter - Current cycle counter
+ * @param requestedHistoryLength - Number of cycles to request
+ * @returns Promise indicating success or failure
+ */
+async function syncCycleHistoryLegacy(
+  activeNodes: P2P.SyncTypes.ActiveNode[], 
+  currentCycleCounter: number,
+  requestedHistoryLength: number
+): Promise<boolean> {
+  try {
+    const cycleTracker = new CycleHistoryTracker(requestedHistoryLength)
+    
+    // Calculate which cycles we need
+    const startCycle = Math.max(0, currentCycleCounter - requestedHistoryLength + 1)
+    const endCycle = currentCycleCounter - 1 // Don't include current cycle, we already have it
+    
+    // Request missing cycles
+    let successCount = 0
+    for (let cycleNum = startCycle; cycleNum <= endCycle; cycleNum++) {
+      // Get the cycle from CycleChain if we already have it
+      const existingCycles = CycleChain.getCycleChain(cycleNum, cycleNum)
+      if (existingCycles.length > 0) {
+        cycleTracker.addCycle(existingCycles[0])
+        successCount++
+        continue
+      }
+      
+      // Otherwise, request it from a node
+      // We need to get the marker for this cycle first
+      // For now, we'll skip cycles we don't have markers for
+      warn(`Legacy sync: Unable to request cycle ${cycleNum} - marker unknown`)
+    }
+    
+    info(`Legacy sync: Retrieved ${successCount} cycles out of ${endCycle - startCycle + 1} requested`)
+    return successCount > 0
+  } catch (error) {
+    warn('Error in syncCycleHistoryLegacy:', error)
+    return false
+  }
+}
+
 function info(...msg) {
   const entry = `SyncV2: ${msg.join(' ')}`
   p2pLogger.info(entry)
+}
+
+function warn(...msg) {
+  const entry = `SyncV2: ${msg.join(' ')}`
+  p2pLogger.warn(entry)
 }

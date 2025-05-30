@@ -44,6 +44,7 @@ import { TypeIdentifierEnum } from '../types/enum/TypeIdentifierEnum'
 import { LostReportReq, deserializeLostReportReq, serializeLostReportReq } from '../types/LostReportReq'
 import { isDebugModeMiddlewareHigh } from '../network/debugMiddleware'
 import { logPerfEvents } from '../logger/csvPerfEvents'
+import { updateRefuteCache } from './RefuteCycleCache'
 
 /** TYPES */
 
@@ -506,6 +507,9 @@ export function updateRecord(
 
 // This gets called before Q1 when a new cycle is created or fetched
 export function parseRecord(record: P2P.CycleCreatorTypes.CycleRecord): P2P.CycleParserTypes.Change {
+  // Update the refute cache with this cycle's data
+  updateRefuteCache(record)
+  
   // If we see our node in the refute field clear flag to send an 'up' message at start of next cycle
   //   We ndded to do this check before checking the lost field for our node.
   for (const id of record.refuted) {

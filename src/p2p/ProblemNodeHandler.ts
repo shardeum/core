@@ -2,19 +2,26 @@ import { P2P } from '@shardeum-foundation/lib-types'
 import * as NodeList from './NodeList'
 import { config } from './Context'
 import { Node } from '@shardeum-foundation/lib-types/build/src/p2p/NodeListTypes'
+import { getRefuteCyclesForNode } from './RefuteCycleCache'
+import * as RefuteCacheSync from './RefuteCacheSync'
+import { logFlags } from '../logger'
 
 export function isNodeProblematic(node: Node, currentCycle: number): boolean {
-  if (!node.refuteCycles) return false
+  if (!config.p2p.enableProblematicNodeRemoval) return false
+
+  // Get refute cycles from cache instead of node property
+  const refuteCycles = getRefuteCyclesForNode(node.id, currentCycle)
+  if (refuteCycles.length === 0) return false
 
   // Check consecutive refutes
-  const consecutiveRefutes = getConsecutiveRefutes(node.refuteCycles, currentCycle)
+  const consecutiveRefutes = getConsecutiveRefutes(refuteCycles, currentCycle)
 
   if (consecutiveRefutes >= config.p2p.problematicNodeConsecutiveRefuteThreshold) {
     return true
   }
 
   // Check refute percentage in recent history
-  const refutePercentage = getRefutePercentage(node.refuteCycles, currentCycle)
+  const refutePercentage = getRefutePercentage(refuteCycles, currentCycle)
   if (refutePercentage >= config.p2p.problematicNodeRefutePercentageThreshold) {
     return true
   }
@@ -74,8 +81,62 @@ export function getProblematicNodes(prevRecord: P2P.CycleCreatorTypes.CycleRecor
   // Sort by refute percentage
   return problematicNodes
     .sort((a, b) => {
-      const percentageA = getRefutePercentage(a.refuteCycles, prevRecord.counter)
-      const percentageB = getRefutePercentage(b.refuteCycles, prevRecord.counter)
+      const refuteCyclesA = getRefuteCyclesForNode(a.id, prevRecord.counter)
+      const refuteCyclesB = getRefuteCyclesForNode(b.id, prevRecord.counter)
+      const percentageA = getRefutePercentage(refuteCyclesA, prevRecord.counter)
+      const percentageB = getRefutePercentage(refuteCyclesB, prevRecord.counter)
+      return percentageB - percentageA
+    })
+    .map((node) => node.id)
+}
+
+/**
+ * Gets problematic nodes with readiness checking
+ * Only nodes that are ready to participate in removal decisions are considered
+ * @param prevRecord - The previous cycle record
+ * @returns Array of problematic node IDs from participating nodes
+ */
+export function getProblematicNodesWithReadiness(prevRecord: P2P.CycleCreatorTypes.CycleRecord): string[] {
+  // Check if we can participate in removal decisions
+  if (!RefuteCacheSync.canParticipateInRemovalDecisions(prevRecord.counter)) {
+    if (logFlags.p2pNonFatal) {
+      console.log(`ProblemNodeHandler: Node not ready to participate in removal decisions at cycle ${prevRecord.counter}`)
+    }
+    return []
+  }
+  
+  // Check if it's too early in the network lifecycle
+  if (prevRecord.counter < config.p2p.bootstrapCyclesBeforeRemoval) {
+    if (logFlags.p2pNonFatal) {
+      console.log(`ProblemNodeHandler: Network still in bootstrap period (cycle ${prevRecord.counter}/${config.p2p.bootstrapCyclesBeforeRemoval})`)
+    }
+    return []
+  }
+  
+  // Get participating nodes
+  const participatingNodes = RefuteCacheSync.getParticipatingNodes(
+    NodeList.activeByIdOrder as Node[],
+    prevRecord.counter
+  )
+  
+  if (participatingNodes.length === 0) {
+    return []
+  }
+  
+  // Filter problematic nodes to only those in the participating set
+  const problematicNodes = NodeList.activeByIdOrder
+    .filter((node) => 
+      participatingNodes.includes(node.id) && 
+      isNodeProblematic(node as Node, prevRecord.counter)
+    )
+
+  // Sort by refute percentage
+  return problematicNodes
+    .sort((a, b) => {
+      const refuteCyclesA = getRefuteCyclesForNode(a.id, prevRecord.counter)
+      const refuteCyclesB = getRefuteCyclesForNode(b.id, prevRecord.counter)
+      const percentageA = getRefutePercentage(refuteCyclesA, prevRecord.counter)
+      const percentageB = getRefutePercentage(refuteCyclesB, prevRecord.counter)
       return percentageB - percentageA
     })
     .map((node) => node.id)

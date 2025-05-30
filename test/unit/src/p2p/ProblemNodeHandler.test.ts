@@ -8,6 +8,8 @@ import { P2P } from '@shardeum-foundation/lib-types'
 import * as NodeList from '../../../../src/p2p/NodeList'
 import * as Context from '../../../../src/p2p/Context'
 import { Node } from '@shardeum-foundation/lib-types/build/src/p2p/NodeListTypes'
+import * as RefuteCycleCache from '../../../../src/p2p/RefuteCycleCache'
+
 // Mock NodeList module
 jest.mock('../../../../src/p2p/NodeList', () => ({
   activeByIdOrder: [],
@@ -18,6 +20,7 @@ jest.mock('../../../../src/p2p/NodeList', () => ({
 jest.mock('../../../../src/p2p/Context', () => ({
   config: {
     p2p: {
+      enableProblematicNodeRemoval: true,
       problematicNodeConsecutiveRefuteThreshold: 3,
       problematicNodeRefutePercentageThreshold: 0.1,
       problematicNodeHistoryLength: 100,
@@ -25,9 +28,11 @@ jest.mock('../../../../src/p2p/Context', () => ({
   },
 }))
 
+// Mock RefuteCycleCache module
+jest.mock('../../../../src/p2p/RefuteCycleCache')
+
 const baseMockNode = {
   id: 'node1',
-  refuteCycles: [],
   curvePublicKey: 'mockKey',
   status: P2P.P2PTypes.NodeStatus.SELECTED,
   cycleJoined: '0',
@@ -50,9 +55,11 @@ const baseMockNode = {
 
 describe('ProblemNodeHandler', () => {
   let mockNode: Node
+  let getRefuteCyclesForNodeMock: jest.SpyInstance
 
   beforeEach(() => {
     // Reset config values before each test
+    ;(Context.config as any).p2p.enableProblematicNodeRemoval = true
     ;(Context.config as any).p2p.problematicNodeConsecutiveRefuteThreshold = 3
     ;(Context.config as any).p2p.problematicNodeRefutePercentageThreshold = 0.1
     ;(Context.config as any).p2p.problematicNodeHistoryLength = 100
@@ -60,50 +67,59 @@ describe('ProblemNodeHandler', () => {
     // Create a mock node for testing
     mockNode = {
       ...baseMockNode,
-      refuteCycles: [],
     }
 
     // Clear NodeList mocks before each test
     NodeList.activeByIdOrder.length = 0
     NodeList.nodes.clear()
+
+    // Mock RefuteCycleCache.getRefuteCyclesForNode
+    getRefuteCyclesForNodeMock = jest.spyOn(RefuteCycleCache, 'getRefuteCyclesForNode')
+    getRefuteCyclesForNodeMock.mockReturnValue([])
+  })
+
+  afterEach(() => {
+    jest.clearAllMocks()
   })
 
   describe('isNodeProblematic', () => {
     it('should return false if node has no refuteCycles', () => {
-      ;(mockNode.refuteCycles as any) = undefined
-      expect(isNodeProblematic(mockNode, 1)).toBe(false)
+      getRefuteCyclesForNodeMock.mockReturnValue([])
+      expect(isNodeProblematic(mockNode, 100)).toBe(false)
     })
 
     it('should return true if node has consecutive refutes above threshold', () => {
-      mockNode.refuteCycles = [98, 99, 100]
+      getRefuteCyclesForNodeMock.mockReturnValue([98, 99, 100])
       expect(isNodeProblematic(mockNode, 100)).toBe(true)
     })
 
     it('should return false if consecutive refutes are below threshold', () => {
-      mockNode.refuteCycles = [98, 99]
+      getRefuteCyclesForNodeMock.mockReturnValue([98, 99])
       expect(isNodeProblematic(mockNode, 100)).toBe(false)
     })
 
     it('should return true if refute percentage is above threshold', () => {
       // Add 11 refutes in last 100 cycles (11%)
+      const refuteCycles = []
       for (let i = 90; i <= 100; i++) {
-        mockNode.refuteCycles?.push(i)
+        refuteCycles.push(i)
       }
+      getRefuteCyclesForNodeMock.mockReturnValue(refuteCycles)
       expect(isNodeProblematic(mockNode, 100)).toBe(true)
     })
 
     it('should return false if refute percentage is below threshold', () => {
       // Add 9 refutes in last 100 cycles (9%), spread out to avoid consecutive threshold
-      mockNode.refuteCycles?.push(10)
-      mockNode.refuteCycles?.push(20)
-      mockNode.refuteCycles?.push(30)
-      mockNode.refuteCycles?.push(40)
-      mockNode.refuteCycles?.push(50)
-      mockNode.refuteCycles?.push(60)
-      mockNode.refuteCycles?.push(70)
-      mockNode.refuteCycles?.push(80)
-      mockNode.refuteCycles?.push(90)
+      getRefuteCyclesForNodeMock.mockReturnValue([10, 20, 30, 40, 50, 60, 70, 80, 90])
       expect(isNodeProblematic(mockNode, 100)).toBe(false)
+    })
+
+    it('should return false if feature is disabled', () => {
+      ;(Context.config as any).p2p.enableProblematicNodeRemoval = false
+      getRefuteCyclesForNodeMock.mockReturnValue([98, 99, 100])
+      expect(isNodeProblematic(mockNode, 100)).toBe(false)
+      // Restore config
+      ;(Context.config as any).p2p.enableProblematicNodeRemoval = true
     })
   })
 
@@ -201,11 +217,13 @@ describe('ProblemNodeHandler', () => {
       // Add a non-problematic node
       const node: Node = {
         ...baseMockNode,
-        refuteCycles: [90], // Only 1% refute rate
       }
 
       NodeList.activeByIdOrder.push(node)
       NodeList.nodes.set(node.id, node)
+      
+      // Mock cache to return only 1% refute rate
+      getRefuteCyclesForNodeMock.mockReturnValue([90])
 
       const result = getProblematicNodes(mockCycleRecord)
       expect(result).toEqual([])
@@ -216,19 +234,16 @@ describe('ProblemNodeHandler', () => {
       const node1: Node = {
         ...baseMockNode,
         id: 'node1',
-        refuteCycles: [2, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100], // 11% refute rate
       }
 
       const node2: Node = {
         ...baseMockNode,
         id: 'node2',
-        refuteCycles: [90, 92, 94, 96, 98, 100], // 6% refute rate
       }
 
       const node3: Node = {
         ...baseMockNode,
         id: 'node3',
-        refuteCycles: [98, 99, 100], // 3% refute rate but 3 consecutive
       }
 
       // Add nodes to NodeList mock
@@ -237,7 +252,14 @@ describe('ProblemNodeHandler', () => {
       NodeList.nodes.set(node2.id, node2)
       NodeList.nodes.set(node3.id, node3)
 
-      console.log(NodeList.activeByIdOrder, mockCycleRecord)
+      // Mock different refute cycles for each node
+      getRefuteCyclesForNodeMock.mockImplementation((nodeId: string) => {
+        if (nodeId === 'node1') return [2, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100] // 11% refute rate
+        if (nodeId === 'node2') return [90, 92, 94, 96, 98, 100] // 6% refute rate
+        if (nodeId === 'node3') return [98, 99, 100] // 3% refute rate but 3 consecutive
+        return []
+      })
+
       const result = getProblematicNodes(mockCycleRecord)
       // Should contain node1 (11% refutes) and node3 (3 consecutive refutes)
       // Sorted by refute percentage (node1 first, then node3)
@@ -252,11 +274,13 @@ describe('ProblemNodeHandler', () => {
     it('should identify nodes with consecutive refutes', () => {
       const node: Node = {
         ...baseMockNode,
-        refuteCycles: [98, 99, 100], // 3 consecutive refutes
       }
 
       NodeList.activeByIdOrder.push(node)
       NodeList.nodes.set(node.id, node)
+      
+      // Mock 3 consecutive refutes
+      getRefuteCyclesForNodeMock.mockReturnValue([98, 99, 100])
 
       const result = getProblematicNodes(mockCycleRecord)
       expect(result).toContain('node1')
@@ -265,15 +289,17 @@ describe('ProblemNodeHandler', () => {
     it('should identify nodes with high refute percentage', () => {
       const node: Node = {
         ...baseMockNode,
-        refuteCycles: [], // Will add 11 refutes (11%)
-      }
-
-      for (let i = 90; i <= 100; i++) {
-        node.refuteCycles?.push(i)
       }
 
       NodeList.activeByIdOrder.push(node)
       NodeList.nodes.set(node.id, node)
+      
+      // Mock 11 refutes (11%)
+      const refuteCycles = []
+      for (let i = 90; i <= 100; i++) {
+        refuteCycles.push(i)
+      }
+      getRefuteCyclesForNodeMock.mockReturnValue(refuteCycles)
 
       const result = getProblematicNodes(mockCycleRecord)
       expect(result).toContain('node1')
@@ -282,11 +308,13 @@ describe('ProblemNodeHandler', () => {
     it('should not include nodes that are neither consecutive nor percentage problematic', () => {
       const node: Node = {
         ...baseMockNode,
-        refuteCycles: [95, 97, 99], // Non-consecutive and only 3%
       }
 
       NodeList.activeByIdOrder.push(node)
       NodeList.nodes.set(node.id, node)
+      
+      // Mock non-consecutive and only 3%
+      getRefuteCyclesForNodeMock.mockReturnValue([95, 97, 99])
 
       const result = getProblematicNodes(mockCycleRecord)
       expect(result).not.toContain('node1')

@@ -4,6 +4,7 @@
  */
 
 import { hexstring, P2P } from '@shardeum-foundation/lib-types'
+import './types'
 import { errAsync, ResultAsync } from 'neverthrow'
 import { attempt, robustQuery } from '../Utils'
 import * as http from '../../http'
@@ -214,6 +215,76 @@ export function getTxListFromNode(
       hash: expectedHash,
     },
     10000 //TODO need to make this scale when there could be millions of entries
+  )
+}
+
+/** Gets cycle history from nodes using the new atomic endpoint */
+export function getCycleHistoryFromNode(
+  node: ActiveNode,
+  requestedHistoryLength: number
+): ResultAsync<P2P.SyncV2.CycleHistorySyncResponse, Error> {
+  info(`getCycleHistoryFromNode: requesting ${requestedHistoryLength} cycles from ${node.ip}:${node.port}`)
+
+  return attemptSimpleFetch(
+    node,
+    'sync-cycle-history',
+    {
+      requestedHistoryLength: requestedHistoryLength,
+    },
+    30000 // 30 second timeout for potentially large response
+  )
+}
+
+/** Robust query for cycle history from multiple nodes */
+export function robustQueryForCycleHistory(
+  nodes: ActiveNode[],
+  requestedHistoryLength: number
+): RobustQueryResultAsync<P2P.SyncV2.CycleHistorySyncResponse> {
+  // Create a custom query function that includes the requestedHistoryLength parameter
+  const queryFn = (node: ActiveNode): ResultAsync<P2P.SyncV2.CycleHistorySyncResponse, Error> => {
+    const ip = node.ip
+    const port = node.port
+
+    return ResultAsync.fromPromise(
+      http.get(`${ip}:${port}/sync-cycle-history?requestedHistoryLength=${requestedHistoryLength}`),
+      (err) => new Error(`couldn't query sync-cycle-history: ${err}`)
+    )
+  }
+
+  // Run the robust query
+  const logPrefix = `syncv2-robust-query-cycle-history`
+  return ResultAsync.fromPromise(
+    attempt(async () => await robustQuery(nodes, queryFn), {
+      maxRetries: MAX_RETRIES,
+      logPrefix,
+      logger: mainLogger,
+    }),
+    (err) => new Error(`robust query failed for cycle-history: ${err}`)
+  ).andThen((robustResult) => {
+    if (!robustResult.isRobustResult) {
+      return errAsync(new Error(`result of cycle-history wasn't robust`))
+    }
+    return robustResult.topResult.map((value) => ({
+      winningNodes: robustResult.winningNodes,
+      value,
+    }))
+  })
+}
+
+/** Gets a specific cycle by marker from a node */
+export function getCycleByMarkerFromNode(
+  node: ActiveNode,
+  marker: hexstring
+): ResultAsync<CycleRecord, Error> {
+  info(`getCycleByMarkerFromNode: marker: ${marker}`)
+
+  return attemptSimpleFetch(
+    node,
+    'cycle-by-marker',
+    {
+      marker: marker,
+    },
+    10000
   )
 }
 

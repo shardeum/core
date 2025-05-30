@@ -5,6 +5,8 @@ import { nodes } from './NodeList'
 import { nestedCountersInstance } from '../utils/nestedCounters'
 import { logFlags } from '../logger'
 import { shardusGetTime } from '../network'
+import { CycleWindowManager } from './CycleWindowManager'
+import { config } from './Context'
 
 /** STATE */
 
@@ -18,12 +20,20 @@ export let newest: P2P.CycleCreatorTypes.CycleRecord
 
 let currentCycleMarker: hexstring
 
+// CycleWindowManager for maintaining the 33-cycle window
+let cycleWindowManager: CycleWindowManager
+
 reset()
 
 /** FUNCTIONS */
 
 export function init() {
   p2pLogger = logger.getLogger('p2p')
+  
+  // Initialize CycleWindowManager with configured values
+  const maxCycles = config.p2p.cyclesStoredByValidators || 33
+  const analysisWindow = config.p2p.problematicNodeAnalysisWindow || 30
+  cycleWindowManager = new CycleWindowManager(maxCycles, analysisWindow)
 }
 
 export function reset() {
@@ -32,6 +42,10 @@ export function reset() {
   oldest = null
   newest = null
   currentCycleMarker = null
+  
+  if (cycleWindowManager) {
+    cycleWindowManager.clear()
+  }
 }
 
 export function getNewest() {
@@ -46,6 +60,11 @@ export function append(cycle: P2P.CycleCreatorTypes.CycleRecord) {
     newest = cycle
     currentCycleMarker = marker
     if (!oldest) oldest = cycle
+    
+    // Add to cycle window manager
+    if (cycleWindowManager) {
+      cycleWindowManager.addCycle(cycle)
+    }
   }
 }
 export function prepend(cycle: P2P.CycleCreatorTypes.CycleRecord) {
@@ -66,6 +85,11 @@ export function prepend(cycle: P2P.CycleCreatorTypes.CycleRecord) {
     if (cycle.counter > newest.counter) {
       newest = cycle
       currentCycleMarker = marker
+    }
+    
+    // Add to cycle window manager
+    if (cycleWindowManager) {
+      cycleWindowManager.addCycle(cycle)
     }
   }
 }
@@ -235,10 +259,17 @@ export function getCycleNumberFromTimestamp(
 }
 
 export function prune(keep: number) {
-  const drop = cycles.length - keep
+  // Use the configured cycle storage limit if available
+  const maxCyclesToKeep = config.p2p.cyclesStoredByValidators || keep
+  
+  const drop = cycles.length - maxCyclesToKeep
   if (drop <= 0) return
+  
   cycles.splice(0, drop)
   oldest = cycles[0]
+  
+  // The CycleWindowManager handles its own pruning automatically
+  // when cycles are added, so we don't need to explicitly prune it here
 }
 
 /** HELPER FUNCTIONS */
@@ -297,6 +328,35 @@ export function getDebug() {
 /** Returns the last appended cycle's marker. */
 export function getCurrentCycleMarker(): hexstring {
   return currentCycleMarker
+}
+
+/** Get the cycle window manager for problematic node analysis */
+export function getCycleWindowManager(): CycleWindowManager | null {
+  return cycleWindowManager
+}
+
+/** Get cycles for problematic node analysis (oldest 30 of 33) */
+export function getCyclesForProblematicNodeAnalysis(): P2P.CycleCreatorTypes.CycleRecord[] {
+  if (!cycleWindowManager) {
+    // Fallback to existing cycles if window manager not initialized
+    const analysisWindow = config.p2p.problematicNodeAnalysisWindow || 30
+    if (cycles.length <= analysisWindow) {
+      return [...cycles]
+    }
+    return cycles.slice(0, analysisWindow)
+  }
+  
+  return cycleWindowManager.getAnalysisWindow()
+}
+
+/** Check if we have a complete analysis window */
+export function hasCompleteAnalysisWindow(): boolean {
+  if (!cycleWindowManager) {
+    const analysisWindow = config.p2p.problematicNodeAnalysisWindow || 30
+    return cycles.length >= analysisWindow
+  }
+  
+  return cycleWindowManager.hasCompleteAnalysisWindow()
 }
 
 /**

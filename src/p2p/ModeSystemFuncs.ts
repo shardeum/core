@@ -10,7 +10,7 @@ import * as CycleCreator from './CycleCreator'
 import * as CycleChain from './CycleChain'
 import { logFlags } from '../logger'
 import { Utils } from '@shardeum-foundation/lib-types'
-import { getProblematicNodes } from './ProblemNodeHandler'
+import { getProblematicNodesWithReadiness } from './ProblemNodeHandler'
 
 interface ToAcceptResult {
   add: number
@@ -633,7 +633,7 @@ export function getExpiredRemovedV3(
   const numExpiredNodes = expiredNodes.length
 
   // Get the set of problematic nodes
-  const problematicWithApoptosizedNodes = getProblematicNodes(prevRecord)
+  const problematicWithApoptosizedNodes = getProblematicNodesWithReadiness(prevRecord)
   // filter out apoptosized nodes from the problematic nodes
   const problematicNodes = problematicWithApoptosizedNodes.filter((id) => !apoptosizedNodesList.includes(id))
   const canRemoveProblematicNodesThisCycle = prevRecord.counter % config.p2p.problematicNodeRemovalCycleFrequency === 0
