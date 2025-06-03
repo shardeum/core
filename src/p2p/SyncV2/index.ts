@@ -32,6 +32,7 @@ import { makeCycleMarker } from '../CycleCreator'
 import { p2pLogger } from './queries'
 import { sleep } from '../../utils'
 import Shardus from '../../shardus'
+import { util } from 'prettier'
 
 /** Initializes logging and endpoints for Sync V2. */
 export function init(): void {
@@ -75,48 +76,57 @@ export function syncV2(activeNodes: P2P.SyncTypes.ActiveNode[], shardus: Shardus
               shardus.earlyConfigFetchAndPatch(cycle.counter),
               (error) => new Error(`Failed to fetch and patch config: ${error}`)
             ).andThen(() => {
-              NodeList.reset('syncV2')
 
-              // log the counts of the nodes, archivers, and standby nodes
-              /* prettier-ignore */ if (logFlags.important_as_fatal) console.log( `syncV2: nodes: ${validatorList.length}, archivers: ${archiverList.length}, standby nodes: ${standbyNodeList.length}` )
+              //using sleep as an example of a normal async func
+              return ResultAsync.fromPromise(
+                //replace sleep with looping sync 100 cycles (start with the cycle we have and sync prev hash iteratively)
+                sleep(1000), // wait for 1 second to ensure the config is applied
+                (error) => new Error(`Failed to XYZ: ${error}`)
+              ).andThen(() => {
 
-              // add validators
-              NodeList.addNodes(validatorList, 'syncV2', cycle)
+                NodeList.reset('syncV2')
 
-              // add archivers
-              for (const archiver of archiverList) {
-                Archivers.archivers.set(archiver.publicKey, archiver)
-              }
+                // log the counts of the nodes, archivers, and standby nodes
+                /* prettier-ignore */ if (logFlags.important_as_fatal) console.log( `syncV2: nodes: ${validatorList.length}, archivers: ${archiverList.length}, standby nodes: ${standbyNodeList.length}` )
 
-              // add standby nodes
-              addStandbyJoinRequests(standbyNodeList, true)
+                // add validators
+                NodeList.addNodes(validatorList, 'syncV2', cycle)
 
-              // add txList
-              ServiceQueue.setTxList(txList)
+                // add archivers
+                for (const archiver of archiverList) {
+                  Archivers.archivers.set(archiver.publicKey, archiver)
+                }
 
-              // add latest cycle
-              CycleChain.reset()
+                // add standby nodes
+                addStandbyJoinRequests(standbyNodeList, true)
 
-              // earlyConfigFetchAndPatch() is an async call so we have to do some
-              // funky stuff to call it in this neverthow style code:
+                // add txList
+                ServiceQueue.setTxList(txList)
 
-              info('syncV2: cycle.counter ', cycle.counter)
-              info('syncV2: cycle.marker ', makeCycleMarker(cycle))
-              info('syncV2: nodelist hash ', cycle.nodeListHash)
-              info('syncV2: archiverList hash ', cycle.archiverListHash)
-              info('syncV2: standbyNodeList hash ', cycle.standbyNodeListHash)
-              info('syncV2: cycle ', Utils.safeStringify(cycle))
+                // add latest cycle
+                CycleChain.reset()
 
-              digestCycle(cycle, 'syncV2')
+                // earlyConfigFetchAndPatch() is an async call so we have to do some
+                // funky stuff to call it in this neverthow style code:
 
-              info('syncV2: CycleChain.newest.counter ', CycleChain.newest.counter)
-              info('syncV2: CycleChain.newest.marker ', makeCycleMarker(CycleChain.newest))
-              info('syncV2: nodelist hash ', CycleChain.newest.nodeListHash)
-              info('syncV2: archiverList hash ', CycleChain.newest.archiverListHash)
-              info('syncV2: standbyNodeList hash ', CycleChain.newest.standbyNodeListHash)
-              info('syncV2: CycleChain.newest ', Utils.safeStringify(CycleChain.newest))
+                info('syncV2: cycle.counter ', cycle.counter)
+                info('syncV2: cycle.marker ', makeCycleMarker(cycle))
+                info('syncV2: nodelist hash ', cycle.nodeListHash)
+                info('syncV2: archiverList hash ', cycle.archiverListHash)
+                info('syncV2: standbyNodeList hash ', cycle.standbyNodeListHash)
+                info('syncV2: cycle ', Utils.safeStringify(cycle))
 
-              return okAsync(void 0)
+                digestCycle(cycle, 'syncV2')
+
+                info('syncV2: CycleChain.newest.counter ', CycleChain.newest.counter)
+                info('syncV2: CycleChain.newest.marker ', makeCycleMarker(CycleChain.newest))
+                info('syncV2: nodelist hash ', CycleChain.newest.nodeListHash)
+                info('syncV2: archiverList hash ', CycleChain.newest.archiverListHash)
+                info('syncV2: standbyNodeList hash ', CycleChain.newest.standbyNodeListHash)
+                info('syncV2: CycleChain.newest ', Utils.safeStringify(CycleChain.newest))
+
+                return okAsync(void 0)
+              })
             })
           })
         )
@@ -233,6 +243,10 @@ function syncLatestCycleRecord(
   // run a robust query for the latest cycle record hash
   return robustQueryForCycleRecordHash(activeNodes).andThen(({ value, winningNodes }) =>
     // get current cycle record from node
+
+    //this grabs a cycle by the hash, we know this cycle is good so we can safely
+    // use the ".previous" cycle Hash to query any length chain of past cycle (with sane checks against 
+    // cycle count  i.e when a nework is new)   we do need to verify each as we get it
     getCycleDataFromNode(winningNodes[0], value.currentCycleHash).andThen((cycle) =>
       // verify the cycle record marker matches the hash from before. if it
       // does, return the cycle
