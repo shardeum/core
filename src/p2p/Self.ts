@@ -192,6 +192,9 @@ export function startupV2(shardus: Shardus): Promise<boolean> {
         await syncCycleChain(id, shardus)
         await Join.queueStartedSyncingRequest()
 
+        //this is an alternate spot to sync last X cycles. 
+        //could even add a new endpoint to do it in bulk 
+
         // Enable internal routes
         Comms.setAcceptInternal(true)
 
