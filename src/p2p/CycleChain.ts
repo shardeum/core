@@ -26,6 +26,25 @@ export function init() {
   p2pLogger = logger.getLogger('p2p')
 }
 
+function getLogger(): Logger {
+  if (!p2pLogger) {
+    try {
+      p2pLogger = logger.getLogger('p2p')
+    } catch (e) {
+      // In case logger is not available (e.g., in tests), create a no-op logger
+      p2pLogger = {
+        info: () => {},
+        warn: () => {},
+        error: () => {},
+        debug: () => {},
+        trace: () => {},
+        fatal: () => {},
+      } as any
+    }
+  }
+  return p2pLogger
+}
+
 export function reset() {
   cycles = []
   cyclesByMarker = {}
@@ -383,5 +402,8 @@ export function getNewestCycleInfoLogStr(msg: string): string {
 
 function info(...msg) {
   const entry = `CycleChain: ${msg.join(' ')}`
-  p2pLogger.info(entry)
+  const log = getLogger()
+  if (log && log.info) {
+    log.info(entry)
+  }
 }
