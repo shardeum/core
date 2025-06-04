@@ -4296,9 +4296,10 @@ class TransactionConsenus {
       // eslint-disable-next-line security/detect-object-injection
       const currentVote = queueEntry.collectedVoteHashes[i]
 
-      if (currentVote.sign.owner === voteHash.sign.owner) {
+      if (currentVote.sign.owner.toLowerCase() === voteHash.sign.owner.toLowerCase()) {
         if (currentVote.voteTime < voteHash.voteTime) {
           // Replace old vote with new vote
+          // eslint-disable-next-line security/detect-object-injection
           queueEntry.collectedVoteHashes[i] = voteHash
           queueEntry.newVotes = true
           queueEntry.lastVoteReceivedTimestamp = shardusGetTime()
