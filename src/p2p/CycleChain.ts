@@ -69,6 +69,47 @@ export function prepend(cycle: P2P.CycleCreatorTypes.CycleRecord) {
     }
   }
 }
+
+/**
+ * Prepends multiple cycles efficiently in batch
+ * @param newCycles Array of cycles to prepend (should be sorted oldest to newest)
+ */
+export function prependMultiple(newCycles: P2P.CycleCreatorTypes.CycleRecord[]) {
+  if (newCycles.length === 0) return
+  
+  // Filter out cycles we already have
+  const uniqueCycles = newCycles.filter(cycle => {
+    const marker = computeCycleMarker(cycle)
+    return !cyclesByMarker[marker]
+  })
+  
+  if (uniqueCycles.length === 0) return
+  
+  // Add all cycles to the map
+  for (const cycle of uniqueCycles) {
+    const marker = computeCycleMarker(cycle)
+    cyclesByMarker[marker] = cycle
+  }
+  
+  // Prepend all cycles at once
+  cycles.unshift(...uniqueCycles)
+  
+  // Update oldest
+  oldest = uniqueCycles[0]
+  
+  // Update newest if needed
+  if (newest == null) {
+    newest = uniqueCycles[uniqueCycles.length - 1]
+    currentCycleMarker = computeCycleMarker(newest)
+  } else {
+    // Check if any of the new cycles is newer than current newest
+    const lastNewCycle = uniqueCycles[uniqueCycles.length - 1]
+    if (lastNewCycle.counter > newest.counter) {
+      newest = lastNewCycle
+      currentCycleMarker = computeCycleMarker(newest)
+    }
+  }
+}
 export function validate(prev: P2P.CycleCreatorTypes.CycleRecord, next: P2P.CycleCreatorTypes.CycleRecord): boolean {
   const prevMarker = computeCycleMarker(prev)
 
@@ -86,6 +127,34 @@ export function validate(prev: P2P.CycleCreatorTypes.CycleRecord, next: P2P.Cycl
     return false
   }
   // [TODO] More validation
+  return true
+}
+
+/**
+ * Validates a chain of cycles to ensure continuity
+ * @param cyclesToValidate Array of cycles sorted by counter (oldest to newest)
+ * @returns true if the chain is valid, false otherwise
+ */
+export function validateCycleChain(cyclesToValidate: P2P.CycleCreatorTypes.CycleRecord[]): boolean {
+  if (cyclesToValidate.length < 2) return true
+  
+  for (let i = 1; i < cyclesToValidate.length; i++) {
+    const prev = cyclesToValidate[i - 1]
+    const curr = cyclesToValidate[i]
+    
+    // Check counter continuity
+    if (curr.counter !== prev.counter + 1) {
+      info(`validateCycleChain: Counter gap detected: ${prev.counter} -> ${curr.counter}`)
+      return false
+    }
+    
+    // Check marker chain
+    if (!validate(prev, curr)) {
+      info(`validateCycleChain: Invalid chain at cycles ${prev.counter} -> ${curr.counter}`)
+      return false
+    }
+  }
+  
   return true
 }
 

@@ -188,6 +188,7 @@ const SERVER_CONFIG: StrictServerConfiguration = {
     allowEndUserTxnInjections: true,
     newCycleCertScoring: true,
     fixApplyReceiptType: false,
+    syncV2HistoricalCyclesCount: 30, // Number of historical cycles to sync when joining
   },
   ip: {
     externalIp: '0.0.0.0',

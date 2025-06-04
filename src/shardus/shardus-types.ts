@@ -1024,6 +1024,8 @@ export interface ServerConfiguration {
     newCycleCertScoring: boolean
     // enable to not send apply receipts of type Stake in case Unstake and SecureTransfer fail
     fixApplyReceiptType: boolean
+    // Number of historical cycles to sync when joining the network
+    syncV2HistoricalCyclesCount: number
   }
   /** Server IP configuration */
   ip?: {

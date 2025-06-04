@@ -6,6 +6,7 @@
 import { P2P } from '@shardeum-foundation/lib-types'
 import { Handler } from 'express'
 import * as CycleChain from '../CycleChain'
+import { cycles } from '../CycleChain'
 import { network } from '../Context'
 import * as NodeList from '../NodeList'
 import * as Archivers from '../Archivers'
@@ -191,6 +192,69 @@ const newestCycleRecordRoute: P2P.P2PTypes.Route<Handler> = {
   },
 }
 
+/** An endpoint that returns recent cycle markers for historical sync */
+const recentCycleMarkersRoute: P2P.P2PTypes.Route<Handler> = {
+  method: 'GET',
+  name: 'recent-cycle-markers',
+  handler: (_req, res) => {
+    profilerInstance.scopedProfileSectionStart('recent-cycle-markers', false)
+    try {
+      const cycleCount = Math.min(cycles.length, 50) // Limit to 50 for safety
+      const recentMarkers: string[] = []
+      
+      // Get most recent cycle markers
+      for (let i = cycles.length - cycleCount; i < cycles.length; i++) {
+        if (cycles[i]) {
+          const marker = CycleCreator.makeCycleMarker(cycles[i])
+          recentMarkers.push(marker)
+        }
+      }
+      
+      const oldestCounter = cycles.length > 0 ? cycles[cycles.length - cycleCount].counter : 0
+      res.json({ cycleMarkers: recentMarkers, oldestCounter })
+    } finally {
+      profilerInstance.scopedProfileSectionEnd('recent-cycle-markers')
+    }
+  },
+}
+
+/** An endpoint that returns multiple cycles in batch */
+const cyclesBatchRoute: P2P.P2PTypes.Route<Handler> = {
+  method: 'GET',
+  name: 'cycles-batch',
+  handler: (req, res) => {
+    let respondSize = 0
+    profilerInstance.scopedProfileSectionStart('cycles-batch', false)
+    try {
+      const markersParam = req.query.markers as string
+      if (!markersParam) {
+        res.status(400).json({ error: 'markers parameter is required' })
+        return
+      }
+      
+      const markers = markersParam.split(',')
+      const maxBatchSize = 50
+      
+      if (markers.length > maxBatchSize) {
+        res.status(400).json({ error: `batch size exceeds limit of ${maxBatchSize}` })
+        return
+      }
+      
+      const cyclesResult: P2P.CycleCreatorTypes.CycleRecord[] = []
+      for (const marker of markers) {
+        const cycle = CycleChain.cyclesByMarker[marker]
+        if (cycle) {
+          cyclesResult.push(cycle)
+        }
+      }
+      
+      respondSize = jsonHttpResWithSize(res, { cycles: cyclesResult })
+    } finally {
+      profilerInstance.scopedProfileSectionEnd('cycles-batch', respondSize)
+    }
+  },
+}
+
 /** Registers all routes as external routes. */
 export function initRoutes(): void {
   const routes = [
@@ -205,6 +269,8 @@ export function initRoutes(): void {
     txListRoute,
     cycleByMarkerRoute,
     newestCycleRecordRoute,
+    recentCycleMarkersRoute,
+    cyclesBatchRoute,
   ]
 
   for (const route of routes) {
