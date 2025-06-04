@@ -789,16 +789,10 @@ export interface ServerConfiguration {
     problematicNodeRefutePercentageThreshold?: number
     /** The problematicNodeHistoryLength parameter is an Integer specifying the number of cycles to consider when determining if a node is problematic. */
     problematicNodeHistoryLength?: number
-    /** The enableRefuteCacheSync parameter enables synchronization of refute cache state between nodes */
-    enableRefuteCacheSync?: boolean
     /** The minCyclesBeforeRemovalParticipation parameter is an Integer specifying the minimum number of cycles a node must have cache data before participating in removal decisions */
     minCyclesBeforeRemovalParticipation?: number
-    /** The refuteCacheSyncTimeoutMs parameter is an Integer specifying the timeout in milliseconds for refute cache sync requests */
-    refuteCacheSyncTimeoutMs?: number
     /** The bootstrapCyclesBeforeRemoval parameter is an Integer specifying the number of cycles after network start before removal decisions can be made */
     bootstrapCyclesBeforeRemoval?: number
-    /** The requireRefuteCacheConsensus parameter is an Integer specifying the minimum number of nodes that must agree on cache state for successful sync */
-    requireRefuteCacheConsensus?: number
     /** end of problematic node configurations */
 
     /** Cycle history sync configurations */

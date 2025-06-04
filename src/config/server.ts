@@ -79,12 +79,9 @@ const SERVER_CONFIG: StrictServerConfiguration = {
     problematicNodeRefutePercentageThreshold: 0.1,
     problematicNodeHistoryLength: 33, // Changed from 100 to 33 to match cycle window
     problematicNodeRemovalCycleFrequency: 5,
-    // RefuteCache sync configuration
-    enableRefuteCacheSync: true,
+    // Removal readiness configuration
     minCyclesBeforeRemovalParticipation: 10,
-    refuteCacheSyncTimeoutMs: 30000,
     bootstrapCyclesBeforeRemoval: 20,
-    requireRefuteCacheConsensus: 3,
     // Cycle history sync configuration
     requireCompleteCycleHistory: true,
     cycleHistorySyncTimeout: 30000,

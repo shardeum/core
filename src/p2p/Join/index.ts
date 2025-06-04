@@ -863,7 +863,7 @@ export async function queueFinishedSyncingRequest(): Promise<void> {
       const cycleCount = cycleWindowManager ? cycleWindowManager.getCycleCount() : 0
       const requiredCycles = config.p2p.problematicNodeAnalysisWindow || 30
       
-      if (logFlags.important_as_info) {
+      if (logFlags.p2pNonFatal) {
         console.log(`queueFinishedSyncingRequest: Waiting for complete cycle history (${cycleCount}/${requiredCycles} cycles)`)
       }
       nestedCountersInstance.countEvent('p2p', 'join:queueFinishedSyncingRequest:waitingForCycleHistory')
@@ -872,7 +872,7 @@ export async function queueFinishedSyncingRequest(): Promise<void> {
       await utils.sleep(config.p2p.cycleDuration * 1000)
     }
     
-    if (logFlags.important_as_info) {
+    if (logFlags.p2pNonFatal) {
       console.log('queueFinishedSyncingRequest: Cycle history complete, proceeding with finished syncing request')
     }
   }

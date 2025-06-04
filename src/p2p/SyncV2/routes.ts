@@ -227,7 +227,7 @@ const syncCycleHistoryRoute: P2P.P2PTypes.Route<Handler> = {
       
       respondSize = jsonHttpResWithSize(res, response)
     } catch (error) {
-      /* prettier-ignore */ if (logFlags.error) Utils.logger.error('sync-cycle-history error:', error)
+      /* prettier-ignore */ if (logFlags.error) console.error('sync-cycle-history error:', error)
       res.status(500).json({ error: 'Internal server error' })
     } finally {
       profilerInstance.scopedProfileSectionEnd('sync-cycle-history', respondSize)

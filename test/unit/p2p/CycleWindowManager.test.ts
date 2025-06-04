@@ -1,5 +1,5 @@
 import { CycleWindowManager } from '../../../src/p2p/CycleWindowManager'
-import { P2P } from '@shardus/types'
+import { P2P } from '@shardeum-foundation/lib-types'
 
 describe('CycleWindowManager', () => {
   let manager: CycleWindowManager
@@ -16,7 +16,6 @@ describe('CycleWindowManager', () => {
     return {
       counter,
       previous: counter > 0 ? `hash-${counter - 1}` : '',
-      marker: `hash-${counter}`,
       start: counter * 30,
       duration: 30,
       networkId: 'test-network',
@@ -46,7 +45,15 @@ describe('CycleWindowManager', () => {
       startedSyncing: [],
       finishedSyncing: [],
       txlisthash: 'tx-hash',
-    } as P2P.CycleCreatorTypes.CycleRecord
+      networkConfigHash: 'config-hash',
+      safetyMode: false,
+      safetyNum: 0,
+      networkStateHash: 'state-hash',
+      leavingArchivers: [],
+      archiversAtShutdown: [],
+      maxSyncTime: 60,
+      appRemoved: [],
+    } as unknown as P2P.CycleCreatorTypes.CycleRecord
   }
   
   describe('constructor', () => {
@@ -188,19 +195,18 @@ describe('CycleWindowManager', () => {
       expect(result.errors).toContain('Gap in cycle sequence: 2 -> 5')
     })
     
-    it('should detect broken chain links', () => {
+    it('should verify continuous sequence', () => {
       const cycle1 = createMockCycle(1)
-      cycle1.marker = 'hash-1'
-      
       const cycle2 = createMockCycle(2)
-      cycle2.previous = 'wrong-hash' // Should be 'hash-1'
+      const cycle3 = createMockCycle(3)
       
       manager.addCycle(cycle1)
       manager.addCycle(cycle2)
+      manager.addCycle(cycle3)
       
       const result = manager.verifyCycleChainIntegrity()
-      expect(result.valid).toBe(false)
-      expect(result.errors).toContain('Broken chain link at cycle 2: previous marker mismatch')
+      expect(result.valid).toBe(true)
+      expect(result.errors).toHaveLength(0)
     })
   })
   

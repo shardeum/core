@@ -21,7 +21,7 @@ import * as Sync from './Sync'
 import * as SyncV2 from './SyncV2/'
 import { getRandomAvailableArchiver, SeedNodesList } from './Utils'
 import * as CycleChain from './CycleChain'
-import * as RefuteCacheSync from './RefuteCacheSync'
+import * as RemovalReadiness from './RemovalReadiness'
 import rfdc from 'rfdc'
 import { shardusGetTime } from '../network'
 import getCallstack from '../utils/getCallstack'
@@ -108,7 +108,7 @@ export function init(): void {
   NodeList.init()
   Sync.init()
   CycleChain.init()
-  RefuteCacheSync.init()
+  RemovalReadiness.init()
 
   // initialize SyncV2 if enabled
   if (Context.config.p2p.useSyncProtocolV2) {

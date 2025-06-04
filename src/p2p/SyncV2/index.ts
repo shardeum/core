@@ -33,8 +33,7 @@ import { makeCycleMarker } from '../CycleCreator'
 import { p2pLogger, robustQueryForCycleHistory, getCycleByMarkerFromNode } from './queries'
 import { sleep } from '../../utils'
 import Shardus from '../../shardus'
-import * as RefuteCacheSync from '../RefuteCacheSync'
-import { CycleHistoryTracker } from '../CycleHistoryTracker'
+import * as RemovalReadiness from '../RemovalReadiness'
 import { config } from '../Context'
 import * as RefuteCycleCache from '../RefuteCycleCache'
 
@@ -130,6 +129,9 @@ export function syncV2(activeNodes: P2P.SyncTypes.ActiveNode[], shardus: Shardus
                   const allCycles = CycleChain.cycles
                   RefuteCycleCache.buildCacheFromCycles(allCycles)
                   info('RefuteCache built from cycle history')
+                  
+                  // Update removal readiness based on cycle completeness
+                  RemovalReadiness.updateReadiness(cycle.counter)
                 } else {
                   warn('Cycle history sync failed, will collect cycles gradually')
                 }
@@ -303,9 +305,9 @@ async function syncCycleHistory(activeNodes: P2P.SyncTypes.ActiveNode[], current
       info(`Successfully synced ${historicalCycles.length} historical cycles atomically`)
       return true
     } else {
-      // Fallback to legacy sync method
-      info('Atomic cycle history sync failed, falling back to legacy method')
-      return await syncCycleHistoryLegacy(activeNodes, currentCycleCounter, requestedHistoryLength)
+      // Atomic sync not available on the network yet
+      info('Atomic cycle history sync not available, cycles will be collected gradually')
+      return false
     }
   } catch (error) {
     warn('Error in syncCycleHistory:', error)
@@ -313,49 +315,6 @@ async function syncCycleHistory(activeNodes: P2P.SyncTypes.ActiveNode[], current
   }
 }
 
-/**
- * Legacy fallback method for syncing cycle history
- * @param activeNodes - Array of active nodes to query
- * @param currentCycleCounter - Current cycle counter
- * @param requestedHistoryLength - Number of cycles to request
- * @returns Promise indicating success or failure
- */
-async function syncCycleHistoryLegacy(
-  activeNodes: P2P.SyncTypes.ActiveNode[], 
-  currentCycleCounter: number,
-  requestedHistoryLength: number
-): Promise<boolean> {
-  try {
-    const cycleTracker = new CycleHistoryTracker(requestedHistoryLength)
-    
-    // Calculate which cycles we need
-    const startCycle = Math.max(0, currentCycleCounter - requestedHistoryLength + 1)
-    const endCycle = currentCycleCounter - 1 // Don't include current cycle, we already have it
-    
-    // Request missing cycles
-    let successCount = 0
-    for (let cycleNum = startCycle; cycleNum <= endCycle; cycleNum++) {
-      // Get the cycle from CycleChain if we already have it
-      const existingCycles = CycleChain.getCycleChain(cycleNum, cycleNum)
-      if (existingCycles.length > 0) {
-        cycleTracker.addCycle(existingCycles[0])
-        successCount++
-        continue
-      }
-      
-      // Otherwise, request it from a node
-      // We need to get the marker for this cycle first
-      // For now, we'll skip cycles we don't have markers for
-      warn(`Legacy sync: Unable to request cycle ${cycleNum} - marker unknown`)
-    }
-    
-    info(`Legacy sync: Retrieved ${successCount} cycles out of ${endCycle - startCycle + 1} requested`)
-    return successCount > 0
-  } catch (error) {
-    warn('Error in syncCycleHistoryLegacy:', error)
-    return false
-  }
-}
 
 function info(...msg) {
   const entry = `SyncV2: ${msg.join(' ')}`

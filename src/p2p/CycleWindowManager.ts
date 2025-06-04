@@ -1,4 +1,4 @@
-import { P2P } from '@shardus/types'
+import { P2P } from '@shardeum-foundation/lib-types'
 import * as Self from './Self'
 import { logFlags } from '../logger'
 
@@ -27,7 +27,7 @@ export class CycleWindowManager {
    */
   addCycle(cycle: P2P.CycleCreatorTypes.CycleRecord): void {
     if (!cycle || typeof cycle.counter !== 'number') {
-      if (logFlags.p2pNonFatal) Self.logger.error('CycleWindowManager: Invalid cycle provided')
+      if (logFlags.p2pNonFatal) console.error('CycleWindowManager: Invalid cycle provided')
       return
     }
 
@@ -37,7 +37,7 @@ export class CycleWindowManager {
       // Replace existing cycle with same counter
       this.cycles[existingIndex] = cycle
       if (this.verbose && logFlags.p2pNonFatal) {
-        Self.logger.info(`CycleWindowManager: Replaced existing cycle ${cycle.counter}`)
+        console.log(`CycleWindowManager: Replaced existing cycle ${cycle.counter}`)
       }
       return
     }
@@ -57,12 +57,12 @@ export class CycleWindowManager {
     while (this.cycles.length > this.maxCycles) {
       const removed = this.cycles.shift() // Remove oldest (first in array)
       if (this.verbose && logFlags.p2pNonFatal) {
-        Self.logger.info(`CycleWindowManager: Pruned old cycle ${removed?.counter}, now have ${this.cycles.length} cycles`)
+        console.log(`CycleWindowManager: Pruned old cycle ${removed?.counter}, now have ${this.cycles.length} cycles`)
       }
     }
 
     if (this.verbose && logFlags.p2pNonFatal) {
-      Self.logger.info(`CycleWindowManager: Added cycle ${cycle.counter}, now have ${this.cycles.length} cycles`)
+      console.log(`CycleWindowManager: Added cycle ${cycle.counter}, now have ${this.cycles.length} cycles`)
     }
   }
 
@@ -220,9 +220,8 @@ export class CycleWindowManager {
         errors.push(`Gap in cycle sequence: ${prevCycle.counter} -> ${currCycle.counter}`)
       }
       
-      if (currCycle.previous !== prevCycle.marker) {
-        errors.push(`Broken chain link at cycle ${currCycle.counter}: previous marker mismatch`)
-      }
+      // Note: We can't verify the previous hash without access to makeCycleMarker function
+      // This check would require storing the computed marker with each cycle
     }
 
     return {

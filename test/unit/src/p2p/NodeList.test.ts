@@ -296,25 +296,12 @@ describe('NodeList', () => {
   })
 
   describe('Problematic Node Tracking', () => {
-    it('should initialize refute cycles for new nodes', () => {
+    it('should add nodes without refute cycles property', () => {
       const node = { ...baseMockNode }
       NodeList.addNode(node, 'test', mockCycleRecord)
 
-      expect(node.refuteCycles).toBeDefined()
-      expect(Array.isArray(node.refuteCycles)).toBe(true)
-    })
-
-    it('should update problematic node tracking', () => {
-      const node = { ...baseMockNode }
-      NodeList.addNode(node, 'test', mockCycleRecord)
-
-      const cycleWithRefute = {
-        ...mockCycleRecord,
-        refuted: [node.id],
-      }
-
-      NodeList.updateProblematicNodeTracking(cycleWithRefute)
-      expect(node.refuteCycles).toContain(cycleWithRefute.counter)
+      // RefuteCycles are now tracked in RefuteCycleCache, not on the node
+      expect(node.refuteCycles).toBeUndefined()
     })
   })
 

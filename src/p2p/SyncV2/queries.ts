@@ -229,7 +229,7 @@ export function getCycleHistoryFromNode(
     node,
     'sync-cycle-history',
     {
-      requestedHistoryLength: requestedHistoryLength,
+      requestedHistoryLength: requestedHistoryLength.toString(),
     },
     30000 // 30 second timeout for potentially large response
   )

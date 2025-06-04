@@ -3,7 +3,7 @@ import * as NodeList from './NodeList'
 import { config } from './Context'
 import { Node } from '@shardeum-foundation/lib-types/build/src/p2p/NodeListTypes'
 import { getRefuteCyclesForNode } from './RefuteCycleCache'
-import * as RefuteCacheSync from './RefuteCacheSync'
+import * as RemovalReadiness from './RemovalReadiness'
 import { logFlags } from '../logger'
 
 export function isNodeProblematic(node: Node, currentCycle: number): boolean {
@@ -98,7 +98,7 @@ export function getProblematicNodes(prevRecord: P2P.CycleCreatorTypes.CycleRecor
  */
 export function getProblematicNodesWithReadiness(prevRecord: P2P.CycleCreatorTypes.CycleRecord): string[] {
   // Check if we can participate in removal decisions
-  if (!RefuteCacheSync.canParticipateInRemovalDecisions(prevRecord.counter)) {
+  if (!RemovalReadiness.canParticipateInRemovalDecisions(prevRecord.counter)) {
     if (logFlags.p2pNonFatal) {
       console.log(`ProblemNodeHandler: Node not ready to participate in removal decisions at cycle ${prevRecord.counter}`)
     }
@@ -114,7 +114,7 @@ export function getProblematicNodesWithReadiness(prevRecord: P2P.CycleCreatorTyp
   }
   
   // Get participating nodes
-  const participatingNodes = RefuteCacheSync.getParticipatingNodes(
+  const participatingNodes = RemovalReadiness.getParticipatingNodes(
     NodeList.activeByIdOrder as Node[],
     prevRecord.counter
   )
