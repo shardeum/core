@@ -5,6 +5,7 @@
 
 import { errAsync, okAsync, ResultAsync } from 'neverthrow'
 import { hexstring, P2P, Utils } from '@shardeum-foundation/lib-types'
+import * as ProblemNodeHandler from '../ProblemNodeHandler'
 import {
   getCycleDataFromNode,
   initLogger,
@@ -136,6 +137,19 @@ export function syncV2(activeNodes: P2P.SyncTypes.ActiveNode[], shardus: Shardus
                   info(`syncV2: Oldest cycle counter: ${CycleChain.oldest.counter}`)
                   info(`syncV2: Newest cycle counter: ${CycleChain.newest.counter}`)
                   info(`syncV2: Historical sync complete - using network config value of ${config.p2p.syncV2HistoricalCyclesCount}`)
+                  
+                  // Rebuild problematic node cache with all available cycles
+                  if (config.p2p.enableProblematicNodeCacheBuilding) {
+                    ProblemNodeHandler.rebuildCacheFromCycleChain()
+                    info(`syncV2: Rebuilt ProblematicNodeCache with ${CycleChain.cycles.length} cycles`)
+                    
+                    // Validate we have sufficient history for problematic node detection
+                    const availableHistory = CycleChain.cycles.length
+                    const requiredHistory = config.p2p.problematicNodeHistoryLength
+                    if (availableHistory < requiredHistory) {
+                      warn(`syncV2: Insufficient cycle history for problematic node detection. Have ${availableHistory}, need ${requiredHistory}`)
+                    }
+                  }
                 } else {
                   info(`syncV2: No historical cycles synced (network config: ${config.p2p.syncV2HistoricalCyclesCount})`)
                 }
@@ -386,4 +400,9 @@ function syncHistoricalCycles(
 function info(...msg: any[]) {
   const entry = `SyncV2: ${msg.join(' ')}`
   p2pLogger.info(entry)
+}
+
+function warn(...msg: any[]) {
+  const entry = `SyncV2: ${msg.join(' ')}`
+  p2pLogger.warn(entry)
 }

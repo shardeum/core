@@ -43,6 +43,38 @@ export function updateProblematicNodeCache(cycle: P2P.CycleCreatorTypes.CycleRec
   }
 }
 
+// Rebuild cache from all cycles in CycleChain
+export function rebuildCacheFromCycleChain(): void {
+  if (!problematicNodeCache || !config.p2p.enableProblematicNodeCacheBuilding) {
+    return
+  }
+
+  try {
+    const cycles = CycleChain.cycles || []
+    if (cycles.length > 0) {
+      problematicNodeCache.buildFromCycles(cycles)
+      /* prettier-ignore */ if (logFlags.p2pNonFatal) info(`ProblematicNodeCache rebuilt with ${cycles.length} cycles`)
+    }
+  } catch (err) {
+    error('Failed to rebuild ProblematicNodeCache from CycleChain:', err)
+  }
+}
+
+// Prune cache for nodes that are no longer active
+export function pruneInactiveNodesFromCache(): void {
+  if (!problematicNodeCache || !config.p2p.enableProblematicNodeCacheBuilding) {
+    return
+  }
+
+  try {
+    const activeNodeIds = new Set(NodeList.activeByIdOrder.map(node => node.id))
+    problematicNodeCache.pruneInactiveNodes(activeNodeIds)
+    /* prettier-ignore */ if (logFlags.verbose) info(`Pruned inactive nodes from ProblematicNodeCache`)
+  } catch (err) {
+    error('Failed to prune inactive nodes from ProblematicNodeCache:', err)
+  }
+}
+
 export function isNodeProblematic(node: Node, currentCycle: number): boolean {
   if (!node.refuteCycles) return false
 
