@@ -21,6 +21,7 @@ import * as Sync from './Sync'
 import * as SyncV2 from './SyncV2/'
 import { getRandomAvailableArchiver, SeedNodesList } from './Utils'
 import * as CycleChain from './CycleChain'
+import * as ProblemNodeHandler from './ProblemNodeHandler'
 import rfdc from 'rfdc'
 import { shardusGetTime } from '../network'
 import getCallstack from '../utils/getCallstack'
@@ -117,6 +118,9 @@ export function init(): void {
   if (Context.config.p2p.useJoinProtocolV2) {
     JoinV2.init()
   }
+
+  // Initialize ProblematicNodeCache if enabled
+  ProblemNodeHandler.initProblematicNodeCache()
 
   // Create a logger for yourself
   p2pLogger = Context.logger.getLogger('p2p')

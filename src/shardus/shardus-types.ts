@@ -789,6 +789,10 @@ export interface ServerConfiguration {
     problematicNodeRefutePercentageThreshold?: number
     /** The problematicNodeHistoryLength parameter is an Integer specifying the number of cycles to consider when determining if a node is problematic. */
     problematicNodeHistoryLength?: number
+    /** When true, use the new cache-based implementation for problematic node detection */
+    useProblematicNodeCacheV2?: boolean
+    /** Enable shadow mode cache building for validation */
+    enableProblematicNodeCacheBuilding?: boolean
     /** end of problematic node configurations */
 
     /** A fixed boost to let more nodes in when we have just the one seed node in the network */

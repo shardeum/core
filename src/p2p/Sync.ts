@@ -12,6 +12,7 @@ import { ChangeSquasher, parse } from './CycleParser'
 import * as NodeList from './NodeList'
 import * as Self from './Self'
 import { robustQuery } from './Utils'
+import * as ProblemNodeHandler from './ProblemNodeHandler'
 import { profilerInstance } from '../utils/profiler'
 import * as utils from '../utils'
 import { nestedCountersInstance } from '../utils/nestedCounters'
@@ -482,6 +483,9 @@ export function digestCycle(cycle: P2P.CycleCreatorTypes.CycleRecord, source: st
   CycleChain.append(cycle)
   const digestedCycleMarker = CycleChain.computeCycleMarker(cycle)
   info(`digestCycle: marker of cycle${cycle.counter} from ${source} after digest is ${digestedCycleMarker}`)
+
+  // Update problematic node cache in shadow mode
+  ProblemNodeHandler.updateProblematicNodeCache(cycle)
 
   /* prettier-ignore */ if (extraSyncLogs) info(`digestCycle: cycle: ${Utils.safeStringify(cycle)}`)
 

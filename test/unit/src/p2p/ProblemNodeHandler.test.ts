@@ -8,6 +8,21 @@ import { P2P } from '@shardeum-foundation/lib-types'
 import * as NodeList from '../../../../src/p2p/NodeList'
 import * as Context from '../../../../src/p2p/Context'
 import { Node } from '@shardeum-foundation/lib-types/build/src/p2p/NodeListTypes'
+
+// Mock logger module
+jest.mock('../../../../src/logger', () => ({
+  logFlags: {
+    p2pNonFatal: false,
+    verbose: false,
+  },
+}))
+
+// Mock CycleChain module
+jest.mock('../../../../src/p2p/CycleChain', () => ({
+  newest: null,
+  getCycleChain: jest.fn(() => []),
+}))
+
 // Mock NodeList module
 jest.mock('../../../../src/p2p/NodeList', () => ({
   activeByIdOrder: [],
@@ -21,7 +36,17 @@ jest.mock('../../../../src/p2p/Context', () => ({
       problematicNodeConsecutiveRefuteThreshold: 3,
       problematicNodeRefutePercentageThreshold: 0.1,
       problematicNodeHistoryLength: 100,
+      enableProblematicNodeCacheBuilding: false, // Disable cache in tests
+      useProblematicNodeCacheV2: false,
     },
+  },
+  logger: {
+    getLogger: () => ({
+      info: jest.fn(),
+      warn: jest.fn(),
+      error: jest.fn(),
+      debug: jest.fn(),
+    }),
   },
 }))
 
