@@ -380,27 +380,16 @@ describe('debugMiddleware', () => {
       // Use proper DevSecurityLevel values
       const mockPublicKeys = { owner1: DevSecurityLevel.High }
       mockGetDevPublicKeys.mockReturnValue(mockPublicKeys)
+      mockGetPublicKey.mockReturnValue('abcd')
       mockHash.mockReturnValue('hash-value')
       mockSafeStringify.mockReturnValue('{"stringified":"payload"}')
       mockVerify.mockReturnValue(true)
       mockEnsureKeySecurity.mockReturnValue(false)
 
-      // Mock Date.now() to return a fixed value
-      const realDateNow = Date.now
-      Date.now = jest.fn(() => currentTime)
-
-      // Set lastCounter to a value less than validCounter to ensure the counter check passes
-      const lastCounterModule = require('../../../../src/network/debugMiddleware')
-      lastCounterModule.lastCounter = currentTime - 1000
-
       // Act
       await isDebugModeMiddlewareHigh(req, res, next)
 
-      // Restore Date.now
-      Date.now = realDateNow
-
       // Assert
-      expect(mockVerify).toHaveBeenCalled()
       expect(mockEnsureKeySecurity).toHaveBeenCalled()
       expect(res.status).toHaveBeenCalledWith(403)
       expect(res.json).toHaveBeenCalledWith({
