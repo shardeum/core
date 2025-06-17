@@ -7674,9 +7674,13 @@ class TransactionQueue {
         /* prettier-ignore */ nestedCountersInstance.countEvent('stateManager', 'getArchiverReceiptFromQueueEntry globalReceipt error')
         /* prettier-ignore */ if (logFlags.important_as_error) console.log(`getArchiverReceiptFromQueueEntry: Error getting global receipt for txId: ${txId}, error: ${error.message}`)
       }
-      /* prettier-ignore */ if (logFlags.important_as_error) console.log('getArchiverReceiptFromQueueEntry : globalModification signedReceipt txid', txId)
-      /* prettier-ignore */ if (logFlags.important_as_error) console.log('getArchiverReceiptFromQueueEntry : globalModification signedReceipt signs', txId, Utils.safeStringify(signedReceipt.signs))
-      /* prettier-ignore */ if (logFlags.important_as_error) console.log('getArchiverReceiptFromQueueEntry : globalModification signedReceipt tx', txId, Utils.safeStringify(signedReceipt.tx))
+      // Type-safe logging for global receipts
+      if (globalModification && signedReceipt) {
+        const globalReceipt = signedReceipt as P2PTypes.GlobalAccountsTypes.GlobalTxReceipt
+        /* prettier-ignore */ if (logFlags.important_as_error) console.log('getArchiverReceiptFromQueueEntry : globalModification signedReceipt txid', txId)
+        /* prettier-ignore */ if (logFlags.important_as_error) console.log('getArchiverReceiptFromQueueEntry : globalModification signedReceipt signs', txId, Utils.safeStringify(globalReceipt.signs))
+        /* prettier-ignore */ if (logFlags.important_as_error) console.log('getArchiverReceiptFromQueueEntry : globalModification signedReceipt tx', txId, Utils.safeStringify(globalReceipt.tx))
+      }
     } else {
       signedReceipt = this.stateManager.getSignedReceipt(queueEntry) as SignedReceipt
     }
@@ -7910,6 +7914,16 @@ class TransactionQueue {
     if (logFlags.verbose)
       console.log('addReceiptToForward', queueEntry.acceptedTx.txId, queueEntry.acceptedTx.timestamp, debugString)
     const archiverReceipt = await this.getArchiverReceiptFromQueueEntry(queueEntry)
+    
+    // Check for null receipt before forwarding
+    if (archiverReceipt === null) {
+      /* prettier-ignore */ if (logFlags.error || logFlags.important_as_error) {
+        console.error(`addReceiptToForward: archiverReceipt is null for txId: ${queueEntry.acceptedTx.txId}. Not forwarding to archivers.`)
+      }
+      /* prettier-ignore */ nestedCountersInstance.countEvent('stateManager', 'addReceiptToForward_null_receipt_skipped')
+      return // Explicitly do not forward null receipts
+    }
+    
     Archivers.instantForwardReceipts([archiverReceipt])
     this.receiptsForwardedTimestamp = shardusGetTime()
     this.forwardedReceiptsByTimestamp.set(this.receiptsForwardedTimestamp, archiverReceipt)
