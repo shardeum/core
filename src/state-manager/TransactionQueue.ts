@@ -85,7 +85,7 @@ import { BadRequest, ResponseError, serializeResponseError } from '../types/Resp
 import { error } from 'console'
 import { PoqoDataAndReceiptReq, serializePoqoDataAndReceiptReq } from '../types/PoqoDataAndReceiptReq'
 import { AJVSchemaEnum } from '../types/enum/AJVSchemaEnum'
-import { getGlobalTxReceipt } from '../p2p/GlobalAccounts'
+import { getGlobalTxReceipt, awaitLocalReceiptInitiation } from '../p2p/GlobalAccounts'
 
 interface Receipt {
   tx: AcceptedTx
@@ -7666,14 +7666,30 @@ class TransactionQueue {
     let signedReceipt = null as SignedReceipt | P2PTypes.GlobalAccountsTypes.GlobalTxReceipt
 
     if (globalModification) {
-      signedReceipt = getGlobalTxReceipt(queueEntry.acceptedTx.txId) as P2PTypes.GlobalAccountsTypes.GlobalTxReceipt
+      try {
+        // Explicitly wait for local receipt initiation to complete
+        await awaitLocalReceiptInitiation(queueEntry.acceptedTx.txId)
+        signedReceipt = await getGlobalTxReceipt(queueEntry.acceptedTx.txId) as P2PTypes.GlobalAccountsTypes.GlobalTxReceipt
+      } catch (error) {
+        /* prettier-ignore */ nestedCountersInstance.countEvent('stateManager', 'getArchiverReceiptFromQueueEntry globalReceipt error')
+        /* prettier-ignore */ if (logFlags.important_as_error) console.log(`getArchiverReceiptFromQueueEntry: Error getting global receipt for txId: ${txId}, error: ${error.message}`)
+      }
+      /* prettier-ignore */ if (logFlags.important_as_error) console.log('getArchiverReceiptFromQueueEntry : globalModification signedReceipt txid', txId)
+      /* prettier-ignore */ if (logFlags.important_as_error) console.log('getArchiverReceiptFromQueueEntry : globalModification signedReceipt signs', txId, Utils.safeStringify(signedReceipt.signs))
+      /* prettier-ignore */ if (logFlags.important_as_error) console.log('getArchiverReceiptFromQueueEntry : globalModification signedReceipt tx', txId, Utils.safeStringify(signedReceipt.tx))
     } else {
       signedReceipt = this.stateManager.getSignedReceipt(queueEntry) as SignedReceipt
     }
 
     if (!signedReceipt) {
       /* prettier-ignore */ nestedCountersInstance.countEvent('stateManager', 'getArchiverReceiptFromQueueEntry no signedReceipt')
-      /* prettier-ignore */ if (logFlags.important_as_error) console.log(`getArchiverReceiptFromQueueEntry: signedReceipt is null for txId: ${txId} timestamp: ${timestamp} globalModification: ${globalModification}`)
+      /* prettier-ignore */ if (logFlags.important_as_error) {
+        console.log(`getArchiverReceiptFromQueueEntry: signedReceipt is null for txId: ${txId} timestamp: ${timestamp} globalModification: ${globalModification}`)
+        if (globalModification) {
+          console.log(`getArchiverReceiptFromQueueEntry: Global receipt race condition may have occurred for txId: ${txId}`)
+          console.log(`getArchiverReceiptFromQueueEntry: Check if makeReceipt was called for this transaction`)
+        }
+      }
       return null as ArchiverReceipt
     }
 
