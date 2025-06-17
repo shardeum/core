@@ -90,6 +90,8 @@ let lastClean = 0
 
 const receipts = new Map<P2P.GlobalAccountsTypes.TxHash, P2P.GlobalAccountsTypes.Receipt>()
 const trackers = new Map<P2P.GlobalAccountsTypes.TxHash, P2P.GlobalAccountsTypes.Tracker>()
+const localReceiptInitiationPromises = new Map<P2P.GlobalAccountsTypes.TxHash, Promise<void>>()
+const localReceiptResolvers = new Map<P2P.GlobalAccountsTypes.TxHash, { resolve: () => void; reject: (reason?: any) => void }>()
 
 /** FUNCTIONS */
 
@@ -223,9 +225,43 @@ export function createMakeReceiptHandle(txHash: string) {
   return `receipt-${txHash}`
 }
 
-export function getGlobalTxReceipt(
+/**
+ * Waits for local receipt initiation to complete before attempting to access the receipt.
+ * This function ensures that makeReceipt has completed its critical local setup.
+ * 
+ * @param txHash - The transaction hash to wait for
+ * @returns Promise that resolves when the receipt is ready or rejects on timeout/error
+ */
+export async function awaitLocalReceiptInitiation(txHash: P2P.GlobalAccountsTypes.TxHash): Promise<void> {
+  const pendingPromise = localReceiptInitiationPromises.get(txHash)
+  if (pendingPromise) {
+    if (logFlags.verbose) console.log(`GlobalAccounts: Awaiting local receipt initiation for ${txHash}`)
+    try {
+      await Promise.race([
+        pendingPromise,
+        new Promise<void>((_, reject) => 
+          setTimeout(() => reject(new Error(`Receipt initiation timeout for ${txHash}`)), 15000)
+        )
+      ])
+      if (logFlags.verbose) console.log(`GlobalAccounts: Local receipt initiation completed for ${txHash}`)
+    } catch (error) {
+      if (logFlags.error) console.error(`GlobalAccounts: Error awaiting receipt initiation for ${txHash}:`, error)
+      throw error
+    } finally {
+      // Clean up the promise after use
+      localReceiptInitiationPromises.delete(txHash)
+    }
+  } else {
+    if (logFlags.verbose) console.log(`GlobalAccounts: No pending promise for ${txHash}, receipt might already exist`)
+  }
+}
+
+export async function getGlobalTxReceipt(
   txHash: P2P.GlobalAccountsTypes.TxHash
-): P2P.GlobalAccountsTypes.GlobalTxReceipt | null {
+): Promise<P2P.GlobalAccountsTypes.GlobalTxReceipt | null> {
+  // For backward compatibility, still check for pending promises
+  await awaitLocalReceiptInitiation(txHash)
+  
   const receipt = receipts.get(txHash)
   if (!receipt) return null
   return {
@@ -235,8 +271,19 @@ export function getGlobalTxReceipt(
 }
 
 export function makeReceipt(signedTx: P2P.GlobalAccountsTypes.SignedSetGlobalTx, sender: P2P.P2PTypes.NodeInfo['id']) {
+  const txForHash = { ...signedTx }
+  delete txForHash.sign
+  const txHash = Context.shardus.app.calculateTxId(txForHash.value as OpaqueTransaction)
+
+  // Early exit and promise rejection if stateManager not ready
   if (!Context.stateManager) {
-    if (logFlags.console) console.log('GlobalAccounts: makeReceipt: stateManager not ready')
+    if (logFlags.console) console.log('GlobalAccounts: makeReceipt: stateManager not ready for tx', txHash)
+    const promiseEntry = localReceiptResolvers.get(txHash)
+    if (promiseEntry && sender === Self.id) {
+      promiseEntry.reject(new Error('StateManager not ready in makeReceipt for tx ' + txHash))
+      localReceiptInitiationPromises.delete(txHash)
+      localReceiptResolvers.delete(txHash)
+    }
     return
   }
 
@@ -245,19 +292,51 @@ export function makeReceipt(signedTx: P2P.GlobalAccountsTypes.SignedSetGlobalTx,
   const tx = { ...signedTx }
   delete tx.sign
 
-  const txHash = Context.shardus.app.calculateTxId(tx.value as OpaqueTransaction)
   console.log('makeReceipt', txHash)
+
+  // Check if this is a new receipt and local initiation
+  let isNewReceiptAndLocalInitiation = false
+  let currentPromiseResolvers: { resolve: () => void; reject: (reason?: any) => void } | null = null
+
+  if (sender === Self.id && !receipts.has(txHash) && !localReceiptInitiationPromises.has(txHash)) {
+    isNewReceiptAndLocalInitiation = true
+    // Create promise BEFORE creating receipt for atomic operation
+    const promise = new Promise<void>((resolve, reject) => {
+      currentPromiseResolvers = { resolve, reject }
+      localReceiptResolvers.set(txHash, currentPromiseResolvers)
+    })
+    localReceiptInitiationPromises.set(txHash, promise)
+    if (logFlags.verbose) console.log(`GlobalAccounts: Created promise for local receipt initiation ${txHash}`)
+  }
 
   // Put into correct Receipt and Tracker
   let receipt: P2P.GlobalAccountsTypes.Receipt = receipts.get(txHash)
+  
   if (!receipt) {
-    const consensusGroup = new Set(getConsensusGroupIds(tx.source))
-    receipt = {
-      signs: [],
-      tx: null,
-      consensusGroup,
+    try {
+      const consensusGroup = new Set(getConsensusGroupIds(tx.source))
+      receipt = {
+        signs: [],
+        tx: null,
+        consensusGroup,
+      }
+      receipts.set(txHash, receipt) // CRITICAL: Receipt is added to the map HERE
+      if (logFlags.verbose) console.log(`GlobalAccounts: receipts.set() called for ${txHash}`)
+
+      if (isNewReceiptAndLocalInitiation && currentPromiseResolvers) {
+        // Receipt successfully created, but don't resolve yet - wait for majority
+        if (logFlags.verbose) console.log(`GlobalAccounts: Receipt created successfully for ${txHash}, waiting for majority`)
+      }
+    } catch (err) {
+      if (logFlags.error) console.error(`GlobalAccounts: Error during receipt creation for ${txHash}:`, err)
+      if (isNewReceiptAndLocalInitiation && currentPromiseResolvers) {
+        currentPromiseResolvers.reject(err) // Reject the promise
+        localReceiptInitiationPromises.delete(txHash)
+        localReceiptResolvers.delete(txHash)
+      }
+      throw err
     }
-    receipts.set(txHash, receipt)
+    
     if (logFlags.console)
       console.log(
         `SETGLOBAL: MAKERECEIPT CONSENSUS GROUP FOR ${txHash.substring(0, 5)}: ${Utils.safeStringify(
@@ -272,9 +351,17 @@ export function makeReceipt(signedTx: P2P.GlobalAccountsTypes.SignedSetGlobalTx,
   }
 
   // Ignore duplicate txs
-  if (tracker.seen.has(sign.owner)) return
+  if (tracker.seen.has(sign.owner)) {
+    if (logFlags.verbose) console.log(`GlobalAccounts: Ignoring duplicate tx from ${sign.owner} for ${txHash}`)
+    // Note: We don't reject the promise here as this is normal behavior
+    return
+  }
   // Ignore if sender is not in consensus group
-  if (!receipt.consensusGroup.has(sender)) return
+  if (!receipt.consensusGroup.has(sender)) {
+    if (logFlags.verbose) console.log(`GlobalAccounts: Sender ${sender} not in consensus group for ${txHash}`)
+    // Note: We don't reject the promise here as this is normal behavior
+    return
+  }
 
   receipt.signs.push(sign)
   receipt.tx = tx
@@ -294,6 +381,15 @@ export function makeReceipt(signedTx: P2P.GlobalAccountsTypes.SignedSetGlobalTx,
     /** [TODO] [AS] Replace with Self.emitter.emit() */
     // p2p.emit(handle, receipt)
     Self.emitter.emit(handle, receipt)
+    
+    // Resolve the promise if we have majority
+    const resolverEntry = localReceiptResolvers.get(txHash)
+    if (resolverEntry) {
+      resolverEntry.resolve()
+      localReceiptResolvers.delete(txHash)
+      // Promise will be cleaned up later in attemptCleanup
+      if (logFlags.verbose) console.log(`GlobalAccounts: Receipt reached majority, resolved promise for ${txHash}`)
+    }
   }
 }
 
@@ -318,6 +414,9 @@ export function attemptCleanup() {
     if (now - tracker.timestamp > 30000) {
       trackers.delete(txHash)
       receipts.delete(txHash)
+      // Clean up any associated promises
+      localReceiptInitiationPromises.delete(txHash)
+      localReceiptResolvers.delete(txHash)
     }
   }
 }
