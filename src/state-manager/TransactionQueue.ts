@@ -7664,6 +7664,13 @@ class TransactionQueue {
     const globalModification = queueEntry.globalModification
 
     let signedReceipt = null as SignedReceipt | P2PTypes.GlobalAccountsTypes.GlobalTxReceipt
+
+    if (!signedReceipt) {
+      /* prettier-ignore */ nestedCountersInstance.countEvent('stateManager', 'getArchiverReceiptFromQueueEntry no signedReceipt')
+      /* prettier-ignore */ if (logFlags.important_as_error) console.log(`getArchiverReceiptFromQueueEntry: signedReceipt is null for txId: ${txId} timestamp: ${timestamp} globalModification: ${globalModification}`)
+      return null as ArchiverReceipt
+    }
+
     if (globalModification) {
       signedReceipt = getGlobalTxReceipt(queueEntry.acceptedTx.txId) as P2PTypes.GlobalAccountsTypes.GlobalTxReceipt
       /* prettier-ignore */ if (logFlags.important_as_error) console.log('getArchiverReceiptFromQueueEntry : globalModification signedReceipt txid', txId)
@@ -7676,11 +7683,6 @@ class TransactionQueue {
       /* prettier-ignore */ if (logFlags.important_as_error) console.log('getArchiverReceiptFromQueueEntry : nonGlobal signedReceipt proposalHash', txId, Utils.safeStringify(signedReceipt.proposalHash))
       /* prettier-ignore */ if (logFlags.important_as_error) console.log('getArchiverReceiptFromQueueEntry : nonGlobal signedReceipt signaturePack', txId, Utils.safeStringify(signedReceipt.signaturePack))
       /* prettier-ignore */ if (logFlags.important_as_error) console.log('getArchiverReceiptFromQueueEntry : nonGlobal signedReceipt voteOffsets', txId, Utils.safeStringify(signedReceipt.voteOffsets))
-    }
-    if (!signedReceipt) {
-      /* prettier-ignore */ nestedCountersInstance.countEvent('stateManager', 'getArchiverReceiptFromQueueEntry no signedReceipt')
-      /* prettier-ignore */ if (logFlags.important_as_error) console.log(`getArchiverReceiptFromQueueEntry: signedReceipt is null for txId: ${txId} timestamp: ${timestamp} globalModification: ${globalModification}`)
-      return null as ArchiverReceipt
     }
 
     const accountsToAdd: { [accountId: string]: Shardus.AccountsCopy } = {}
