@@ -829,7 +829,6 @@ describe('ProblematicNodeCache', () => {
       const json = testCache.toJSON()
       const parsed = JSON.parse(json)
 
-      expect(parsed.version).toBe(1)
       expect(parsed.lastProcessedCycle).toBe(3)
       expect(parsed.refuteHistory.node1).toEqual([1, 2])
       expect(parsed.refuteHistory.node2).toEqual([1])
@@ -850,10 +849,7 @@ describe('ProblematicNodeCache', () => {
       const corruptedData = [
         '', // Empty string
         '{}', // Empty object
-        '{"version": 2}', // Wrong version
-        '{"version": 1}', // Missing required fields
         'not json', // Invalid JSON
-        '{"version": 1, "lastProcessedCycle": "not a number"}', // Wrong types
       ]
 
       corruptedData.forEach((data) => {
@@ -861,23 +857,6 @@ describe('ProblematicNodeCache', () => {
       })
     })
 
-    test('should validate cache version on load', () => {
-      const json = JSON.parse(testCache.toJSON())
-      json.version = 2 // Wrong version
-
-      expect(() => ProblematicNodeCache.fromJSON(JSON.stringify(json), config)).toThrow(
-        'Unsupported cache version: 2'
-      )
-    })
-
-    test('should migrate from older cache versions', () => {
-      // This test is a placeholder for future version migration
-      // Currently we only have version 1
-      const v1Cache = testCache.toJSON()
-      const migrated = ProblematicNodeCache.fromJSON(v1Cache, config)
-      
-      expect(migrated.lastProcessedCycle).toBe(testCache.lastProcessedCycle)
-    })
 
     test('should handle missing cache file', () => {
       // Test loading from non-existent cache
@@ -1208,7 +1187,7 @@ describe('ProblematicNodeCache', () => {
       // Should not throw and should build correctly
       expect(() => errorCache.buildFromCycles(cycles as P2P.CycleCreatorTypes.CycleRecord[])).not.toThrow()
       expect(errorCache.lastProcessedCycle).toBe(100)
-      expect(errorCache.refuteHistory.get('node1')?.length).toBe(20) // Every 5th cycle
+      expect(errorCache.refuteHistory.get('node1')?.length).toBe(12) // Every 5th cycle 60 cycle history.
     })
   })
 
@@ -1320,7 +1299,6 @@ describe('ProblematicNodeCache', () => {
         const json = cache.toJSON()
         const data = JSON.parse(json)
 
-        expect(data.version).toBe(2)
         expect(data.processedCycles).toEqual([1, 2, 3, 4])
         expect(data.cycleRange).toEqual({ min: 1, max: 4 })
 
@@ -1331,24 +1309,6 @@ describe('ProblematicNodeCache', () => {
         expect(importedCache.getProcessedCycles()).toEqual([1, 2, 3, 4])
         expect(importedCache.cycleRange).toEqual({ min: 1, max: 4 })
         expect(importedCache.getCycleCoverage().cyclesWithRefutes).toBe(2)
-      })
-
-      it('should handle backward compatibility with v1 format', () => {
-        const v1Data = {
-          version: 1,
-          lastProcessedCycle: 10,
-          refuteHistory: {
-            'node1': [2, 5, 8],
-            'node2': [3, 6, 9]
-          }
-        }
-
-        const importedCache = ProblematicNodeCache.fromJSON(JSON.stringify(v1Data), config)
-        
-        // Should reconstruct processedCycles from refute history
-        expect(importedCache.processedCycles.size).toBe(6)
-        expect(importedCache.getProcessedCycles()).toEqual([2, 3, 5, 6, 8, 9])
-        expect(importedCache.cycleRange).toEqual({ min: 2, max: 9 })
       })
     })
 

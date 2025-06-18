@@ -364,7 +364,6 @@ export class ProblematicNodeCache {
 
   toJSON(): string {
     const data = {
-      version: 2, // Bump version for new format
       lastProcessedCycle: this.lastProcessedCycle,
       refuteHistory: Object.fromEntries(this.refuteHistory),
       processedCycles: Array.from(this.processedCycles),
@@ -391,10 +390,6 @@ export class ProblematicNodeCache {
       throw new Error('Invalid JSON format')
     }
 
-    if (!data.version) {
-      throw new Error('Invalid cache data: missing version')
-    }
-
     if (typeof data.lastProcessedCycle !== 'number') {
       throw new Error('Invalid cache data: missing or invalid lastProcessedCycle')
     }
@@ -402,52 +397,25 @@ export class ProblematicNodeCache {
     const cache = new ProblematicNodeCache(config)
     cache.lastProcessedCycle = data.lastProcessedCycle
 
-    // Handle version 1 format (backward compatibility)
-    if (data.version === 1) {
-      if (data.refuteHistory) {
-        for (const [nodeId, cycles] of Object.entries(data.refuteHistory)) {
-          if (Array.isArray(cycles)) {
-            cache.refuteHistory.set(nodeId, cycles)
-            // Add cycles to processedCycles for backward compatibility
-            for (const cycle of cycles) {
-              cache.processedCycles.add(cycle)
-            }
-          }
+    // Load refute history
+    if (data.refuteHistory) {
+      for (const [nodeId, cycles] of Object.entries(data.refuteHistory)) {
+        if (Array.isArray(cycles)) {
+          cache.refuteHistory.set(nodeId, cycles)
         }
       }
-      // Update cycle range based on refute history
-      if (cache.processedCycles.size > 0) {
-        const cycles = Array.from(cache.processedCycles)
-        cache.cycleRange = {
-          min: Math.min(...cycles),
-          max: Math.max(...cycles)
-        }
-      }
-    } 
-    // Handle version 2 format
-    else if (data.version === 2) {
-      // Load refute history
-      if (data.refuteHistory) {
-        for (const [nodeId, cycles] of Object.entries(data.refuteHistory)) {
-          if (Array.isArray(cycles)) {
-            cache.refuteHistory.set(nodeId, cycles)
-          }
-        }
-      }
+    }
 
-      // Load processed cycles
-      if (data.processedCycles && Array.isArray(data.processedCycles)) {
-        for (const cycle of data.processedCycles) {
-          cache.processedCycles.add(cycle)
-        }
+    // Load processed cycles
+    if (data.processedCycles && Array.isArray(data.processedCycles)) {
+      for (const cycle of data.processedCycles) {
+        cache.processedCycles.add(cycle)
       }
+    }
 
-      // Load cycle range
-      if (data.cycleRange) {
-        cache.cycleRange = data.cycleRange
-      }
-    } else {
-      throw new Error(`Unsupported cache version: ${data.version}`)
+    // Load cycle range
+    if (data.cycleRange) {
+      cache.cycleRange = data.cycleRange
     }
 
     return cache

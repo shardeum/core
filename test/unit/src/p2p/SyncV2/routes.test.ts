@@ -15,7 +15,6 @@ const mockGetTxList = jest.fn()
 const mockCyclesByMarker: { [key: string]: P2P.CycleCreatorTypes.CycleRecord } = {}
 const mockCycles: P2P.CycleCreatorTypes.CycleRecord[] = []
 const mockNewest: P2P.CycleCreatorTypes.CycleRecord | null = null
-const mockMakeCycleMarker = jest.fn()
 const mockRegisterExternal = jest.fn()
 const mockJsonHttpResWithSize = jest.fn()
 
@@ -74,7 +73,8 @@ jest.mock('../../../../../src/p2p/CycleChain', () => ({
 // Mock CycleCreator
 jest.mock('../../../../../src/p2p/CycleCreator', () => ({
   nextQ1Start: mockNextQ1Start,
-  makeCycleMarker: mockMakeCycleMarker,
+  makeCycleMarker: jest.fn(),
+  MAX_CYCLES_TO_KEEP: 60,
 }))
 
 // Mock Context
@@ -82,10 +82,19 @@ jest.mock('../../../../../src/p2p/Context', () => ({
   network: {
     _registerExternal: mockRegisterExternal,
   },
+  setDefaultConfigs: jest.fn(),
+}))
+
+// Mock cycle-monitoring-routes
+jest.mock('../../../../../src/p2p/SyncV2/cycle-monitoring-routes', () => ({
+  registerCycleMonitoringRoutes: jest.fn(),
 }))
 
 // Import the module after all mocks are set up
 import * as routes from '../../../../../src/p2p/SyncV2/routes'
+
+// Get the mocked CycleCreator to ensure proper mocking
+const CycleCreator = require('../../../../../src/p2p/CycleCreator')
 
 describe('SyncV2 routes', () => {
   let mockReq: Partial<Request>
@@ -110,6 +119,9 @@ describe('SyncV2 routes', () => {
   beforeEach(() => {
     // Clear all mocks before each test
     jest.clearAllMocks()
+
+    // Reset mock arrays
+    mockCycles.length = 0
 
     // Reset response mocks
     jsonMock = jest.fn().mockReturnThis()
@@ -200,11 +212,14 @@ describe('SyncV2 routes', () => {
       ]
       
       mockCycles.push(...testCycles)
-      mockMakeCycleMarker.mockImplementation((cycle) => cycle.marker)
+      CycleCreator.makeCycleMarker.mockImplementation((cycle) => cycle.marker)
 
+      // Debug: Check if handler exists
+      expect(handler).toBeDefined()
+      
       handler(mockReq as Request, mockRes as Response)
 
-      expect(mockMakeCycleMarker).toHaveBeenCalledTimes(3)
+      expect(CycleCreator.makeCycleMarker).toHaveBeenCalledTimes(3)
       expect(jsonMock).toHaveBeenCalledWith({
         cycleMarkers: ['marker1', 'marker2', 'marker3'],
         oldestCounter: 1,
@@ -217,12 +232,12 @@ describe('SyncV2 routes', () => {
       for (let i = 1; i <= 60; i++) {
         mockCycles.push(createMockCycle(i))
       }
-      mockMakeCycleMarker.mockImplementation((cycle) => cycle.marker)
+      CycleCreator.makeCycleMarker.mockImplementation((cycle) => cycle.marker)
 
       handler(mockReq as Request, mockRes as Response)
 
       // Should only process the last 50 cycles
-      expect(mockMakeCycleMarker).toHaveBeenCalledTimes(50)
+      expect(CycleCreator.makeCycleMarker).toHaveBeenCalledTimes(50)
       expect(jsonMock).toHaveBeenCalledWith({
         cycleMarkers: expect.arrayContaining([
           expect.stringMatching(/^marker\d+$/),
@@ -244,11 +259,11 @@ describe('SyncV2 routes', () => {
         undefined as any,
         createMockCycle(3),
       )
-      mockMakeCycleMarker.mockImplementation((cycle) => cycle.marker)
+      CycleCreator.makeCycleMarker.mockImplementation((cycle) => cycle.marker)
 
       handler(mockReq as Request, mockRes as Response)
 
-      expect(mockMakeCycleMarker).toHaveBeenCalledTimes(2)
+      expect(CycleCreator.makeCycleMarker).toHaveBeenCalledTimes(2)
       expect(jsonMock).toHaveBeenCalledWith({
         cycleMarkers: ['marker1', 'marker3'],
         oldestCounter: 1,

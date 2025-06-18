@@ -211,7 +211,14 @@ const recentCycleMarkersRoute: P2P.P2PTypes.Route<Handler> = {
         }
       }
       
-      const oldestCounter = cycles.length > 0 ? cycles[cycles.length - cycleCount].counter : 0
+      // Find the oldest defined cycle in the range
+      let oldestCounter = 0
+      for (let i = cycles.length - cycleCount; i < cycles.length; i++) {
+        if (cycles[i]) {
+          oldestCounter = cycles[i].counter
+          break
+        }
+      }
       res.json({ cycleMarkers: recentMarkers, oldestCounter })
     } finally {
       profilerInstance.scopedProfileSectionEnd('recent-cycle-markers')
