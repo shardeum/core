@@ -235,12 +235,14 @@ export function createMakeReceiptHandle(txHash: string) {
 export async function awaitLocalReceiptInitiation(txHash: P2P.GlobalAccountsTypes.TxHash): Promise<void> {
   const pendingPromise = localReceiptInitiationPromises.get(txHash)
   if (pendingPromise) {
-    if (logFlags.verbose) console.log(`GlobalAccounts: Awaiting local receipt initiation for ${txHash}`)
+    // Use configurable timeout, with fallback to 15 seconds if not configured
+    const timeout = Context.config?.stateManager?.globalAccountsReceiptInitiationTimeout || 15000
+    if (logFlags.verbose) console.log(`GlobalAccounts: Awaiting local receipt initiation for ${txHash} with timeout: ${timeout}ms`)
     try {
       await Promise.race([
         pendingPromise,
         new Promise<void>((_, reject) => 
-          setTimeout(() => reject(new Error(`Receipt initiation timeout for ${txHash}`)), 15000)
+          setTimeout(() => reject(new Error(`Receipt initiation timeout for ${txHash} after ${timeout}ms`)), timeout)
         )
       ])
       if (logFlags.verbose) console.log(`GlobalAccounts: Local receipt initiation completed for ${txHash}`)
