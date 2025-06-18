@@ -75,6 +75,20 @@ export function pruneInactiveNodesFromCache(): void {
   }
 }
 
+// Export the problematic node cache as compressed JSON
+export function exportProblematicNodeCache(): string | null {
+  if (!problematicNodeCache || !config.p2p.enableProblematicNodeCacheBuilding) {
+    return null
+  }
+
+  try {
+    return problematicNodeCache.toCompressedJSON()
+  } catch (err) {
+    error('Failed to export ProblematicNodeCache:', err)
+    return null
+  }
+}
+
 export function isNodeProblematic(node: Node, currentCycle: number): boolean {
   if (!node.refuteCycles) return false
 

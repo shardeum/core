@@ -8,7 +8,7 @@ describe('ProblematicNodeCache', () => {
   beforeEach(() => {
     config = {
       p2p: {
-        problematicNodeHistoryLength: 100,
+        problematicNodeHistoryLength: 60,
         problematicNodeConsecutiveRefuteThreshold: 6,
         problematicNodeRefutePercentageThreshold: 0.1,
         maxProblematicNodeRemovalsPerCycle: 1,
@@ -359,9 +359,9 @@ describe('ProblematicNodeCache', () => {
       cache.prune(110)
 
       const history = cache.refuteHistory.get('node1')
-      expect(history?.length).toBe(100)
-      expect(history?.[0]).toBe(11) // Oldest should be cycle 11
-      expect(history?.[99]).toBe(110) // Newest should be cycle 110
+      expect(history?.length).toBe(60)
+      expect(history?.[0]).toBe(51) // Oldest should be cycle 51
+      expect(history?.[59]).toBe(110) // Newest should be cycle 110
     })
 
     test('should keep exactly historyLength cycles', () => {
@@ -374,7 +374,7 @@ describe('ProblematicNodeCache', () => {
       cache.prune(200)
 
       const history = cache.refuteHistory.get('node1')
-      expect(history?.length).toBe(100)
+      expect(history?.length).toBe(60)
     })
 
     test('should prune on every update if needed', () => {
@@ -389,9 +389,9 @@ describe('ProblematicNodeCache', () => {
       cache.addCycle({ counter: 101, refuted: ['node1'] } as P2P.CycleCreatorTypes.CycleRecord, true)
 
       const history = cache.refuteHistory.get('node1')
-      expect(history?.length).toBe(100)
-      expect(history?.[0]).toBe(2) // Oldest cycle 1 should be pruned
-      expect(history?.[99]).toBe(101) // Newest should be cycle 101
+      expect(history?.length).toBe(60)
+      expect(history?.[0]).toBe(42) // Oldest cycle 41 should be pruned
+      expect(history?.[59]).toBe(101) // Newest should be cycle 101
     })
 
     test('should handle pruning when historyLength = 1', () => {
@@ -438,7 +438,7 @@ describe('ProblematicNodeCache', () => {
 
       cache.prune(110)
 
-      expect(cache.refuteHistory.get('node1')?.length).toBe(100)
+      expect(cache.refuteHistory.get('node1')?.length).toBe(60)
       expect(cache.refuteHistory.has('node2')).toBe(false) // Should be removed
     })
 
@@ -588,7 +588,7 @@ describe('ProblematicNodeCache', () => {
     test('should calculate correct percentage for partial refutes', () => {
       const metrics = cache.calculateNodeMetrics('node1', 100)
       // node1 refuted in cycles 95-100 (6 times in last 100 cycles)
-      expect(metrics.refutePercentage).toBe(0.06)
+      expect(metrics.refutePercentage).toBe(0.1)
     })
 
     test('should calculate percentage over correct window', () => {
@@ -1209,6 +1209,162 @@ describe('ProblematicNodeCache', () => {
       expect(() => errorCache.buildFromCycles(cycles as P2P.CycleCreatorTypes.CycleRecord[])).not.toThrow()
       expect(errorCache.lastProcessedCycle).toBe(100)
       expect(errorCache.refuteHistory.get('node1')?.length).toBe(20) // Every 5th cycle
+    })
+  })
+
+  describe('ProblematicNodeCache - Cycle Tracking', () => {
+    let cache: ProblematicNodeCache
+    const config = {
+      p2p: {
+        problematicNodeHistoryLength: 100,
+        problematicNodeConsecutiveRefuteThreshold: 3,
+        problematicNodeRefutePercentageThreshold: 0.5,
+        maxProblematicNodeRemovalsPerCycle: 1
+      }
+    }
+
+    beforeEach(() => {
+      cache = new ProblematicNodeCache(config)
+    })
+
+    describe('processedCycles tracking', () => {
+      it('should track all cycles, even those without refutes', () => {
+        const cycles: P2P.CycleCreatorTypes.CycleRecord[] = [
+          { counter: 1, refuted: [] } as any,
+          { counter: 2, refuted: ['node1'] } as any,
+          { counter: 3, refuted: [] } as any,
+          { counter: 4, refuted: ['node2', 'node3'] } as any,
+          { counter: 5, refuted: [] } as any,
+        ]
+
+        cache.buildFromCycles(cycles)
+
+        // Check that all cycles are tracked
+        expect(cache.processedCycles.size).toBe(5)
+        expect(cache.isCycleProcessed(1)).toBe(true)
+        expect(cache.isCycleProcessed(2)).toBe(true)
+        expect(cache.isCycleProcessed(3)).toBe(true)
+        expect(cache.isCycleProcessed(4)).toBe(true)
+        expect(cache.isCycleProcessed(5)).toBe(true)
+        expect(cache.isCycleProcessed(6)).toBe(false)
+
+        // Check cycle range
+        expect(cache.cycleRange).toEqual({ min: 1, max: 5 })
+      })
+
+      it('should correctly report cycle coverage', () => {
+        const cycles: P2P.CycleCreatorTypes.CycleRecord[] = [
+          { counter: 1, refuted: [] } as any,
+          { counter: 2, refuted: ['node1'] } as any,
+          { counter: 3, refuted: [] } as any,
+          { counter: 5, refuted: [] } as any, // Gap at cycle 4
+        ]
+
+        cache.buildFromCycles(cycles)
+
+        const coverage = cache.getCycleCoverage()
+        
+        expect(coverage.totalCycles).toBe(4)
+        expect(coverage.cyclesWithRefutes).toBe(1) // Only cycle 2 has refutes
+        expect(coverage.cycleRange).toEqual({ min: 1, max: 5 })
+        expect(coverage.missingCycles).toEqual([4]) // Cycle 4 is missing
+      })
+
+      it('should handle addCycle for cycles without refutes', () => {
+        const cycle1: P2P.CycleCreatorTypes.CycleRecord = { counter: 1, refuted: [] } as any
+        const cycle2: P2P.CycleCreatorTypes.CycleRecord = { counter: 2, refuted: ['node1'] } as any
+        const cycle3: P2P.CycleCreatorTypes.CycleRecord = { counter: 3, refuted: [] } as any
+
+        cache.addCycle(cycle1)
+        cache.addCycle(cycle2)
+        cache.addCycle(cycle3)
+
+        expect(cache.processedCycles.size).toBe(3)
+        expect(cache.getProcessedCycles()).toEqual([1, 2, 3])
+        expect(cache.cycleRange).toEqual({ min: 1, max: 3 })
+
+        const coverage = cache.getCycleCoverage()
+        expect(coverage.totalCycles).toBe(3)
+        expect(coverage.cyclesWithRefutes).toBe(1)
+      })
+
+      it('should prune processedCycles correctly', () => {
+        const cycles: P2P.CycleCreatorTypes.CycleRecord[] = []
+        for (let i = 1; i <= 150; i++) {
+          cycles.push({ counter: i, refuted: i % 10 === 0 ? [`node${i}`] : [] } as any)
+        }
+
+        cache.buildFromCycles(cycles)
+        
+        // With history length of 100, cycles 1-50 should be pruned
+        expect(cache.processedCycles.size).toBe(100)
+        expect(cache.isCycleProcessed(1)).toBe(false)
+        expect(cache.isCycleProcessed(50)).toBe(false)
+        expect(cache.isCycleProcessed(51)).toBe(true)
+        expect(cache.isCycleProcessed(150)).toBe(true)
+        expect(cache.cycleRange).toEqual({ min: 51, max: 150 })
+      })
+    })
+
+    describe('export/import with cycle tracking', () => {
+      it('should export and import v2 format correctly', () => {
+        const cycles: P2P.CycleCreatorTypes.CycleRecord[] = [
+          { counter: 1, refuted: [] } as any,
+          { counter: 2, refuted: ['node1'] } as any,
+          { counter: 3, refuted: [] } as any,
+          { counter: 4, refuted: ['node2'] } as any,
+        ]
+
+        cache.buildFromCycles(cycles)
+
+        const json = cache.toJSON()
+        const data = JSON.parse(json)
+
+        expect(data.version).toBe(2)
+        expect(data.processedCycles).toEqual([1, 2, 3, 4])
+        expect(data.cycleRange).toEqual({ min: 1, max: 4 })
+
+        // Import and verify
+        const importedCache = ProblematicNodeCache.fromJSON(json, config)
+        
+        expect(importedCache.processedCycles.size).toBe(4)
+        expect(importedCache.getProcessedCycles()).toEqual([1, 2, 3, 4])
+        expect(importedCache.cycleRange).toEqual({ min: 1, max: 4 })
+        expect(importedCache.getCycleCoverage().cyclesWithRefutes).toBe(2)
+      })
+
+      it('should handle backward compatibility with v1 format', () => {
+        const v1Data = {
+          version: 1,
+          lastProcessedCycle: 10,
+          refuteHistory: {
+            'node1': [2, 5, 8],
+            'node2': [3, 6, 9]
+          }
+        }
+
+        const importedCache = ProblematicNodeCache.fromJSON(JSON.stringify(v1Data), config)
+        
+        // Should reconstruct processedCycles from refute history
+        expect(importedCache.processedCycles.size).toBe(6)
+        expect(importedCache.getProcessedCycles()).toEqual([2, 3, 5, 6, 8, 9])
+        expect(importedCache.cycleRange).toEqual({ min: 2, max: 9 })
+      })
+    })
+
+    describe('memory usage with cycle tracking', () => {
+      it('should include processedCycles in memory calculation', () => {
+        const cycles: P2P.CycleCreatorTypes.CycleRecord[] = []
+        for (let i = 1; i <= 100; i++) {
+          cycles.push({ counter: i, refuted: [] } as any)
+        }
+
+        cache.buildFromCycles(cycles)
+        const memoryUsage = cache.getMemoryUsage()
+        
+        // Should include 100 cycles * 8 bytes = 800 bytes minimum
+        expect(memoryUsage).toBeGreaterThanOrEqual(800)
+      })
     })
   })
 })

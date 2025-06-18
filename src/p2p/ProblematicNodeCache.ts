@@ -10,14 +10,18 @@ export interface NodeMetrics {
 export class ProblematicNodeCache {
   refuteHistory: Map<string, number[]>
   nodeMetrics: Map<string, NodeMetrics>
+  processedCycles: Set<number>
   lastProcessedCycle: number
+  cycleRange: { min: number; max: number } | null
   private config: any
 
   constructor(config: any) {
     this.config = config
     this.refuteHistory = new Map()
     this.nodeMetrics = new Map()
+    this.processedCycles = new Set()
     this.lastProcessedCycle = 0
+    this.cycleRange = null
   }
 
   buildFromCycles(cycles: P2P.CycleCreatorTypes.CycleRecord[]): void {
@@ -31,17 +35,30 @@ export class ProblematicNodeCache {
     // Clear existing data
     this.refuteHistory.clear()
     this.nodeMetrics.clear()
+    this.processedCycles.clear()
     this.lastProcessedCycle = 0
+    this.cycleRange = null
 
     // Track processed cycles to handle duplicates
-    const processedCycles = new Set<number>()
+    const processedCyclesTemp = new Set<number>()
 
     for (const cycle of cycles) {
       // Skip duplicate cycle numbers
-      if (processedCycles.has(cycle.counter)) {
+      if (processedCyclesTemp.has(cycle.counter)) {
         continue
       }
-      processedCycles.add(cycle.counter)
+      processedCyclesTemp.add(cycle.counter)
+
+      // Always add to processedCycles to track all cycles
+      this.processedCycles.add(cycle.counter)
+
+      // Update cycle range
+      if (!this.cycleRange) {
+        this.cycleRange = { min: cycle.counter, max: cycle.counter }
+      } else {
+        this.cycleRange.min = Math.min(this.cycleRange.min, cycle.counter)
+        this.cycleRange.max = Math.max(this.cycleRange.max, cycle.counter)
+      }
 
       if (cycle.refuted && cycle.refuted.length > 0) {
         // Handle duplicate entries within a cycle
@@ -70,7 +87,18 @@ export class ProblematicNodeCache {
       throw new Error(`Cannot add cycle ${cycle.counter}, last processed cycle is ${this.lastProcessedCycle}`)
     }
 
-    // Add refuted nodes
+    // Always add to processedCycles to track all cycles
+    this.processedCycles.add(cycle.counter)
+
+    // Update cycle range
+    if (!this.cycleRange) {
+      this.cycleRange = { min: cycle.counter, max: cycle.counter }
+    } else {
+      this.cycleRange.min = Math.min(this.cycleRange.min, cycle.counter)
+      this.cycleRange.max = Math.max(this.cycleRange.max, cycle.counter)
+    }
+
+    // Add refuted nodes if any
     if (cycle.refuted && cycle.refuted.length > 0) {
       const uniqueRefuted = [...new Set(cycle.refuted)]
       
@@ -98,10 +126,34 @@ export class ProblematicNodeCache {
     if (historyLength <= 0) {
       this.refuteHistory.clear()
       this.nodeMetrics.clear()
+      this.processedCycles.clear()
+      this.cycleRange = null
       return
     }
 
     const cutoffCycle = currentCycle - historyLength
+
+    // Prune processedCycles
+    const cyclesToRemove: number[] = []
+    for (const cycle of this.processedCycles) {
+      if (cycle <= cutoffCycle) {
+        cyclesToRemove.push(cycle)
+      }
+    }
+    for (const cycle of cyclesToRemove) {
+      this.processedCycles.delete(cycle)
+    }
+
+    // Update cycle range after pruning
+    if (this.processedCycles.size > 0) {
+      const cycles = Array.from(this.processedCycles)
+      this.cycleRange = {
+        min: Math.min(...cycles),
+        max: Math.max(...cycles)
+      }
+    } else {
+      this.cycleRange = null
+    }
 
     // Prune refute history
     const nodesToRemove: string[] = []
@@ -248,6 +300,49 @@ export class ProblematicNodeCache {
     this.nodeMetrics.delete(nodeId)
   }
 
+  // New methods for cycle tracking
+  isCycleProcessed(cycleNumber: number): boolean {
+    return this.processedCycles.has(cycleNumber)
+  }
+
+  getCycleCoverage(): {
+    totalCycles: number
+    cyclesWithRefutes: number
+    cycleRange: { min: number; max: number } | null
+    missingCycles: number[]
+  } {
+    const totalCycles = this.processedCycles.size
+    const cyclesWithRefutes = new Set<number>()
+    
+    // Count cycles that have refutes
+    for (const cycles of this.refuteHistory.values()) {
+      for (const cycle of cycles) {
+        cyclesWithRefutes.add(cycle)
+      }
+    }
+
+    // Find missing cycles in the range
+    const missingCycles: number[] = []
+    if (this.cycleRange) {
+      for (let i = this.cycleRange.min; i <= this.cycleRange.max; i++) {
+        if (!this.processedCycles.has(i)) {
+          missingCycles.push(i)
+        }
+      }
+    }
+
+    return {
+      totalCycles,
+      cyclesWithRefutes: cyclesWithRefutes.size,
+      cycleRange: this.cycleRange,
+      missingCycles
+    }
+  }
+
+  getProcessedCycles(): number[] {
+    return Array.from(this.processedCycles).sort((a, b) => a - b)
+  }
+
   getMemoryUsage(): number {
     // Estimate memory usage
     let size = 0
@@ -261,14 +356,19 @@ export class ProblematicNodeCache {
     // Node metrics
     size += this.nodeMetrics.size * 32 // Rough estimate per metrics object
     
+    // Processed cycles
+    size += this.processedCycles.size * 8 // Numbers
+    
     return size
   }
 
   toJSON(): string {
     const data = {
-      version: 1,
+      version: 2, // Bump version for new format
       lastProcessedCycle: this.lastProcessedCycle,
-      refuteHistory: Object.fromEntries(this.refuteHistory)
+      refuteHistory: Object.fromEntries(this.refuteHistory),
+      processedCycles: Array.from(this.processedCycles),
+      cycleRange: this.cycleRange
     }
     
     return JSON.stringify(data)
@@ -291,8 +391,8 @@ export class ProblematicNodeCache {
       throw new Error('Invalid JSON format')
     }
 
-    if (!data.version || data.version !== 1) {
-      throw new Error(`Unsupported cache version: ${data.version}`)
+    if (!data.version) {
+      throw new Error('Invalid cache data: missing version')
     }
 
     if (typeof data.lastProcessedCycle !== 'number') {
@@ -302,12 +402,52 @@ export class ProblematicNodeCache {
     const cache = new ProblematicNodeCache(config)
     cache.lastProcessedCycle = data.lastProcessedCycle
 
-    if (data.refuteHistory) {
-      for (const [nodeId, cycles] of Object.entries(data.refuteHistory)) {
-        if (Array.isArray(cycles)) {
-          cache.refuteHistory.set(nodeId, cycles)
+    // Handle version 1 format (backward compatibility)
+    if (data.version === 1) {
+      if (data.refuteHistory) {
+        for (const [nodeId, cycles] of Object.entries(data.refuteHistory)) {
+          if (Array.isArray(cycles)) {
+            cache.refuteHistory.set(nodeId, cycles)
+            // Add cycles to processedCycles for backward compatibility
+            for (const cycle of cycles) {
+              cache.processedCycles.add(cycle)
+            }
+          }
         }
       }
+      // Update cycle range based on refute history
+      if (cache.processedCycles.size > 0) {
+        const cycles = Array.from(cache.processedCycles)
+        cache.cycleRange = {
+          min: Math.min(...cycles),
+          max: Math.max(...cycles)
+        }
+      }
+    } 
+    // Handle version 2 format
+    else if (data.version === 2) {
+      // Load refute history
+      if (data.refuteHistory) {
+        for (const [nodeId, cycles] of Object.entries(data.refuteHistory)) {
+          if (Array.isArray(cycles)) {
+            cache.refuteHistory.set(nodeId, cycles)
+          }
+        }
+      }
+
+      // Load processed cycles
+      if (data.processedCycles && Array.isArray(data.processedCycles)) {
+        for (const cycle of data.processedCycles) {
+          cache.processedCycles.add(cycle)
+        }
+      }
+
+      // Load cycle range
+      if (data.cycleRange) {
+        cache.cycleRange = data.cycleRange
+      }
+    } else {
+      throw new Error(`Unsupported cache version: ${data.version}`)
     }
 
     return cache

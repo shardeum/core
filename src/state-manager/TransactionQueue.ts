@@ -7683,6 +7683,16 @@ class TransactionQueue {
       }
     } else {
       signedReceipt = this.stateManager.getSignedReceipt(queueEntry) as SignedReceipt
+      if (!signedReceipt) {
+        /* prettier-ignore */ nestedCountersInstance.countEvent('stateManager', 'getArchiverReceiptFromQueueEntry no signedReceipt')
+        /* prettier-ignore */ if (logFlags.important_as_error) console.log(`getArchiverReceiptFromQueueEntry: signedReceipt is null for txId: ${txId} timestamp: ${timestamp} globalModification: ${globalModification}`)
+        return null as ArchiverReceipt
+      }
+      /* prettier-ignore */ if (logFlags.important_as_error) console.log('getArchiverReceiptFromQueueEntry : nonGlobal signedReceipt txid', txId)
+      /* prettier-ignore */ if (logFlags.important_as_error) console.log('getArchiverReceiptFromQueueEntry : nonGlobal signedReceipt proposal', txId, Utils.safeStringify(signedReceipt.proposal))
+      /* prettier-ignore */ if (logFlags.important_as_error) console.log('getArchiverReceiptFromQueueEntry : nonGlobal signedReceipt proposalHash', txId, Utils.safeStringify(signedReceipt.proposalHash))
+      /* prettier-ignore */ if (logFlags.important_as_error) console.log('getArchiverReceiptFromQueueEntry : nonGlobal signedReceipt signaturePack', txId, Utils.safeStringify(signedReceipt.signaturePack))
+      /* prettier-ignore */ if (logFlags.important_as_error) console.log('getArchiverReceiptFromQueueEntry : nonGlobal signedReceipt voteOffsets', txId, Utils.safeStringify(signedReceipt.voteOffsets))
     }
 
     if (!signedReceipt) {

@@ -6,10 +6,11 @@ import Trie from 'trie-prefix-tree'
 import { isDebugModeMiddleware, isDebugModeMiddlewareMedium } from '../network/debugMiddleware'
 import { nestedCountersInstance } from '../utils/nestedCounters'
 import { logFlags } from '../logger'
-import { currentCycle } from '../p2p/CycleCreator'
 import * as ProblemNodeHandler from '../p2p/ProblemNodeHandler'
 import { Node } from '@shardeum-foundation/lib-types/build/src/p2p/NodeListTypes'
-import { nodes } from '../p2p/NodeList'
+import * as NodeList from '../p2p/NodeList'
+import * as CycleChain from '../p2p/CycleChain'
+import { config } from '../p2p/Context'
 const tar = require('tar-fs')
 const fs = require('fs')
 
@@ -151,7 +152,7 @@ class Debug {
         const dump: Record<string, any> = {}
         let lastCycle = Context.p2p.state.getLastCycle()
         // Collect data for all nodes that have any refute history
-        for (const [nodeId, node] of nodes as Map<string, Node>) {
+        for (const [nodeId, node] of NodeList.nodes as Map<string, Node>) {
           if (node.refuteCycles?.length > 0) {
             const refuteCycles = node.refuteCycles
             dump[nodeId] = {
@@ -166,6 +167,169 @@ class Debug {
         }
 
         res.json({ success: true, data: { cycle: lastCycle.counter, nodeHistories: dump } })
+      } catch (e) {
+        res.json({ success: false, error: e.message })
+      }
+    })
+    this.network.registerExternalGet('debug_problematicNodeCacheExport', isDebugModeMiddleware, (_, res) => {
+      try {
+        const cacheData = ProblemNodeHandler.exportProblematicNodeCache()
+        
+        if (!cacheData) {
+          res.json({ 
+            success: false, 
+            error: 'Problematic node cache is not enabled or not available. Ensure enableProblematicNodeCacheBuilding is true.' 
+          })
+          return
+        }
+
+        res.json({ 
+          success: true, 
+          data: {
+            compressed: true,
+            cache: cacheData,
+            timestamp: Date.now()
+          }
+        })
+      } catch (e) {
+        res.json({ success: false, error: e.message })
+      }
+    })
+    this.network.registerExternalGet('debug_getProblematicNodes', isDebugModeMiddleware, (_, res) => {
+      try {
+        // Check if we have a current cycle
+        const currentCycleRecord = CycleChain.newest
+        if (!currentCycleRecord) {
+          res.json({ 
+            success: false, 
+            error: 'No current cycle available' 
+          })
+          return
+        }
+
+        // Get problematic nodes using the standard method
+        const problematicNodeIds = ProblemNodeHandler.getProblematicNodes(currentCycleRecord)
+        
+        // Get detailed info for each problematic node
+        const problematicNodesInfo = problematicNodeIds.map(nodeId => {
+          const node = NodeList.nodes.get(nodeId)
+          if (!node) return null
+          
+          return {
+            id: nodeId.substring(0, 8),
+            fullId: nodeId,
+            refuteCycles: node.refuteCycles || [],
+            consecutiveRefutes: ProblemNodeHandler.getConsecutiveRefutes(node.refuteCycles || [], currentCycleRecord.counter),
+            refutePercentage: (ProblemNodeHandler.getRefutePercentage(node.refuteCycles || [], currentCycleRecord.counter) * 100).toFixed(1)
+          }
+        }).filter(n => n !== null)
+
+        res.json({ 
+          success: true, 
+          data: {
+            currentCycle: currentCycleRecord.counter,
+            totalActiveNodes: NodeList.activeByIdOrder.length,
+            problematicNodesCount: problematicNodeIds.length,
+            problematicNodes: problematicNodesInfo,
+            evictionEnabled: config.p2p.enableProblematicNodeRemoval,
+            thresholds: {
+              consecutiveRefutes: config.p2p.problematicNodeConsecutiveRefuteThreshold,
+              refutePercentage: config.p2p.problematicNodeRefutePercentageThreshold,
+              historyLength: config.p2p.problematicNodeHistoryLength
+            }
+          }
+        })
+      } catch (e) {
+        res.json({ success: false, error: e.message })
+      }
+    })
+    this.network.registerExternalGet('debug_simulateProblematic', isDebugModeMiddleware, (req, res) => {
+      try {
+        // Parse parameters with defaults
+        const missConsensus = req.query.missConsensus ? parseFloat(req.query.missConsensus as string) : 0
+        const networkDelay = req.query.networkDelay ? parseInt(req.query.networkDelay as string) : 0
+        const dropMessages = req.query.dropMessages ? parseFloat(req.query.dropMessages as string) : 0
+        const slowResponse = req.query.slowResponse ? parseFloat(req.query.slowResponse as string) : 0
+        const slowDelayMs = req.query.slowDelayMs ? parseInt(req.query.slowDelayMs as string) : 0
+        const reset = req.query.reset === 'true'
+
+        // Validate parameters
+        if (missConsensus < 0 || missConsensus > 1) {
+          throw new Error('missConsensus must be between 0 and 1')
+        }
+        if (dropMessages < 0 || dropMessages > 1) {
+          throw new Error('dropMessages must be between 0 and 1')
+        }
+        if (slowResponse < 0 || slowResponse > 1) {
+          throw new Error('slowResponse must be between 0 and 1')
+        }
+        if (networkDelay < 0 || networkDelay > 60000) {
+          throw new Error('networkDelay must be between 0 and 60000 ms')
+        }
+        if (slowDelayMs < 0 || slowDelayMs > 60000) {
+          throw new Error('slowDelayMs must be between 0 and 60000 ms')
+        }
+
+        // Apply or reset configurations
+        if (reset) {
+          // Reset all problematic simulation settings
+          if (Context.config?.debug) {
+            Context.config.debug.missConsensusChance = 0
+            Context.config.debug.fakeNetworkDelay = 0
+            Context.config.debug.dropMessageChance = 0
+            Context.config.debug.slowResponseChance = 0
+            Context.config.debug.slowResponseDelay = 0
+          }
+          
+          // Also reset network delay if it was set
+          if (this.network.setDebugNetworkDelay) {
+            this.network.setDebugNetworkDelay(0)
+          }
+
+          nestedCountersInstance.countEvent('debug', 'simulateProblematic reset')
+          res.json({ 
+            success: true, 
+            message: 'Problematic simulation settings reset',
+            settings: {
+              missConsensus: 0,
+              networkDelay: 0,
+              dropMessages: 0,
+              slowResponse: 0,
+              slowDelayMs: 0
+            }
+          })
+        } else {
+          // Apply new settings
+          if (Context.config?.debug) {
+            Context.config.debug.missConsensusChance = missConsensus
+            Context.config.debug.fakeNetworkDelay = networkDelay
+            Context.config.debug.dropMessageChance = dropMessages
+            Context.config.debug.slowResponseChance = slowResponse
+            Context.config.debug.slowResponseDelay = slowDelayMs
+          } else {
+            res.json({ success: false, error: 'Debug configuration not available' })
+            return
+          }
+
+          // Set network delay if available
+          if (networkDelay > 0 && this.network.setDebugNetworkDelay) {
+            this.network.setDebugNetworkDelay(networkDelay)
+          }
+
+          nestedCountersInstance.countEvent('debug', `simulateProblematic configured: miss=${missConsensus}, delay=${networkDelay}, drop=${dropMessages}, slow=${slowResponse}/${slowDelayMs}ms`)
+          
+          res.json({ 
+            success: true,
+            message: 'Problematic simulation settings applied',
+            settings: {
+              missConsensus,
+              networkDelay,
+              dropMessages,
+              slowResponse,
+              slowDelayMs
+            }
+          })
+        }
       } catch (e) {
         res.json({ success: false, error: e.message })
       }

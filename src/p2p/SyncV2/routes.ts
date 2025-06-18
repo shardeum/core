@@ -17,6 +17,7 @@ import { profilerInstance } from '../../utils/profiler'
 import { logFlags } from '../../logger'
 import { jsonHttpResWithSize } from '../../utils'
 import { Utils } from '@shardeum-foundation/lib-types'
+import { registerCycleMonitoringRoutes } from './cycle-monitoring-routes'
 
 /** An endpoint that returns the latest node list hash. */
 const validatorListHashRoute: P2P.P2PTypes.Route<Handler> = {
@@ -199,7 +200,7 @@ const recentCycleMarkersRoute: P2P.P2PTypes.Route<Handler> = {
   handler: (_req, res) => {
     profilerInstance.scopedProfileSectionStart('recent-cycle-markers', false)
     try {
-      const cycleCount = Math.min(cycles.length, 50) // Limit to 50 for safety
+      const cycleCount = Math.min(cycles.length, CycleCreator.MAX_CYCLES_TO_KEEP) // Limit to MAX_CYCLES_TO_KEEP
       const recentMarkers: string[] = []
       
       // Get most recent cycle markers
@@ -276,4 +277,7 @@ export function initRoutes(): void {
   for (const route of routes) {
     network._registerExternal(route.method, route.name, route.handler)
   }
+  
+  // Register cycle monitoring routes with debug middleware
+  registerCycleMonitoringRoutes(network)
 }

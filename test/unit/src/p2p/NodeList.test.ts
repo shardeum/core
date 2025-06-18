@@ -37,7 +37,7 @@ jest.mock('../../../../src/p2p/Context', () => {
       p2p: {
         enableProblematicNodeRemoval: true,
         enableProblematicNodeRemovalOnCycle: 1,
-        problematicNodeHistoryLength: 100,
+        problematicNodeHistoryLength: 60,
         removedNodeIDCacheSize: 1000,
         hardenNewSyncingProtocol: true,
         useSyncProtocolV2: false,

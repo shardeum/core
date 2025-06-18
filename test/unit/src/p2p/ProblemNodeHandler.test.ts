@@ -35,7 +35,7 @@ jest.mock('../../../../src/p2p/Context', () => ({
     p2p: {
       problematicNodeConsecutiveRefuteThreshold: 3,
       problematicNodeRefutePercentageThreshold: 0.1,
-      problematicNodeHistoryLength: 100,
+      problematicNodeHistoryLength: 60,
       enableProblematicNodeCacheBuilding: false, // Disable cache in tests
       useProblematicNodeCacheV2: false,
     },

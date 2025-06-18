@@ -28,7 +28,7 @@ jest.mock('../../../../src/p2p/Context', () => ({
   config: {
     p2p: {
       enableProblematicNodeCacheBuilding: true,
-      problematicNodeHistoryLength: 100,
+      problematicNodeHistoryLength: 60,
       syncV2HistoricalCyclesCount: 30,
     },
   },

@@ -1199,6 +1199,14 @@ export interface ServerConfiguration {
     /** controls how many perfEvents needs to accumulate before we log them */
     numOfPerfEventsNeededForLogging: number
     enableDebugFlags: boolean
+    /** Chance to miss consensus rounds (0-1) */
+    missConsensusChance?: number
+    /** Chance to drop network messages (0-1) */
+    dropMessageChance?: number
+    /** Chance to respond slowly to requests (0-1) */
+    slowResponseChance?: number
+    /** Delay in ms when responding slowly */
+    slowResponseDelay?: number
   }
   /** Options for the statistics module */
   statistics?: {
