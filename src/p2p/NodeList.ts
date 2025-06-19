@@ -124,6 +124,7 @@ const initRefuteCyclesForNode = (node: P2P.NodeListTypes.Node, cycle: P2P.CycleC
 }
 
 export function addNode(node: P2P.NodeListTypes.Node, caller: string, cycle: P2P.CycleCreatorTypes.CycleRecord | null) {
+  info('[debug-lost-archiver] addNode called ' + JSON.stringify({ nodeId: node?.id, publicKey: node?.publicKey, caller, cycle: cycle?.counter }))
   if (node == null) {
     //warn(`NodeList.addNode: tried to add null node ${caller}`)
     nestedCountersInstance.countEvent('p2p', `addNode rejecting null node from: ${caller}`)
@@ -233,6 +234,7 @@ export function removeReadyNode(id: string) {
 }
 
 export function removeNode(id: string, raiseEvents: boolean, cycle: P2P.CycleCreatorTypes.CycleRecord | null) {
+  info('[debug-lost-archiver] removeNode called ' + JSON.stringify({ nodeId: id, raiseEvents, cycle: cycle?.counter }))
   let idx: number
 
   // Omar added this so we don't crash if a node gets remove more than once
@@ -346,6 +348,7 @@ export function updateNode(
   raiseEvents: boolean,
   cycle: P2P.CycleCreatorTypes.CycleRecord | null
 ) {
+  info('[debug-lost-archiver] updateNode called ' + JSON.stringify({ updateId: update?.id, raiseEvents, cycle: cycle?.counter }))
   const node = nodes.get(update.id)
   if (node) {
     initRefuteCyclesForNode(node, cycle)

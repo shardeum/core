@@ -48,6 +48,7 @@ export function createLostArchiverRecord(obj: Partial<LostArchiverRecord>): Lost
  * Called by Archivers.ts
  */
 export function reportLostArchiver(publicKey: publicKey, errorMsg: string): void {
+  info(`=== LOST ARCHIVER LOGIC TRIGGERED === publicKey: ${publicKey}, errorMsg: ${errorMsg}`);
   if (Context.config.p2p.enableLostArchiversCycles === false) {
     info(`reportLostArchiver: not enabled, publicKey: ${publicKey}, errorMsg: ${errorMsg}`)
     return
@@ -78,6 +79,7 @@ export function reportLostArchiver(publicKey: publicKey, errorMsg: string): void
  * @param publicKey - The public key of the Archiver to investigate
  */
 export async function investigateArchiver(investigateMsg: SignedObject<InvestigateArchiverMsg>): Promise<void> {
+  info(`=== LOST ARCHIVER INVESTIGATION TRIGGERED === investigateMsg: ${Utils.safeStringify(investigateMsg)}`);
   info(`investigateArchiver: investigateMsg: ${inspect(investigateMsg)}`)
   const publicKey = investigateMsg.target
   const archiver = Archivers.archivers.get(publicKey)

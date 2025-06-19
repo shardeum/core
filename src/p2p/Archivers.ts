@@ -298,6 +298,7 @@ export function validateRecordTypes(rec: P2P.ArchiversTypes.Record): string {
 }
 
 export function updateRecord(txs: P2P.ArchiversTypes.Txs, record: P2P.CycleCreatorTypes.CycleRecord) {
+  info('[debug-lost-archiver] updateRecord called', { txsLength: txs.archivers.length, cycleCounter: record.counter })
   // Add joining archivers to the cycle record
   const joinedArchivers = txs.archivers
     .filter((request) => request.requestType === P2P.ArchiversTypes.RequestTypes.JOIN)
@@ -591,6 +592,7 @@ export function removeArchiverByPublicKey(publicKey: publicKey) {
 }
 
 export function removeArchiver(nodeInfo: JoinedArchiver) {
+  info('[debug-lost-archiver] removeArchiver called', { publicKey: nodeInfo.publicKey, archiversSize: archivers.size })
   archivers.delete(nodeInfo.publicKey)
   removeDataRecipient(nodeInfo.publicKey)
   removeArchiverConnection(nodeInfo.publicKey)
@@ -605,6 +607,7 @@ export function updateArchivers(record: P2P.CycleCreatorTypes.CycleRecord) {
   for (const nodeInfo of record.joinedArchivers) {
     archivers.set(nodeInfo.publicKey, nodeInfo)
   }
+  info('[debug-lost-archiver] current archivers list', Utils.safeStringify(archivers))
 }
 
 // Add data type of dataRequests used in experimentalSnapshot
@@ -613,6 +616,14 @@ export function addDataRecipient(
   dataRequests: { dataRequestCycle?: number } | DataRequest<CycleRecord | StateMetaData>[],
   overrideLastSentCycle?: number
 ) {
+  info('[debug-lost-archiver] addDataRecipient called', {
+    nodeInfo,
+    dataRequests,
+    overrideLastSentCycle,
+    recipientsSize: recipients.size,
+    connectedSockets: Object.keys(connectedSockets),
+  })
+
   if (logFlags.console) console.log('Adding data recipient..', arguments)
   if (config.p2p.experimentalSnapshot && config.features.archiverDataSubscriptionsUpdate) {
     // This is to flush out previous archiver connections when it first activated
@@ -640,6 +651,7 @@ export function addDataRecipient(
     }
     if (logFlags.console) console.log(`dataRequests: ${nodeInfo.ip}:${nodeInfo.port}`)
     recipients.set(nodeInfo.publicKey, recipient)
+    info('[debug-lost-archiver] addDataRecipient: recipient added', { publicKey: nodeInfo.publicKey, dataRequestCycle: recipient.dataRequestCycle })
     return
   }
   const recipient = {
@@ -650,6 +662,7 @@ export function addDataRecipient(
   }
   if (logFlags.console) console.log('dataRequests: ', recipient.dataRequests)
   recipients.set(nodeInfo.publicKey, recipient)
+info('[debug-lost-archiver] addDataRecipient: recipient added', { publicKey: nodeInfo.publicKey, dataRequests: recipient.dataRequests })
 }
 
 export function getArchiversList() {
@@ -657,6 +670,7 @@ export function getArchiversList() {
 }
 
 async function forwardReceipts() {
+  info('[debug-lost-archiver] forwardReceipts called', { recipientsSize: recipients.size, instantForwardReceipts: config.p2p.instantForwardReceipts })
   if (!config.p2p.experimentalSnapshot) return
 
   profilerInstance.scopedProfileSectionStart('forwardReceipts')
@@ -712,6 +726,7 @@ async function forwardReceipts() {
 }
 
 async function forwardDataToSubscribedArchivers(responses, publicKey, recipient) {
+  info('[debug-lost-archiver] forwardDataToSubscribedArchivers called', { publicKey, recipientNode: recipient.nodeInfo && recipient.nodeInfo.publicKey, responses })
   const dataResponse: P2P.ArchiversTypes.DataResponse = {
     publicKey: crypto.getPublicKey(),
     responses,
@@ -734,6 +749,7 @@ async function forwardDataToSubscribedArchivers(responses, publicKey, recipient)
     }
   } catch (e) {
     error('Run into issue in forwarding data to - ', publicKey, e)
+    info('[debug-lost-archiver] forwardDataToSubscribedArchivers: exception thrown', { publicKey, error: e && e.message, stack: e && e.stack })
     // Call into LostArchivers to report Archiver as lost
     /* prettier-ignore */ if (nestedCountersInstance) nestedCountersInstance.countEvent('forwardDataToSubscribedArchivers', `unknown error — ${publicKey}`)
     reportLostArchiver(publicKey, 'forwardDataToSubscribedArchivers() error')
@@ -775,6 +791,7 @@ export async function instantForwardOriginalTxData(originalTxData) {
  * the node to apoptosize itself.
  */
 async function hasNetworkStopped(): Promise<boolean> {
+  info('[debug-lost-archiver] hasNetworkStopped called', { archiversSize: archivers.size })
   // If network check still in progress, return
   if (networkCheckInProgress) return
   networkCheckInProgress = true
@@ -838,6 +855,7 @@ export async function forwardAccounts(data: InitialAccountsData) {
 }
 
 export function removeDataRecipient(publicKey) {
+  info('[debug-lost-archiver] removeDataRecipient called', { publicKey, recipientsSize: recipients.size })
   if (recipients.has(publicKey)) {
     if (logFlags.console) console.log('Removing data recipient', publicKey)
     recipients.delete(publicKey)
@@ -1023,6 +1041,7 @@ export function addArchiverConnection(publicKey, socketId) {
 }
 
 export function removeArchiverConnection(publicKey) {
+  info('[debug-lost-archiver] removeArchiverConnection called', { publicKey, connectedSockets: Object.keys(connectedSockets) })
   if (io.sockets.sockets[connectedSockets[publicKey]]) {
     io.sockets.sockets[connectedSockets[publicKey]].disconnect()
   }
