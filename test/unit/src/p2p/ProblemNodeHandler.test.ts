@@ -272,5 +272,38 @@ describe('ProblemNodeHandler', () => {
       const result = getProblematicNodes(mockCycleRecord)
       expect(result).not.toContain('node1')
     })
+
+    it('should only return problematic nodes that are in the active node list when using cache', () => {
+      // Enable cache-based implementation
+      Context.config.p2p.useProblematicNodeCacheV2 = true
+
+      // Create three nodes with problematic refute patterns
+      const activeNode1: Node = {
+        ...baseMockNode,
+        id: 'active-node-1',
+        refuteCycles: [98, 99, 100], // 3 consecutive refutes - problematic
+      }
+
+      const activeNode2: Node = {
+        ...baseMockNode,
+        id: 'active-node-2',
+        refuteCycles: [80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90], // 11% refute rate - problematic
+      }
+
+      // Only add active nodes to NodeList
+      NodeList.activeByIdOrder.push(activeNode1, activeNode2)
+      NodeList.nodes.set(activeNode1.id, activeNode1)
+      NodeList.nodes.set(activeNode2.id, activeNode2)
+
+      // Get problematic nodes - should only return nodes that are in activeByIdOrder
+      const result = getProblematicNodes(mockCycleRecord)
+
+      // Should return both active problematic nodes
+      expect(result).toContain('active-node-1')
+      expect(result).toContain('active-node-2')
+
+      // Reset config
+      Context.config.p2p.useProblematicNodeCacheV2 = false
+    })
   })
 })
