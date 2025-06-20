@@ -147,30 +147,7 @@ class Debug {
       res.json({ success: true })
       return
     })
-    this.network.registerExternalGet('debug_problemNodeTrackerDump', isDebugModeMiddleware, (_, res) => {
-      try {
-        const dump: Record<string, any> = {}
-        let lastCycle = Context.p2p.state.getLastCycle()
-        // Collect data for all nodes that have any refute history
-        for (const [nodeId, node] of NodeList.nodes as Map<string, Node>) {
-          if (node.refuteCycles?.length > 0) {
-            const refuteCycles = node.refuteCycles
-            dump[nodeId] = {
-              refuteCycles,
-              stats: {
-                refutePercentage: ProblemNodeHandler.getRefutePercentage(node.refuteCycles, lastCycle.counter),
-                consecutiveRefutes: ProblemNodeHandler.getConsecutiveRefutes(refuteCycles, lastCycle.counter),
-                isProblematic: ProblemNodeHandler.isNodeProblematic(node, lastCycle.counter),
-              },
-            }
-          }
-        }
 
-        res.json({ success: true, data: { cycle: lastCycle.counter, nodeHistories: dump } })
-      } catch (e) {
-        res.json({ success: false, error: e.message })
-      }
-    })
     this.network.registerExternalGet('debug_problematicNodeCacheExport', isDebugModeMiddleware, (_, res) => {
       try {
         const cacheData = ProblemNodeHandler.exportProblematicNodeCache()

@@ -1,9 +1,4 @@
-import {
-  isNodeProblematic,
-  getConsecutiveRefutes,
-  getRefutePercentage,
-  getProblematicNodes,
-} from '../../../../src/p2p/ProblemNodeHandler'
+import { getConsecutiveRefutes, getRefutePercentage, getProblematicNodes } from '../../../../src/p2p/ProblemNodeHandler'
 import { P2P } from '@shardeum-foundation/lib-types'
 import * as NodeList from '../../../../src/p2p/NodeList'
 import * as Context from '../../../../src/p2p/Context'
@@ -91,45 +86,6 @@ describe('ProblemNodeHandler', () => {
     // Clear NodeList mocks before each test
     NodeList.activeByIdOrder.length = 0
     NodeList.nodes.clear()
-  })
-
-  describe('isNodeProblematic', () => {
-    it('should return false if node has no refuteCycles', () => {
-      ;(mockNode.refuteCycles as any) = undefined
-      expect(isNodeProblematic(mockNode, 1)).toBe(false)
-    })
-
-    it('should return true if node has consecutive refutes above threshold', () => {
-      mockNode.refuteCycles = [98, 99, 100]
-      expect(isNodeProblematic(mockNode, 100)).toBe(true)
-    })
-
-    it('should return false if consecutive refutes are below threshold', () => {
-      mockNode.refuteCycles = [98, 99]
-      expect(isNodeProblematic(mockNode, 100)).toBe(false)
-    })
-
-    it('should return true if refute percentage is above threshold', () => {
-      // Add 11 refutes in last 100 cycles (11%)
-      for (let i = 90; i <= 100; i++) {
-        mockNode.refuteCycles?.push(i)
-      }
-      expect(isNodeProblematic(mockNode, 100)).toBe(true)
-    })
-
-    it('should return false if refute percentage is below threshold', () => {
-      // Add 9 refutes in last 100 cycles (9%), spread out to avoid consecutive threshold
-      mockNode.refuteCycles?.push(10)
-      mockNode.refuteCycles?.push(20)
-      mockNode.refuteCycles?.push(30)
-      mockNode.refuteCycles?.push(40)
-      mockNode.refuteCycles?.push(50)
-      mockNode.refuteCycles?.push(60)
-      mockNode.refuteCycles?.push(70)
-      mockNode.refuteCycles?.push(80)
-      mockNode.refuteCycles?.push(90)
-      expect(isNodeProblematic(mockNode, 100)).toBe(false)
-    })
   })
 
   describe('getConsecutiveRefutes', () => {

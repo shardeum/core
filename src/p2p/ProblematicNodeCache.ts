@@ -63,7 +63,7 @@ export class ProblematicNodeCache {
       if (cycle.refuted && cycle.refuted.length > 0) {
         // Handle duplicate entries within a cycle
         const uniqueRefuted = [...new Set(cycle.refuted)]
-        
+
         for (const nodeId of uniqueRefuted) {
           if (!this.refuteHistory.has(nodeId)) {
             this.refuteHistory.set(nodeId, [])
@@ -101,7 +101,7 @@ export class ProblematicNodeCache {
     // Add refuted nodes if any
     if (cycle.refuted && cycle.refuted.length > 0) {
       const uniqueRefuted = [...new Set(cycle.refuted)]
-      
+
       for (const nodeId of uniqueRefuted) {
         if (!this.refuteHistory.has(nodeId)) {
           this.refuteHistory.set(nodeId, [])
@@ -149,7 +149,7 @@ export class ProblematicNodeCache {
       const cycles = Array.from(this.processedCycles)
       this.cycleRange = {
         min: Math.min(...cycles),
-        max: Math.max(...cycles)
+        max: Math.max(...cycles),
       }
     } else {
       this.cycleRange = null
@@ -157,10 +157,10 @@ export class ProblematicNodeCache {
 
     // Prune refute history
     const nodesToRemove: string[] = []
-    
+
     for (const [nodeId, cycles] of this.refuteHistory) {
-      const prunedCycles = cycles.filter(cycle => cycle > cutoffCycle)
-      
+      const prunedCycles = cycles.filter((cycle) => cycle > cutoffCycle)
+
       if (prunedCycles.length === 0) {
         nodesToRemove.push(nodeId)
       } else {
@@ -177,7 +177,7 @@ export class ProblematicNodeCache {
 
   pruneInactiveNodes(activeNodes: Set<string>): void {
     const nodesToRemove: string[] = []
-    
+
     for (const nodeId of this.refuteHistory.keys()) {
       if (!activeNodes.has(nodeId)) {
         nodesToRemove.push(nodeId)
@@ -198,17 +198,17 @@ export class ProblematicNodeCache {
     }
 
     const refuteCycles = this.refuteHistory.get(nodeId) || []
-    
+
     // Calculate consecutive refutes
     const consecutiveRefutes = this.getConsecutiveRefutes(refuteCycles, currentCycle)
-    
+
     // Calculate refute percentage
     const refutePercentage = this.getRefutePercentage(refuteCycles, currentCycle)
 
     const metrics: NodeMetrics = {
       consecutiveRefutes,
       refutePercentage,
-      lastCalculatedCycle: currentCycle
+      lastCalculatedCycle: currentCycle,
     }
 
     // Cache the metrics
@@ -217,21 +217,21 @@ export class ProblematicNodeCache {
     return metrics
   }
 
-  private getConsecutiveRefutes(refuteCycles: number[], currentCycle: number): number {
+  getConsecutiveRefutes(refuteCycles: number[], currentCycle: number): number {
     if (refuteCycles.length === 0) return 0
 
     // Filter to only include refutes up to current cycle
-    const relevantRefutes = refuteCycles.filter(cycle => cycle <= currentCycle)
+    const relevantRefutes = refuteCycles.filter((cycle) => cycle <= currentCycle)
     if (relevantRefutes.length === 0) return 0
 
     // Count consecutive refutes ending at current cycle or one before
     let count = 0
     const sortedRefutes = [...relevantRefutes].sort((a, b) => a - b)
-    
+
     // Start from the end and count backwards
     for (let i = sortedRefutes.length - 1; i >= 0; i--) {
       const cycle = sortedRefutes[i]
-      
+
       if (i === sortedRefutes.length - 1) {
         // Last refute must be at current cycle or one before
         if (cycle === currentCycle || cycle === currentCycle - 1) {
@@ -253,12 +253,12 @@ export class ProblematicNodeCache {
     return count
   }
 
-  private getRefutePercentage(refuteCycles: number[], currentCycle: number): number {
+  getRefutePercentage(refuteCycles: number[], currentCycle: number): number {
     const historyLength = this.config.p2p.problematicNodeHistoryLength
     const windowStart = Math.max(1, currentCycle - historyLength + 1)
     const windowSize = Math.min(historyLength, currentCycle)
-    
-    const recentRefutes = refuteCycles.filter(cycle => cycle >= windowStart && cycle <= currentCycle).length
+
+    const recentRefutes = refuteCycles.filter((cycle) => cycle >= windowStart && cycle <= currentCycle).length
 
     return windowSize > 0 ? recentRefutes / windowSize : 0
   }
@@ -268,32 +268,29 @@ export class ProblematicNodeCache {
 
     for (const nodeId of activeNodes) {
       const metrics = this.calculateNodeMetrics(nodeId, currentCycle)
-      
+
       if (this.isProblematic(metrics)) {
         problematicNodes.push({
           id: nodeId,
-          score: metrics.refutePercentage
+          score: metrics.refutePercentage,
         })
       }
     }
 
     // Sort by score and return top N based on maxProblematicNodeRemovalsPerCycle
     const maxRemovals = this.config.p2p.maxProblematicNodeRemovalsPerCycle || 1
-    
+
     return problematicNodes
       .sort((a, b) => b.score - a.score)
       .slice(0, maxRemovals)
-      .map(n => n.id)
+      .map((n) => n.id)
   }
 
   private isProblematic(metrics: NodeMetrics): boolean {
     const consecutiveThreshold = this.config.p2p.problematicNodeConsecutiveRefuteThreshold
     const percentageThreshold = this.config.p2p.problematicNodeRefutePercentageThreshold
 
-    return (
-      metrics.consecutiveRefutes >= consecutiveThreshold ||
-      metrics.refutePercentage >= percentageThreshold
-    )
+    return metrics.consecutiveRefutes >= consecutiveThreshold || metrics.refutePercentage >= percentageThreshold
   }
 
   clearNodeMetrics(nodeId: string): void {
@@ -313,7 +310,7 @@ export class ProblematicNodeCache {
   } {
     const totalCycles = this.processedCycles.size
     const cyclesWithRefutes = new Set<number>()
-    
+
     // Count cycles that have refutes
     for (const cycles of this.refuteHistory.values()) {
       for (const cycle of cycles) {
@@ -335,7 +332,7 @@ export class ProblematicNodeCache {
       totalCycles,
       cyclesWithRefutes: cyclesWithRefutes.size,
       cycleRange: this.cycleRange,
-      missingCycles
+      missingCycles,
     }
   }
 
@@ -346,19 +343,19 @@ export class ProblematicNodeCache {
   getMemoryUsage(): number {
     // Estimate memory usage
     let size = 0
-    
+
     // Refute history
     for (const [nodeId, cycles] of this.refuteHistory) {
       size += nodeId.length * 2 // String characters
       size += cycles.length * 8 // Numbers
     }
-    
+
     // Node metrics
     size += this.nodeMetrics.size * 32 // Rough estimate per metrics object
-    
+
     // Processed cycles
     size += this.processedCycles.size * 8 // Numbers
-    
+
     return size
   }
 
@@ -367,9 +364,9 @@ export class ProblematicNodeCache {
       lastProcessedCycle: this.lastProcessedCycle,
       refuteHistory: Object.fromEntries(this.refuteHistory),
       processedCycles: Array.from(this.processedCycles),
-      cycleRange: this.cycleRange
+      cycleRange: this.cycleRange,
     }
-    
+
     return JSON.stringify(data)
   }
 
