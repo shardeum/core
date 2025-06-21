@@ -99,7 +99,7 @@ export const stringifyReduceLimit = (val, limit = 100, isArrayProp?: boolean): s
   let i, max, str, keys, key, propVal, toStr
 
   if (limit < 0) {
-    return str + 'LIMIT'
+    return 'undefinedLIMIT'
   }
   if (val === true) {
     return 'true'
@@ -205,9 +205,8 @@ export const reviver = <T, K, V>(
     if (value.dataType === 'stringifyReduce_map_2_array') {
       return new Map(value.value)
     }
-  } else {
-    return value as T
   }
+  return value as T
 }
 
 export const reviverExpander = <T, K, V>(

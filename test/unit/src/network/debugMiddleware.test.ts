@@ -368,29 +368,35 @@ describe('debugMiddleware', () => {
     test('should return 403 when security level check fails', async () => {
       // Arrange
       const currentTime = Date.now()
-      const validCounter = currentTime + 1000
+      const validCounter = currentTime + 10000 // Use larger buffer to ensure counter > lastCounter
 
       req.query = {
         sig: 'valid-signature',
         sig_counter: validCounter.toString(),
-        nodePubkeys: 'abcd',
+        nodePubkeys: 'abcd',  // Only first 4 chars are checked
       }
       req.originalUrl = `/debug/endpoint?sig=valid-signature&sig_counter=${validCounter}&nodePubkeys=abcd&param=value`
 
       // Use proper DevSecurityLevel values
-      const mockPublicKeys = { owner1: DevSecurityLevel.High }
+      const ownerPublicKey = 'owner1PublicKey'
+      const mockPublicKeys = { [ownerPublicKey]: DevSecurityLevel.High }
       mockGetDevPublicKeys.mockReturnValue(mockPublicKeys)
-      mockGetPublicKey.mockReturnValue('abcd')
+      mockGetPublicKey.mockReturnValue('abcd1234')  // Return full public key
       mockHash.mockReturnValue('hash-value')
       mockSafeStringify.mockReturnValue('{"stringified":"payload"}')
-      mockVerify.mockReturnValue(true)
+      
+      // Setup verify to check for the correct owner key
+      mockVerify.mockImplementation((obj, owner) => {
+        return owner === ownerPublicKey
+      })
+      
       mockEnsureKeySecurity.mockReturnValue(false)
 
       // Act
       await isDebugModeMiddlewareHigh(req, res, next)
 
       // Assert
-      expect(mockEnsureKeySecurity).toHaveBeenCalled()
+      expect(mockEnsureKeySecurity).toHaveBeenCalledWith(ownerPublicKey, DevSecurityLevel.High)
       expect(res.status).toHaveBeenCalledWith(403)
       expect(res.json).toHaveBeenCalledWith({
         status: 403,

@@ -55,8 +55,8 @@ let queuedStandbyRefreshPubKeys: string[] = []
 let queuedUnjoinRequestsForNextCycle: P2P.JoinTypes.SignedUnjoinRequest[] = []
 let queuedUnjoinRequestsForThisCycle: P2P.JoinTypes.SignedUnjoinRequest[] = []
 
-let cyclesToDelaySyncStarted = -1
-let cyclesToDelaySyncFinished = -1
+const cyclesToDelaySyncStarted = -1
+const cyclesToDelaySyncFinished = -1
 
 // whats this for? I was just going to use newStandbyRefreshRequests
 //let keepInStandbyCollector: Map<string, StandbyRefreshRequest>

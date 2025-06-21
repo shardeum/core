@@ -18,7 +18,9 @@ export function initBroadcastStateReq(): void {
   addSchemas()
 }
 
-function addSchemaDependencies(): void {}
+function addSchemaDependencies(): void {
+  // No dependencies to add
+}
 
 function addSchemas(): void {
   addSchema(AJVSchemaEnum.BroadcastStateReq, schemaBroadcastStateReq)

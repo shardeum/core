@@ -528,3 +528,9 @@ function intersectCount(a, b) {
 function percentOverlap(a, b) {
   return (a.length / b.length) * 100
 }
+
+// Export for testing purposes
+export function __clearForTest() {
+  receipts.clear()
+  trackers.clear()
+}
