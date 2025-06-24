@@ -339,6 +339,7 @@ class CachedAppDataManager {
     const senderGroup = this.stateManager.transactionQueue.getConsenusGroupForAccount(executionShardKey)
     const senderNode = NodeList.nodes.get(senderNodeId)
     const logID = utils.stringifyReduce(txId)
+    const ourNodeId = this.stateManager.currentCycleShardData.nodeShardData.node.id
     if (senderNode === null) {
       /* prettier-ignore */ if(logFlags.error) this.mainLogger.error(`factValidateCorrespondingCachedAppDataSender: logId: ${logID} sender node is null`)
       nestedCountersInstance.countEvent(
@@ -360,9 +361,7 @@ class CachedAppDataManager {
     const targetGroup = this.stateManager.transactionQueue.getConsenusGroupForAccount(dataID)
     const allNodes = Array.from(new Set([...senderGroup, ...targetGroup])).sort((a, b) => a.id.localeCompare(b.id))
     const senderIndexInTxGroup = allNodes.findIndex((node) => node.id === senderNodeId)
-    const ourIndexInTxGroup = allNodes.findIndex(
-      (node) => node.id === this.stateManager.currentCycleShardData.nodeShardData.node.id
-    )
+    const ourIndexInTxGroup = allNodes.findIndex((node) => node.id === ourNodeId)
     const senderGroupSize = senderGroup.length
     const targetGroupSize = targetGroup.length
     const { startIndex: targetStartIndex, endIndex: targetEndIndex } =
@@ -373,7 +372,7 @@ class CachedAppDataManager {
     const globalOffset = parseInt(txId.slice(-4), 16)
 
     // check if it is a FACT sender
-    const isValidFactSender = verifyCorrespondingSender(
+    let isValidFactSender = verifyCorrespondingSender(
       ourIndexInTxGroup,
       senderIndexInTxGroup,
       globalOffset,
@@ -384,6 +383,50 @@ class CachedAppDataManager {
       allNodes.length
     )
 
+    if (isValidFactSender === false) {
+      // populate isSenderWrappedTxGroup
+      let uniqueKeys = [executionShardKey]
+      let isSenderWrappedAllNodes = {}
+      for (const key of uniqueKeys) {
+        const consensusGroupForKey = senderGroup.map((n) => n.id)
+        const startAndEndIndices = this.stateManager.transactionQueue.getStartAndEndIndexOfTargetGroup(
+          consensusGroupForKey,
+          allNodes
+        )
+        const isWrapped = startAndEndIndices.endIndex < startAndEndIndices.startIndex
+        if (isWrapped === false) continue
+        const unwrappedEndIndex = startAndEndIndices.endIndex + allNodes.length
+        for (let i = startAndEndIndices.startIndex; i < unwrappedEndIndex; i++) {
+          if (i >= allNodes.length) {
+            const wrappedIndex = i - allNodes.length
+            isSenderWrappedAllNodes[allNodes[wrappedIndex].id] = i
+          }
+        }
+      }
+      const unwrappedIndex = isSenderWrappedAllNodes[senderNode.id]
+      if (unwrappedIndex != null) {
+        isValidFactSender = verifyCorrespondingSender(
+          ourIndexInTxGroup,
+          unwrappedIndex,
+          globalOffset,
+          targetGroupSize,
+          senderGroupSize,
+          targetStartIndex,
+          targetEndIndex,
+          allNodes.length
+        )
+      }
+      if (logFlags.shardedCache && logFlags.verbose) {
+        console.log(`isSenderWrappedAllNodes: `, isSenderWrappedAllNodes, unwrappedIndex, senderNode.id)
+        console.log(`unwrappedIndex: ${unwrappedIndex}, isValidFactSender: ${isValidFactSender}`)
+      }
+    }
+    if (logFlags.shardedCache && logFlags.verbose) {
+      console.log(
+        `factValidateCorrespondingCachedAppDataSender: logId: ${logID} isValidFactSender: ${isValidFactSender} `
+      )
+    }
+
     // it is not a FACT corresponding node
     if (isValidFactSender === false) {
       /* prettier-ignore */ if(logFlags.error) this.mainLogger.error(`factValidateCorrespondingCachedAppDataSender: logId: logId: ${logID} sender is not a valid sender isValidSender:  ${isValidFactSender}`);
@@ -392,6 +435,10 @@ class CachedAppDataManager {
         'factValidateCorrespondingCachedAppDataSender: sender is not a valid sender or a neighbour node'
       )
       return false
+    }
+    // log successful fact check
+    if (logFlags.shardedCache && logFlags.verbose) {
+      console.log(`factValidateCorrespondingCachedAppDataSender: logId: ${logID} sender is a valid sender`)
     }
     return true
   }
@@ -431,7 +478,35 @@ class CachedAppDataManager {
       )
     const globalOffset = parseInt(txId.slice(-4), 16)
 
-    const correspondingIndices = getCorrespondingNodes(
+    // populate isSenderWrappedTxGroup
+    let uniqueKeys = [queueEntry.executionShardKey]
+    let isSenderWrappedAllNodes = {}
+    for (const key of uniqueKeys) {
+      const homeNodeShardData = queueEntry.homeNodes[key]
+      const consensusGroupForAccount = homeNodeShardData.consensusNodeForOurNodeFull.map((n) => n.id)
+      const startAndEndIndices = this.stateManager.transactionQueue.getStartAndEndIndexOfTargetGroup(
+        consensusGroupForAccount,
+        allNodes
+      )
+      const isWrapped = startAndEndIndices.endIndex < startAndEndIndices.startIndex
+      if (isWrapped === false) continue
+      const unwrappedEndIndex = startAndEndIndices.endIndex + allNodes.length
+      for (let i = startAndEndIndices.startIndex; i < unwrappedEndIndex; i++) {
+        if (i >= allNodes.length) {
+          const wrappedIndex = i - allNodes.length
+          isSenderWrappedAllNodes[allNodes[wrappedIndex].id] = i
+        }
+      }
+    }
+    const unwrappedIndex = isSenderWrappedAllNodes[ourNodeData.node.id]
+    if (logFlags.shardedCache && logFlags.verbose) {
+      console.log(`isSenderWrappedAllNodes: `, isSenderWrappedAllNodes, unwrappedIndex, ourNodeData.node.id)
+      console.log(
+        `factSendCorrespondingCachedAppDat: dataId: ${dataID} targetStartIndex: ${targetStartIndex}, targetEndIndex: ${targetEndIndex}, globalOffset: ${globalOffset}, targetGroupSize: ${targetGroupSize}, senderGroupSize: ${senderGroupSize}, allNodes.length: ${allNodes.length}`
+      )
+    }
+
+    let correspondingIndices = getCorrespondingNodes(
       senderIndexInTxGroup,
       targetStartIndex,
       targetEndIndex,
@@ -440,6 +515,31 @@ class CachedAppDataManager {
       senderGroupSize,
       allNodes.length
     )
+
+    if (this.config.stateManager.correspondingTellUseUnwrapped) {
+      if (unwrappedIndex != null) {
+        const extraCorrespondingIndices = getCorrespondingNodes(
+          unwrappedIndex,
+          targetStartIndex,
+          targetEndIndex,
+          globalOffset,
+          targetGroupSize,
+          senderGroupSize,
+          allNodes.length,
+          queueEntry.logID
+        )
+        if (this.config.stateManager.concatCorrespondingTellUseUnwrapped) {
+          correspondingIndices = correspondingIndices.concat(extraCorrespondingIndices)
+        } else {
+          correspondingIndices = extraCorrespondingIndices
+        }
+      }
+    }
+    if (unwrappedIndex != null && logFlags.shardedCache && logFlags.verbose) {
+      console.log(
+        `factSendCorrespondingCachedAppData: dataId: ${dataID} unwrappedIndex: ${unwrappedIndex}, correspondingIndices: ${correspondingIndices}, allNodes.length: ${allNodes.length}`
+      )
+    }
 
     const correspondingNodes: P2PTypes.NodeListTypes.Node[] = []
     for (const index of correspondingIndices) {
@@ -458,6 +558,13 @@ class CachedAppDataManager {
     const message: CacheAppDataResponse = { topic, cachedAppData: cacheAppDataToSend }
 
     if (correspondingNodes.length > 0) {
+      if (logFlags.shardedCache && logFlags.debug) {
+        this.mainLogger.debug(
+          `cachedAppData: factSendCorrespondingCachedAppData: ${dataID} to ${
+            correspondingNodes.length
+          } nodes: ${correspondingNodes.map((node) => `${node.externalIp}:${node.externalPort}`).join(', ')}`
+        )
+      }
       // Handle edge case where we send to own node
       if (correspondingNodes.length === 1 && correspondingNodes[0].id === ourNodeData.node.id) {
         const existingCachedAppData = this.getCachedItem(topic, dataID)
