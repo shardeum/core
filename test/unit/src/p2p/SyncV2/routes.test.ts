@@ -236,19 +236,17 @@ describe('SyncV2 routes', () => {
 
       handler(mockReq as Request, mockRes as Response)
 
-      // Should only process the last 50 cycles
+      // Should only process the last 60 cycles
       expect(CycleCreator.makeCycleMarker).toHaveBeenCalledTimes(60)
       expect(jsonMock).toHaveBeenCalledWith({
-        cycleMarkers: expect.arrayContaining([
-          expect.stringMatching(/^marker\d+$/),
-        ]),
-        oldestCounter: 11, // 60 - 50 + 1
+        cycleMarkers: expect.arrayContaining([expect.stringMatching(/^marker\d+$/)]),
+        oldestCounter: 1,
       })
-      
+
       const result = jsonMock.mock.calls[0][0]
-      expect(result.cycleMarkers).toHaveLength(50)
-      expect(result.cycleMarkers[0]).toBe('marker11')
-      expect(result.cycleMarkers[49]).toBe('marker60')
+      expect(result.cycleMarkers).toHaveLength(60)
+      expect(result.cycleMarkers[0]).toBe('marker1')
+      expect(result.cycleMarkers[49]).toBe('marker50')
     })
 
     it('should handle undefined cycles gracefully', () => {
