@@ -80,8 +80,8 @@ const SERVER_CONFIG: StrictServerConfiguration = {
     problematicNodeHistoryLength: 60,
     problematicNodeRemovalCycleFrequency: 5,
     // New flags for problematic node cache v2
-    useProblematicNodeCacheV2: true, // When true, use the new cache-based implementation
-    enableProblematicNodeCacheBuilding: true, // Enable shadow mode cache building for validation
+    useProblematicNodeCacheV2: false, // When true, use the new cache-based implementation
+    enableProblematicNodeCacheBuilding: false, // Enable shadow mode cache building for validation
     firstCycleJoin: 10,
     maxPercentOfDelta: 40,
     minScaleReqsNeeded: 5,
