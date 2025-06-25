@@ -373,6 +373,7 @@ const SERVER_CONFIG: StrictServerConfiguration = {
     avoidOurIndexInFactTell: false, //initial testing shows this may cause issues so leaving it off for now
     checkDestLimits: true,
     checkDestLimitCount: 5,
+    globalAccountsReceiptInitiationTimeout: 5000, // 5 seconds default timeout
   },
   sharding: { nodesPerConsensusGroup: 5, nodesPerEdge: 2, executeInOneShard: false },
   mode: ServerMode.Release,

@@ -85,7 +85,7 @@ import { BadRequest, ResponseError, serializeResponseError } from '../types/Resp
 import { error } from 'console'
 import { PoqoDataAndReceiptReq, serializePoqoDataAndReceiptReq } from '../types/PoqoDataAndReceiptReq'
 import { AJVSchemaEnum } from '../types/enum/AJVSchemaEnum'
-import { getGlobalTxReceipt } from '../p2p/GlobalAccounts'
+import { getGlobalTxReceipt, awaitLocalReceiptInitiation } from '../p2p/GlobalAccounts'
 
 interface Receipt {
   tx: AcceptedTx
@@ -7666,14 +7666,34 @@ class TransactionQueue {
     let signedReceipt = null as SignedReceipt | P2PTypes.GlobalAccountsTypes.GlobalTxReceipt
 
     if (globalModification) {
-      signedReceipt = getGlobalTxReceipt(queueEntry.acceptedTx.txId) as P2PTypes.GlobalAccountsTypes.GlobalTxReceipt
+      try {
+        // Explicitly wait for local receipt initiation to complete
+        await awaitLocalReceiptInitiation(queueEntry.acceptedTx.txId)
+        signedReceipt = await getGlobalTxReceipt(queueEntry.acceptedTx.txId) as P2PTypes.GlobalAccountsTypes.GlobalTxReceipt
+      } catch (error) {
+        /* prettier-ignore */ nestedCountersInstance.countEvent('stateManager', 'getArchiverReceiptFromQueueEntry globalReceipt error')
+        /* prettier-ignore */ if (logFlags.important_as_error) console.log(`getArchiverReceiptFromQueueEntry: Error getting global receipt for txId: ${txId}, error: ${error.message}`)
+      }
+      // Type-safe logging for global receipts
+      if (globalModification && signedReceipt) {
+        const globalReceipt = signedReceipt as P2PTypes.GlobalAccountsTypes.GlobalTxReceipt
+        /* prettier-ignore */ if (logFlags.important_as_error) console.log('getArchiverReceiptFromQueueEntry : globalModification signedReceipt txid', txId)
+        /* prettier-ignore */ if (logFlags.important_as_error) console.log('getArchiverReceiptFromQueueEntry : globalModification signedReceipt signs', txId, Utils.safeStringify(globalReceipt.signs))
+        /* prettier-ignore */ if (logFlags.important_as_error) console.log('getArchiverReceiptFromQueueEntry : globalModification signedReceipt tx', txId, Utils.safeStringify(globalReceipt.tx))
+      }
     } else {
       signedReceipt = this.stateManager.getSignedReceipt(queueEntry) as SignedReceipt
     }
 
     if (!signedReceipt) {
       /* prettier-ignore */ nestedCountersInstance.countEvent('stateManager', 'getArchiverReceiptFromQueueEntry no signedReceipt')
-      /* prettier-ignore */ if (logFlags.important_as_error) console.log(`getArchiverReceiptFromQueueEntry: signedReceipt is null for txId: ${txId} timestamp: ${timestamp} globalModification: ${globalModification}`)
+      /* prettier-ignore */ if (logFlags.important_as_error) {
+        console.log(`getArchiverReceiptFromQueueEntry: signedReceipt is null for txId: ${txId} timestamp: ${timestamp} globalModification: ${globalModification}`)
+        if (globalModification) {
+          console.log(`getArchiverReceiptFromQueueEntry: Global receipt race condition may have occurred for txId: ${txId}`)
+          console.log(`getArchiverReceiptFromQueueEntry: Check if makeReceipt was called for this transaction`)
+        }
+      }
       return null as ArchiverReceipt
     }
 
@@ -7894,6 +7914,16 @@ class TransactionQueue {
     if (logFlags.verbose)
       console.log('addReceiptToForward', queueEntry.acceptedTx.txId, queueEntry.acceptedTx.timestamp, debugString)
     const archiverReceipt = await this.getArchiverReceiptFromQueueEntry(queueEntry)
+    
+    // Check for null receipt before forwarding
+    if (archiverReceipt === null) {
+      /* prettier-ignore */ if (logFlags.error || logFlags.important_as_error) {
+        console.error(`addReceiptToForward: archiverReceipt is null for txId: ${queueEntry.acceptedTx.txId}. Not forwarding to archivers.`)
+      }
+      /* prettier-ignore */ nestedCountersInstance.countEvent('stateManager', 'addReceiptToForward_null_receipt_skipped')
+      return // Explicitly do not forward null receipts
+    }
+    
     Archivers.instantForwardReceipts([archiverReceipt])
     this.receiptsForwardedTimestamp = shardusGetTime()
     this.forwardedReceiptsByTimestamp.set(this.receiptsForwardedTimestamp, archiverReceipt)

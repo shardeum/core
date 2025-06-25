@@ -1411,6 +1411,8 @@ export interface ServerConfiguration {
     checkDestLimits: boolean
     // how many times can this destination address show up in the queue before we avoid sending to it
     checkDestLimitCount: number
+    // timeout for global accounts receipt initiation
+    globalAccountsReceiptInitiationTimeout?: number
   }
   /** Options for sharding calculations */
   sharding?: {
