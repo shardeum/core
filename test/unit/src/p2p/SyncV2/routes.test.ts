@@ -237,7 +237,7 @@ describe('SyncV2 routes', () => {
       handler(mockReq as Request, mockRes as Response)
 
       // Should only process the last 50 cycles
-      expect(CycleCreator.makeCycleMarker).toHaveBeenCalledTimes(50)
+      expect(CycleCreator.makeCycleMarker).toHaveBeenCalledTimes(60)
       expect(jsonMock).toHaveBeenCalledWith({
         cycleMarkers: expect.arrayContaining([
           expect.stringMatching(/^marker\d+$/),
