@@ -77,8 +77,11 @@ const SERVER_CONFIG: StrictServerConfiguration = {
     maxProblematicNodeRemovalsPerCycle: 1,
     problematicNodeConsecutiveRefuteThreshold: 6,
     problematicNodeRefutePercentageThreshold: 0.1,
-    problematicNodeHistoryLength: 100,
+    problematicNodeHistoryLength: 60,
     problematicNodeRemovalCycleFrequency: 5,
+    // New flags for problematic node cache v2
+    useProblematicNodeCacheV2: false, // When true, use the new cache-based implementation
+    enableProblematicNodeCacheBuilding: false, // Enable shadow mode cache building for validation
     firstCycleJoin: 10,
     maxPercentOfDelta: 40,
     minScaleReqsNeeded: 5,
@@ -188,6 +191,7 @@ const SERVER_CONFIG: StrictServerConfiguration = {
     allowEndUserTxnInjections: true,
     newCycleCertScoring: true,
     fixApplyReceiptType: false,
+    syncV2HistoricalCyclesCount: 60, // Number of historical cycles to sync when joining
   },
   ip: {
     externalIp: '0.0.0.0',
@@ -269,6 +273,10 @@ const SERVER_CONFIG: StrictServerConfiguration = {
     logCSVPerfEvents: false,
     numOfPerfEventsNeededForLogging: 10,
     enableDebugFlags: false,
+    missConsensusChance: 0,
+    dropMessageChance: 0,
+    slowResponseChance: 0,
+    slowResponseDelay: 0,
   },
   statistics: { save: true, interval: 1 },
   loadDetection: {

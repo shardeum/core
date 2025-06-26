@@ -223,6 +223,15 @@ export class NetworkClass extends EventEmitter {
         if (this.debugNetworkDelay > 0) {
           await utils.sleep(this.debugNetworkDelay)
         }
+        
+        // Check if we should respond slowly
+        if (config?.debug?.slowResponseChance > 0 && Math.random() < config.debug.slowResponseChance) {
+          const delayMs = config.debug.slowResponseDelay || 3000
+          nestedCountersInstance.countEvent('network', 'slow-response-injected')
+          /* prettier-ignore */ if (logFlags.net_verbose) mainLogger.info(`Injecting slow response delay of ${delayMs}ms for route: ${route}`)
+          await utils.sleep(delayMs)
+        }
+        
         profilerInstance.profileSectionStart('net-internl')
         profilerInstance.profileSectionStart(`net-internl-${route}`)
 
@@ -282,6 +291,13 @@ export class NetworkClass extends EventEmitter {
       /* prettier-ignore */ if (logFlags.net_verbose) mainLogger.info(`requestId: ${requestId}, node: ${utils.logNode(node)}`)
       /* prettier-ignore */ if (logFlags.net_verbose) mainLogger.info(`route: ${route} ${subRoute}, message: ${message} requestId: ${requestId}`)
       this.InternalTellCounter++
+      // Check if we should drop this message
+      if (config?.debug?.dropMessageChance > 0 && Math.random() < config.debug.dropMessageChance) {
+        nestedCountersInstance.countEvent('network', 'message-dropped-tell')
+        /* prettier-ignore */ if (logFlags.net_verbose) mainLogger.info(`Dropping tell message due to dropMessageChance: ${route} ${subRoute}`)
+        continue
+      }
+      
       const promise = this.sn.send(node.internalPort, node.internalIp, data)
       promise.catch((err) => {
         /* prettier-ignore */ if (logFlags.error) this.mainLogger.error(`Network error (tell) on ${route} ${subRoute}: ${formatErrorMessage(err)}` )
@@ -345,6 +361,13 @@ export class NetworkClass extends EventEmitter {
         /* prettier-ignore */ if (logFlags.net_verbose) this.mainLogger.info(`tellBinary: requestId: ${requestId}, node: ${utils.logNode(node)}`)
         /* prettier-ignore */ if (logFlags.net_verbose) this.mainLogger.info(`tellBinary: route: ${route}, message: ${message} requestId: ${requestId}`)
         this.InternalTellCounter++
+        // Check if we should drop this message
+        if (config?.debug?.dropMessageChance > 0 && Math.random() < config.debug.dropMessageChance) {
+          nestedCountersInstance.countEvent('network', 'message-dropped-tellBinary')
+          /* prettier-ignore */ if (logFlags.net_verbose) mainLogger.info(`Dropping tellBinary message due to dropMessageChance: ${route}`)
+          continue
+        }
+        
         const promise = this.sn.sendWithHeader(node.internalPort, node.internalIp, data, appHeader)
         promise.catch((err) => {
           /* prettier-ignore */ if (logFlags.error) this.mainLogger.error(`Network error (tellBinary) on ${route}: ${formatErrorMessage(err)}`)
@@ -398,6 +421,15 @@ export class NetworkClass extends EventEmitter {
           reject(err)
         }
         /* prettier-ignore */ if (logFlags.playback && alreadyLogged === false) this.logger.playbackLog('self', node, 'InternalAsk', route, id, message)
+        
+        // Check if we should drop this message
+        if (config?.debug?.dropMessageChance > 0 && Math.random() < config.debug.dropMessageChance) {
+          nestedCountersInstance.countEvent('network', 'message-dropped-ask')
+          /* prettier-ignore */ if (logFlags.net_verbose) mainLogger.info(`Dropping ask message due to dropMessageChance: ${route}`)
+          reject(new Error('Message dropped due to dropMessageChance'))
+          return
+        }
+        
         try {
           await this.sn.send(node.internalPort, node.internalIp, data, this.timeout + extraTime, onRes, onTimeout)
         } catch (err) {
@@ -452,6 +484,15 @@ export class NetworkClass extends EventEmitter {
           reject(err)
         }
         /* prettier-ignore */ if (logFlags.playback && alreadyLogged === false) this.logger.playbackLog('self', node, 'InternalAsk', route, trackerId, message)
+        
+        // Check if we should drop this message
+        if (config?.debug?.dropMessageChance > 0 && Math.random() < config.debug.dropMessageChance) {
+          nestedCountersInstance.countEvent('network', 'message-dropped-askBinary')
+          /* prettier-ignore */ if (logFlags.net_verbose) mainLogger.info(`Dropping askBinary message due to dropMessageChance: ${route}`)
+          reject(new Error('Message dropped due to dropMessageChance'))
+          return
+        }
+        
         try {
           await this.sn.sendWithHeader(
             node.internalPort,

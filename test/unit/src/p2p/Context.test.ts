@@ -28,7 +28,7 @@ const mockConfig = {
   p2p: {
     problematicNodeConsecutiveRefuteThreshold: 3,
     problematicNodeRefutePercentageThreshold: 0.1,
-    problematicNodeHistoryLength: 100,
+    problematicNodeHistoryLength: 60,
   },
 }
 const mockDefaultConfigs = { testProperty: 'defaultConfigs' }
@@ -212,7 +212,7 @@ describe('Context', () => {
         p2p: {
           problematicNodeConsecutiveRefuteThreshold: 3,
           problematicNodeRefutePercentageThreshold: 0.1,
-          problematicNodeHistoryLength: 100,
+          problematicNodeHistoryLength: 60,
         },
         customProperty: {
           level1: {

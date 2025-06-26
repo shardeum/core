@@ -12,6 +12,7 @@ import { ChangeSquasher, parse } from './CycleParser'
 import * as NodeList from './NodeList'
 import * as Self from './Self'
 import { robustQuery } from './Utils'
+import * as ProblemNodeHandler from './ProblemNodeHandler'
 import { profilerInstance } from '../utils/profiler'
 import * as utils from '../utils'
 import { nestedCountersInstance } from '../utils/nestedCounters'
@@ -251,6 +252,19 @@ export async function sync(activeNodes: P2P.SyncTypes.ActiveNode[]) {
   }
   nestedCountersInstance.countEvent('p2p', `Sync cyclechain complete; ${Utils.safeStringify(p2pSyncReport)}`)
 
+  // Rebuild problematic node cache with all available cycles
+  if (config.p2p.enableProblematicNodeCacheBuilding) {
+    ProblemNodeHandler.rebuildCacheFromCycleChain()
+    info(`Rebuilt ProblematicNodeCache with ${CycleChain.cycles.length} cycles after sync`)
+    
+    // Validate we have sufficient history for problematic node detection
+    const availableHistory = CycleChain.cycles.length
+    const requiredHistory = config.p2p.problematicNodeHistoryLength
+    if (availableHistory < requiredHistory) {
+      warn(`Insufficient cycle history for problematic node detection. Have ${availableHistory}, need ${requiredHistory}`)
+    }
+  }
+
   return true
 }
 
@@ -482,6 +496,9 @@ export function digestCycle(cycle: P2P.CycleCreatorTypes.CycleRecord, source: st
   CycleChain.append(cycle)
   const digestedCycleMarker = CycleChain.computeCycleMarker(cycle)
   info(`digestCycle: marker of cycle${cycle.counter} from ${source} after digest is ${digestedCycleMarker}`)
+
+  // Update problematic node cache in shadow mode
+  ProblemNodeHandler.updateProblematicNodeCache(cycle)
 
   /* prettier-ignore */ if (extraSyncLogs) info(`digestCycle: cycle: ${Utils.safeStringify(cycle)}`)
 

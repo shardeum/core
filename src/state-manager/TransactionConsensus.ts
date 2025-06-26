@@ -3467,6 +3467,12 @@ class TransactionConsenus {
       nestedCountersInstance.countEvent('transactionConsensus', 'almostExpired')
       return
     }
+    // Check if we should skip consensus based on missConsensusChance
+    if (Context.config?.debug?.missConsensusChance > 0 && Math.random() < Context.config.debug.missConsensusChance) {
+      if (logFlags.debug) this.mainLogger.debug(`createAndShareVote: ${queueEntry.logID} skipping consensus due to missConsensusChance`)
+      nestedCountersInstance.countEvent('transactionConsensus', 'missConsensusChance')
+      return
+    }
     this.profiler.profileSectionStart('createAndShareVote', true)
 
     try {

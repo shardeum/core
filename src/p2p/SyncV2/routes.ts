@@ -6,6 +6,7 @@
 import { P2P } from '@shardeum-foundation/lib-types'
 import { Handler } from 'express'
 import * as CycleChain from '../CycleChain'
+import { cycles } from '../CycleChain'
 import { network } from '../Context'
 import * as NodeList from '../NodeList'
 import * as Archivers from '../Archivers'
@@ -16,6 +17,7 @@ import { profilerInstance } from '../../utils/profiler'
 import { logFlags } from '../../logger'
 import { jsonHttpResWithSize } from '../../utils'
 import { Utils } from '@shardeum-foundation/lib-types'
+import { registerCycleMonitoringRoutes } from './cycle-monitoring-routes'
 
 /** An endpoint that returns the latest node list hash. */
 const validatorListHashRoute: P2P.P2PTypes.Route<Handler> = {
@@ -191,6 +193,76 @@ const newestCycleRecordRoute: P2P.P2PTypes.Route<Handler> = {
   },
 }
 
+/** An endpoint that returns recent cycle markers for historical sync */
+const recentCycleMarkersRoute: P2P.P2PTypes.Route<Handler> = {
+  method: 'GET',
+  name: 'recent-cycle-markers',
+  handler: (_req, res) => {
+    profilerInstance.scopedProfileSectionStart('recent-cycle-markers', false)
+    try {
+      const cycleCount = Math.min(cycles.length, CycleCreator.MAX_CYCLES_TO_KEEP) // Limit to MAX_CYCLES_TO_KEEP
+      const recentMarkers: string[] = []
+      
+      // Get most recent cycle markers
+      for (let i = cycles.length - cycleCount; i < cycles.length; i++) {
+        if (cycles[i]) {
+          const marker = CycleCreator.makeCycleMarker(cycles[i])
+          recentMarkers.push(marker)
+        }
+      }
+      
+      // Find the oldest defined cycle in the range
+      let oldestCounter = 0
+      for (let i = cycles.length - cycleCount; i < cycles.length; i++) {
+        if (cycles[i]) {
+          oldestCounter = cycles[i].counter
+          break
+        }
+      }
+      res.json({ cycleMarkers: recentMarkers, oldestCounter })
+    } finally {
+      profilerInstance.scopedProfileSectionEnd('recent-cycle-markers')
+    }
+  },
+}
+
+/** An endpoint that returns multiple cycles in batch */
+const cyclesBatchRoute: P2P.P2PTypes.Route<Handler> = {
+  method: 'GET',
+  name: 'cycles-batch',
+  handler: (req, res) => {
+    let respondSize = 0
+    profilerInstance.scopedProfileSectionStart('cycles-batch', false)
+    try {
+      const markersParam = req.query.markers as string
+      if (!markersParam) {
+        res.status(400).json({ error: 'markers parameter is required' })
+        return
+      }
+      
+      const markers = markersParam.split(',')
+      const maxBatchSize = 50
+      
+      if (markers.length > maxBatchSize) {
+        res.status(400).json({ error: `batch size exceeds limit of ${maxBatchSize}` })
+        return
+      }
+      
+      const cyclesResult: P2P.CycleCreatorTypes.CycleRecord[] = []
+      for (const marker of markers) {
+        const cycle = CycleChain.cyclesByMarker[marker]
+        if (cycle) {
+          cyclesResult.push(cycle)
+        }
+      }
+      
+      respondSize = jsonHttpResWithSize(res, { cycles: cyclesResult })
+    } finally {
+      profilerInstance.scopedProfileSectionEnd('cycles-batch', respondSize)
+    }
+  },
+}
+
 /** Registers all routes as external routes. */
 export function initRoutes(): void {
   const routes = [
@@ -205,9 +277,14 @@ export function initRoutes(): void {
     txListRoute,
     cycleByMarkerRoute,
     newestCycleRecordRoute,
+    recentCycleMarkersRoute,
+    cyclesBatchRoute,
   ]
 
   for (const route of routes) {
     network._registerExternal(route.method, route.name, route.handler)
   }
+  
+  // Register cycle monitoring routes with debug middleware
+  registerCycleMonitoringRoutes(network)
 }

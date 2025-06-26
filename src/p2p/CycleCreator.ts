@@ -54,7 +54,7 @@ import { Utils as UtilsTypes } from '@shardeum-foundation/lib-types'
 const SECOND = 1000
 const BEST_CERTS_WANTED = 3
 const DESIRED_CERT_MATCHES = 3
-const MAX_CYCLES_TO_KEEP = 20
+export const MAX_CYCLES_TO_KEEP = 60
 
 // add the types of any new modules here
 type submoduleTypes =

@@ -789,6 +789,10 @@ export interface ServerConfiguration {
     problematicNodeRefutePercentageThreshold?: number
     /** The problematicNodeHistoryLength parameter is an Integer specifying the number of cycles to consider when determining if a node is problematic. */
     problematicNodeHistoryLength?: number
+    /** When true, use the new cache-based implementation for problematic node detection */
+    useProblematicNodeCacheV2?: boolean
+    /** Enable shadow mode cache building for validation */
+    enableProblematicNodeCacheBuilding?: boolean
     /** end of problematic node configurations */
 
     /** A fixed boost to let more nodes in when we have just the one seed node in the network */
@@ -1024,6 +1028,8 @@ export interface ServerConfiguration {
     newCycleCertScoring: boolean
     // enable to not send apply receipts of type Stake in case Unstake and SecureTransfer fail
     fixApplyReceiptType: boolean
+    // Number of historical cycles to sync when joining the network
+    syncV2HistoricalCyclesCount: number
   }
   /** Server IP configuration */
   ip?: {
@@ -1193,6 +1199,14 @@ export interface ServerConfiguration {
     /** controls how many perfEvents needs to accumulate before we log them */
     numOfPerfEventsNeededForLogging: number
     enableDebugFlags: boolean
+    /** Chance to miss consensus rounds (0-1) */
+    missConsensusChance?: number
+    /** Chance to drop network messages (0-1) */
+    dropMessageChance?: number
+    /** Chance to respond slowly to requests (0-1) */
+    slowResponseChance?: number
+    /** Delay in ms when responding slowly */
+    slowResponseDelay?: number
   }
   /** Options for the statistics module */
   statistics?: {

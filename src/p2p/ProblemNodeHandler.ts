@@ -1,82 +1,127 @@
 import { P2P } from '@shardeum-foundation/lib-types'
 import * as NodeList from './NodeList'
-import { config } from './Context'
-import { Node } from '@shardeum-foundation/lib-types/build/src/p2p/NodeListTypes'
+import { config, logger } from './Context'
+import { ProblematicNodeCache } from './ProblematicNodeCache'
+import * as CycleChain from './CycleChain'
+import { Logger } from 'log4js'
+import { logFlags } from '../logger'
 
-export function isNodeProblematic(node: Node, currentCycle: number): boolean {
-  if (!node.refuteCycles) return false
+// Cache instance for shadow mode
+let problematicNodeCache: ProblematicNodeCache | null = null
+let p2pLogger: Logger
 
-  // Check consecutive refutes
-  const consecutiveRefutes = getConsecutiveRefutes(node.refuteCycles, currentCycle)
+// Initialize the cache
+export function initProblematicNodeCache(): void {
+  p2pLogger = logger.getLogger('p2p')
 
-  if (consecutiveRefutes >= config.p2p.problematicNodeConsecutiveRefuteThreshold) {
-    return true
-  }
+  if (config.p2p.enableProblematicNodeCacheBuilding) {
+    problematicNodeCache = new ProblematicNodeCache(config)
 
-  // Check refute percentage in recent history
-  const refutePercentage = getRefutePercentage(node.refuteCycles, currentCycle)
-  if (refutePercentage >= config.p2p.problematicNodeRefutePercentageThreshold) {
-    return true
-  }
+    // Build initial cache from existing cycle records
+    const cycles = CycleChain.newest
+      ? CycleChain.getCycleChain(
+          Math.max(0, CycleChain.newest.counter - config.p2p.problematicNodeHistoryLength + 1),
+          CycleChain.newest.counter
+        )
+      : []
 
-  return false
-}
-
-export function getConsecutiveRefutes(refuteCycles: number[], currentCycle: number): number {
-  if (refuteCycles.length === 0) return 0
-
-  // Filter to only include refutes up to current cycle
-  const relevantRefutes = refuteCycles.filter((cycle) => cycle <= currentCycle)
-  if (relevantRefutes.length === 0) return 0
-
-  // Find the longest consecutive sequence that ends at current cycle or one before
-  let maxCount = 0
-  let currentCount = 1
-  let lastCycle = relevantRefutes[0]
-
-  for (let i = 1; i < relevantRefutes.length; i++) {
-    const cycle = relevantRefutes[i]
-
-    if (cycle === lastCycle + 1) {
-      currentCount++
-    } else {
-      // If sequence breaks, check if previous sequence ended at current cycle or one before
-      if (lastCycle === currentCycle || lastCycle === currentCycle - 1) {
-        maxCount = Math.max(maxCount, currentCount)
-      }
-      currentCount = 1
+    if (cycles.length > 0) {
+      problematicNodeCache.buildFromCycles(cycles)
+      /* prettier-ignore */ if (logFlags.p2pNonFatal) info(`ProblematicNodeCache initialized with ${cycles.length} cycles`)
     }
-
-    lastCycle = cycle
   }
-
-  // Check the last sequence
-  if (lastCycle === currentCycle || lastCycle === currentCycle - 1) {
-    maxCount = Math.max(maxCount, currentCount)
-  }
-
-  return maxCount
 }
 
-export function getRefutePercentage(refuteCycles: number[], currentCycle: number): number {
-  const windowStart = Math.max(1, currentCycle - config.p2p.problematicNodeHistoryLength)
-  const windowSize = Math.min(config.p2p.problematicNodeHistoryLength, currentCycle)
-  const recentRefutes = refuteCycles.filter((cycle) => cycle >= windowStart && cycle <= currentCycle).length
+// Update cache when new cycle is created
+export function updateProblematicNodeCache(cycle: P2P.CycleCreatorTypes.CycleRecord): void {
+  if (problematicNodeCache && config.p2p.enableProblematicNodeCacheBuilding) {
+    try {
+      problematicNodeCache.addCycle(cycle, true) // Enable auto-prune
+    } catch (err) {
+      error('Failed to update ProblematicNodeCache:', err)
+    }
+  }
+}
 
-  return recentRefutes / windowSize
+// Rebuild cache from all cycles in CycleChain
+export function rebuildCacheFromCycleChain(): void {
+  if (!problematicNodeCache || !config.p2p.enableProblematicNodeCacheBuilding) {
+    return
+  }
+
+  try {
+    const cycles = CycleChain.cycles || []
+    if (cycles.length > 0) {
+      problematicNodeCache.buildFromCycles(cycles)
+      /* prettier-ignore */ if (logFlags.p2pNonFatal) info(`ProblematicNodeCache rebuilt with ${cycles.length} cycles`)
+    }
+  } catch (err) {
+    error('Failed to rebuild ProblematicNodeCache from CycleChain:', err)
+  }
+}
+
+// Prune cache for nodes that are no longer active
+export function pruneInactiveNodesFromCache(): void {
+  if (!problematicNodeCache || !config.p2p.enableProblematicNodeCacheBuilding) {
+    return
+  }
+
+  try {
+    const activeNodeIds = new Set(NodeList.activeByIdOrder.map((node) => node.id))
+    problematicNodeCache.pruneInactiveNodes(activeNodeIds)
+    /* prettier-ignore */ if (logFlags.verbose) info(`Pruned inactive nodes from ProblematicNodeCache`)
+  } catch (err) {
+    error('Failed to prune inactive nodes from ProblematicNodeCache:', err)
+  }
+}
+
+// Export the problematic node cache as compressed JSON
+export function exportProblematicNodeCache(): string | null {
+  if (!problematicNodeCache || !config.p2p.enableProblematicNodeCacheBuilding) {
+    return null
+  }
+
+  try {
+    return problematicNodeCache.toCompressedJSON()
+  } catch (err) {
+    error('Failed to export ProblematicNodeCache:', err)
+    return null
+  }
 }
 
 export function getProblematicNodes(prevRecord: P2P.CycleCreatorTypes.CycleRecord): string[] {
-  const problematicNodes = NodeList.activeByIdOrder.filter((node) =>
-    isNodeProblematic(node as Node, prevRecord.counter)
-  )
+  // Use cache-based implementation if enabled
+  if (config.p2p.useProblematicNodeCacheV2 && problematicNodeCache) {
+    const activeNodeIds = new Set(NodeList.activeByIdOrder.map((node) => node.id))
+    return problematicNodeCache.getProblematicNodes(prevRecord.counter, activeNodeIds)
+  }
+}
 
-  // Sort by refute percentage
-  return problematicNodes
-    .sort((a, b) => {
-      const percentageA = getRefutePercentage(a.refuteCycles, prevRecord.counter)
-      const percentageB = getRefutePercentage(b.refuteCycles, prevRecord.counter)
-      return percentageB - percentageA
-    })
-    .map((node) => node.id)
+export function getRefutePercentage(refuteCycles: number[], currentCycle: number): number {
+  if (config.p2p.useProblematicNodeCacheV2 && problematicNodeCache) {
+    return problematicNodeCache.getRefutePercentage(refuteCycles, currentCycle)
+  }
+  return 0
+}
+
+export function getConsecutiveRefutes(refuteCycles: number[], currentCycle: number): number {
+  if (config.p2p.useProblematicNodeCacheV2 && problematicNodeCache) {
+    return problematicNodeCache.getConsecutiveRefutes(refuteCycles, currentCycle)
+  }
+  return 0
+}
+
+function info(...msg: unknown[]) {
+  const entry = `ProblemNodeHandler: ${msg.join(' ')}`
+  p2pLogger.info(entry)
+}
+
+function warn(...msg: unknown[]) {
+  const entry = `ProblemNodeHandler: ${msg.join(' ')}`
+  p2pLogger.warn(entry)
+}
+
+function error(...msg: unknown[]) {
+  const entry = `ProblemNodeHandler: ${msg.join(' ')}`
+  p2pLogger.error(entry)
 }

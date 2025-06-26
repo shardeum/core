@@ -151,6 +151,13 @@ export function robustQueryForTxListHash(nodes: ActiveNode[]): RobustQueryResult
   return makeRobustQueryCall(nodes, 'tx-list-hash')
 }
 
+/** Executes a robust query to retrieve recent cycle markers from the network. */
+export function robustQueryForRecentCycleMarkers(
+  nodes: ActiveNode[]
+): RobustQueryResultAsync<{ cycleMarkers: string[]; oldestCounter: number }> {
+  return makeRobustQueryCall(nodes, 'recent-cycle-markers')
+}
+
 /** Retrives the cycle by marker from the node. */
 export function getCycleDataFromNode(node: ActiveNode, expectedMarker: hexstring): ResultAsync<CycleRecord, Error> {
   info(`getCycleDataFromNode: expectedMarker: ${expectedMarker}`)
@@ -214,6 +221,22 @@ export function getTxListFromNode(
       hash: expectedHash,
     },
     10000 //TODO need to make this scale when there could be millions of entries
+  )
+}
+
+/** Retrieves multiple cycles in batch from a node. */
+export function getCyclesBatchFromNode(
+  node: ActiveNode,
+  markers: string[]
+): ResultAsync<{ cycles: CycleRecord[] }, Error> {
+  info(`getCyclesBatchFromNode: fetching ${markers.length} cycles`)
+  return attemptSimpleFetch(
+    node,
+    'cycles-batch',
+    {
+      markers: markers.join(','),
+    },
+    30000 // 30 seconds timeout for batch operations
   )
 }
 
