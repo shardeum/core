@@ -25,12 +25,8 @@ export class ProblematicNodeCache {
   }
 
   buildFromCycles(cycles: P2P.CycleCreatorTypes.CycleRecord[]): void {
-    // Validate cycle order
-    for (let i = 1; i < cycles.length; i++) {
-      if (cycles[i].counter < cycles[i - 1].counter) {
-        throw new Error('Cycles must be in ascending order')
-      }
-    }
+    // Sort cycles in ascending order by counter
+    const sortedCycles = [...cycles].sort((a, b) => a.counter - b.counter)
 
     // Clear existing data
     this.refuteHistory.clear()
@@ -42,7 +38,7 @@ export class ProblematicNodeCache {
     // Track processed cycles to handle duplicates
     const processedCyclesTemp = new Set<number>()
 
-    for (const cycle of cycles) {
+    for (const cycle of sortedCycles) {
       // Skip duplicate cycle numbers
       if (processedCyclesTemp.has(cycle.counter)) {
         continue
