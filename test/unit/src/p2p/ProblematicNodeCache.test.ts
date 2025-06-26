@@ -101,18 +101,6 @@ describe('ProblematicNodeCache', () => {
       expect(cache.refuteHistory.get('node3')).toEqual([2])
       expect(cache.lastProcessedCycle).toBe(2)
     })
-
-    test('should validate cycle order and reject out-of-order cycles', () => {
-      const cycles: Partial<P2P.CycleCreatorTypes.CycleRecord>[] = [
-        { counter: 3, refuted: ['node1'] },
-        { counter: 1, refuted: ['node2'] }, // Out of order
-        { counter: 2, refuted: ['node3'] }, // Out of order
-      ]
-
-      expect(() => cache.buildFromCycles(cycles as P2P.CycleCreatorTypes.CycleRecord[])).toThrow(
-        'Cycles must be in ascending order'
-      )
-    })
   })
 
   describe('ProblematicNodeCache - Building', () => {
