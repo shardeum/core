@@ -406,7 +406,6 @@ export function getNewestCycleInfoLogStr(msg: string): string {
 
 function info(...msg) {
   const entry = `CycleChain: ${msg.join(' ')}`
-  const log = getLogger()
   if (!p2pLogger) {
     getLogger()
   }
