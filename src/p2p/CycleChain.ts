@@ -96,9 +96,13 @@ export function prepend(cycle: P2P.CycleCreatorTypes.CycleRecord) {
 export function prependMultiple(newCycles: P2P.CycleCreatorTypes.CycleRecord[]) {
   if (newCycles.length === 0) return
   
-  // Filter out cycles we already have
+  // Create a map to store computed markers to avoid recalculation
+  const cycleMarkerMap = new Map<P2P.CycleCreatorTypes.CycleRecord, string>()
+  
+  // Filter out cycles we already have and compute markers once
   const uniqueCycles = newCycles.filter(cycle => {
     const marker = computeCycleMarker(cycle)
+    cycleMarkerMap.set(cycle, marker)
     return !cyclesByMarker[marker]
   })
   
@@ -106,7 +110,7 @@ export function prependMultiple(newCycles: P2P.CycleCreatorTypes.CycleRecord[]) 
   
   // Add all cycles to the map
   for (const cycle of uniqueCycles) {
-    const marker = computeCycleMarker(cycle)
+    const marker = cycleMarkerMap.get(cycle)
     cyclesByMarker[marker] = cycle
   }
   
@@ -119,13 +123,13 @@ export function prependMultiple(newCycles: P2P.CycleCreatorTypes.CycleRecord[]) 
   // Update newest if needed
   if (newest == null) {
     newest = uniqueCycles[uniqueCycles.length - 1]
-    currentCycleMarker = computeCycleMarker(newest)
+    currentCycleMarker = cycleMarkerMap.get(newest)
   } else {
     // Check if any of the new cycles is newer than current newest
     const lastNewCycle = uniqueCycles[uniqueCycles.length - 1]
     if (lastNewCycle.counter > newest.counter) {
       newest = lastNewCycle
-      currentCycleMarker = computeCycleMarker(newest)
+      currentCycleMarker = cycleMarkerMap.get(newest)
     }
   }
 }
