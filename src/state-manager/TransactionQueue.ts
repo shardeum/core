@@ -86,6 +86,7 @@ import { error } from 'console'
 import { PoqoDataAndReceiptReq, serializePoqoDataAndReceiptReq } from '../types/PoqoDataAndReceiptReq'
 import { AJVSchemaEnum } from '../types/enum/AJVSchemaEnum'
 import { getGlobalTxReceipt, awaitLocalReceiptInitiation } from '../p2p/GlobalAccounts'
+import { fireAndForget } from '../utils/functions/promises'
 
 interface Receipt {
   tx: AcceptedTx
@@ -1657,7 +1658,7 @@ class TransactionQueue {
       }
 
       // write the accepted TX to storage
-      this.storage.addAcceptedTransactions([acceptedTX])
+      fireAndForget(() => this.storage.addAcceptedTransactions([acceptedTX]))
       this.profiler.profileSectionEnd('commit-2-addAccountStatesAndTX')
       this.profiler.profileSectionStart('commit-3-transactionReceiptPass')
       // endpoint to allow dapp to execute something that depends on a transaction being approved.
@@ -2341,7 +2342,7 @@ class TransactionQueue {
               if (transactionGroup.length > 1) {
                 // should consider only forwarding in some cases?
                 this.stateManager.debugNodeGroup(txId, timestamp, `share to neighbors`, transactionGroup)
-                this.p2p.sendGossipIn(
+                fireAndForget(() => this.p2p.sendGossipIn(
                   'spread_tx_to_group',
                   acceptedTx,
                   '',
@@ -2350,7 +2351,7 @@ class TransactionQueue {
                   true,
                   -1,
                   acceptedTx.txId
-                )
+                ))
                 /* prettier-ignore */ if (logFlags.verbose) console.log( 'spread_tx_to_group', txId, txQueueEntry.executionGroup.length, txQueueEntry.conensusGroup.length, txQueueEntry.transactionGroup.length )
                 this.addOriginalTxDataToForward(txQueueEntry)
               }
@@ -2409,13 +2410,13 @@ class TransactionQueue {
                       }
                     }
                     const request = acceptedTx as SpreadTxToGroupSyncingReq
-                    this.p2p.tellBinary<SpreadTxToGroupSyncingReq>(
+                    fireAndForget(() => this.p2p.tellBinary<SpreadTxToGroupSyncingReq>(
                       cycleShardData.syncingNeighborsTxGroup,
                       InternalRouteEnum.binary_spread_tx_to_group_syncing,
                       request,
                       serializeSpreadTxToGroupSyncingReq,
                       {}
-                    )
+                    ))
                     // } else {
                     //   this.p2p.tell(
                     //     cycleShardData.syncingNeighborsTxGroup,
@@ -2454,7 +2455,7 @@ class TransactionQueue {
         }
 
         // This call is not awaited. It is expected to be fast and will be done in the background.
-        this.queueEntryPrePush(txQueueEntry)
+        fireAndForget(() => this.queueEntryPrePush(txQueueEntry))
 
         this.pendingTransactionQueue.push(txQueueEntry)
         this.pendingTransactionQueueByID.set(txQueueEntry.acceptedTx.txId, txQueueEntry)
@@ -2495,7 +2496,7 @@ class TransactionQueue {
           useRICache: true,
         })
         if (accountData != null) {
-          this.app.setCachedRIAccountData([accountData])
+          fireAndForget(() => this.app.setCachedRIAccountData([accountData]))
           this.queueEntryAddData(
             txQueueEntry,
             {
@@ -2724,7 +2725,7 @@ class TransactionQueue {
       queueEntry.hasAll = true
       // this.gossipCompleteData(queueEntry)
       if (queueEntry.executionGroup && queueEntry.executionGroup.length > 1)
-        this.shareCompleteDataToNeighbours(queueEntry)
+        fireAndForget(() => this.shareCompleteDataToNeighbours(queueEntry))
       if (logFlags.debug || this.stateManager.consensusLog) {
         this.mainLogger.debug(
           `queueEntryAddData hasAll: true for txId ${queueEntry.logID} ${
@@ -2771,7 +2772,7 @@ class TransactionQueue {
     const payload = { txid: queueEntry.acceptedTx.txId, stateList }
     const neighboursNodes = utils.selectNeighbors(queueEntry.executionGroup, queueEntry.ourExGroupIndex, 2)
     if (stateList.length > 0) {
-      this.broadcastState(neighboursNodes, payload, 'shareCompleteDataToNeighbours')
+      fireAndForget(() => this.broadcastState(neighboursNodes, payload, 'shareCompleteDataToNeighbours'))
 
       queueEntry.sharedCompleteData = true
       nestedCountersInstance.countEvent(
@@ -2812,7 +2813,7 @@ class TransactionQueue {
     }
     const payload = { txid: queueEntry.acceptedTx.txId, stateList }
     if (stateList.length > 0) {
-      Comms.sendGossip(
+      fireAndForget(() => Comms.sendGossip(
         'broadcast_state_complete_data', // deprecated
         payload,
         '',
@@ -2821,7 +2822,7 @@ class TransactionQueue {
         true,
         6,
         queueEntry.acceptedTx.txId
-      )
+      ))
       queueEntry.gossipedCompleteData = true
       nestedCountersInstance.countEvent('gossipCompleteData', `stateList: ${stateList.length}`)
       if (logFlags.debug || this.stateManager.consensusLog) {
@@ -4040,7 +4041,7 @@ class TransactionQueue {
         }
       }
     }
-    this.p2p.tellBinary<BroadcastStateReq>(
+    fireAndForget(() => this.p2p.tellBinary<BroadcastStateReq>(
       nodes,
       InternalRouteEnum.binary_broadcast_state,
       request,
@@ -4052,7 +4053,7 @@ class TransactionQueue {
           request.stateList[0].accountId
         ),
       }
-    )
+    ))
     // return
     // }
     // this.p2p.tell(nodes, 'broadcast_state', message)
@@ -4311,7 +4312,7 @@ class TransactionQueue {
               }
               const filterdCorrespondingAccNodes = filteredNodes
 
-              this.broadcastState(filterdCorrespondingAccNodes, message, 'tellCorrespondingNodes')
+              fireAndForget(() => this.broadcastState(filterdCorrespondingAccNodes, message, 'tellCorrespondingNodes'))
             }
           }
         }
@@ -4633,7 +4634,7 @@ class TransactionQueue {
         return null
       }
       // send payload to each node in correspondingNodes
-      this.broadcastState(filteredNodes, payload, 'factTellCorrespondingNodes')
+      fireAndForget(() => this.broadcastState(filteredNodes, payload, 'factTellCorrespondingNodes'))
     } catch (error) {
       /* prettier-ignore */ this.statemanager_fatal( `factTellCorrespondingNodes_ex`, 'factTellCorrespondingNodes' + utils.formatErrorMessage(error) )
     }
@@ -5188,7 +5189,7 @@ class TransactionQueue {
 
           // if (this.usePOQo) {
           // && this.config.p2p.useBinarySerializedEndpoints && Context.config.p2p.poqoDataAndReceiptBinary) {
-          this.p2p.tellBinary<PoqoDataAndReceiptReq>(
+          fireAndForget(() => this.p2p.tellBinary<PoqoDataAndReceiptReq>(
             filterdCorrespondingAccNodes,
             InternalRouteEnum.binary_poqo_data_and_receipt,
             {
@@ -5198,7 +5199,7 @@ class TransactionQueue {
             },
             serializePoqoDataAndReceiptReq,
             {}
-          )
+          ))
           // } else if (this.usePOQo) {
           //   this.p2p.tell(
           //     filterdCorrespondingAccNodes,
@@ -5899,7 +5900,7 @@ class TransactionQueue {
                     const seen = this.processQueue_accountSeen(seenAccounts, queueEntry)
 
                     this.processQueue_markAccountsSeen(seenAccounts, queueEntry)
-                    this.queueEntryRequestMissingReceipt(queueEntry)
+                    fireAndForget(() => this.queueEntryRequestMissingReceipt(queueEntry))
 
                     /* prettier-ignore */ nestedCountersInstance.countEvent('txMissingReceipt', `txAge > timeM3 => ask for receipt now. state:${queueEntry.state} globalMod:${queueEntry.globalModification} seen:${seen}`)
                     queueEntry.waitForReceiptOnly = true
@@ -6513,7 +6514,7 @@ class TransactionQueue {
                 try {
                   nestedCountersInstance.countEvent('processing', 'data missing at t>M2. request data')
                   // Await note: current thinking is that is is best to not await this call.
-                  this.queueEntryRequestMissingData(queueEntry)
+                  fireAndForget(() => this.queueEntryRequestMissingData(queueEntry))
                 } catch (ex) {
                   /* prettier-ignore */ if (logFlags.debug) this.mainLogger.debug('processAcceptedTxQueue2 queueEntryRequestMissingData:' + ex.name + ': ' + ex.message + ' at ' + ex.stack)
                   this.statemanager_fatal(
@@ -7022,7 +7023,7 @@ class TransactionQueue {
                       // we have received the final data, so we can just go to "await final data" and commit the accounts
                       this.updateTxState(queueEntry, 'await final data')
                     } else {
-                      this.stateManager.getTxRepair().repairToMatchReceipt(queueEntry)
+                      fireAndForget(() => this.stateManager.getTxRepair().repairToMatchReceipt(queueEntry))
                       this.updateTxState(queueEntry, 'await repair')
                     }
                     continue
@@ -7207,7 +7208,7 @@ class TransactionQueue {
                     timeSinceLastFinalDataRequest > 5000
                   ) {
                     nestedCountersInstance.countEvent('stateManager', 'requestFinalData')
-                    this.requestFinalData(queueEntry, missingAccounts)
+                    fireAndForget(() => this.requestFinalData(queueEntry, missingAccounts))
                     queueEntry.lastFinalDataRequestTimestamp = shardusGetTime()
                     continue
                   }
@@ -7219,7 +7220,7 @@ class TransactionQueue {
 
                 if (failed === true) {
                   nestedCountersInstance.countEvent('stateManager', 'shrd_awaitFinalData failed')
-                  this.stateManager.getTxRepair().repairToMatchReceipt(queueEntry)
+                  fireAndForget(() => this.stateManager.getTxRepair().repairToMatchReceipt(queueEntry))
                   this.updateTxState(queueEntry, 'await repair')
                   /* prettier-ignore */ if (logFlags.verbose) if (logFlags.playback) this.logger.playbackLogNote('shrd_awaitFinalData_failed', `${shortID}`, `qId: ${queueEntry.entryID} skipped:${skipped}`)
                   /* prettier-ignore */ if (logFlags.debug) this.mainLogger.debug(`shrd_awaitFinalData_failed : ${queueEntry.logID} `)
@@ -7451,7 +7452,7 @@ class TransactionQueue {
                 }
                 if (logFlags.verbose)
                   console.log('commit commit', queueEntry.acceptedTx.txId, queueEntry.acceptedTx.timestamp)
-                if (this.config.p2p.experimentalSnapshot) this.addReceiptToForward(queueEntry, 'commit')
+                if (this.config.p2p.experimentalSnapshot) fireAndForget(() => this.addReceiptToForward(queueEntry, 'commit'))
 
                 if (hasReceiptFail) {
                   // endpoint to allow dapp to execute something that depends on a transaction failing
@@ -7637,7 +7638,7 @@ class TransactionQueue {
         nestedCountersInstance.countEvent('repair1', 'setTXExpired: start repair')
         queueEntry.signedReceiptForRepair = queueEntry.signedReceiptFinal
         //todo any limits to how many repairs at once to allow?
-        this.stateManager.getTxRepair().repairToMatchReceipt(queueEntry)
+        fireAndForget(() => this.stateManager.getTxRepair().repairToMatchReceipt(queueEntry))
       }
     } else {
       nestedCountersInstance.countEvent('repair1', 'setTXExpired: no receipt to repair')
@@ -7917,7 +7918,7 @@ class TransactionQueue {
       timestamp: acceptedTx.timestamp,
     }
     // const signedOriginalTxData: any = this.crypto.sign(originalTxData) // maybe we don't need to send by signing it
-    Archivers.instantForwardOriginalTxData(originalTxData)
+    fireAndForget(() => Archivers.instantForwardOriginalTxData(originalTxData))
   }
 
   async addReceiptToForward(queueEntry: QueueEntry, debugString = ''): Promise<void> {
@@ -7934,7 +7935,7 @@ class TransactionQueue {
       return // Explicitly do not forward null receipts
     }
     
-    Archivers.instantForwardReceipts([archiverReceipt])
+    fireAndForget(() => Archivers.instantForwardReceipts([archiverReceipt]))
     this.receiptsForwardedTimestamp = shardusGetTime()
     this.forwardedReceiptsByTimestamp.set(this.receiptsForwardedTimestamp, archiverReceipt)
     // this.receiptsToForward.push(archiverReceipt)

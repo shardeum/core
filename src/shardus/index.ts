@@ -86,6 +86,7 @@ import * as NodeList from '../p2p/NodeList'
 import { P2P } from '@shardeum-foundation/lib-types'
 import * as csvPerfEvents from './../logger/csvPerfEvents'
 import { AJVSchemaEnum } from '../types/enum/AJVSchemaEnum'
+import { fireAndForget } from '../utils/functions/promises'
 
 // the following can be removed now since we are not using the old p2p code
 //const P2P = require('../p2p')
@@ -1354,7 +1355,7 @@ class Shardus extends EventEmitter {
         cycleNumber: CycleChain.getNewest()?.counter,
       }
       readyPayload = Context.crypto.sign(readyPayload)
-      Comms.sendGossip(
+      fireAndForget(() => Comms.sendGossip(
         'gossip-sync-finished',
         readyPayload,
         undefined,
@@ -1364,7 +1365,7 @@ class Shardus extends EventEmitter {
           P2P.P2PTypes.NodeStatus.READY,
           P2P.P2PTypes.NodeStatus.SYNCING,
         ])
-      )
+      ))
       if (this.stateManager) {
         this.stateManager.appFinishedSyncing = true
       }

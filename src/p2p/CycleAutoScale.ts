@@ -15,6 +15,7 @@ import { enterRecovery, enterSafety } from './Modes'
 import { getOurNodeIndex } from './Utils'
 import { shardusGetTime } from '../network'
 import { Utils } from '@shardeum-foundation/lib-types'
+import { fireAndForget } from '../utils/functions/promises'
 
 /** STATE */
 
@@ -54,7 +55,7 @@ const gossipScaleRoute: P2P.P2PTypes.GossipHandler<P2P.CycleAutoScaleTypes.Signe
 
     const added = addExtScalingRequest(payload)
     if (!added) return
-    Comms.sendGossip('scaling', payload, tracker, sender, NodeList.byIdOrder, false, 2)
+    fireAndForget(() => Comms.sendGossip('scaling', payload, tracker, sender, NodeList.byIdOrder, false, 2))
   } finally {
     profilerInstance.scopedProfileSectionEnd('gossip-scaling')
   }
@@ -129,7 +130,7 @@ function _requestNetworkScaling(upOrDown) {
     info(
       `Our scale request is added. Gossiping our scale request to other nodes. ${Utils.safeStringify(signedRequest)}`
     )
-    Comms.sendGossip('scaling', signedRequest, '', null, NodeList.byIdOrder, true, 2)
+    fireAndForget(() => Comms.sendGossip('scaling', signedRequest, '', null, NodeList.byIdOrder, true, 2))
     scalingRequested = true
     requestedScalingType = signedRequest.scale //only set this when our node requests scaling
     nestedCountersInstance.countEvent('p2p', 'initiate gossip: scaling: ' + (upOrDown ? 'up' : 'down'))

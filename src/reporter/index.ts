@@ -24,6 +24,7 @@ import { Utils } from '@shardeum-foundation/lib-types'
 import { finishedSyncingCycle } from '../p2p/Join'
 import { currentCycle } from '../p2p/CycleCreator'
 import process from 'process'
+import { fireAndForget } from '../utils/functions/promises'
 
 const http = require('../http')
 const allZeroes64 = '0'.repeat(64)
@@ -420,7 +421,7 @@ class Reporter {
         Utils.safeStringify({ script: 'reporter/index', method: 'restartReportInterval', reportInterval })
       )
     this.reportTimer = setTimeout(() => {
-      this.report()
+      fireAndForget(() => this.report())
     }, reportInterval)
   }
 

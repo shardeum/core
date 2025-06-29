@@ -48,6 +48,7 @@ import { nodeListFromStates } from './Join'
 import { AJVSchemaEnum } from '../types/enum/AJVSchemaEnum'
 import { log } from 'console'
 import { Utils as UtilsTypes } from '@shardeum-foundation/lib-types'
+import { fireAndForget } from '../utils/functions/promises'
 
 /** CONSTANTS */
 
@@ -648,7 +649,7 @@ async function runQ3() {
   // Gossip your cert for this cycle with the network
   gossipMyCycleCert()
 
-  ServiceQueue.processNetworkTransactions(record)
+  fireAndForget(() => ServiceQueue.processNetworkTransactions(record))
 
   profilerInstance.profileSectionEnd('CycleCreator-runQ3')
 }
@@ -1357,7 +1358,7 @@ function gossipHandlerCycleCert(inp: CompareCertReq, sender: P2P.NodeListTypes.N
   if (improveBestCert(inpCerts, inpRecord)) {
     // don't need the following line anymore since improveBestCert sets bestRecord if it improved
     // bestRecord = inpRecord
-    gossipCycleCert(sender, tracker)
+    fireAndForget(() => gossipCycleCert(sender, tracker))
   }
   profilerInstance.profileSectionEnd('CycleCreator-gossipHandlerCycleCert')
 }
@@ -1369,7 +1370,7 @@ async function gossipCycleCert(sender: P2P.NodeListTypes.Node['id'], tracker?: s
     record: bestRecord,
   }
   const signedCertGossip = crypto.sign(certGossip)
-  Comms.sendGossip(
+  fireAndForget(() => Comms.sendGossip(
     'gossip-cert',
     signedCertGossip,
     tracker,
@@ -1380,7 +1381,7 @@ async function gossipCycleCert(sender: P2P.NodeListTypes.Node['id'], tracker?: s
       P2P.P2PTypes.NodeStatus.SYNCING,
     ]),
     true
-  )
+  ))
 }
 
 function pruneCycleChain() {

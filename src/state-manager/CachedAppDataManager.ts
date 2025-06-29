@@ -49,6 +49,7 @@ import {
 import { Utils } from '@shardeum-foundation/lib-types'
 import { getCorrespondingNodes, verifyCorrespondingSender } from '../utils/fastAggregatedCorrespondingTell'
 import * as NodeList from '../p2p/NodeList'
+import { fireAndForget } from '../utils/functions/promises'
 
 class CachedAppDataManager {
   app: Shardus.App
@@ -496,13 +497,13 @@ class CachedAppDataManager {
           cycle: message.cachedAppData.cycle,
         },
       }
-      this.p2p.tellBinary<SendCachedAppDataReq>(
+      fireAndForget(() => this.p2p.tellBinary<SendCachedAppDataReq>(
         filteredCorrespondingAccNodes,
         InternalRouteEnum.binary_send_cachedAppData,
         sendCacheAppDataReq,
         serializeSendCachedAppDataReq,
         {}
-      )
+      ))
       // return
       // }
 
@@ -708,13 +709,13 @@ class CachedAppDataManager {
                 cycle: message.cachedAppData.cycle,
               },
             }
-            this.p2p.tellBinary<SendCachedAppDataReq>(
+            fireAndForget(() => this.p2p.tellBinary<SendCachedAppDataReq>(
               filteredCorrespondingAccNodes,
               InternalRouteEnum.binary_send_cachedAppData,
               sendCacheAppDataReq,
               serializeSendCachedAppDataReq,
               {}
-            )
+            ))
             // return
             // }
 

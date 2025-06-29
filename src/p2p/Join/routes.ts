@@ -46,6 +46,7 @@ import { testFailChance } from '../../utils'
 import { shardusGetTime } from '../../network'
 import { verifyPayload } from '../../types/ajv/Helpers'
 import { AJVSchemaEnum } from '../../types/enum/AJVSchemaEnum'
+import { fireAndForget } from '../../utils/functions/promises'
 
 const cycleMarkerRoute: P2P.P2PTypes.Route<Handler> = {
   method: 'GET',
@@ -581,7 +582,7 @@ const gossipValidJoinRequests: P2P.P2PTypes.GossipHandler<
   saveJoinRequest(joinRequest)
 
   /* prettier-ignore */ nestedCountersInstance.countEvent( 'p2p', `join-gossip: request saved and gossiped` )
-  Comms.sendGossip(
+  fireAndForget(() => Comms.sendGossip(
     'gossip-valid-join-requests',
     payload,
     tracker,
@@ -592,7 +593,7 @@ const gossipValidJoinRequests: P2P.P2PTypes.GossipHandler<
       P2P.P2PTypes.NodeStatus.SYNCING,
     ]),
     false
-  )
+  ))
 }
 
 const gossipUnjoinRequests: P2P.P2PTypes.GossipHandler<SignedUnjoinRequest, P2P.NodeListTypes.Node['id']> = (
@@ -620,7 +621,7 @@ const gossipUnjoinRequests: P2P.P2PTypes.GossipHandler<SignedUnjoinRequest, P2P.
     return
   }
 
-  Comms.sendGossip(
+  fireAndForget(() => Comms.sendGossip(
     'gossip-unjoin',
     payload,
     tracker,
@@ -631,7 +632,7 @@ const gossipUnjoinRequests: P2P.P2PTypes.GossipHandler<SignedUnjoinRequest, P2P.
       P2P.P2PTypes.NodeStatus.SYNCING,
     ]),
     false
-  )
+  ))
 }
 
 const gossipSyncStartedRoute: P2P.P2PTypes.GossipHandler<StartedSyncingRequest, P2P.NodeListTypes.Node['id']> = (
@@ -666,7 +667,7 @@ const gossipSyncStartedRoute: P2P.P2PTypes.GossipHandler<StartedSyncingRequest, 
     /* prettier-ignore */ if (!addSyncStartedResult.success) nestedCountersInstance.countEvent('p2p', `sync-started failure reason: ${addSyncStartedResult.reason}`)
     /* prettier-ignore */ if (logFlags.verbose && !addSyncStartedResult.success) console.log(`sync-started validation reason: ${addSyncStartedResult.reason}`)
     if (addSyncStartedResult.success)
-      Comms.sendGossip(
+      fireAndForget(() => Comms.sendGossip(
         'gossip-sync-started',
         payload,
         tracker,
@@ -677,7 +678,7 @@ const gossipSyncStartedRoute: P2P.P2PTypes.GossipHandler<StartedSyncingRequest, 
           P2P.P2PTypes.NodeStatus.SYNCING,
         ]),
         false
-      )
+      ))
   } finally {
     profilerInstance.scopedProfileSectionEnd('gossip-sync-started')
   }

@@ -116,6 +116,7 @@ import { serializeRequestTxAndStateResp } from '../types/RequestTxAndStateResp'
 import { RequestReceiptForTxRespSerialized, serializeRequestReceiptForTxResp } from '../types/RequestReceiptForTxResp'
 import { deserializeRequestReceiptForTxReq } from '../types/RequestReceiptForTxReq'
 import { BadRequest, InternalError, ResponseError, serializeResponseError } from '../types/ResponseError'
+import { fireAndForget } from '../utils/functions/promises'
 
 export type Callback = (...args: unknown[]) => void
 
@@ -1224,7 +1225,7 @@ class StateManager {
     /* prettier-ignore */ this.transactionQueue.setDebugLastAwaitedCallInner('ths.app.setAccountData')
     await this.app.setAccountData(accountsToAdd)
     /* prettier-ignore */ this.transactionQueue.setDebugLastAwaitedCallInner('ths.app.setAccountData', DebugComplete.Completed)
-    this.transactionQueue.processNonceQueue(wrappedAccountsToAdd)
+    fireAndForget(() => this.transactionQueue.processNonceQueue(wrappedAccountsToAdd))
     return failedHashes
   }
 
@@ -2441,7 +2442,7 @@ class StateManager {
       return
     }
     if (!this.transactionQueue.transactionProcessingQueueRunning) {
-      this.transactionQueue.processTransactions()
+      fireAndForget(() => this.transactionQueue.processTransactions())
     }
   }
 
@@ -3267,7 +3268,7 @@ class StateManager {
         /* prettier-ignore */ this.transactionQueue.setDebugLastAwaitedCallInner('this.app.updateAccountFull', DebugComplete.Completed)
       }
       savedSomething = true
-      this.transactionQueue.processNonceQueue([wrappedData])
+      fireAndForget(() => this.transactionQueue.processNonceQueue([wrappedData]))
     }
 
     return savedSomething
@@ -3847,7 +3848,7 @@ class StateManager {
           this.profiler.profileSectionStart('stateManager_cycle_q1_start_processPreviousCycleSummaries')
           if (this.processCycleSummaries) {
             // not certain if we want await
-            this.processPreviousCycleSummaries()
+            fireAndForget(() => this.processPreviousCycleSummaries())
           }
           this.profiler.profileSectionEnd('stateManager_cycle_q1_start_processPreviousCycleSummaries')
         }
@@ -3950,7 +3951,7 @@ class StateManager {
         // this.partitionObjects.updatePartitionReport(cycleShardValues, mainHashResults) //this needs to go away along all of partitionObjects I think
         //this is used in the reporter and account dump, but these features cant scale to hundreds of nodes.
         //
-        this.accountPatcher.updateTrieAndBroadCast(lastCycle.counter)
+        fireAndForget(() => this.accountPatcher.updateTrieAndBroadCast(lastCycle.counter))
         this.profiler.profileSectionEnd('stateManager_updatePartitionReport_updateTrie')
       }
     }

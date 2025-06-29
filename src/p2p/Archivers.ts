@@ -31,6 +31,7 @@ import { DevSecurityLevel } from '../shardus/shardus-types'
 import { verifyPayload } from '../types/ajv/Helpers'
 import { AJVSchemaEnum } from '../types/enum/AJVSchemaEnum'
 import { customFetch } from '../http/customHttpFunctions'
+import { fireAndForget } from '../utils/functions/promises'
 
 const clone = rfdc()
 
@@ -474,7 +475,7 @@ export function addArchiverJoinRequest(joinRequest: P2P.ArchiversTypes.Request, 
       joinRequest
     )
   if (gossip === true) {
-    Comms.sendGossip('joinarchiver', joinRequest, tracker, null, NodeList.byIdOrder, true)
+    fireAndForget(() => Comms.sendGossip('joinarchiver', joinRequest, tracker, null, NodeList.byIdOrder, true))
   }
   return { success: true }
 }
@@ -576,7 +577,7 @@ export function addLeaveRequest(leaveRequest: P2P.ArchiversTypes.Request, tracke
   leaveRequests.push(leaveRequest)
   if (logFlags.console) console.log('adding leave requests', leaveRequests)
   if (gossip === true) {
-    Comms.sendGossip('leavingarchiver', leaveRequest, tracker, null, NodeList.byIdOrder, true)
+    fireAndForget(() => Comms.sendGossip('leavingarchiver', leaveRequest, tracker, null, NodeList.byIdOrder, true))
   }
   return { success: true }
 }
@@ -685,7 +686,7 @@ async function forwardReceipts() {
     else continue
     if (logFlags.console)
       console.log('pingNeeded', pingNeeded, stateManager.transactionQueue.receiptsForwardedTimestamp)
-    forwardDataToSubscribedArchivers(responses, publicKey, recipient)
+    fireAndForget(() => forwardDataToSubscribedArchivers(responses, publicKey, recipient))
   }
 
   if (config.p2p.instantForwardReceipts) {
@@ -698,7 +699,7 @@ async function forwardReceipts() {
           if (logFlags.console) console.log('Sending last 15s receipts to newly subscribed archivers', publicKey)
           const recipient = recipients.get(publicKey)
           if (!recipient) continue
-          forwardDataToSubscribedArchivers(responses, publicKey, recipient)
+          fireAndForget(() => forwardDataToSubscribedArchivers(responses, publicKey, recipient))
         }
       }
     }
@@ -749,7 +750,7 @@ export async function instantForwardReceipts(receipts) {
   const responses: any = {}
   responses.RECEIPT = [...receipts]
   for (const [publicKey, recipient] of recipients) {
-    forwardDataToSubscribedArchivers(responses, publicKey, recipient)
+    fireAndForget(() => forwardDataToSubscribedArchivers(responses, publicKey, recipient))
   }
   if (nestedCountersInstance) nestedCountersInstance.countEvent('Archiver', 'instantForwardReceipts')
   profilerInstance.scopedProfileSectionEnd('instantForwardReceipts')
@@ -764,7 +765,7 @@ export async function instantForwardOriginalTxData(originalTxData) {
   const responses: any = {}
   responses.ORIGINAL_TX_DATA = [originalTxData]
   for (const [publicKey, recipient] of recipients) {
-    forwardDataToSubscribedArchivers(responses, publicKey, recipient)
+    fireAndForget(() => forwardDataToSubscribedArchivers(responses, publicKey, recipient))
   }
   nestedCountersInstance.countEvent('Archiver', 'instantForwardOriginalTxData')
   profilerInstance.scopedProfileSectionEnd('instantForwardOriginalTxData')
@@ -1084,7 +1085,7 @@ export function registerRoutes() {
       }
       if (!accepted.success) return warn('Archiver join request not accepted.')
       if (logFlags.p2pNonFatal) info('Archiver join request accepted!')
-      Comms.sendGossip('joinarchiver', payload, tracker, sender, NodeList.byIdOrder, false)
+      fireAndForget(() => Comms.sendGossip('joinarchiver', payload, tracker, sender, NodeList.byIdOrder, false))
     } finally {
       profilerInstance.scopedProfileSectionEnd('joinarchiver')
     }
@@ -1102,8 +1103,8 @@ export function registerRoutes() {
       if (logFlags.console) console.log('Leave request gossip received:', payload)
       const accepted = await addLeaveRequest(payload, tracker, false)
       if (!accepted.success) return warn('Archiver leave request not accepted.')
-      /* prettier-ignore */ if (logFlags.p2pNonFatal) info('Archiver leave request accepted!')
-      Comms.sendGossip('leavingarchiver', payload, tracker, sender, NodeList.byIdOrder, false)
+      if (logFlags.p2pNonFatal) info('Archiver leave request accepted!')
+      fireAndForget(() => Comms.sendGossip('leavingarchiver', payload, tracker, sender, NodeList.byIdOrder, false))
     } finally {
       profilerInstance.scopedProfileSectionEnd('leavingarchiver')
     }

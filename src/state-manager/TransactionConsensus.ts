@@ -63,6 +63,7 @@ import {
 import { deserializePoqoDataAndReceiptResp } from '../types/PoqoDataAndReceiptReq'
 import { deserializePoqoSendVoteReq, serializePoqoSendVoteReq } from '../types/PoqoSendVoteReq'
 import { removeDuplicateSignatures } from '../utils/functions/signs'
+import { fireAndForget } from '../utils/functions/promises'
 
 class TransactionConsenus {
   app: Shardus.App
@@ -1033,7 +1034,7 @@ class TransactionConsenus {
 
         queueEntry.signedReceipt = { ...payload }
         payload.txGroupCycle = queueEntry.txGroupCycle
-        Comms.sendGossip(
+        fireAndForget(() => Comms.sendGossip(
           'poqo-receipt-gossip',
           payload,
           null,
@@ -1044,7 +1045,7 @@ class TransactionConsenus {
           payload.proposal.txid,
           '',
           true
-        )
+        ))
 
         queueEntry.hasSentFinalReceipt = true
 
@@ -1155,7 +1156,7 @@ class TransactionConsenus {
               this.mainLogger.debug(`POQo: received data & receipt for ${queueEntry.logID} starting receipt gossip`)
             queueEntry.signedReceipt = readableReq.receipt
             const receiptToGossip = { ...readableReq.receipt, txGroupCycle: queueEntry.txGroupCycle }
-            Comms.sendGossip(
+            fireAndForget(() => Comms.sendGossip(
               'poqo-receipt-gossip',
               receiptToGossip,
               null,
@@ -1166,7 +1167,7 @@ class TransactionConsenus {
               readableReq.finalState.txid,
               '',
               true
-            )
+            ))
             queueEntry.hasSentFinalReceipt = true
           }
 
@@ -1489,7 +1490,7 @@ class TransactionConsenus {
           queueEntry.signedReceipt = receivedReceipt
           queueEntry.hasSentFinalReceipt = true
           const receiptToGossip = { ...readableReq, txGroupCycle: queueEntry.txGroupCycle }
-          Comms.sendGossip(
+          fireAndForget(() => Comms.sendGossip(
             'poqo-receipt-gossip',
             receiptToGossip,
             null,
@@ -1500,7 +1501,7 @@ class TransactionConsenus {
             readableReq.proposal.txid,
             '',
             true
-          )
+          ))
 
           // Only forward data if we have a valid matching preApply
           if (queueEntry.ourVoteHash === readableReq.proposalHash) {
@@ -1687,13 +1688,13 @@ class TransactionConsenus {
       const newHash = this.crypto.sign(updatedVoteHash)
 
       // Send vote to the selected aggregator in the priority list
-      Comms.tellBinary<AppliedVoteHash>(
+      fireAndForget(() => Comms.tellBinary<AppliedVoteHash>(
         voteReceivers,
         InternalRouteEnum.binary_poqo_send_vote,
         newHash,
         serializePoqoSendVoteReq,
         {}
-      )
+      ))
       await utils.sleep(this.config.stateManager.poqoloopTime)
     }
   }
@@ -2228,13 +2229,13 @@ class TransactionConsenus {
         // tellx128 the receipt to the entire execution group
         // if (this.config.p2p.useBinarySerializedEndpoints && this.config.p2p.poqoSendReceiptBinary) {
 
-        Comms.tellBinary<PoqoSendReceiptReq>(
+        fireAndForget(() => Comms.tellBinary<PoqoSendReceiptReq>(
           votingGroup,
           InternalRouteEnum.binary_poqo_send_receipt,
           payload,
           serializePoqoSendReceiptReq,
           {}
-        )
+        ))
         // } else {
         //   Comms.tell(votingGroup, 'poqo-send-receipt', payload)
         // }
@@ -2262,7 +2263,7 @@ class TransactionConsenus {
         }
         // Kick off receipt-gossip
         queueEntry.hasSentFinalReceipt = true
-        Comms.sendGossip(
+        fireAndForget(() => Comms.sendGossip(
           'poqo-receipt-gossip',
           payload,
           null,
@@ -2273,7 +2274,7 @@ class TransactionConsenus {
           queueEntry.acceptedTx.txId,
           '',
           true
-        )
+        ))
         return signedReceipt
       }
       // } else if (this.stateManager.transactionQueue.useNewPOQ === false) {
@@ -3462,7 +3463,7 @@ class TransactionConsenus {
         nestedCountersInstance.countEvent('poqo', 'debug fail no vote')
         return
       }
-      this.poqoVoteSendLoop(queueEntry, appliedVoteHash)
+      fireAndForget(() => this.poqoVoteSendLoop(queueEntry, appliedVoteHash))
       return
       // }
 

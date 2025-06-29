@@ -19,6 +19,7 @@ import { InternalRouteEnum } from '../types/enum/InternalRouteEnum'
 import * as NodeList from '../p2p/NodeList'
 import * as Self from '../p2p/Self'
 import { Utils } from '@shardeum-foundation/lib-types'
+import { fireAndForget } from '../utils/functions/promises'
 
 class TransactionRepair {
   app: Shardus.App
@@ -869,7 +870,7 @@ class TransactionRepair {
                 if (this.config.p2p.experimentalSnapshot)
                   if (logFlags.verbose)
                     console.log('repair commit', queueEntry.acceptedTx.txId, queueEntry.acceptedTx.timestamp)
-                this.stateManager.transactionQueue.addReceiptToForward(queueEntry, 'repair')
+                fireAndForget(() => this.stateManager.transactionQueue.addReceiptToForward(queueEntry, 'repair'))
               }
           }
         }

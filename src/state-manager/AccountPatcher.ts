@@ -95,6 +95,7 @@ import { robustQuery } from '../p2p/Utils'
 import { RequestReceiptForTxReqSerialized, serializeRequestReceiptForTxReq } from '../types/RequestReceiptForTxReq'
 import { deserializeRequestReceiptForTxResp, RequestReceiptForTxRespSerialized } from '../types/RequestReceiptForTxResp'
 import { Node } from '../shardus/shardus-types'
+import { fireAndForget } from '../utils/functions/promises'
 
 type Line = {
   raw: string
@@ -3713,7 +3714,7 @@ class AccountPatcher {
             accountsTheyNeedToRepair.length
           }, accountsTheyNeedToRepair: ${Utils.safeStringify(accountsTheyNeedToRepair)}`
         )
-        this.requestOtherNodesToRepair(accountsTheyNeedToRepair)
+        fireAndForget(() => this.requestOtherNodesToRepair(accountsTheyNeedToRepair))
       }
 
       if (this.config.mode === 'debug' && this.config.debug.haltOnDataOOS) {

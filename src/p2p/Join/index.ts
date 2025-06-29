@@ -38,7 +38,7 @@ import { drainNewStandbyRefreshRequests, addStandbyRefresh } from './v2/standbyR
 import rfdc from 'rfdc'
 import { Utils } from '@shardeum-foundation/lib-types'
 import { neverGoActive } from '../Active'
-
+import { fireAndForget } from '../../utils/functions/promises'
 /** STATE */
 
 let p2pLogger: Logger
@@ -670,7 +670,7 @@ export function sendRequests(): void {
     if (addSyncStarted(syncStartedTx).success === true) {
       nestedCountersInstance.countEvent('p2p', `join:sendRequests: sending sync-started gossip to network`)
       /* prettier-ignore */ if (logFlags.p2pNonFatal) console.log(`join:sendRequests: sending sync-started gossip to network`)
-      Comms.sendGossip(
+      fireAndForget(() => Comms.sendGossip(
         'gossip-sync-started',
         syncStartedTx,
         '',
@@ -681,7 +681,7 @@ export function sendRequests(): void {
           P2P.P2PTypes.NodeStatus.SYNCING,
         ]),
         true
-      )
+      ))
     } else {
       nestedCountersInstance.countEvent('p2p', `join:sendRequests: failed to add our own sync-started message`)
       /* prettier-ignore */ if (logFlags.p2pNonFatal) console.log(`join:sendRequests: failed to add our own sync-started message`)
@@ -698,7 +698,7 @@ export function sendRequests(): void {
     if (addFinishedSyncing(syncFinishedTx).success === true) {
       nestedCountersInstance.countEvent('p2p', `join:sendRequests: sending sync-finished gossip to network`)
       /* prettier-ignore */ if (logFlags.p2pNonFatal) console.log(`join:sendRequests: sending sync-finished gossip to network`)
-      Comms.sendGossip(
+      fireAndForget(() => Comms.sendGossip(
         'gossip-sync-finished',
         syncFinishedTx,
         '',
@@ -709,7 +709,7 @@ export function sendRequests(): void {
           P2P.P2PTypes.NodeStatus.SYNCING,
         ]),
         true
-      )
+      ))
     } else {
       nestedCountersInstance.countEvent('p2p', `join:sendRequests: failed to add our own sync-finished message`)
       /* prettier-ignore */ if (logFlags.p2pNonFatal) console.log(`join:sendRequests: failed to add our own sync-finished message`)
@@ -812,7 +812,7 @@ export function sendRequests(): void {
 
       nestedCountersInstance.countEvent('p2p', `join:sendRequests: sending unjoin gossip to network`)
       /* prettier-ignore */ if (logFlags.p2pNonFatal) console.log(`join:sendRequests: sending unjoin gossip to network`)
-      Comms.sendGossip(
+      fireAndForget(() => Comms.sendGossip(
         'gossip-unjoin',
         unjoinRequest,
         '',
@@ -823,7 +823,7 @@ export function sendRequests(): void {
           P2P.P2PTypes.NodeStatus.SYNCING,
         ]),
         true
-      )
+      ))
     }
   }
 
