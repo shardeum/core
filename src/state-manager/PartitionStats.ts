@@ -686,6 +686,9 @@ class PartitionStats {
     cycleShardData: CycleShardData,
     excludeEmpty = true
   ): StateManagerTypes.StateManagerTypes.StatsClump {
+    if (!cycleShardData) {
+      throw new Error('cycleShardData is required')
+    }
     const cycle = cycleShardData.cycleNumber
     const nextQueue = []
 
@@ -749,7 +752,8 @@ class PartitionStats {
           continue
         }
         if (excludeEmpty === false || summaryBlob.counter > 0) {
-          statsDump.txStats.push(summaryBlob)
+          const cloneSummaryBlob = Utils.safeJsonParse(Utils.safeStringify(summaryBlob))
+          statsDump.txStats.push(cloneSummaryBlob)
         }
       }
     }
@@ -850,11 +854,15 @@ class PartitionStats {
       if (index >= 0) {
         const statsStr = line.raw.slice(index)
         //this.generalLog(string)
-        let statsObj: { cycle: number; owner: string }
+        let statsObj: { cycle: number; owner: string; covered: number[]; dataStats: any[] }
         try {
           statsObj = Utils.safeJsonParse(statsStr)
         } catch (err) {
           if (logFlags.error) this.mainLogger.error(`Fail to parse statsObj: ${statsStr}`, err)
+          continue
+        }
+
+        if (!statsObj || typeof statsObj.cycle !== 'number') {
           continue
         }
 
@@ -864,23 +872,30 @@ class PartitionStats {
           )
           continue
         }
-        statsBlobs.push(statsObj)
-
+        
         if (statsObj.cycle > newestCycle) {
           newestCycle = statsObj.cycle
         }
+        
+        statsBlobs.push(statsObj)
         // this isn't quite working right without scanning the whole playback log
         statsObj.owner = line.file.owner // line.raw.slice(0, index)
       }
     }
 
     for (const statsObj of statsBlobs) {
+      if (!statsObj || !statsObj.covered) {
+        continue
+      }
       const coveredMap = new Map()
       for (const partition of statsObj.covered) {
         coveredMap.set(partition, true)
       }
 
       if (statsObj.cycle === newestCycle) {
+        if (!statsObj.dataStats) {
+          continue
+        }
         for (const dataStatsObj of statsObj.dataStats) {
           const partition = dataStatsObj.partition
           if (coveredMap.has(partition) === false) {
@@ -997,30 +1012,39 @@ class PartitionStats {
       if (index >= 0) {
         const statsStr = line.raw.slice(index)
         //this.generalLog(string)
-        let statsObj: { cycle: number; owner: string }
+        let statsObj: { cycle: number; owner: string; covered: number[]; txStats: any[]; cycleDebugNotes?: any }
         try {
           statsObj = Utils.safeJsonParse(statsStr)
         } catch (err) {
           if (logFlags.error) this.mainLogger.error(`Fail to parse statsObj: ${statsStr}`, err)
           continue
         }
+        
+        if (!statsObj || typeof statsObj.cycle !== 'number') {
+          continue
+        }
+        
         if (newestCycle > 0 && statsObj.cycle != newestCycle) {
           stream.write(
             `wrong cycle for node: ${line.file.owner} reportCycle:${newestCycle} thisNode:${statsObj.cycle} \n`
           )
           continue
         }
-        statsBlobs.push(statsObj)
-
+        
         if (statsObj.cycle > newestCycle) {
           newestCycle = statsObj.cycle
         }
+        
+        statsBlobs.push(statsObj)
         // this isn't quite working right without scanning the whole playback log
         statsObj.owner = line.file.owner // line.raw.slice(0, index)
       }
     }
     const txCountMap = new Map()
     for (const statsObj of statsBlobs) {
+      if (!statsObj || !statsObj.covered) {
+        continue
+      }
       if (!txCountMap.has(statsObj.owner)) {
         txCountMap.set(statsObj.owner, [])
       }
@@ -1029,6 +1053,9 @@ class PartitionStats {
         coveredMap.set(partition, true)
       }
       const dataTallyListForThisOwner = []
+      if (!statsObj.txStats) {
+        continue
+      }
       for (const txStatsObj of statsObj.txStats) {
         const partition = txStatsObj.partition
         if (coveredMap.has(partition) === false) {

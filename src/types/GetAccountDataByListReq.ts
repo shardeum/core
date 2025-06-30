@@ -38,11 +38,12 @@ export function deserializeGetAccountDataByListReq(stream: VectorBufferStream): 
   for (let i = 0; i < length; i++) {
     accountIds.push(stream.readString())
   }
-  const errors = verifyPayload(AJVSchemaEnum.GetAccountDataByListReq, accountIds)
+  const result = {
+    accountIds,
+  }
+  const errors = verifyPayload(AJVSchemaEnum.GetAccountDataByListReq, result)
   if (errors && errors.length > 0) {
     throw new Error('Data validation error')
   }
-  return {
-    accountIds,
-  }
+  return result
 }

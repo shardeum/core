@@ -2,6 +2,7 @@ import { addSchema } from '../../utils/serialization/SchemaHelpers'
 import { AJVSchemaEnum } from '../enum/AJVSchemaEnum'
 
 const schemaGetAccountDataByListReq = {
+  type: 'object',
   properties: {
     accountIds: { type: 'array', items: { type: 'string' } },
   },

@@ -1,5 +1,13 @@
 import { groupResolvePromises } from '../../../../src/utils'
 
+beforeEach(() => {
+  jest.clearAllMocks()
+})
+
+afterEach(() => {
+  jest.clearAllTimers()
+})
+
 function generatePromise(data: string, delayInMs: number): Promise<string> {
   return new Promise((resolve) => {
     setTimeout(() => {

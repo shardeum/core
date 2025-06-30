@@ -2,7 +2,7 @@ import { addSchema, addSchemaDependency } from '../../utils/serialization/Schema
 import { AJVSchemaEnum } from '../enum/AJVSchemaEnum'
 
 // AJV Schema for CycleRecord
-let schemaCycleRecord: object | undefined = {
+const schemaCycleRecord: object | undefined = {
   type: 'object',
   properties: {
     networkId: { type: 'string' },
@@ -303,7 +303,7 @@ let schemaCycleRecord: object | undefined = {
 }
 
 // AJV Schema for an Array of CycleRecords
-export let schemaCycleRecordArray: object | undefined = {
+export const schemaCycleRecordArray: object | undefined = {
   type: 'array',
   items: schemaCycleRecord,
 }
@@ -314,7 +314,9 @@ export function initCycleRecords(): void {
 }
 
 // Add Schema Dependencies
-export function addSchemaDependencies(): void {}
+export function addSchemaDependencies(): void {
+  // No dependencies to add
+}
 
 // Add Schema
 export function addSchemas(): void {
