@@ -25,7 +25,9 @@ export function serializeAppliedReceipt2(
   stream.writeString(obj.txid)
   stream.writeUInt8(obj.result ? 1 : 0)
   serializeAppliedVote(stream, obj.appliedVote)
-
+  // Check if confirmOrChallenge is defined
+  // confirmOrChallenge is not part of consensus anymore. Adding this here for backwards compatibility.
+  stream.writeUInt8(0)
   stream.writeUInt16(obj.signatures.length)
 
   for (let i = 0; i < obj.signatures.length; i++) {

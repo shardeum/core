@@ -29,7 +29,6 @@ describe('AppliedReceipt2 Serialization', () => {
     }
     const stream = new VectorBufferStream(0)
     serializeAppliedReceipt2(stream, obj, true)
-
     const expectedStream = new VectorBufferStream(0)
     expectedStream.writeUInt16(TypeIdentifierEnum.cAppliedReceipt2)
     expectedStream.writeUInt8(cAppliedReceipt2Version)
@@ -40,10 +39,8 @@ describe('AppliedReceipt2 Serialization', () => {
     expectedStream.writeUInt16(1)
     serializeSign(expectedStream, obj.signatures[0])
     expectedStream.writeString(obj.app_data_hash)
-
     expect(stream.getBuffer()).toEqual(expectedStream.getBuffer())
   })
-
   test('Should serialization with root false', () => {
     const obj: AppliedReceipt2 = {
       txid: 'test',
@@ -77,7 +74,6 @@ describe('AppliedReceipt2 Serialization', () => {
     }
     const stream = new VectorBufferStream(0)
     serializeAppliedReceipt2(stream, obj, false)
-
     const expectedStream = new VectorBufferStream(0)
     expectedStream.writeUInt8(cAppliedReceipt2Version)
     expectedStream.writeString(obj.txid)
@@ -88,7 +84,6 @@ describe('AppliedReceipt2 Serialization', () => {
     serializeSign(expectedStream, obj.signatures[0])
     serializeSign(expectedStream, obj.signatures[1])
     expectedStream.writeString(obj.app_data_hash)
-
     expect(stream.getBuffer()).toEqual(expectedStream.getBuffer())
   })
 })
