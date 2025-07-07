@@ -19,6 +19,7 @@ describe('AppliedReceipt2 Serialization', () => {
         cant_apply: false,
         node_id: 'node1',
       },
+      confirmOrChallenge: undefined,
       signatures: [
         {
           sig: 'sign',
