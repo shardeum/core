@@ -1,12 +1,9 @@
-import exp from 'node:constants'
 import { VectorBufferStream } from '../../../../src'
 import { AppliedReceipt2 } from '../../../../src/state-manager/state-manager-types'
 import { cAppliedReceipt2Version, serializeAppliedReceipt2 } from '../../../../src/types/AppliedReceipt2'
 import { serializeAppliedVote } from '../../../../src/types/AppliedVote'
-import { serializeConfirmOrChallengeMessage } from '../../../../src/types/ConfirmOrChallengeMessage'
-import { cSignVersion, serializeSign } from '../../../../src/types/Sign'
+import { serializeSign } from '../../../../src/types/Sign'
 import { TypeIdentifierEnum } from '../../../../src/types/enum/TypeIdentifierEnum'
-import { Utils } from '@shardeum-foundation/lib-types'
 
 describe('AppliedReceipt2 Serialization', () => {
   test('Should serialization with root true', () => {

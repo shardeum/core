@@ -1,10 +1,5 @@
 import { VectorBufferStream } from '../utils/serialization/VectorBufferStream'
 import { AppliedVoteSerializable, deserializeAppliedVote, serializeAppliedVote } from './AppliedVote'
-import {
-  ConfirmOrChallengeMessageSerializable,
-  deserializeConfirmOrChallengeMessage,
-  serializeConfirmOrChallengeMessage,
-} from './ConfirmOrChallengeMessage'
 import { deserializeSign, serializeSign, SignSerializable } from './Sign'
 import { TypeIdentifierEnum } from './enum/TypeIdentifierEnum'
 
@@ -14,7 +9,6 @@ export type AppliedReceipt2Serializable = {
   txid: string
   result: boolean
   appliedVote: AppliedVoteSerializable //single copy of vote
-  confirmOrChallenge?: ConfirmOrChallengeMessageSerializable
   signatures: SignSerializable[] //all signatures for this vote, Could have all signatures or best N.  (lowest signature value?)
   app_data_hash: string // hash of app data
 }
@@ -31,13 +25,6 @@ export function serializeAppliedReceipt2(
   stream.writeString(obj.txid)
   stream.writeUInt8(obj.result ? 1 : 0)
   serializeAppliedVote(stream, obj.appliedVote)
-  // Check if confirmOrChallenge is defined
-  if (obj.confirmOrChallenge) {
-    stream.writeUInt8(1)
-    serializeConfirmOrChallengeMessage(stream, obj.confirmOrChallenge)
-  } else {
-    stream.writeUInt8(0)
-  }
 
   stream.writeUInt16(obj.signatures.length)
 
@@ -56,13 +43,6 @@ export function deserializeAppliedReceipt2(stream: VectorBufferStream): AppliedR
   const txid = stream.readString()
   const result = stream.readUInt8() === 1
   const appliedVote = deserializeAppliedVote(stream)
-  const confirmOrChallengeFlag = stream.readUInt8()
-  let confirmOrChallenge
-  if (confirmOrChallengeFlag === 1) {
-    confirmOrChallenge = deserializeConfirmOrChallengeMessage(stream)
-  } else {
-    confirmOrChallenge = undefined
-  }
   const signaturesLength = stream.readUInt16()
   const signatures: SignSerializable[] = []
   for (let i = 0; i < signaturesLength; i++) {
@@ -73,7 +53,6 @@ export function deserializeAppliedReceipt2(stream: VectorBufferStream): AppliedR
     txid,
     result,
     appliedVote,
-    confirmOrChallenge,
     signatures,
     app_data_hash,
   }

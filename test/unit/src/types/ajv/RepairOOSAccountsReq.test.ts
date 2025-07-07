@@ -18,7 +18,7 @@ describe('RepairOOSAccountsReq', () => {
       RepairOOSAccountsReq.initRepairOOSAccountReq()
 
       const { addSchema } = require('../../../../../src/utils/serialization/SchemaHelpers')
-      
+
       // Verify that addSchema was called once
       expect(addSchema).toHaveBeenCalledTimes(1)
       expect(addSchema).toHaveBeenCalledWith(
@@ -49,7 +49,7 @@ describe('RepairOOSAccountsReq', () => {
       RepairOOSAccountsReq.initRepairOOSAccountReq()
 
       const schema = addSchema.mock.calls[0][1] as any
-      
+
       expect(schema.properties.repairInstructions).toEqual({
         type: 'array',
         items: RepairOOSAccountsReq.schemaAccountRepairInstruction,
@@ -111,26 +111,6 @@ describe('RepairOOSAccountsReq', () => {
     })
   })
 
-  describe('schemaConfirmOrChallengeMessage', () => {
-    it('should have correct structure', () => {
-      expect(RepairOOSAccountsReq.schemaConfirmOrChallengeMessage).toEqual({
-        type: 'object',
-        properties: {
-          message: { type: 'string' },
-          nodeId: { type: 'string' },
-          appliedVote: RepairOOSAccountsReq.schemaAppliedVote,
-          sign: RepairOOSAccountsReq.schemaSign,
-        },
-        required: ['message', 'nodeId', 'appliedVote'],
-      })
-    })
-
-    it('should reference other schemas correctly', () => {
-      expect(RepairOOSAccountsReq.schemaConfirmOrChallengeMessage.properties.appliedVote).toBe(RepairOOSAccountsReq.schemaAppliedVote)
-      expect(RepairOOSAccountsReq.schemaConfirmOrChallengeMessage.properties.sign).toBe(RepairOOSAccountsReq.schemaSign)
-    })
-  })
-
   describe('schemaProposal', () => {
     it('should have correct structure', () => {
       expect(RepairOOSAccountsReq.schemaProposal).toEqual({
@@ -153,7 +133,14 @@ describe('RepairOOSAccountsReq', () => {
           appReceiptDataHash: { type: 'string' },
           txid: { type: 'string' },
         },
-        required: ['applied', 'cant_preApply', 'accountIDs', 'beforeStateHashes', 'afterStateHashes', 'appReceiptDataHash'],
+        required: [
+          'applied',
+          'cant_preApply',
+          'accountIDs',
+          'beforeStateHashes',
+          'afterStateHashes',
+          'appReceiptDataHash',
+        ],
       })
     })
   })
@@ -181,7 +168,9 @@ describe('RepairOOSAccountsReq', () => {
 
     it('should reference other schemas correctly', () => {
       expect(RepairOOSAccountsReq.schemaSignedReceipt.properties.proposal).toBe(RepairOOSAccountsReq.schemaProposal)
-      expect(RepairOOSAccountsReq.schemaSignedReceipt.properties.signaturePack.items).toBe(RepairOOSAccountsReq.schemaSign)
+      expect(RepairOOSAccountsReq.schemaSignedReceipt.properties.signaturePack.items).toBe(
+        RepairOOSAccountsReq.schemaSign
+      )
       expect(RepairOOSAccountsReq.schemaSignedReceipt.properties.sign).toBe(RepairOOSAccountsReq.schemaSign)
     })
   })
@@ -203,7 +192,9 @@ describe('RepairOOSAccountsReq', () => {
     })
 
     it('should reference signedReceipt schema correctly', () => {
-      expect(RepairOOSAccountsReq.schemaAccountRepairInstruction.properties.signedReceipt).toBe(RepairOOSAccountsReq.schemaSignedReceipt)
+      expect(RepairOOSAccountsReq.schemaAccountRepairInstruction.properties.signedReceipt).toBe(
+        RepairOOSAccountsReq.schemaSignedReceipt
+      )
     })
   })
 
@@ -222,13 +213,15 @@ describe('RepairOOSAccountsReq', () => {
     })
 
     it('should reference accountRepairInstruction schema correctly', () => {
-      expect(RepairOOSAccountsReq.schemaRepairOOSAccountsReq.properties.repairInstructions.items).toBe(RepairOOSAccountsReq.schemaAccountRepairInstruction)
+      expect(RepairOOSAccountsReq.schemaRepairOOSAccountsReq.properties.repairInstructions.items).toBe(
+        RepairOOSAccountsReq.schemaAccountRepairInstruction
+      )
     })
   })
 
   describe('addSchemaDependencies', () => {
     it('should not throw when called indirectly', () => {
-      // Since addSchemaDependencies is not exported and does nothing, 
+      // Since addSchemaDependencies is not exported and does nothing,
       // we test it indirectly through initRepairOOSAccountReq
       expect(() => RepairOOSAccountsReq.initRepairOOSAccountReq()).not.toThrow()
     })

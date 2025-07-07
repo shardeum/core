@@ -35,8 +35,6 @@ describe('InternalRouteEnum', () => {
       binary_make_receipt: 'binary/make_receipt',
       binary_spread_appliedVoteHash: 'binary/spread_applied_vote_hash',
       binary_get_globalaccountreport: 'binary/get_globalaccountreport',
-      binary_get_confirm_or_challenge: 'binary/get_confirm_or_challenge',
-      binary_sign_app_data: 'binary/sign_app_data',
       binary_get_trie_account_hashes: 'binary/get_trie_account_hashes',
       binary_get_cached_app_data: 'binary/get_cached_app_data',
       binary_request_tx_and_state: 'binary/request_tx_and_state',

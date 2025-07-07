@@ -144,7 +144,6 @@ export type QueueEntry = {
   uniqueChallengesCount: number
   robustAccountDataPromises?: { [key: string]: Promise<Shardus.WrappedData> }
   queryingRobustVote?: boolean
-  queryingRobustConfirmOrChallenge?: boolean
   queryingRobustAccountData?: boolean
   queryingFinalData: boolean
   lastFinalDataRequestTimestamp: number
@@ -661,7 +660,7 @@ export type AccountCopy = {
 // result is the transaction result;
 // the account_id array is sorted by account_id and
 // the account_state_hash_after array is in corresponding order.
-// The applied vote is sent even if the result is ‘fail’.
+// The applied vote is sent even if the result is 'fail'.
 
 export type AppliedVoteCore = {
   txid: string
