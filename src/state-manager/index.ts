@@ -116,6 +116,7 @@ import { serializeRequestTxAndStateResp } from '../types/RequestTxAndStateResp'
 import { RequestReceiptForTxRespSerialized, serializeRequestReceiptForTxResp } from '../types/RequestReceiptForTxResp'
 import { deserializeRequestReceiptForTxReq } from '../types/RequestReceiptForTxReq'
 import { BadRequest, InternalError, ResponseError, serializeResponseError } from '../types/ResponseError'
+import { fireAndForget } from '../utils/functions/promises'
 
 export type Callback = (...args: unknown[]) => void
 
@@ -586,7 +587,7 @@ class StateManager {
     } else {
       const change = activeByIdOrder.length - this.lastActiveCount
       if (change != 0) {
-        /* prettier-ignore */ nestedCountersInstance.countEvent('networkSize',`cyc:${cycleNumber} active:${activeByIdOrder.length} change:${change}`)
+        /* prettier-ignore */ nestedCountersInstance.countEvent('networkSize', `cyc:${cycleNumber} active:${activeByIdOrder.length} change:${change}`)
       }
       this.lastActiveCount = activeByIdOrder.length
     }
@@ -742,7 +743,7 @@ class StateManager {
     // this will be a huge log.
     // Temp disable for log size
     // /* prettier-ignore */ if (logFlags.playback ) this.logger.playbackLogNote('shrd_sync_cycleData', `${cycleNumber}`, ` cycleShardData: cycle:${cycleNumber} data: ${utils.stringifyReduce(cycleShardData)}`)
-    /* prettier-ignore */ if (logFlags.playback ) this.logger.playbackLogNote('shrd_sync_cycleData', `${cycleNumber}`, ` cycleShardData: cycle:${this.currentCycleShardData.cycleNumber} `)
+    /* prettier-ignore */ if (logFlags.playback) this.logger.playbackLogNote('shrd_sync_cycleData', `${cycleNumber}`, ` cycleShardData: cycle:${this.currentCycleShardData.cycleNumber} `)
 
     this.lastActiveNodeCount = cycleShardData.nodes.length
 
@@ -942,7 +943,7 @@ class StateManager {
     if (this.accountSync.syncStatement.internalFlag === true) {
       /* prettier-ignore */ if (logFlags.playback) this.logger.playbackLogNote('shrd_sync_syncStatement', ` `, `${utils.stringifyReduce(this.accountSync.syncStatement)}`)
       this.accountSync.syncStatmentIsComplete()
-      /* prettier-ignore */ this.statemanager_fatal( 'shrd_sync_syncStatement-startCatchUpQueue', `${utils.stringifyReduce(this.accountSync.syncStatement)}` )
+      /* prettier-ignore */ this.statemanager_fatal('shrd_sync_syncStatement-startCatchUpQueue', `${utils.stringifyReduce(this.accountSync.syncStatement)}`)
       /* prettier-ignore */ this.mainLogger.debug(`DATASYNC: syncStatement-startCatchUpQueue c:${this.currentCycleShardData.cycleNumber} ${utils.stringifyReduce(this.accountSync.syncStatement)}`)
     } else {
       this.accountSync.syncStatement.internalFlag = true
@@ -1224,7 +1225,7 @@ class StateManager {
     /* prettier-ignore */ this.transactionQueue.setDebugLastAwaitedCallInner('ths.app.setAccountData')
     await this.app.setAccountData(accountsToAdd)
     /* prettier-ignore */ this.transactionQueue.setDebugLastAwaitedCallInner('ths.app.setAccountData', DebugComplete.Completed)
-    this.transactionQueue.processNonceQueue(wrappedAccountsToAdd)
+    fireAndForget(() => this.transactionQueue.processNonceQueue(wrappedAccountsToAdd))
     return failedHashes
   }
 
@@ -1401,9 +1402,8 @@ class StateManager {
           }
 
           if (queueEntry == null) {
-            response.note = `failed to find queue entry: ${utils.stringifyReduce(deserialized.txid)}  ${
-              deserialized.timestamp
-            } dbg:${this.debugTXHistory[utils.stringifyReduce(deserialized.txid)]}`
+            response.note = `failed to find queue entry: ${utils.stringifyReduce(deserialized.txid)}  ${deserialized.timestamp
+              } dbg:${this.debugTXHistory[utils.stringifyReduce(deserialized.txid)]}`
             respond(response, serializeRequestReceiptForTxResp)
             return
           }
@@ -1421,9 +1421,8 @@ class StateManager {
           if (response.receipt != null) {
             response.success = true
           } else {
-            response.note = `found queueEntry but no receipt: ${utils.stringifyReduce(deserialized.txid)} ${
-              deserialized.txid
-            }  ${deserialized.timestamp}`
+            response.note = `found queueEntry but no receipt: ${utils.stringifyReduce(deserialized.txid)} ${deserialized.txid
+              }  ${deserialized.timestamp}`
           }
           respond(response, serializeRequestReceiptForTxResp)
         } catch (e) {
@@ -1561,17 +1560,15 @@ class StateManager {
             queueEntry = this.transactionQueue.getQueueEntryArchived(txId, route)
           }
           if (queueEntry == null) {
-            response.note = `failed to find queue entry: ${utils.stringifyReduce(txId)} dbg:${
-              this.debugTXHistory[utils.stringifyReduce(txId)]
-            }`
+            response.note = `failed to find queue entry: ${utils.stringifyReduce(txId)} dbg:${this.debugTXHistory[utils.stringifyReduce(txId)]
+              }`
             /* prettier-ignore */ nestedCountersInstance.countEvent('stateManager', `${route} cant find queue entry`)
             return respond(response, serializeRequestStateForTxPostResp)
           }
 
           if (queueEntry.hasValidFinalData === false) {
-            response.note = `has queue entry but not final data: ${utils.stringifyReduce(txId)} dbg:${
-              this.debugTXHistory[utils.stringifyReduce(txId)]
-            }`
+            response.note = `has queue entry but not final data: ${utils.stringifyReduce(txId)} dbg:${this.debugTXHistory[utils.stringifyReduce(txId)]
+              }`
 
             if (logFlags.error && logFlags.verbose) this.mainLogger.error(response.note)
             /* prettier-ignore */ nestedCountersInstance.countEvent('stateManager', `${route} hasValidFinalData==false, tx state: ${queueEntry.state}`)
@@ -1766,9 +1763,8 @@ class StateManager {
           }
 
           if (queueEntry == null) {
-            response.note = `failed to find queue entry: ${utils.stringifyReduce(txid)} dbg:${
-              this.debugTXHistory[utils.stringifyReduce(txid)]
-            }`
+            response.note = `failed to find queue entry: ${utils.stringifyReduce(txid)} dbg:${this.debugTXHistory[utils.stringifyReduce(txid)]
+              }`
 
             if (logFlags.error) this.mainLogger.error(`${route} ${response.note}`)
             respond(response, serializeRequestTxAndStateResp)
@@ -1869,9 +1865,8 @@ class StateManager {
           }
 
           if (queueEntry == null) {
-            response.note = `failed to find queue entry: ${utils.stringifyReduce(txid)} dbg:${
-              this.debugTXHistory[utils.stringifyReduce(txid)]
-            }`
+            response.note = `failed to find queue entry: ${utils.stringifyReduce(txid)} dbg:${this.debugTXHistory[utils.stringifyReduce(txid)]
+              }`
 
             if (logFlags.error) this.mainLogger.error(`${route} ${response.note}`)
             respond(response, serializeRequestTxAndStateResp)
@@ -1900,9 +1895,8 @@ class StateManager {
             if (beforeState && beforeState.stateId === receipt2.proposal.beforeStateHashes[index]) {
               response.stateList.push(queueEntry.collectedData[accountId])
             } else {
-              response.note = `has bad beforeStateAccount: ${utils.stringifyReduce(txid)} dbg:${
-                this.debugTXHistory[utils.stringifyReduce(txid)]
-              }`
+              response.note = `has bad beforeStateAccount: ${utils.stringifyReduce(txid)} dbg:${this.debugTXHistory[utils.stringifyReduce(txid)]
+                }`
               if (logFlags.error) this.mainLogger.error(`${route} ${response.note}`)
               respond(response, serializeRequestTxAndStateResp)
               return
@@ -2441,7 +2435,7 @@ class StateManager {
       return
     }
     if (!this.transactionQueue.transactionProcessingQueueRunning) {
-      this.transactionQueue.processTransactions()
+      fireAndForget(() => this.transactionQueue.processTransactions())
     }
   }
 
@@ -2460,7 +2454,7 @@ class StateManager {
     if (this.accountSync.syncStatement.internalFlag === true) {
       /* prettier-ignore */ if (logFlags.playback) this.logger.playbackLogNote('shrd_sync_syncStatement', ` `, `${utils.stringifyReduce(this.accountSync.syncStatement)}`)
       this.accountSync.syncStatmentIsComplete()
-      /* prettier-ignore */ this.statemanager_fatal( 'shrd_sync_syncStatement-firstTimeQueueAwait', `${utils.stringifyReduce(this.accountSync.syncStatement)}` )
+      /* prettier-ignore */ this.statemanager_fatal('shrd_sync_syncStatement-firstTimeQueueAwait', `${utils.stringifyReduce(this.accountSync.syncStatement)}`)
       /* prettier-ignore */ this.mainLogger.debug(`DATASYNC: syncStatement-firstTimeQueueAwait c:${this.currentCycleShardData.cycleNumber} ${utils.stringifyReduce(this.accountSync.syncStatement)}`)
     } else {
       this.accountSync.syncStatement.internalFlag = true
@@ -3267,7 +3261,7 @@ class StateManager {
         /* prettier-ignore */ this.transactionQueue.setDebugLastAwaitedCallInner('this.app.updateAccountFull', DebugComplete.Completed)
       }
       savedSomething = true
-      this.transactionQueue.processNonceQueue([wrappedData])
+      fireAndForget(() => this.transactionQueue.processNonceQueue([wrappedData]))
     }
 
     return savedSomething
@@ -3847,7 +3841,7 @@ class StateManager {
           this.profiler.profileSectionStart('stateManager_cycle_q1_start_processPreviousCycleSummaries')
           if (this.processCycleSummaries) {
             // not certain if we want await
-            this.processPreviousCycleSummaries()
+            fireAndForget(() => this.processPreviousCycleSummaries())
           }
           this.profiler.profileSectionEnd('stateManager_cycle_q1_start_processPreviousCycleSummaries')
         }
@@ -3950,7 +3944,7 @@ class StateManager {
         // this.partitionObjects.updatePartitionReport(cycleShardValues, mainHashResults) //this needs to go away along all of partitionObjects I think
         //this is used in the reporter and account dump, but these features cant scale to hundreds of nodes.
         //
-        this.accountPatcher.updateTrieAndBroadCast(lastCycle.counter)
+        fireAndForget(() => this.accountPatcher.updateTrieAndBroadCast(lastCycle.counter))
         this.profiler.profileSectionEnd('stateManager_updatePartitionReport_updateTrie')
       }
     }
@@ -4216,7 +4210,7 @@ class StateManager {
 
         if (receipt == null) {
           //check  && queueEntry.globalModification === false because global accounts will not get a receipt, should this change?
-          /* prettier-ignore */ if(logFlags.error && queueEntry.globalModification === false) this.mainLogger.error(`generateReceiptMapResults found entry in with no receipt in newAcceptedTxQueue. ${utils.stringifyReduce(queueEntry.acceptedTx)}`)
+          /* prettier-ignore */ if (logFlags.error && queueEntry.globalModification === false) this.mainLogger.error(`generateReceiptMapResults found entry in with no receipt in newAcceptedTxQueue. ${utils.stringifyReduce(queueEntry.acceptedTx)}`)
         } else {
           queueEntriesToSave.push(queueEntry)
         }
@@ -4236,7 +4230,7 @@ class StateManager {
           //check  && queueEntry.globalModification === false
           //we dont expect expired TXs to have a receipt.  this should reduce log spam
           if (queueEntry.state != 'expired') {
-            /* prettier-ignore */ if(logFlags.error && queueEntry.globalModification === false) this.mainLogger.error(`generateReceiptMapResults found entry in with no receipt in archivedQueueEntries. ${utils.stringifyReduce(queueEntry.acceptedTx)} state:${queueEntry.state}`)
+            /* prettier-ignore */ if (logFlags.error && queueEntry.globalModification === false) this.mainLogger.error(`generateReceiptMapResults found entry in with no receipt in archivedQueueEntries. ${utils.stringifyReduce(queueEntry.acceptedTx)} state:${queueEntry.state}`)
           }
         } else {
           queueEntriesToSave.push(queueEntry)
@@ -4249,7 +4243,7 @@ class StateManager {
     for (const queueEntry of queueEntriesToSave) {
       const accountData: ShardusTypes.WrappedResponse[] = queueEntry?.preApplyTXResult?.applyResponse?.accountData
       if (accountData == null) {
-        /* prettier-ignore */ nestedCountersInstance.countRareEvent('generateReceiptMapResults' , `accountData==null tests: ${queueEntry?.preApplyTXResult == null} ${queueEntry?.preApplyTXResult?.applyResponse == null} ${queueEntry?.preApplyTXResult?.applyResponse?.accountData == null}` )
+        /* prettier-ignore */ nestedCountersInstance.countRareEvent('generateReceiptMapResults', `accountData==null tests: ${queueEntry?.preApplyTXResult == null} ${queueEntry?.preApplyTXResult?.applyResponse == null} ${queueEntry?.preApplyTXResult?.applyResponse?.accountData == null}`)
       }
       // delete the localCache
       if (accountData != null) {

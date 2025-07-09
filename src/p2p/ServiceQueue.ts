@@ -20,6 +20,7 @@ import { ensureKeySecurity, getDevPublicKeys } from '../debug'
 import { DevSecurityLevel } from '../shardus/shardus-types'
 import { SignedObject } from '@shardeum-foundation/lib-types/build/src/p2p/P2PTypes'
 import { timingSafeEqual } from 'crypto'
+import { fireAndForget } from '../utils/functions/promises'
 
 /** STATE */
 
@@ -93,7 +94,7 @@ const addTxGossipRoute: P2P.P2PTypes.GossipHandler<P2P.ServiceQueueTypes.SignedA
         addTxCopy.txData = txDataWithoutSign
         txAdd.push(addTxCopy)
 
-        Comms.sendGossip(
+        fireAndForget(() => Comms.sendGossip(
           'gossip-addtx',
           payload,
           tracker,
@@ -104,7 +105,7 @@ const addTxGossipRoute: P2P.P2PTypes.GossipHandler<P2P.ServiceQueueTypes.SignedA
             P2P.P2PTypes.NodeStatus.SYNCING,
           ]),
           false
-        ) // use Self.id so we don't gossip to ourself
+        )) // use Self.id so we don't gossip to ourself
       }
     }
   } finally {
@@ -165,7 +166,7 @@ const removeTxGossipRoute: P2P.P2PTypes.GossipHandler<P2P.ServiceQueueTypes.Sign
       if (!txRemove.some((entry) => entry.txHash === payload.txHash)) {
         txRemove.push(unsignedRemoveNetworkTx)
 
-        Comms.sendGossip(
+        fireAndForget(() => Comms.sendGossip(
           'gossip-removetx',
           payload,
           tracker,
@@ -176,7 +177,7 @@ const removeTxGossipRoute: P2P.P2PTypes.GossipHandler<P2P.ServiceQueueTypes.Sign
             P2P.P2PTypes.NodeStatus.SYNCING,
           ]),
           false
-        ) // use Self.id so we don't gossip to ourself
+        )) // use Self.id so we don't gossip to ourself
       }
     }
   } finally {
@@ -221,7 +222,7 @@ const debugDropNGTGossipRoute: P2P.P2PTypes.GossipHandler<any> = async (payload,
 
   txRemove.push(unsignedRemoveNetworkTx)
 
-  Comms.sendGossip(
+  fireAndForget(() => Comms.sendGossip(
     'debug-drop-ngt',
     payload,
     tracker,
@@ -232,7 +233,7 @@ const debugDropNGTGossipRoute: P2P.P2PTypes.GossipHandler<any> = async (payload,
       P2P.P2PTypes.NodeStatus.SYNCING,
     ]),
     false
-  ) // use Self.id so we don't gossip to ourself
+  )) // use Self.id so we don't gossip to ourself
 }
 
 const routes = {
@@ -466,7 +467,7 @@ export function sendRequests(): void {
     }
 
     /* prettier-ignore */ if (config.debug.verboseNestedCounters) nestedCountersInstance.countEvent(`gossip-addtx`, `gossip send - ${add.hash}`)
-    Comms.sendGossip(
+    fireAndForget(() => Comms.sendGossip(
       'gossip-addtx',
       add,
       '',
@@ -477,7 +478,7 @@ export function sendRequests(): void {
         P2P.P2PTypes.NodeStatus.SYNCING,
       ]),
       true
-    )
+    ))
   }
 
   for (const remove of removeProposals) {
@@ -491,7 +492,7 @@ export function sendRequests(): void {
       }
 
       /* prettier-ignore */ if (config.debug.verboseNestedCounters) nestedCountersInstance.countEvent(`gossip-removetx`, `gossip send - ${remove.txHash}`)
-      Comms.sendGossip(
+      fireAndForget(() => Comms.sendGossip(
         'gossip-removetx',
         remove,
         '',
@@ -502,7 +503,7 @@ export function sendRequests(): void {
           P2P.P2PTypes.NodeStatus.SYNCING,
         ]),
         true
-      )
+      ))
     }
   }
   addProposals.length = 0
@@ -517,7 +518,7 @@ export function sendRequests(): void {
 
     delete dropNGTInfo.cycle
 
-    Comms.sendGossip(
+    fireAndForget(() => Comms.sendGossip(
       'debug-drop-ngt',
       dropNGTInfo,
       '',
@@ -528,7 +529,7 @@ export function sendRequests(): void {
         P2P.P2PTypes.NodeStatus.SYNCING,
       ]),
       true
-    )
+    ))
   }
   debugDropNGTs.length = 0
 }

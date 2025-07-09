@@ -18,6 +18,7 @@ import * as partitionGossip from './partition-gossip'
 import * as SnapshotFunctions from './snapshotFunctions'
 import { getNewestCycle } from '../p2p/Sync'
 import { Utils } from '@shardeum-foundation/lib-types'
+import { fireAndForget } from '../utils/functions/promises'
 
 console.log('StateManager', StateManager)
 console.log('StateManager type', StateManager.StateManagerTypes)
@@ -198,13 +199,13 @@ export function startSnapshotting() {
                 const wrappedAccts = await Context.stateManager.app.getAccountData(range.low, range.high, 10000000)
                 debugStrs.push(
                   `  PARTITION ${partition}\n` +
-                    wrappedAccts
-                      .map((acct) => {
-                        const id = acct.accountId === null ? 'null' : acct.accountId.substr(0, 8)
-                        const hash = acct.stateId === null ? 'null' : acct.stateId.substr(0, 8)
-                        return `    ID: ${id} HASH: ${hash}`
-                      })
-                      .join('\n')
+                  wrappedAccts
+                    .map((acct) => {
+                      const id = acct.accountId === null ? 'null' : acct.accountId.substr(0, 8)
+                      const hash = acct.stateId === null ? 'null' : acct.stateId.substr(0, 8)
+                      return `    ID: ${id} HASH: ${hash}`
+                    })
+                    .join('\n')
                 )
               } catch (e) {
                 console.log(e)
@@ -249,9 +250,9 @@ export function startSnapshotting() {
           safetyModeVals.networkStateHash = networkStateHash
 
           // save the partition and network hashes for that cycle number to the DB
-          SnapshotFunctions.savePartitionAndNetworkHashes(shard, partitionHashes, networkStateHash)
-          SnapshotFunctions.saveReceiptAndNetworkHashes(shard, receiptHashes, networkReceiptMapHash)
-          SnapshotFunctions.saveSummaryAndNetworkHashes(shard, summaryHashes, networkSummaryHash)
+          fireAndForget(() => SnapshotFunctions.savePartitionAndNetworkHashes(shard, partitionHashes, networkStateHash))
+          fireAndForget(() => SnapshotFunctions.saveReceiptAndNetworkHashes(shard, receiptHashes, networkReceiptMapHash))
+          fireAndForget(() => SnapshotFunctions.saveSummaryAndNetworkHashes(shard, summaryHashes, networkSummaryHash))
 
           // Update stateHashes by Cycle map
           const newStateHash: P2P.SnapshotTypes.StateHashes = {
@@ -345,7 +346,7 @@ export function startSnapshotting() {
         }
         const signedMessage = Context.crypto.sign(message)
 
-        Comms.sendGossip('snapshot_gossip', signedMessage, '', null, NodeList.byIdOrder, true)
+        fireAndForget(() => Comms.sendGossip('snapshot_gossip', signedMessage, '', null, NodeList.byIdOrder, true))
         partitionGossip.forwardedGossips.set(message.sender, true)
         collector.process([message])
 
@@ -479,7 +480,7 @@ export async function startWitnessMode() {
           if (!alreadyOfferedNodes.has(node.id)) {
             try {
               log(`Sending witness offer to new node ${ip}:${port}`)
-              sendOfferToNode(node, offer)
+              fireAndForget(() => sendOfferToNode(node, offer))
               alreadyOfferedNodes.set(node.id, true)
             } catch (e) {
               log('ERROR: ', e)
@@ -523,7 +524,7 @@ async function sendOfferToNode(node, offer, isSuggestedByNetwork = false) {
     const waitTime = res.waitTime || 5 * Context.config.p2p.cycleDuration * 1000
     setTimeout(() => {
       log(`Trying again to send to ${node.ip}:${node.port} after waiting ${waitTime} ms`)
-      sendOfferToNode(node, offer, isSuggestedByNetwork)
+      fireAndForget(() => sendOfferToNode(node, offer, isSuggestedByNetwork))
     }, waitTime)
     // If a node reply us 'send_to', send data to those provided nodes
   } else if (answer === P2P.SnapshotTypes.offerResponse.sendTo) {
@@ -537,7 +538,7 @@ async function sendOfferToNode(node, offer, isSuggestedByNetwork = false) {
         const suggestedNode = suggestedNodes[i]
         if (!alreadyOfferedNodes.has(suggestedNode.id)) {
           log(`Sending offer to suggested Node ${node.ip}:${node.port}`)
-          sendOfferToNode(suggestedNode, offer, true)
+          fireAndForget(() => sendOfferToNode(suggestedNode, offer, true))
         }
       }
     }

@@ -86,6 +86,7 @@ import * as NodeList from '../p2p/NodeList'
 import { P2P } from '@shardeum-foundation/lib-types'
 import * as csvPerfEvents from './../logger/csvPerfEvents'
 import { AJVSchemaEnum } from '../types/enum/AJVSchemaEnum'
+import { fireAndForget } from '../utils/functions/promises'
 
 // the following can be removed now since we are not using the old p2p code
 //const P2P = require('../p2p')
@@ -536,8 +537,7 @@ class Shardus extends EventEmitter {
 
           if (archiverCreds.intendedConsensor !== Self.getThisNodeInfo().publicKey) {
             mainLogger.error(
-              `❌ The signature is targeted for consensor @ ${archiverCreds.intendedConsensor} but this node is ${
-                Self.getThisNodeInfo().publicKey
+              `❌ The signature is targeted for consensor @ ${archiverCreds.intendedConsensor} but this node is ${Self.getThisNodeInfo().publicKey
               }`
             )
             return false
@@ -551,7 +551,7 @@ class Shardus extends EventEmitter {
           }
 
           if (Object.keys(Archivers.connectedSockets).length >= config.p2p.maxArchiversSubscriptionPerNode) {
-            /* prettier-ignore */ console.log( `There are already ${config.p2p.maxArchiversSubscriptionPerNode} archivers connected for data transfer!` )
+            /* prettier-ignore */ console.log(`There are already ${config.p2p.maxArchiversSubscriptionPerNode} archivers connected for data transfer!`)
             return false
           }
 
@@ -626,7 +626,7 @@ class Shardus extends EventEmitter {
       const ipPort = `${node.internalIp}:${node.internalPort}`
       //this console log is probably redundant but are disabled most of the time anyhow.
       //They may help slighly in the case of adding some context to the out.log file when full debugging is on.
-      /* prettier-ignore */ if (logFlags.p2pNonFatal) console.log(`In Shardus got network timeout-${context}-${route} for request ID - ${requestId} from node: ${utils.logNode(node)} ${ipPort}` )
+      /* prettier-ignore */ if (logFlags.p2pNonFatal) console.log(`In Shardus got network timeout-${context}-${route} for request ID - ${requestId} from node: ${utils.logNode(node)} ${ipPort}`)
       const result = isApopMarkedNode(node.id)
       if (result) {
         /* prettier-ignore */ nestedCountersInstance.countEvent('lostNodes', `timeout-apop-${context}-${route}`)
@@ -636,7 +636,7 @@ class Shardus extends EventEmitter {
       /** [TODO] Report lost */
       /* prettier-ignore */ if (logFlags.p2pNonFatal) nestedCountersInstance.countEvent('lostNodes', `timeout-${context}`)
       // context has been added to provide info on the type of timeout and where it happened
-      /* prettier-ignore */ if (logFlags.p2pNonFatal) nestedCountersInstance.countRareEvent( 'lostNodes', `timeout-${context}  ${ipPort}` )
+      /* prettier-ignore */ if (logFlags.p2pNonFatal) nestedCountersInstance.countRareEvent('lostNodes', `timeout-${context}  ${ipPort}`)
       if (this.network.statisticsInstance) this.network.statisticsInstance.incrementCounter('lostNodeTimeout')
     })
     this.network.on(
@@ -645,13 +645,13 @@ class Shardus extends EventEmitter {
         const ipPort = `${node.internalIp}:${node.internalPort}`
         //this console log is probably redundant but are disabled most of the time anyhow.
         //They may help slighly in the case of adding some context to the out.log file when full debugging is on.
-        /* prettier-ignore */ if (logFlags.p2pNonFatal) console.log(`In Shardus got network error-${context} ${route}-${subRoute} for request ID ${requestId} from node: ${utils.logNode(node)} ${ipPort} error:${errorGroup}` )
+        /* prettier-ignore */ if (logFlags.p2pNonFatal) console.log(`In Shardus got network error-${context} ${route}-${subRoute} for request ID ${requestId} from node: ${utils.logNode(node)} ${ipPort} error:${errorGroup}`)
         /* prettier-ignore */ if (logFlags.p2pNonFatal) console.log(`node:`, node)
         /* prettier-ignore */ if (logFlags.p2pNonFatal) console.log(`requestId: ${requestId}, context: ${context}, route: ${route}, subRoute: ${subRoute}, errorGroup: ${errorGroup}`)
         if (!config.debug.disableLostNodeReports) scheduleLostReport(node, 'error', requestId)
         /** [TODO] Report lost */
         /* prettier-ignore */ nestedCountersInstance.countEvent('lostNodes', `error-${context}-${route}-${subRoute}`)
-        /* prettier-ignore */ nestedCountersInstance.countRareEvent( 'lostNodes', `error-${context}  ${ipPort}` )
+        /* prettier-ignore */ nestedCountersInstance.countRareEvent('lostNodes', `error-${context}  ${ipPort}`)
       }
     )
 
@@ -731,13 +731,13 @@ class Shardus extends EventEmitter {
     this.reporter =
       this.config.reporting.report && !isServiceMode()
         ? new Reporter(
-            this.config.reporting,
-            this.logger,
-            this.statistics,
-            this.stateManager,
-            this.profiler,
-            this.loadDetection
-          )
+          this.config.reporting,
+          this.logger,
+          this.statistics,
+          this.stateManager,
+          this.profiler,
+          this.loadDetection
+        )
         : null
     Context.setReporterContext(this.reporter)
 
@@ -1203,7 +1203,7 @@ class Shardus extends EventEmitter {
               addressHitLimit
             )
             if (addressSeenCount >= addressHitLimit) {
-              /* prettier-ignore */ if(logFlags.error) this.shardus_fatal( `put_destLimitExceeded`, `Transaction has too many addresses in the queue: ${addressToCheck} ${utils.stringifyReduce(tx)}` )
+              /* prettier-ignore */ if (logFlags.error) this.shardus_fatal(`put_destLimitExceeded`, `Transaction has too many addresses in the queue: ${addressToCheck} ${utils.stringifyReduce(tx)}`)
               this.statistics.incrementCounter('txRejected')
               nestedCountersInstance.countEvent('rejected', `addressSeenCount > ${addressHitLimit}`)
               nestedCountersInstance.countEvent('destLimitCheck', `rejected addressSeenCount > ${addressHitLimit}`)
@@ -1354,7 +1354,7 @@ class Shardus extends EventEmitter {
         cycleNumber: CycleChain.getNewest()?.counter,
       }
       readyPayload = Context.crypto.sign(readyPayload)
-      Comms.sendGossip(
+      fireAndForget(() => Comms.sendGossip(
         'gossip-sync-finished',
         readyPayload,
         undefined,
@@ -1364,7 +1364,7 @@ class Shardus extends EventEmitter {
           P2P.P2PTypes.NodeStatus.READY,
           P2P.P2PTypes.NodeStatus.SYNCING,
         ])
-      )
+      ))
       if (this.stateManager) {
         this.stateManager.appFinishedSyncing = true
       }
@@ -1795,7 +1795,7 @@ class Shardus extends EventEmitter {
     if (homeNode == null) {
       return { success: false, reason: `Home node not found for account ${senderAddress}`, status: 500 }
     }
-    /* prettier-ignore */ if (logFlags.debug || logFlags.rotation) this.mainLogger.debug( `forwardTransactionToLuckyNodes: homeNode: ${homeNode.node.id} closetNodeIds: ${Utils.safeStringify( closetNodeIds.sort() )}` )
+    /* prettier-ignore */ if (logFlags.debug || logFlags.rotation) this.mainLogger.debug(`forwardTransactionToLuckyNodes: homeNode: ${homeNode.node.id} closetNodeIds: ${Utils.safeStringify(closetNodeIds.sort())}`)
 
     let selectedValidators = []
     if (Self.id != homeNode.node.id)
@@ -1837,7 +1837,7 @@ class Shardus extends EventEmitter {
 
       // if the node is not active or not in rotation bounds, skip it
       if (node.status !== 'active' || rotationCheckPassed === false) {
-        /* prettier-ignore */ if (logFlags.debug || logFlags.rotation) this.mainLogger.debug( `forwardTransactionToLuckyNodes: node ${id} is not active or in rotation bounds. node.status: ${ node.status } isNodeInRotationBounds: ${isNodeInRotationBounds(id)}` )
+        /* prettier-ignore */ if (logFlags.debug || logFlags.rotation) this.mainLogger.debug(`forwardTransactionToLuckyNodes: node ${id} is not active or in rotation bounds. node.status: ${node.status} isNodeInRotationBounds: ${isNodeInRotationBounds(id)}`)
         stats.skippedRotation++
         continue
       }
@@ -1857,10 +1857,10 @@ class Shardus extends EventEmitter {
         /* prettier-ignore */ if (logFlags.seqdiagram) this.seqLogger.info(`0x53455106 ${shardusGetTime()} tx:${txId} Note over ${activeIdToPartition.get(Self.id)}: lucky_forward_req_${context} ${activeIdToPartition.get(validator.id)}`)
 
         if (validator.id === homeNode.node.id) {
-          /* prettier-ignore */ if (logFlags.debug || logFlags.rotation) this.mainLogger.debug( `Forwarding injected tx ${txId} to home node ${validator.id} reason: ${message} ${Utils.safeStringify(tx)}` )
+          /* prettier-ignore */ if (logFlags.debug || logFlags.rotation) this.mainLogger.debug(`Forwarding injected tx ${txId} to home node ${validator.id} reason: ${message} ${Utils.safeStringify(tx)}`)
           nestedCountersInstance.countEvent('statistics', `forwardTxToHomeNode: ${message}`)
         } else {
-          /* prettier-ignore */ if (logFlags.debug || logFlags.rotation) this.mainLogger.debug( `Forwarding injected tx ${txId} to consensus group. reason: ${message} ${Utils.safeStringify(tx)}` )
+          /* prettier-ignore */ if (logFlags.debug || logFlags.rotation) this.mainLogger.debug(`Forwarding injected tx ${txId} to consensus group. reason: ${message} ${Utils.safeStringify(tx)}`)
           nestedCountersInstance.countEvent('statistics', `forwardTxToConsensusGroup: ${message}`)
         }
 
@@ -1868,19 +1868,19 @@ class Shardus extends EventEmitter {
 
         if (result == null) {
           /* prettier-ignore */ if (logFlags.seqdiagram) this.seqLogger.info(`0x53455106 ${shardusGetTime()} tx:${txId} Note over ${activeIdToPartition.get(Self.id)}: lucky_forward_null_${context} ${activeIdToPartition.get(validator.id)}`)
-          /* prettier-ignore */ if (logFlags.debug || logFlags.rotation) this.mainLogger.debug( `Got null/undefined response upon forwarding injected tx: ${txId} to node ${validator.id}` )
+          /* prettier-ignore */ if (logFlags.debug || logFlags.rotation) this.mainLogger.debug(`Got null/undefined response upon forwarding injected tx: ${txId} to node ${validator.id}`)
           failedCount++
           continue
         }
         if (result && result.success === false) {
           /* prettier-ignore */ if (logFlags.seqdiagram) this.seqLogger.info(`0x53455106 ${shardusGetTime()} tx:${txId} Note over ${activeIdToPartition.get(Self.id)}: lucky_forward_false_${context} ${activeIdToPartition.get(validator.id)}`)
-          /* prettier-ignore */ if (logFlags.debug || logFlags.rotation) this.mainLogger.debug( `Got unsuccessful response upon forwarding injected tx: ${validator.id}. ${message} ${Utils.safeStringify(tx)}` )
+          /* prettier-ignore */ if (logFlags.debug || logFlags.rotation) this.mainLogger.debug(`Got unsuccessful response upon forwarding injected tx: ${validator.id}. ${message} ${Utils.safeStringify(tx)}`)
           failedCount++
           continue
         }
         if (result && result.success === true) {
           /* prettier-ignore */ if (logFlags.seqdiagram) this.seqLogger.info(`0x53455106 ${shardusGetTime()} tx:${txId} Note over ${activeIdToPartition.get(Self.id)}: lucky_forward_success_${context} ${activeIdToPartition.get(validator.id)}`)
-          /* prettier-ignore */ if (logFlags.debug || logFlags.rotation) this.mainLogger.debug( `Got successful response upon forwarding injected tx: ${validator.id}. ${message} ${Utils.safeStringify(tx)}` )
+          /* prettier-ignore */ if (logFlags.debug || logFlags.rotation) this.mainLogger.debug(`Got successful response upon forwarding injected tx: ${validator.id}. ${message} ${Utils.safeStringify(tx)}`)
 
           if (result.reason === 'Transaction is already in pending nonce queue.') {
             stats.ok_inQ++
@@ -1904,13 +1904,13 @@ class Shardus extends EventEmitter {
         }
       } catch (e) {
         /* prettier-ignore */ if (logFlags.seqdiagram) this.seqLogger.info(`0x53455106 ${shardusGetTime()} tx:${txId} Note over ${activeIdToPartition.get(Self.id)}: lucky_forward_ex_${context} ${activeIdToPartition.get(validator.id)}`)
-        /* prettier-ignore */ if (logFlags.debug || logFlags.rotation) this.mainLogger.error( `Forwarding injected tx to ${validator.id} failed. ${message} ${Utils.safeStringify(tx)} error: ${ e.stack }` )
+        /* prettier-ignore */ if (logFlags.debug || logFlags.rotation) this.mainLogger.error(`Forwarding injected tx to ${validator.id} failed. ${message} ${Utils.safeStringify(tx)} error: ${e.stack}`)
       }
     }
 
     if (successCount > 0) {
       /* prettier-ignore */ if (logFlags.seqdiagram) this.seqLogger.info(`0x53455106 ${shardusGetTime()} tx:${txId} Note over ${activeIdToPartition.get(Self.id)}: lucky_forward_success_${context}`)
-      /* prettier-ignore */ if (logFlags.debug || logFlags.rotation) this.mainLogger.debug( `Got successful response upon forwarding injected tx: ${message} ${Utils.safeStringify(tx)}` )
+      /* prettier-ignore */ if (logFlags.debug || logFlags.rotation) this.mainLogger.debug(`Got successful response upon forwarding injected tx: ${message} ${Utils.safeStringify(tx)}`)
       nestedCountersInstance.countEvent(
         'statistics',
         `forward to luck success ${message} failed/success/total: ${failedCount}/${successCount}/${selectedValidators.length}`
@@ -1919,7 +1919,7 @@ class Shardus extends EventEmitter {
     }
 
     nestedCountersInstance.countEvent('statistics', `forward failed: ${message} ${Utils.safeStringify(stats)}`)
-    /* prettier-ignore */ if (logFlags.debug || logFlags.rotation) this.mainLogger.error( `Forwarding injected tx out of tries. ${Utils.safeStringify(stats)} ${Utils.safeStringify(tx)} ` )
+    /* prettier-ignore */ if (logFlags.debug || logFlags.rotation) this.mainLogger.error(`Forwarding injected tx out of tries. ${Utils.safeStringify(stats)} ${Utils.safeStringify(tx)} `)
     return { success: false, reason: 'No validators found to forward the transaction', status: 500 }
   }
 
@@ -2415,11 +2415,11 @@ class Shardus extends EventEmitter {
 
   async debugForeverLoop(tag: string) {
     this.debugForeverLoopCounter++
-    /* prettier-ignore */ this.stateManager.transactionQueue.setDebugSetLastAppAwait('debugForeverLoop'+tag)
+    /* prettier-ignore */ this.stateManager.transactionQueue.setDebugSetLastAppAwait('debugForeverLoop' + tag)
     while (this.debugForeverLoopsEnabled) {
       await utils.sleep(1000)
     }
-    /* prettier-ignore */ this.stateManager.transactionQueue.setDebugSetLastAppAwait('debugForeverLoop'+tag, DebugComplete.Completed)
+    /* prettier-ignore */ this.stateManager.transactionQueue.setDebugSetLastAppAwait('debugForeverLoop' + tag, DebugComplete.Completed)
   }
 
   setupDebugEndpoints() {
@@ -2667,14 +2667,14 @@ class Shardus extends EventEmitter {
           _wrappedStates,
           _applyResponse,
           _isExecutionGroup
-        ) {}
+        ) { }
       }
 
       if (typeof application.transactionReceiptFail === 'function') {
         applicationInterfaceImpl.transactionReceiptFail = async (tx, wrappedStates, applyResponse) =>
           application.transactionReceiptFail(tx, wrappedStates, applyResponse)
       } else {
-        applicationInterfaceImpl.transactionReceiptFail = async function (_tx, _wrappedStates, _applyResponse) {}
+        applicationInterfaceImpl.transactionReceiptFail = async function (_tx, _wrappedStates, _applyResponse) { }
       }
 
       if (typeof application.updateAccountFull === 'function') {
@@ -2748,7 +2748,7 @@ class Shardus extends EventEmitter {
           this.profiler.scopedProfileSectionEnd('process-dapp.setCachedRIAccountData')
         }
       } else {
-        applicationInterfaceImpl.setCachedRIAccountData = async (_accountRecords: any[]) => {}
+        applicationInterfaceImpl.setCachedRIAccountData = async (_accountRecords: any[]) => { }
       }
 
       if (typeof application.getAccountDataByRange === 'function') {
@@ -2869,19 +2869,19 @@ class Shardus extends EventEmitter {
         applicationInterfaceImpl.dataSummaryInit = async (blob, accountData) =>
           application.dataSummaryInit(blob, accountData)
       } else {
-        applicationInterfaceImpl.dataSummaryInit = async function (_blob, _accountData) {}
+        applicationInterfaceImpl.dataSummaryInit = async function (_blob, _accountData) { }
       }
       if (typeof application.dataSummaryUpdate === 'function') {
         applicationInterfaceImpl.dataSummaryUpdate = async (blob, accountDataBefore, accountDataAfter) =>
           application.dataSummaryUpdate(blob, accountDataBefore, accountDataAfter)
       } else {
-        applicationInterfaceImpl.dataSummaryUpdate = async function (_blob, _accountDataBefore, _accountDataAfter) {}
+        applicationInterfaceImpl.dataSummaryUpdate = async function (_blob, _accountDataBefore, _accountDataAfter) { }
       }
       if (typeof application.txSummaryUpdate === 'function') {
         applicationInterfaceImpl.txSummaryUpdate = async (blob, tx, wrappedStates) =>
           application.txSummaryUpdate(blob, tx, wrappedStates)
       } else {
-        applicationInterfaceImpl.txSummaryUpdate = async function (_blob, _tx, _wrappedStates) {}
+        applicationInterfaceImpl.txSummaryUpdate = async function (_blob, _tx, _wrappedStates) { }
       }
 
       if (typeof application.getAccountTimestamp === 'function') {
@@ -2928,7 +2928,7 @@ class Shardus extends EventEmitter {
         applicationInterfaceImpl.getNodeInfoAppData = () => application.getNodeInfoAppData()
       } else {
         // If the app doesn't provide getNodeInfoAppData, assume it returns empty obj
-        applicationInterfaceImpl.getNodeInfoAppData = () => {}
+        applicationInterfaceImpl.getNodeInfoAppData = () => { }
       }
       if (typeof application.updateNetworkChangeQueue === 'function') {
         applicationInterfaceImpl.updateNetworkChangeQueue = async (account: ShardusTypes.WrappedData, appData: any) =>

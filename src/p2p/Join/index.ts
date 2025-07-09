@@ -38,7 +38,7 @@ import { drainNewStandbyRefreshRequests, addStandbyRefresh } from './v2/standbyR
 import rfdc from 'rfdc'
 import { Utils } from '@shardeum-foundation/lib-types'
 import { neverGoActive } from '../Active'
-
+import { fireAndForget } from '../../utils/functions/promises'
 /** STATE */
 
 let p2pLogger: Logger
@@ -186,19 +186,19 @@ export function calculateToAccept(): number {
     lastLoggedCycle = cycle
     info(
       'scale dump:' +
-        Utils.safeStringify({
-          cycle,
-          scaleFactor: CycleCreator.scaleFactor,
-          needed,
-          desired,
-          active,
-          syncing,
-          canSync,
-          syncMax,
-          maxJoin,
-          expired,
-          scaleFactorSyncBoost: CycleCreator.scaleFactorSyncBoost,
-        })
+      Utils.safeStringify({
+        cycle,
+        scaleFactor: CycleCreator.scaleFactor,
+        needed,
+        desired,
+        active,
+        syncing,
+        canSync,
+        syncMax,
+        maxJoin,
+        expired,
+        scaleFactorSyncBoost: CycleCreator.scaleFactorSyncBoost,
+      })
     )
   }
   return needed
@@ -270,7 +270,7 @@ export function updateRecord(txs: P2P.JoinTypes.Txs, record: P2P.CycleCreatorTyp
       if (node) {
         record.startedSyncing.push(request.nodeId)
       } else {
-        /* prettier-ignore */ if(logFlags.important_as_error) warn(`join:updateRecord:startedSyncing: node not found: ${publicKey}`)
+        /* prettier-ignore */ if (logFlags.important_as_error) warn(`join:updateRecord:startedSyncing: node not found: ${publicKey}`)
       }
     }
 
@@ -293,7 +293,7 @@ export function updateRecord(txs: P2P.JoinTypes.Txs, record: P2P.CycleCreatorTyp
         /* prettier-ignore */ if (logFlags.verbose) console.log(`drainFinishedSyncingRequest: ${request.nodeId}`)
         record.finishedSyncing.push(request.nodeId)
       } else {
-        /* prettier-ignore */ if(logFlags.important_as_error) warn(`join:updateRecord:finishedSyncing: node not found: ${publicKey}`)
+        /* prettier-ignore */ if (logFlags.important_as_error) warn(`join:updateRecord:finishedSyncing: node not found: ${publicKey}`)
       }
     }
 
@@ -308,7 +308,7 @@ export function updateRecord(txs: P2P.JoinTypes.Txs, record: P2P.CycleCreatorTyp
       if (node) {
         record.standbyRefresh.push(request.publicKey)
       } else {
-        /* prettier-ignore */ if(logFlags.important_as_error) warn(`join:updateRecord:standbyRefresh: node not found: ${publicKey}`)
+        /* prettier-ignore */ if (logFlags.important_as_error) warn(`join:updateRecord:standbyRefresh: node not found: ${publicKey}`)
       }
     }
 
@@ -415,7 +415,7 @@ export function updateRecord(txs: P2P.JoinTypes.Txs, record: P2P.CycleCreatorTyp
         const { canStay, reason } = shardus.app.canStayOnStandby(joinRequest)
         if (canStay === false) {
           record.standbyRemove.push(key)
-          /* prettier-ignore */ if (logFlags.p2pNonFatal) console.log( `join:updateRecord cycle number: ${record.counter} removed standby node ${key} reason: ${reason}` )
+          /* prettier-ignore */ if (logFlags.p2pNonFatal) console.log(`join:updateRecord cycle number: ${record.counter} removed standby node ${key} reason: ${reason}`)
           standbyRemoved_App++
           if (standbyRemoved_App >= config.p2p.standbyListMaxRemoveTTL) {
             break
@@ -432,7 +432,7 @@ export function updateRecord(txs: P2P.JoinTypes.Txs, record: P2P.CycleCreatorTyp
           // Calculate the number of nodes to remove to meet the size limit
           const nodesToRemoveCount = effectiveStandbyListSize - config.p2p.maxStandbyCount
 
-          /* prettier-ignore */ if (logFlags.p2pNonFatal) console.log( `join:updateRecord cycle number: ${record.counter} removing ${nodesToRemoveCount} from standby list reason: standby node list size above maxStandbyCount of ${config.p2p.maxStandbyCount}` )
+          /* prettier-ignore */ if (logFlags.p2pNonFatal) console.log(`join:updateRecord cycle number: ${record.counter} removing ${nodesToRemoveCount} from standby list reason: standby node list size above maxStandbyCount of ${config.p2p.maxStandbyCount}`)
 
           // Convert record.standbyRemove array to a Set for faster lookup
           const standbyRemoveSet = new Set(record.standbyRemove)
@@ -453,9 +453,9 @@ export function updateRecord(txs: P2P.JoinTypes.Txs, record: P2P.CycleCreatorTyp
         }
       }
 
-      /* prettier-ignore */ if (logFlags.p2pNonFatal) console.log( `join:updateRecord cycle number: ${record.counter} skipped: ${skipped} removedTTLCount: ${standbyRemoved_Age}  removed list: ${record.standbyRemove} ` )
+      /* prettier-ignore */ if (logFlags.p2pNonFatal) console.log(`join:updateRecord cycle number: ${record.counter} skipped: ${skipped} removedTTLCount: ${standbyRemoved_Age}  removed list: ${record.standbyRemove} `)
       /* prettier-ignore */ if (logFlags.p2pNonFatal) debugDumpJoinRequestList(standbyList, `join.updateRecord: last-hashed ${record.counter}`)
-      /* prettier-ignore */ if (logFlags.p2pNonFatal) debugDumpJoinRequestList( Array.from(getStandbyNodesInfoMap().values()), `join.updateRecord: standby-map ${record.counter}` )
+      /* prettier-ignore */ if (logFlags.p2pNonFatal) debugDumpJoinRequestList(Array.from(getStandbyNodesInfoMap().values()), `join.updateRecord: standby-map ${record.counter}`)
     }
 
     record.standbyAdd.sort((a, b) => (a.nodeInfo.publicKey > b.nodeInfo.publicKey ? 1 : -1))
@@ -490,7 +490,7 @@ export function updateRecord(txs: P2P.JoinTypes.Txs, record: P2P.CycleCreatorTyp
       }
     }
 
-    /* prettier-ignore */ if (logFlags.p2pNonFatal) console.log( `standbyRemoved_Age: ${standbyRemoved_Age} standbyRemoved_App: ${standbyRemoved_App}` )
+    /* prettier-ignore */ if (logFlags.p2pNonFatal) console.log(`standbyRemoved_Age: ${standbyRemoved_Age} standbyRemoved_App: ${standbyRemoved_App}`)
 
     record.joinedConsensors.sort()
 
@@ -563,7 +563,7 @@ export function parseRecord(record: P2P.CycleCreatorTypes.CycleRecord): P2P.Cycl
   }
 
   if (added.length > 0) {
-    /* prettier-ignore */ if (logFlags.p2pNonFatal) debugDumpJoinRequestList( Array.from(getStandbyNodesInfoMap().values()), `join.parseRecord: standby-map ${record.counter} some activated:${record.counter}` )
+    /* prettier-ignore */ if (logFlags.p2pNonFatal) debugDumpJoinRequestList(Array.from(getStandbyNodesInfoMap().values()), `join.parseRecord: standby-map ${record.counter} some activated:${record.counter}`)
   }
 
   // update self status?
@@ -670,7 +670,7 @@ export function sendRequests(): void {
     if (addSyncStarted(syncStartedTx).success === true) {
       nestedCountersInstance.countEvent('p2p', `join:sendRequests: sending sync-started gossip to network`)
       /* prettier-ignore */ if (logFlags.p2pNonFatal) console.log(`join:sendRequests: sending sync-started gossip to network`)
-      Comms.sendGossip(
+      fireAndForget(() => Comms.sendGossip(
         'gossip-sync-started',
         syncStartedTx,
         '',
@@ -681,7 +681,7 @@ export function sendRequests(): void {
           P2P.P2PTypes.NodeStatus.SYNCING,
         ]),
         true
-      )
+      ))
     } else {
       nestedCountersInstance.countEvent('p2p', `join:sendRequests: failed to add our own sync-started message`)
       /* prettier-ignore */ if (logFlags.p2pNonFatal) console.log(`join:sendRequests: failed to add our own sync-started message`)
@@ -698,7 +698,7 @@ export function sendRequests(): void {
     if (addFinishedSyncing(syncFinishedTx).success === true) {
       nestedCountersInstance.countEvent('p2p', `join:sendRequests: sending sync-finished gossip to network`)
       /* prettier-ignore */ if (logFlags.p2pNonFatal) console.log(`join:sendRequests: sending sync-finished gossip to network`)
-      Comms.sendGossip(
+      fireAndForget(() => Comms.sendGossip(
         'gossip-sync-finished',
         syncFinishedTx,
         '',
@@ -709,7 +709,7 @@ export function sendRequests(): void {
           P2P.P2PTypes.NodeStatus.SYNCING,
         ]),
         true
-      )
+      ))
     } else {
       nestedCountersInstance.countEvent('p2p', `join:sendRequests: failed to add our own sync-finished message`)
       /* prettier-ignore */ if (logFlags.p2pNonFatal) console.log(`join:sendRequests: failed to add our own sync-finished message`)
@@ -759,8 +759,8 @@ export function sendRequests(): void {
       // re-compute selection number for the join request for the current cycle
       const selectionNumResult = computeSelectionNum(joinRequest)
       if (selectionNumResult.isErr()) {
-        /* prettier-ignore */ nestedCountersInstance.countEvent( 'p2p', `join:sendRequests: failed to compute selection number` )
-        /* prettier-ignore */ if (logFlags.p2pNonFatal) console.error( `join:sendRequests: failed to compute selection number for node ${joinRequest.nodeInfo.publicKey}:`, JSON.stringify(selectionNumResult.error) )
+        /* prettier-ignore */ nestedCountersInstance.countEvent('p2p', `join:sendRequests: failed to compute selection number`)
+        /* prettier-ignore */ if (logFlags.p2pNonFatal) console.error(`join:sendRequests: failed to compute selection number for node ${joinRequest.nodeInfo.publicKey}:`, JSON.stringify(selectionNumResult.error))
         return
       }
       joinRequest.selectionNum = selectionNumResult.value
@@ -812,7 +812,7 @@ export function sendRequests(): void {
 
       nestedCountersInstance.countEvent('p2p', `join:sendRequests: sending unjoin gossip to network`)
       /* prettier-ignore */ if (logFlags.p2pNonFatal) console.log(`join:sendRequests: sending unjoin gossip to network`)
-      Comms.sendGossip(
+      fireAndForget(() => Comms.sendGossip(
         'gossip-unjoin',
         unjoinRequest,
         '',
@@ -823,7 +823,7 @@ export function sendRequests(): void {
           P2P.P2PTypes.NodeStatus.SYNCING,
         ]),
         true
-      )
+      ))
     }
   }
 
@@ -1537,7 +1537,7 @@ function getSelectionKey(joinRequest: JoinRequest): Result<string, JoinRequestRe
       )
 
       if (validationResponse.success !== true) {
-        /* prettier-ignore */ if (logFlags.p2pNonFatal) error( `Validation of join request data is failed due to ${validationResponse.reason || 'unknown reason'}` )
+        /* prettier-ignore */ if (logFlags.p2pNonFatal) error(`Validation of join request data is failed due to ${validationResponse.reason || 'unknown reason'}`)
         nestedCountersInstance.countEvent('p2p', `join-reject-dapp`)
         return err({
           success: validationResponse.success,

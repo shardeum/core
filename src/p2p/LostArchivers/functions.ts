@@ -27,6 +27,7 @@ import { LostArchiverInvestigateReq, serializeLostArchiverInvestigateReq } from 
 import { InternalRouteEnum } from '../../types/enum/InternalRouteEnum'
 import { tellBinary } from '../Comms'
 import { Utils } from '@shardeum-foundation/lib-types'
+import { fireAndForget } from '../../utils/functions/promises'
 
 /** Lost Archivers Functions */
 
@@ -171,13 +172,13 @@ export function informInvestigator(target: publicKey): void {
     // Send message to investigator
     info(`informInvestigator: sending InvestigateArchiverMsg: ${inspect(investigateMsg)}`)
     // if (this.config.p2p.useBinarySerializedEndpoints && this.config.p2p.lostArchiverInvestigateBinary) {
-    Comms.tellBinary<LostArchiverInvestigateReq>(
+    fireAndForget(() => Comms.tellBinary<LostArchiverInvestigateReq>(
       [investigator],
       InternalRouteEnum.binary_lost_archiver_investigate,
       investigateMsg,
       serializeLostArchiverInvestigateReq,
       {}
-    )
+    ))
     // } else {
     //   Comms.tell([investigator], 'lost-archiver-investigate', investigateMsg)
     // }
@@ -201,7 +202,7 @@ export function tellNetworkArchiverIsDown(record: LostArchiverRecord): void {
   })
   info(`tellNetworkArchiverIsDown: downMsg: ${Utils.safeStringify(downMsg)}`)
   record.archiverDownMsg = downMsg
-  Comms.sendGossip('lost-archiver-down', downMsg, '', null, NodeList.byIdOrder, /* isOrigin */ true)
+  fireAndForget(() => Comms.sendGossip('lost-archiver-down', downMsg, '', null, NodeList.byIdOrder, /* isOrigin */ true))
   // This is to inform the rest of the network that the Archiver is down
 }
 

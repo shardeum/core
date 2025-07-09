@@ -137,3 +137,36 @@ export async function withTimeout<T>(fn: () => Promise<T>, timeoutMs: number): P
     return 'timeout'
   }
 }
+
+export const fireAndForget = (
+  fn: () => Promise<unknown>,
+  onError?: (error: Error) => void
+): void => {
+  try {
+    Promise.resolve(fn()).catch((err) => {
+      const errorHandler =
+        onError ||
+        ((error: Error) => {
+          console.log('Fire-and-forget error caught:', error)
+        })
+      if (err instanceof Error) {
+        errorHandler(err)
+      } else {
+        errorHandler(new Error(String(err)))
+      }
+    })
+  } catch (err) {
+    // Handle synchronous errors thrown by fn()
+    const errorHandler =
+      onError ||
+      ((error: Error) => {
+        console.log('Fire-and-forget sync error caught:', error)
+      })
+    if (err instanceof Error) {
+      errorHandler(err)
+    } else {
+      errorHandler(new Error(String(err)))
+    }
+  }
+}
+

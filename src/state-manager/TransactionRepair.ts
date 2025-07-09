@@ -19,6 +19,7 @@ import { InternalRouteEnum } from '../types/enum/InternalRouteEnum'
 import * as NodeList from '../p2p/NodeList'
 import * as Self from '../p2p/Self'
 import { Utils } from '@shardeum-foundation/lib-types'
+import { fireAndForget } from '../utils/functions/promises'
 
 class TransactionRepair {
   app: Shardus.App
@@ -314,8 +315,7 @@ class TransactionRepair {
         utils.shuffleArray(eligibleNodeIdsArray)
         const eligibleNodeIds = new Set(eligibleNodeIdsArray)
         this.mainLogger.debug(
-          `repairToMatchReceipt: ${txLogID} eligibleNodeIds ${eligibleNodeIds.size} && eligibleNodeIdMap ${
-            Object.keys(eligibleNodeIdMap).length
+          `repairToMatchReceipt: ${txLogID} eligibleNodeIds ${eligibleNodeIds.size} && eligibleNodeIdMap ${Object.keys(eligibleNodeIdMap).length
           }`
         )
 
@@ -472,11 +472,11 @@ class TransactionRepair {
                 //find alternate
                 if (alternateIndex >= requestObject.alternates.length) {
                   /* prettier-ignore */ if (logFlags.error) this.statemanager_fatal(
-                    `repairToMatchReceipt_1`,
-                    `ASK FAIL repairToMatchReceipt failed to find alternate node to ask for receipt data. txId. ${utils.stringifyReduce(
-                      requestObject.proposal.txid
-                    )} alts: ${utils.stringifyReduce(requestObject.alternates)}  acc:${shortKey}`
-                  )
+                  `repairToMatchReceipt_1`,
+                  `ASK FAIL repairToMatchReceipt failed to find alternate node to ask for receipt data. txId. ${utils.stringifyReduce(
+                    requestObject.proposal.txid
+                  )} alts: ${utils.stringifyReduce(requestObject.alternates)}  acc:${shortKey}`
+                )
                   attemptsRemaining = false
 
                   if (outerloopCount <= 2) {
@@ -487,17 +487,16 @@ class TransactionRepair {
                     checkNodeLost = false
                     /* prettier-ignore */ if (logFlags.error) this.statemanager_fatal(
                       `repairToMatchReceipt_2`,
-                      `ASK FAIL repairToMatchReceipt making attempt #${
-                        outerloopCount + 1
+                      `ASK FAIL repairToMatchReceipt making attempt #${outerloopCount + 1
                       }   tx:${txLogID}  acc:${shortKey}`
                     )
                     break
                   } else {
                     /* prettier-ignore */ if (logFlags.error) this.mainLogger.error(`repairToMatchReceipt FAILED out of attempts #${outerloopCount + 1} tx:${txLogID}  acc:${shortKey}`)
                     /* prettier-ignore */ if (logFlags.error) this.statemanager_fatal(
-                      `repairToMatchReceipt_3`,
-                      `ASK FAIL repairToMatchReceipt FAILED out of attempts   tx:${txLogID}  acc:${shortKey}`
-                    )
+                    `repairToMatchReceipt_3`,
+                    `ASK FAIL repairToMatchReceipt FAILED out of attempts   tx:${txLogID}  acc:${shortKey}`
+                  )
                     nestedCountersInstance.countEvent('repair1', 'failed out of attempts')
                     return
                   }
@@ -517,11 +516,10 @@ class TransactionRepair {
 
               if (node == null) {
                 /* prettier-ignore */ if (logFlags.error) this.statemanager_fatal(
-                  `repairToMatchReceipt_4`,
-                  `ASK FAIL repairToMatchReceipt node == null in list. #${
-                    outerloopCount + 1
-                  }  tx:${txLogID}  acc:${shortKey}`
-                )
+                `repairToMatchReceipt_4`,
+                `ASK FAIL repairToMatchReceipt node == null in list. #${outerloopCount + 1
+                }  tx:${txLogID}  acc:${shortKey}`
+              )
                 node = null
                 break
               }
@@ -778,7 +776,7 @@ class TransactionRepair {
 
                     updatedAccountAndHashes.push({ accountID: data.accountId, hash: data.stateId })
 
-                    /* prettier-ignore */ if (logFlags.debug) this.mainLogger.debug( `repairToMatchReceipt: addAccountStates tx:${txLogID} neededUpdate:${hashNeededUpdate} updateStateTable:${updateStateTable} timeStampMatches:${timeStampMatches} test2:${test2} test3:${test3} test4:${test4} branch4:${branch4} ${utils.stringifyReduce( stateTableResults )} acc:${shortKey}` )
+                    /* prettier-ignore */ if (logFlags.debug) this.mainLogger.debug(`repairToMatchReceipt: addAccountStates tx:${txLogID} neededUpdate:${hashNeededUpdate} updateStateTable:${updateStateTable} timeStampMatches:${timeStampMatches} test2:${test2} test3:${test3} test4:${test4} branch4:${branch4} ${utils.stringifyReduce(stateTableResults)} acc:${shortKey}`)
                   }
                 } finally {
                   this.profiler.profileSectionEnd('repair_saving_account_data')
@@ -789,9 +787,9 @@ class TransactionRepair {
 
               if (outerloopCount > 1) {
                 /* prettier-ignore */ if (logFlags.important_as_error) this.statemanager_fatal(
-                  `repairToMatchReceipt_5 outerloopCount ok`,
-                  `ASK FAIL repairToMatchReceipt FIX WORKED ${outerloopCount} tx:${txLogID}  acc:${shortKey}`
-                )
+                `repairToMatchReceipt_5 outerloopCount ok`,
+                `ASK FAIL repairToMatchReceipt FIX WORKED ${outerloopCount} tx:${txLogID}  acc:${shortKey}`
+              )
               }
 
               break
@@ -869,16 +867,15 @@ class TransactionRepair {
                 if (this.config.p2p.experimentalSnapshot)
                   if (logFlags.verbose)
                     console.log('repair commit', queueEntry.acceptedTx.txId, queueEntry.acceptedTx.timestamp)
-                this.stateManager.transactionQueue.addReceiptToForward(queueEntry, 'repair')
+                fireAndForget(() => this.stateManager.transactionQueue.addReceiptToForward(queueEntry, 'repair'))
               }
           }
         }
 
         const repairLogString = `tx:${queueEntry.logID} updatedAccountAndHashes:${utils.stringifyReduce(
           updatedAccountAndHashes
-        )}  localUpdatedAccountAndHashes:${utils.stringifyReduce(localUpdatedAccountAndHashes)} state:${
-          queueEntry.state
-        } counters:${utils.stringifyReduce(stats)}`
+        )}  localUpdatedAccountAndHashes:${utils.stringifyReduce(localUpdatedAccountAndHashes)} state:${queueEntry.state
+          } counters:${utils.stringifyReduce(stats)}`
         /* prettier-ignore */ if (logFlags.playback) this.logger.playbackLogNote('shrd_repairToMatchReceipt_success', queueEntry.logID, repairLogString)
         /* prettier-ignore */ if (logFlags.debug) this.mainLogger.debug('shrd_repairToMatchReceipt_success ' + repairLogString)
         nestedCountersInstance.countEvent('repair1', 'success')

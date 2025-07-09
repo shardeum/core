@@ -15,6 +15,7 @@ import { enterRecovery, enterSafety } from './Modes'
 import { getOurNodeIndex } from './Utils'
 import { shardusGetTime } from '../network'
 import { Utils } from '@shardeum-foundation/lib-types'
+import { fireAndForget } from '../utils/functions/promises'
 
 /** STATE */
 
@@ -54,7 +55,7 @@ const gossipScaleRoute: P2P.P2PTypes.GossipHandler<P2P.CycleAutoScaleTypes.Signe
 
     const added = addExtScalingRequest(payload)
     if (!added) return
-    Comms.sendGossip('scaling', payload, tracker, sender, NodeList.byIdOrder, false, 2)
+    fireAndForget(() => Comms.sendGossip('scaling', payload, tracker, sender, NodeList.byIdOrder, false, 2))
   } finally {
     profilerInstance.scopedProfileSectionEnd('gossip-scaling')
   }
@@ -129,7 +130,7 @@ function _requestNetworkScaling(upOrDown) {
     info(
       `Our scale request is added. Gossiping our scale request to other nodes. ${Utils.safeStringify(signedRequest)}`
     )
-    Comms.sendGossip('scaling', signedRequest, '', null, NodeList.byIdOrder, true, 2)
+    fireAndForget(() => Comms.sendGossip('scaling', signedRequest, '', null, NodeList.byIdOrder, true, 2))
     scalingRequested = true
     requestedScalingType = signedRequest.scale //only set this when our node requests scaling
     nestedCountersInstance.countEvent('p2p', 'initiate gossip: scaling: ' + (upOrDown ? 'up' : 'down'))
@@ -183,8 +184,7 @@ function validateScalingRequest(scalingRequest: P2P.CycleAutoScaleTypes.SignedSc
   // Check if cycle counter matches
   if (scalingRequest.counter !== CycleCreator.currentCycle) {
     warn(
-      `Invalid scaling request, not for this cycle. Current cycle:${CycleCreator.currentCycle}, cycleInScaleRequest: ${
-        scalingRequest.counter
+      `Invalid scaling request, not for this cycle. Current cycle:${CycleCreator.currentCycle}, cycleInScaleRequest: ${scalingRequest.counter
       } Request: ${Utils.safeStringify(scalingRequest)}`
     )
     return false
@@ -415,7 +415,7 @@ function setAndGetTargetCount(prevRecord: P2P.CycleCreatorTypes.CycleRecord): nu
       //Instruction:  I have a bunch of logs like this but I want to upgrade them to call logger.mainLog_debug.
       /* prettier-ignore */ //if (logFlags && logFlags.verbose) console.log("CycleAutoScale: in restart")
       //Instruction: here is what I want the log to look like.  Note the first argument is a unique key.  The funciton name in all capps followed by some context and then an int that incrments so we dont have dupes will work
-      /* prettier-ignore */ if (logFlags?.verbose) logger.mainLog_debug('SETANDGETTARGETCOUNT_RESTART_1',"CycleAutoScale: in restart")
+      /* prettier-ignore */ if (logFlags?.verbose) logger.mainLog_debug('SETANDGETTARGETCOUNT_RESTART_1', "CycleAutoScale: in restart")
 
       if (syncing < desired + config.p2p.extraNodesToAddInRestart) {
         /* prettier-ignore */ if (logFlags && logFlags.verbose) console.log("CycleAutoScale: entered syncing < desired")
@@ -451,9 +451,9 @@ export function configUpdated() {
   // }
 }
 
-export function queueRequest(request) {}
+export function queueRequest(request) { }
 
-export function sendRequests() {}
+export function sendRequests() { }
 
 //TODO please review this.  It seems we get consensus on scale up/down, but then
 //are not using the autoscaling list for the subsequent operations?

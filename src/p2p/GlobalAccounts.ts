@@ -23,6 +23,7 @@ import { getStreamWithTypeCheck, requestErrorHandler } from '../types/Helpers'
 import { TypeIdentifierEnum } from '../types/enum/TypeIdentifierEnum'
 import { MakeReceiptReq, deserializeMakeReceiptReq, serializeMakeReceiptReq } from '../types/MakeReceipReq'
 import { Utils } from '@shardeum-foundation/lib-types'
+import { fireAndForget } from '../utils/functions/promises'
 
 /** ROUTES */
 // [TODO] - need to add validattion of types to the routes
@@ -195,7 +196,7 @@ export function setGlobal(address, addressHash, value, when, source, afterStateH
     if (processReceipt(receipt) === false) return
     /** [TODO] [AS] Replace with Comms.sendGossip */
     // p2p.sendGossipIn('set-global', receipt)
-    Comms.sendGossip('set-global', receipt, '', null, NodeList.byIdOrder, true)
+    fireAndForget(() => Comms.sendGossip('set-global', receipt, '', null, NodeList.byIdOrder, true))
   }
   /** [TODO] [AS] Replace with Self.emitter.on() */
   // p2p.on(handle, onReceipt)
@@ -209,13 +210,13 @@ export function setGlobal(address, addressHash, value, when, source, afterStateH
   // p2p.tell(consensusGroup, 'make-receipt', signedTx)
   // if (Context.config.p2p.useBinarySerializedEndpoints && Context.config.p2p.makeReceiptBinary) {
   const request = signedTx as MakeReceiptReq
-  Comms.tellBinary<MakeReceiptReq>(
+  fireAndForget(() => Comms.tellBinary<MakeReceiptReq>(
     consensusGroup,
     InternalRouteEnum.binary_make_receipt,
     request,
     serializeMakeReceiptReq,
     {}
-  )
+  ))
   // } else {
   // Comms.tell(consensusGroup, 'make-receipt', signedTx)
   // }
@@ -241,7 +242,7 @@ export async function awaitLocalReceiptInitiation(txHash: P2P.GlobalAccountsType
     try {
       await Promise.race([
         pendingPromise,
-        new Promise<void>((_, reject) => 
+        new Promise<void>((_, reject) =>
           setTimeout(() => reject(new Error(`Receipt initiation timeout for ${txHash} after ${timeout}ms`)), timeout)
         )
       ])
@@ -263,7 +264,7 @@ export async function getGlobalTxReceipt(
 ): Promise<P2P.GlobalAccountsTypes.GlobalTxReceipt | null> {
   // For backward compatibility, still check for pending promises
   await awaitLocalReceiptInitiation(txHash)
-  
+
   const receipt = receipts.get(txHash)
   if (!receipt) return null
   return {
@@ -313,7 +314,7 @@ export function makeReceipt(signedTx: P2P.GlobalAccountsTypes.SignedSetGlobalTx,
 
   // Put into correct Receipt and Tracker
   let receipt: P2P.GlobalAccountsTypes.Receipt = receipts.get(txHash)
-  
+
   if (!receipt) {
     try {
       const consensusGroup = new Set(getConsensusGroupIds(tx.source))
@@ -338,7 +339,7 @@ export function makeReceipt(signedTx: P2P.GlobalAccountsTypes.SignedSetGlobalTx,
       }
       throw err
     }
-    
+
     if (logFlags.console)
       console.log(
         `SETGLOBAL: MAKERECEIPT CONSENSUS GROUP FOR ${txHash.substring(0, 5)}: ${Utils.safeStringify(
@@ -383,7 +384,7 @@ export function makeReceipt(signedTx: P2P.GlobalAccountsTypes.SignedSetGlobalTx,
     /** [TODO] [AS] Replace with Self.emitter.emit() */
     // p2p.emit(handle, receipt)
     Self.emitter.emit(handle, receipt)
-    
+
     // Resolve the promise if we have majority
     const resolverEntry = localReceiptResolvers.get(txHash)
     if (resolverEntry) {
@@ -400,7 +401,7 @@ export function processReceipt(receipt: P2P.GlobalAccountsTypes.Receipt) {
   const tracker = trackers.get(txHash) || createTracker(txHash)
   tracker.timestamp = receipt.tx.when
   if (tracker.gossiped) return false
-  Context.shardus.put(receipt.tx.value as OpaqueTransaction, false, true)
+  fireAndForget(() => Context.shardus.put(receipt.tx.value as OpaqueTransaction, false, true))
   /* prettier-ignore */ if (logFlags.console) console.log(`Processed set-global receipt: ${Utils.safeStringify(receipt)} now:${shardusGetTime()}`)
   tracker.gossiped = true
   attemptCleanup()

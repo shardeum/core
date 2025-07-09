@@ -95,6 +95,7 @@ import { robustQuery } from '../p2p/Utils'
 import { RequestReceiptForTxReqSerialized, serializeRequestReceiptForTxReq } from '../types/RequestReceiptForTxReq'
 import { deserializeRequestReceiptForTxResp, RequestReceiptForTxRespSerialized } from '../types/RequestReceiptForTxResp'
 import { Node } from '../shardus/shardus-types'
+import { fireAndForget } from '../utils/functions/promises'
 
 type Line = {
   raw: string
@@ -2353,8 +2354,7 @@ class AccountPatcher {
     if (coverageEntry == null || coverageEntry.firstChoice == null) {
       const numActiveNodes = this.stateManager.currentCycleShardData.nodes.length
       this.statemanager_fatal(
-        `getNodeForQuery null ${coverageEntry == null} ${
-          coverageEntry?.firstChoice == null
+        `getNodeForQuery null ${coverageEntry == null} ${coverageEntry?.firstChoice == null
         } numActiveNodes:${numActiveNodes}`,
         `getNodeForQuery null ${coverageEntry == null} ${coverageEntry?.firstChoice == null}`
       )
@@ -2872,8 +2872,7 @@ class AccountPatcher {
           /* prettier-ignore */ nestedCountersInstance.countEvent(`accountPatcher`, `not enough votes ${radix} ${utils.makeShortHash(votesMap.bestHash)} uniqueVotes: ${votesMap.allVotes.size}`, 1)
           this.statemanager_fatal(
             'debug findBadAccounts',
-            `debug findBadAccounts ${cycle}: ${radix} bestVotes${
-              votesMap.bestVotes
+            `debug findBadAccounts ${cycle}: ${radix} bestVotes${votesMap.bestVotes
             } < minVotes:${minVotes} uniqueVotes: ${votesMap.allVotes.size} ${utils.stringifyReduce(simpleMap)}`
           )
         }
@@ -2941,10 +2940,8 @@ class AccountPatcher {
         }
         this.statemanager_fatal(
           'debug findBadAccounts',
-          `debug findBadAccounts ${cycle}: ${
-            radixToFix.radix
-          } isInNonConsensusRange: ${hasNonConsensusRange} isInNonStorageRange: ${hasNonStorageRange} bestVotes ${
-            votesMap.bestVotes
+          `debug findBadAccounts ${cycle}: ${radixToFix.radix
+          } isInNonConsensusRange: ${hasNonConsensusRange} isInNonStorageRange: ${hasNonStorageRange} bestVotes ${votesMap.bestVotes
           } minVotes:${minVotes} uniqueVotes: ${votesMap.allVotes.size} ${utils.stringifyReduce(simpleMap)}`
         )
       }
@@ -3698,8 +3695,7 @@ class AccountPatcher {
 
       if (logFlags.debug) {
         this.mainLogger.debug(
-          `badAccounts cycle: ${cycle}, ourBadAccounts: ${
-            results.badAccounts.length
+          `badAccounts cycle: ${cycle}, ourBadAccounts: ${results.badAccounts.length
           }, ourBadAccounts: ${Utils.safeStringify(results.badAccounts)}`
         )
       }
@@ -3709,11 +3705,10 @@ class AccountPatcher {
           accountsTheyNeedToRepair = accountsTheyNeedToRepair.concat(results.extraBadAccounts)
         }
         this.mainLogger.debug(
-          `badAccounts cycle: ${cycle}, accountsTheyNeedToRepair: ${
-            accountsTheyNeedToRepair.length
+          `badAccounts cycle: ${cycle}, accountsTheyNeedToRepair: ${accountsTheyNeedToRepair.length
           }, accountsTheyNeedToRepair: ${Utils.safeStringify(accountsTheyNeedToRepair)}`
         )
-        this.requestOtherNodesToRepair(accountsTheyNeedToRepair)
+        fireAndForget(() => this.requestOtherNodesToRepair(accountsTheyNeedToRepair))
       }
 
       if (this.config.mode === 'debug' && this.config.debug.haltOnDataOOS) {
@@ -3782,8 +3777,7 @@ class AccountPatcher {
               'checkAndSetAccountData updateTooOld',
               `checkAndSetAccountData updateTooOld ${cycle}: acc:${utils.stringifyReduce(
                 wrappedData.accountId
-              )} updateTS:${wrappedData.timestamp} updateHash:${utils.stringifyReduce(wrappedData.stateId)}  cacheTS:${
-                accountMemData.t
+              )} updateTS:${wrappedData.timestamp} updateHash:${utils.stringifyReduce(wrappedData.stateId)}  cacheTS:${accountMemData.t
               } cacheHash:${utils.stringifyReduce(accountMemData.h)}`
             )
             filterStats.tooOld++
@@ -3982,7 +3976,7 @@ class AccountPatcher {
         )
       }
       const appliedFixes = Math.max(0, wrappedDataListFiltered.length - failedHashes.length)
-      /* prettier-ignore */ nestedCountersInstance.countEvent('accountPatcher', 'writeCombinedAccountDataToBackups', Math.max(0,wrappedDataListFiltered.length - failedHashes.length))
+      /* prettier-ignore */ nestedCountersInstance.countEvent('accountPatcher', 'writeCombinedAccountDataToBackups', Math.max(0, wrappedDataListFiltered.length - failedHashes.length))
       /* prettier-ignore */ nestedCountersInstance.countEvent('accountPatcher', `p.repair applied c:${cycle} bad:${results.badAccounts.length} received:${wrappedDataList.length} failedH: ${failedHashes.length} filtered:${utils.stringifyReduce(filterStats)} stats:${utils.stringifyReduce(results.stats)} getAccountStats: ${utils.stringifyReduce(getAccountStats)} extraBadKeys:${results.extraBadKeys.length}`, appliedFixes)
 
       this.stateManager.cycleDebugNotes.patchedAccounts = appliedFixes //per cycle debug info
@@ -4000,8 +3994,7 @@ class AccountPatcher {
       )
       this.statemanager_fatal(
         'isInSync = false',
-        `bad accounts cycle:${cycle} bad:${results.badAccounts.length} received:${wrappedDataList.length} failedH: ${
-          failedHashes.length
+        `bad accounts cycle:${cycle} bad:${results.badAccounts.length} received:${wrappedDataList.length} failedH: ${failedHashes.length
         } filtered:${utils.stringifyReduce(filterStats)} stats:${utils.stringifyReduce(
           results.stats
         )} getAccountStats: ${utils.stringifyReduce(getAccountStats)} details: ${utils.stringifyReduceLimit(
@@ -4048,7 +4041,7 @@ class AccountPatcher {
       }
       if (combinedAccountStateData.length > 0) {
         await this.stateManager.storage.addAccountStates(combinedAccountStateData)
-        /* prettier-ignore */ nestedCountersInstance.countEvent('accountPatcher', `p.repair stateTable c:${cycle} acc:#${updatedAccounts.length} st#:${combinedAccountStateData.length} missed#${combinedAccountStateData.length-updatedAccounts.length}`, combinedAccountStateData.length)
+        /* prettier-ignore */ nestedCountersInstance.countEvent('accountPatcher', `p.repair stateTable c:${cycle} acc:#${updatedAccounts.length} st#:${combinedAccountStateData.length} missed#${combinedAccountStateData.length - updatedAccounts.length}`, combinedAccountStateData.length)
       }
 
       if (wrappedDataListFiltered.length > 0) {
@@ -4083,7 +4076,7 @@ class AccountPatcher {
         failHistoryObject.e = this.failEndCycle
         failHistoryObject.cycles = this.failEndCycle - this.failStartCycle
 
-        /* prettier-ignore */ nestedCountersInstance.countEvent(`accountPatcher`, `inSync again. ${Utils.safeStringify(this.syncFailHistory[this.syncFailHistory.length -1])}`)
+        /* prettier-ignore */ nestedCountersInstance.countEvent(`accountPatcher`, `inSync again. ${Utils.safeStringify(this.syncFailHistory[this.syncFailHistory.length - 1])}`)
 
         //this is not really a fatal log so should be removed eventually. is is somewhat usefull context though when debugging.
         this.statemanager_fatal(`inSync again`, Utils.safeStringify(this.syncFailHistory))
@@ -4587,8 +4580,7 @@ class AccountPatcher {
       }
 
       stream.write(
-        `node: ${nodesCovered.id} ${nodesCovered.ipPort}\tgraph: ${partitionGraph}\thome: ${
-          nodesCovered.hP
+        `node: ${nodesCovered.id} ${nodesCovered.ipPort}\tgraph: ${partitionGraph}\thome: ${nodesCovered.hP
         } data:${Utils.safeStringify(nodesCovered)}\n`
       )
     }

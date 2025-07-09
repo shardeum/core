@@ -44,6 +44,7 @@ import { TypeIdentifierEnum } from '../types/enum/TypeIdentifierEnum'
 import { LostReportReq, deserializeLostReportReq, serializeLostReportReq } from '../types/LostReportReq'
 import { isDebugModeMiddlewareHigh } from '../network/debugMiddleware'
 import { logPerfEvents } from '../logger/csvPerfEvents'
+import { fireAndForget } from '../utils/functions/promises'
 
 /** TYPES */
 
@@ -639,7 +640,7 @@ export function sendRequests() {
     /* prettier-ignore */ nestedCountersInstance.countEvent('p2p', 'self-refute', 1)
     //this next line is probably too spammy to leave in forever (but ok to comment out and keep)
     /* prettier-ignore */ nestedCountersInstance.countEvent('p2p', `self-refute c:${currentCycle}`, 1)
-    Comms.sendGossip('lost-up', signedUpGossipMsg, '', null, byIdOrder, true)
+    fireAndForget(() => Comms.sendGossip('lost-up', signedUpGossipMsg, '', null, byIdOrder, true))
     upGossipMap.set(`${Self.id}-${currentCycle}`, signedUpGossipMsg)
   }
 }
@@ -1336,8 +1337,7 @@ function downGossipHandler(payload: P2P.LostTypes.SignedDownGossipMessage, sende
   }
   if (logFlags.verbose)
     info(
-      `downGossip for target ${payload.report.target} at cycle ${payload.report.cycle} is processed. Total received: ${
-        receivedLostRecordMap.get(key).size
+      `downGossip for target ${payload.report.target} at cycle ${payload.report.cycle} is processed. Total received: ${receivedLostRecordMap.get(key).size
       }`
     )
   /* prettier-ignore */ if (logFlags.lost) console.log('downGossipHandler: sending gossip')
@@ -1385,13 +1385,13 @@ function upGossipHandler(payload, sender, tracker) {
   const key = `${payload.target}-${payload.cycle}`
   const rec = upGossipMap.get(key)
   if (rec && rec.status === 'up') return // we have already gossiped this node for this cycle
-  ;[valid, reason] = checkUpMsg(payload, currentCycle)
+    ;[valid, reason] = checkUpMsg(payload, currentCycle)
   if (!valid) {
     warn(`Bad upGossip message. reason:${reason} message:${Utils.safeStringify(payload)}`)
     return
   }
   upGossipMap.set(key, payload)
-  Comms.sendGossip('lost-up', payload, tracker, Self.id, byIdOrder, false)
+  fireAndForget(() => Comms.sendGossip('lost-up', payload, tracker, Self.id, byIdOrder, false))
   // the getTxs() function will loop through the lost object to make txs in Q3 and build the cycle record from them
 }
 
