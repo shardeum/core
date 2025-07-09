@@ -44,17 +44,6 @@ export const schemaAppliedVote = {
   ],
 }
 
-export const schemaConfirmOrChallengeMessage = {
-  type: 'object',
-  properties: {
-    message: { type: 'string' },
-    nodeId: { type: 'string' },
-    appliedVote: schemaAppliedVote,
-    sign: schemaSign,
-  },
-  required: ['message', 'nodeId', 'appliedVote'],
-}
-
 export const schemaProposal = {
   type: 'object',
   properties: {

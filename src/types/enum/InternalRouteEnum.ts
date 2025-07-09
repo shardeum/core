@@ -17,7 +17,6 @@ export enum InternalRouteEnum {
   binary_make_receipt = 'binary/make_receipt', // tell
   binary_spread_appliedVoteHash = 'binary/spread_applied_vote_hash', // tell
   binary_get_globalaccountreport = 'binary/get_globalaccountreport', // ask
-  binary_get_confirm_or_challenge = 'binary/get_confirm_or_challenge', // ask
   binary_sign_app_data = 'binary/sign_app_data', // ask
   binary_get_trie_account_hashes = 'binary/get_trie_account_hashes', // ask
   binary_get_cached_app_data = 'binary/get_cached_app_data', // ask
@@ -47,7 +46,6 @@ const askRoutes = new Set([
   InternalRouteEnum.binary_get_account_data_by_hashes,
   InternalRouteEnum.binary_request_state_for_tx_post,
   InternalRouteEnum.binary_get_globalaccountreport,
-  InternalRouteEnum.binary_get_confirm_or_challenge,
   InternalRouteEnum.binary_sign_app_data,
   InternalRouteEnum.binary_get_trie_account_hashes,
   InternalRouteEnum.binary_get_cached_app_data,

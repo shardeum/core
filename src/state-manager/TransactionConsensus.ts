@@ -1,5 +1,5 @@
 import { CycleRecord } from '@shardeum-foundation/lib-types/build/src/p2p/CycleCreatorTypes'
-import { P2P as P2PTypes, StateManager as StateManagerTypes } from '@shardeum-foundation/lib-types'
+import { P2P as P2PTypes } from '@shardeum-foundation/lib-types'
 import { Logger as log4jLogger } from 'log4js'
 import StateManager from '.'
 import Crypto from '../crypto'
@@ -15,28 +15,24 @@ import Storage from '../storage'
 import * as utils from '../utils'
 import { Ordering, pickIndexBasedOnHash } from '../utils'
 import { nestedCountersInstance } from '../utils/nestedCounters'
-import Profiler, { cUninitializedSize, profilerInstance } from '../utils/profiler'
+import Profiler, { profilerInstance } from '../utils/profiler'
 import ShardFunctions from './shardFunctions'
 import * as NodeList from '../p2p/NodeList'
 import {
-  AppliedReceipt,
   AppliedVote,
   AppliedVoteHash,
   AppliedVoteQuery,
   AppliedVoteQueryResponse,
   ConfirmOrChallengeMessage,
-  ConfirmOrChallengeQuery,
-  ConfirmOrChallengeQueryResponse,
   GetAccountData3Req,
   GetAccountData3Resp,
   QueueEntry,
   WrappedResponses,
-  TimestampRemoveRequest,
   Proposal,
   Vote,
   SignedReceipt,
 } from './state-manager-types'
-import { ipInfo, shardusGetTime } from '../network'
+import { shardusGetTime } from '../network'
 import { robustQuery } from '../p2p/Utils'
 import { SignedObject } from '@shardeum-foundation/lib-crypto-utils'
 import { isDebugModeMiddleware } from '../network/debugMiddleware'
@@ -54,24 +50,9 @@ import {
   serializeGetTxTimestampResp,
 } from '../types/GetTxTimestampResp'
 import { deserializeGetTxTimestampReq, getTxTimestampReq, serializeGetTxTimestampReq } from '../types/GetTxTimestampReq'
-import { SpreadAppliedVoteHashReq, serializeSpreadAppliedVoteHashReq } from '../types/SpreadAppliedVoteHashReq'
-import {
-  GetConfirmOrChallengeReq,
-  deserializeGetConfirmOrChallengeReq,
-  serializeGetConfirmOrChallengeReq,
-} from '../types/GetConfirmOrChallengeReq'
-import {
-  GetConfirmOrChallengeResp,
-  deserializeGetConfirmOrChallengeResp,
-  serializeGetConfirmOrChallengeResp,
-} from '../types/GetConfirmOrChallengeResp'
-import { GetAppliedVoteReq, deserializeGetAppliedVoteReq, serializeGetAppliedVoteReq } from '../types/GetAppliedVoteReq'
-import {
-  GetAppliedVoteResp,
-  deserializeGetAppliedVoteResp,
-  serializeGetAppliedVoteResp,
-} from '../types/GetAppliedVoteResp'
-import { BadRequest, InternalError, NotFound, serializeResponseError } from '../types/ResponseError'
+import { GetAppliedVoteReq, serializeGetAppliedVoteReq } from '../types/GetAppliedVoteReq'
+import { GetAppliedVoteResp, deserializeGetAppliedVoteResp } from '../types/GetAppliedVoteResp'
+import { BadRequest, serializeResponseError } from '../types/ResponseError'
 import { randomUUID } from 'crypto'
 import { Utils } from '@shardeum-foundation/lib-types'
 import {
@@ -81,8 +62,6 @@ import {
 } from '../types/PoqoSendReceiptReq'
 import { deserializePoqoDataAndReceiptResp } from '../types/PoqoDataAndReceiptReq'
 import { deserializePoqoSendVoteReq, serializePoqoSendVoteReq } from '../types/PoqoSendVoteReq'
-import { RequestReceiptForTxReqSerialized, serializeRequestReceiptForTxReq } from '../types/RequestReceiptForTxReq'
-import { RequestReceiptForTxRespSerialized, deserializeRequestReceiptForTxResp } from '../types/RequestReceiptForTxResp'
 import { removeDuplicateSignatures } from '../utils/functions/signs'
 
 class TransactionConsenus {
@@ -2139,14 +2118,6 @@ class TransactionConsenus {
         return queueEntry.signedReceipt
       }
 
-      if (queueEntry.queryingRobustConfirmOrChallenge === true) {
-        nestedCountersInstance.countEvent(
-          `consensus`,
-          'tryProduceReceipt in the middle of robust query confirm or challenge'
-        )
-        return null
-      }
-
       // Design TODO:  should this be the full transaction group or just the consensus group?
       let votingGroup: Shardus.NodeWithRank[] | P2PTypes.NodeListTypes.Node[]
 
@@ -2894,118 +2865,6 @@ class TransactionConsenus {
     }
   }
 
-  async robustQueryConfirmOrChallenge(queueEntry: QueueEntry): Promise<ConfirmOrChallengeQueryResponse> {
-    profilerInstance.profileSectionStart('robustQueryConfirmOrChallenge', true)
-    profilerInstance.scopedProfileSectionStart('robustQueryConfirmOrChallenge')
-    try {
-      if (this.stateManager.consensusLog) {
-        this.mainLogger.debug(`robustQueryConfirmOrChallenge: ${queueEntry.logID}`)
-      }
-      queueEntry.queryingRobustConfirmOrChallenge = true
-      const queryFn = async (node: Shardus.Node): Promise<ConfirmOrChallengeQueryResponse> => {
-        if (node.externalIp === Self.ip && node.externalPort === Self.port) return null
-        const queryData = { txId: queueEntry.acceptedTx.txId }
-        /* prettier-ignore */ if (logFlags.seqdiagram) this.seqLogger.info(`0x53455101 ${shardusGetTime()} tx:${queryData.txId} ${NodeList.activeIdToPartition.get(Self.id)}-->>${NodeList.activeIdToPartition.get(node.id)}: ${'get_confirm_or_challenge'}`)
-        // return this.config.p2p.useBinarySerializedEndpoints && this.config.p2p.getConfirmOrChallengeBinary
-        //   ?
-        const response = await Comms.askBinary<GetConfirmOrChallengeReq, GetConfirmOrChallengeResp>(
-          node,
-          InternalRouteEnum.binary_get_confirm_or_challenge,
-          queryData,
-          serializeGetConfirmOrChallengeReq,
-          deserializeGetConfirmOrChallengeResp,
-          {}
-        )
-        return {
-          txId: response.txId,
-          appliedVoteHash: response.appliedVoteHash,
-          result: response.result ?? null,
-          uniqueCount: response.uniqueCount,
-        } as ConfirmOrChallengeQueryResponse
-        // : await Comms.ask(node, 'get_confirm_or_challenge', queryData)
-      }
-      const eqFn = (item1: ConfirmOrChallengeQueryResponse, item2: ConfirmOrChallengeQueryResponse): boolean => {
-        try {
-          if (item1 == null || item2 == null) return false
-          if (item1.appliedVoteHash == null || item2.appliedVoteHash == null) return false
-          if (item1.result == null || item2.result == null) return false
-
-          const message1 = item1.appliedVoteHash + item1.result.message + item1.result.nodeId + item1.uniqueCount
-          const message2 = item2.appliedVoteHash + item2.result.message + item2.result.nodeId + item2.uniqueCount
-          if (message1 === message2) return true
-          return false
-        } catch (err) {
-          return false
-        } finally {
-        }
-      }
-      // const nodesToAsk = this.stateManager.transactionQueue.queueEntryGetTransactionGroup(queueEntry)
-      let nodesToAsk = []
-
-      // for (const key of Object.keys(queueEntry.localKeys)) {
-      //   if (queueEntry.localKeys[key] === true) {
-      //     const nodeShardData: StateManagerTypes.shardFunctionTypes.NodeShardData =
-      //       this.stateManager.currentCycleShardData.nodeShardData
-      //
-      //     const homeNode = ShardFunctions.findHomeNode(
-      //       Context.stateManager.currentCycleShardData.shardGlobals,
-      //       key,
-      //       Context.stateManager.currentCycleShardData.parititionShardDataMap
-      //     )
-      //     const storageNodes = homeNode.nodeThatStoreOurParitionFull
-      //     const storageNodesIdSet = new Set(storageNodes.map(node => node.id))
-      //     for (const node of queueEntry.transactionGroup) {
-      //       if (storageNodesIdSet.has(node.id)) {
-      //         nodesToAsk.push(node)
-      //       }
-      //     }
-      //   }
-      // }
-
-      nestedCountersInstance.countEvent('robustQueryConfirmOrChallenge', `nodesToAsk:${nodesToAsk.length}`)
-
-      if (nodesToAsk.length === 0) {
-        nestedCountersInstance.countEvent('robustQueryConfirmOrChallenge', `nodesToAsk is 0`)
-        nodesToAsk = this.stateManager.transactionQueue.queueEntryGetTransactionGroup(queueEntry)
-      }
-
-      const redundancy = 3
-      const maxRetry = 10
-      const {
-        topResult: response,
-        isRobustResult,
-        winningNodes,
-      } = await robustQuery(
-        nodesToAsk,
-        queryFn,
-        eqFn,
-        redundancy,
-        true,
-        true,
-        false,
-        'robustQueryConfirmOrChallenge',
-        maxRetry
-      )
-      nestedCountersInstance.countEvent('robustQueryConfirmOrChallenge', `isRobustResult:${isRobustResult}`)
-      if (!isRobustResult) {
-        return null
-      }
-
-      if (response && response.result) {
-        nestedCountersInstance.countEvent('robustQueryConfirmOrChallenge', `result is NOT null`)
-        return response
-      } else {
-        nestedCountersInstance.countEvent('robustQueryConfirmOrChallenge', `result is null`)
-      }
-    } catch (e) {
-      this.mainLogger.error(`robustQueryConfirmOrChallenge: ${queueEntry.logID} error: ${e.message}`)
-    } finally {
-      queueEntry.queryingRobustConfirmOrChallenge = false
-      profilerInstance.scopedProfileSectionEnd('robustQueryConfirmOrChallenge')
-      profilerInstance.profileSectionEnd('robustQueryConfirmOrChallenge', true)
-    }
-  }
-
   async robustQueryAccountData(
     consensNodes: Shardus.Node[],
     accountId: string,
@@ -3469,7 +3328,8 @@ class TransactionConsenus {
     }
     // Check if we should skip consensus based on missConsensusChance
     if (Context.config?.debug?.missConsensusChance > 0 && Math.random() < Context.config.debug.missConsensusChance) {
-      if (logFlags.debug) this.mainLogger.debug(`createAndShareVote: ${queueEntry.logID} skipping consensus due to missConsensusChance`)
+      if (logFlags.debug)
+        this.mainLogger.debug(`createAndShareVote: ${queueEntry.logID} skipping consensus due to missConsensusChance`)
       nestedCountersInstance.countEvent('transactionConsensus', 'missConsensusChance')
       return
     }

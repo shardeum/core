@@ -1,12 +1,9 @@
-import exp from 'node:constants'
 import { VectorBufferStream } from '../../../../src'
 import { AppliedReceipt2 } from '../../../../src/state-manager/state-manager-types'
 import { cAppliedReceipt2Version, serializeAppliedReceipt2 } from '../../../../src/types/AppliedReceipt2'
 import { serializeAppliedVote } from '../../../../src/types/AppliedVote'
-import { serializeConfirmOrChallengeMessage } from '../../../../src/types/ConfirmOrChallengeMessage'
-import { cSignVersion, serializeSign } from '../../../../src/types/Sign'
+import { serializeSign } from '../../../../src/types/Sign'
 import { TypeIdentifierEnum } from '../../../../src/types/enum/TypeIdentifierEnum'
-import { Utils } from '@shardeum-foundation/lib-types'
 
 describe('AppliedReceipt2 Serialization', () => {
   test('Should serialization with root true', () => {
@@ -22,6 +19,7 @@ describe('AppliedReceipt2 Serialization', () => {
         cant_apply: false,
         node_id: 'node1',
       },
+      confirmOrChallenge: undefined,
       signatures: [
         {
           sig: 'sign',
@@ -32,7 +30,6 @@ describe('AppliedReceipt2 Serialization', () => {
     }
     const stream = new VectorBufferStream(0)
     serializeAppliedReceipt2(stream, obj, true)
-
     const expectedStream = new VectorBufferStream(0)
     expectedStream.writeUInt16(TypeIdentifierEnum.cAppliedReceipt2)
     expectedStream.writeUInt8(cAppliedReceipt2Version)
@@ -43,10 +40,8 @@ describe('AppliedReceipt2 Serialization', () => {
     expectedStream.writeUInt16(1)
     serializeSign(expectedStream, obj.signatures[0])
     expectedStream.writeString(obj.app_data_hash)
-
     expect(stream.getBuffer()).toEqual(expectedStream.getBuffer())
   })
-
   test('Should serialization with root false', () => {
     const obj: AppliedReceipt2 = {
       txid: 'test',
@@ -80,7 +75,6 @@ describe('AppliedReceipt2 Serialization', () => {
     }
     const stream = new VectorBufferStream(0)
     serializeAppliedReceipt2(stream, obj, false)
-
     const expectedStream = new VectorBufferStream(0)
     expectedStream.writeUInt8(cAppliedReceipt2Version)
     expectedStream.writeString(obj.txid)
@@ -91,7 +85,6 @@ describe('AppliedReceipt2 Serialization', () => {
     serializeSign(expectedStream, obj.signatures[0])
     serializeSign(expectedStream, obj.signatures[1])
     expectedStream.writeString(obj.app_data_hash)
-
     expect(stream.getBuffer()).toEqual(expectedStream.getBuffer())
   })
 })
