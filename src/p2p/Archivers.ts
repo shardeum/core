@@ -355,10 +355,10 @@ export function parseRecord(record: P2P.CycleCreatorTypes.CycleRecord): P2P.Cycl
 }
 
 /** Not used by Archivers */
-export function sendRequests() {}
+export function sendRequests() { }
 
 /** Not used by Archivers */
-export function queueRequest() {}
+export function queueRequest() { }
 
 /** Original Functions */
 

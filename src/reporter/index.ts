@@ -485,9 +485,8 @@ class Reporter {
     delta = delta * 0.001
     const txInjected = this.statistics ? this.statistics.getPreviousElement('txInjected') : 0
     const txApplied = this.statistics ? this.statistics.getPreviousElement('txApplied') : 0
-    const report = `Perf inteval ${delta}    ${txInjected} Injected @${
-      txInjected / delta
-    } per second.    ${txApplied} Applied @${txApplied / delta} per second`
+    const report = `Perf inteval ${delta}    ${txInjected} Injected @${txInjected / delta
+      } per second.    ${txApplied} Applied @${txApplied / delta} per second`
     this.lastTime = time
 
     if (logFlags.console) console.log(report)

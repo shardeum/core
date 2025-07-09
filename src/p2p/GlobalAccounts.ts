@@ -242,7 +242,7 @@ export async function awaitLocalReceiptInitiation(txHash: P2P.GlobalAccountsType
     try {
       await Promise.race([
         pendingPromise,
-        new Promise<void>((_, reject) => 
+        new Promise<void>((_, reject) =>
           setTimeout(() => reject(new Error(`Receipt initiation timeout for ${txHash} after ${timeout}ms`)), timeout)
         )
       ])
@@ -264,7 +264,7 @@ export async function getGlobalTxReceipt(
 ): Promise<P2P.GlobalAccountsTypes.GlobalTxReceipt | null> {
   // For backward compatibility, still check for pending promises
   await awaitLocalReceiptInitiation(txHash)
-  
+
   const receipt = receipts.get(txHash)
   if (!receipt) return null
   return {
@@ -314,7 +314,7 @@ export function makeReceipt(signedTx: P2P.GlobalAccountsTypes.SignedSetGlobalTx,
 
   // Put into correct Receipt and Tracker
   let receipt: P2P.GlobalAccountsTypes.Receipt = receipts.get(txHash)
-  
+
   if (!receipt) {
     try {
       const consensusGroup = new Set(getConsensusGroupIds(tx.source))
@@ -339,7 +339,7 @@ export function makeReceipt(signedTx: P2P.GlobalAccountsTypes.SignedSetGlobalTx,
       }
       throw err
     }
-    
+
     if (logFlags.console)
       console.log(
         `SETGLOBAL: MAKERECEIPT CONSENSUS GROUP FOR ${txHash.substring(0, 5)}: ${Utils.safeStringify(
@@ -384,7 +384,7 @@ export function makeReceipt(signedTx: P2P.GlobalAccountsTypes.SignedSetGlobalTx,
     /** [TODO] [AS] Replace with Self.emitter.emit() */
     // p2p.emit(handle, receipt)
     Self.emitter.emit(handle, receipt)
-    
+
     // Resolve the promise if we have majority
     const resolverEntry = localReceiptResolvers.get(txHash)
     if (resolverEntry) {

@@ -332,12 +332,12 @@ function addActiveTx(request: P2P.ActiveTypes.SignedActiveRequest) {
 function validateActiveRequest(request: P2P.ActiveTypes.SignedActiveRequest) {
   const node = NodeList.nodes.get(request.nodeId)
   if (!node) {
-    /* prettier-ignore */ if(logFlags.important_as_error) warn(`validateActiveRequest: node not found, nodeId: ${request.nodeId}`)
+    /* prettier-ignore */ if (logFlags.important_as_error) warn(`validateActiveRequest: node not found, nodeId: ${request.nodeId}`)
     /* prettier-ignore */ nestedCountersInstance.countEvent('p2p', `active:validateActiveRequest node not found`)
     return false
   }
   if (!crypto.verify(request, node.publicKey)) {
-    /* prettier-ignore */ if(logFlags.important_as_error) warn(`validateActiveRequest: bad signature, request: ${Utils.safeStringify(request)} ${request.nodeId}`)
+    /* prettier-ignore */ if (logFlags.important_as_error) warn(`validateActiveRequest: bad signature, request: ${Utils.safeStringify(request)} ${request.nodeId}`)
     /* prettier-ignore */ nestedCountersInstance.countEvent('p2p', `active:validateActiveRequests bad signature`)
     return false
   }
@@ -345,7 +345,7 @@ function validateActiveRequest(request: P2P.ActiveTypes.SignedActiveRequest) {
     // Do not accept active request if node is already active
     const existing = NodeList.nodes.get(request.nodeId)
     if (existing && existing.status === NodeStatus.ACTIVE) {
-      /* prettier-ignore */ if(logFlags.important_as_error) warn(`validateActiveRequest: already active , nodeId: ${request.nodeId}`)
+      /* prettier-ignore */ if (logFlags.important_as_error) warn(`validateActiveRequest: already active , nodeId: ${request.nodeId}`)
       /* prettier-ignore */ nestedCountersInstance.countEvent('p2p', `active:validateActiveRequest already active`)
       return false
     }

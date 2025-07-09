@@ -184,8 +184,7 @@ function validateScalingRequest(scalingRequest: P2P.CycleAutoScaleTypes.SignedSc
   // Check if cycle counter matches
   if (scalingRequest.counter !== CycleCreator.currentCycle) {
     warn(
-      `Invalid scaling request, not for this cycle. Current cycle:${CycleCreator.currentCycle}, cycleInScaleRequest: ${
-        scalingRequest.counter
+      `Invalid scaling request, not for this cycle. Current cycle:${CycleCreator.currentCycle}, cycleInScaleRequest: ${scalingRequest.counter
       } Request: ${Utils.safeStringify(scalingRequest)}`
     )
     return false
@@ -416,7 +415,7 @@ function setAndGetTargetCount(prevRecord: P2P.CycleCreatorTypes.CycleRecord): nu
       //Instruction:  I have a bunch of logs like this but I want to upgrade them to call logger.mainLog_debug.
       /* prettier-ignore */ //if (logFlags && logFlags.verbose) console.log("CycleAutoScale: in restart")
       //Instruction: here is what I want the log to look like.  Note the first argument is a unique key.  The funciton name in all capps followed by some context and then an int that incrments so we dont have dupes will work
-      /* prettier-ignore */ if (logFlags?.verbose) logger.mainLog_debug('SETANDGETTARGETCOUNT_RESTART_1',"CycleAutoScale: in restart")
+      /* prettier-ignore */ if (logFlags?.verbose) logger.mainLog_debug('SETANDGETTARGETCOUNT_RESTART_1', "CycleAutoScale: in restart")
 
       if (syncing < desired + config.p2p.extraNodesToAddInRestart) {
         /* prettier-ignore */ if (logFlags && logFlags.verbose) console.log("CycleAutoScale: entered syncing < desired")
@@ -452,9 +451,9 @@ export function configUpdated() {
   // }
 }
 
-export function queueRequest(request) {}
+export function queueRequest(request) { }
 
-export function sendRequests() {}
+export function sendRequests() { }
 
 //TODO please review this.  It seems we get consensus on scale up/down, but then
 //are not using the autoscaling list for the subsequent operations?

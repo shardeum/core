@@ -199,13 +199,13 @@ export function startSnapshotting() {
                 const wrappedAccts = await Context.stateManager.app.getAccountData(range.low, range.high, 10000000)
                 debugStrs.push(
                   `  PARTITION ${partition}\n` +
-                    wrappedAccts
-                      .map((acct) => {
-                        const id = acct.accountId === null ? 'null' : acct.accountId.substr(0, 8)
-                        const hash = acct.stateId === null ? 'null' : acct.stateId.substr(0, 8)
-                        return `    ID: ${id} HASH: ${hash}`
-                      })
-                      .join('\n')
+                  wrappedAccts
+                    .map((acct) => {
+                      const id = acct.accountId === null ? 'null' : acct.accountId.substr(0, 8)
+                      const hash = acct.stateId === null ? 'null' : acct.stateId.substr(0, 8)
+                      return `    ID: ${id} HASH: ${hash}`
+                    })
+                    .join('\n')
                 )
               } catch (e) {
                 console.log(e)

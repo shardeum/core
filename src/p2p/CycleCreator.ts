@@ -314,7 +314,7 @@ function reset() {
   // Reset CycleCreator
   txs = collectCycleTxs()
   const oldMarker = marker
-  ;({ record, marker, cert } = makeCycleData(txs, CycleChain.newest || undefined))
+    ; ({ record, marker, cert } = makeCycleData(txs, CycleChain.newest || undefined))
   /* prettier-ignore */ if (logFlags.p2pSyncDebug) info(`updateMarker: reset C${currentCycle} Q${currentQuarter} counter: ${record.counter} oldMarker: ${oldMarker} marker: ${marker} prevMarker: ${prevMarkerCached}`)
 
   //todo some logging here.
@@ -365,7 +365,7 @@ async function cycleCreator() {
 
   createCycleTag++
   let callTag = `cct${createCycleTag}`
-  /* prettier-ignore */ if (logFlags.verbose) info( `cc: start C${currentCycle} Q${currentQuarter} madeCycle: ${madeCycle} bestMarker: ${bestMarker} ${callTag}` )
+  /* prettier-ignore */ if (logFlags.verbose) info(`cc: start C${currentCycle} Q${currentQuarter} madeCycle: ${madeCycle} bestMarker: ${bestMarker} ${callTag}`)
 
   try {
     // Get the previous record
@@ -435,8 +435,8 @@ async function cycleCreator() {
     /* prettier-ignore */ if (logFlags.verbose) info(`cc: acrhiver data sent ${callTag}`) //todo list time delta
 
     let expectedCycle = currentCycle + 1
-    // this is where we update the current cycle
-    ;({ cycle: currentCycle, quarter: currentQuarter } = currentCycleQuarterByTime(prevRecord))
+      // this is where we update the current cycle
+      ; ({ cycle: currentCycle, quarter: currentQuarter } = currentCycleQuarterByTime(prevRecord))
 
     if (expectedCycle !== currentCycle) {
       /* prettier-ignore */ if (logFlags.p2pNonFatal) warn(`cc: expectedCycle: ${expectedCycle} currentCycle: ${currentCycle} ${callTag}`)
@@ -496,7 +496,7 @@ async function cycleCreator() {
     schedule(runQ4, startQ4)
     schedule(cycleCreator, end, { runEvenIfLateBy: Infinity })
   } finally {
-    /* prettier-ignore */ if (logFlags.verbose) info( `cc: end C${currentCycle} Q${currentQuarter} madeCycle: ${madeCycle} bestMarker: ${bestMarker} ${callTag}` )
+    /* prettier-ignore */ if (logFlags.verbose) info(`cc: end C${currentCycle} Q${currentQuarter} madeCycle: ${madeCycle} bestMarker: ${bestMarker} ${callTag}`)
   }
 }
 
@@ -588,7 +588,7 @@ async function runQ3() {
   // Get txs and create this cycle's record, marker, and cert
   txs = collectCycleTxs()
   const oldMarker = marker
-  ;({ record, marker, cert } = makeCycleData(txs, CycleChain.newest))
+    ; ({ record, marker, cert } = makeCycleData(txs, CycleChain.newest))
   /* prettier-ignore */ if (logFlags.p2pSyncDebug) info(`updateMarker: runQ3 C${currentCycle} Q${currentQuarter} counter: ${record.counter} oldMarker: ${oldMarker} marker: ${marker} prevMarker: ${prevMarkerCached}`)
   //prevMarker = oldMarker
 
@@ -682,13 +682,13 @@ async function runQ4() {
       matched = await compareCycleCert(myC, myQ, DESIRED_CERT_MATCHES)
       if (!matched) {
         if (cycleQuarterChanged(myC, myQ)) {
-          /* prettier-ignore */ if (logFlags.p2pNonFatal) warn( `In Q4 ran out of time waiting for compareCycleCert with DESIRED_CERT_MATCHES of ${DESIRED_CERT_MATCHES}` )
+          /* prettier-ignore */ if (logFlags.p2pNonFatal) warn(`In Q4 ran out of time waiting for compareCycleCert with DESIRED_CERT_MATCHES of ${DESIRED_CERT_MATCHES}`)
           profilerInstance.profileSectionEnd('CycleCreator-runQ4')
           return
         }
         await utils.sleep(100)
         if (enterTime + cycleDuration < shardusGetTime()) {
-          /* prettier-ignore */ if (logFlags.p2pNonFatal) warn( `In Q4 waited ${config.p2p.cycleDuration} seconds for compareCycleCert with DESIRED_CERT_MATCHES of ${DESIRED_CERT_MATCHES}` )
+          /* prettier-ignore */ if (logFlags.p2pNonFatal) warn(`In Q4 waited ${config.p2p.cycleDuration} seconds for compareCycleCert with DESIRED_CERT_MATCHES of ${DESIRED_CERT_MATCHES}`)
           //profilerInstance.profileSectionEnd('CycleCreator-runQ4')
           //return
           // we should return, but want to catch this get stuck to confirm it is not happening
@@ -697,7 +697,7 @@ async function runQ4() {
       }
     } while (!matched)
 
-    /* prettier-ignore */ if (logFlags.p2pNonFatal) 
+    /* prettier-ignore */ if (logFlags.p2pNonFatal)
       info(`
     Certified cycle record: ${Utils.safeStringify(record)}
     Certified cycle marker: ${Utils.safeStringify(marker)}
@@ -706,7 +706,7 @@ async function runQ4() {
 
     cacheOfCycleCerts.set(currentCycle, bestCycleCert.get(bestMarker))
   } finally {
-    /* prettier-ignore */ if (logFlags.p2pNonFatal) info( `Q4: END: myC:${myC}  C${currentCycle} Q${currentQuarter} Certified cycle record: ${Utils.safeStringify(record.counter)}` )
+    /* prettier-ignore */ if (logFlags.p2pNonFatal) info(`Q4: END: myC:${myC}  C${currentCycle} Q${currentQuarter} Certified cycle record: ${Utils.safeStringify(record.counter)}`)
     // Dont need this any more since we are not doing anything after this
     // if (cycleQuarterChanged(myC, myQ)) return
     profilerInstance.profileSectionEnd('CycleCreator-runQ4')
@@ -848,7 +848,7 @@ async function fetchLatestRecord(): Promise<P2P.CycleCreatorTypes.CycleRecord> {
       /* prettier-ignore */ if (logFlags.p2pNonFatal) warn(`CycleCreator: fetchLatestRecord: synced record not newer CycleChain.newest.counter: ${CycleChain.newest.counter} oldCounter: ${oldCounter}`)
       fetchLatestRecordFails++
       if (fetchLatestRecordFails > maxFetchLatestRecordFails) {
-        /* prettier-ignore */ if (logFlags.p2pNonFatal) error( 'CycleCreator: fetchLatestRecord_A: fetchLatestRecordFails > maxFetchLatestRecordFails. apoptosizeSelf ' )
+        /* prettier-ignore */ if (logFlags.p2pNonFatal) error('CycleCreator: fetchLatestRecord_A: fetchLatestRecordFails > maxFetchLatestRecordFails. apoptosizeSelf ')
         // this.fatalLogger.fatal(
         //   'CycleCreator: fetchLatestRecord_A: fetchLatestRecordFails > maxFetchLatestRecordFails. apoptosizeSelf '
         // )
@@ -868,7 +868,7 @@ async function fetchLatestRecord(): Promise<P2P.CycleCreatorTypes.CycleRecord> {
     /* prettier-ignore */ if (logFlags.p2pNonFatal) warn('CycleCreator: fetchLatestRecord: syncNewCycles failed:', errorToStringFull(err))
     fetchLatestRecordFails++
     if (fetchLatestRecordFails > maxFetchLatestRecordFails) {
-      /* prettier-ignore */ if (logFlags.p2pNonFatal) error( 'CycleCreator: fetchLatestRecord_B: fetchLatestRecordFails > maxFetchLatestRecordFails. apoptosizeSelf ' )
+      /* prettier-ignore */ if (logFlags.p2pNonFatal) error('CycleCreator: fetchLatestRecord_B: fetchLatestRecordFails > maxFetchLatestRecordFails. apoptosizeSelf ')
       // this.fatalLogger.fatal(
       //   'CycleCreator: fetchLatestRecord_B: fetchLatestRecordFails > maxFetchLatestRecordFails. apoptosizeSelf ',
       //   utils.formatErrorMessage(err)
@@ -1042,14 +1042,14 @@ function validateCertSign(certs: P2P.CycleCreatorTypes.CycleCert[], sender: P2P.
 function validateCerts(certs: P2P.CycleCreatorTypes.CycleCert[], record, sender, callerTag) {
   if (!certs || !Array.isArray(certs) || certs.length <= 0) {
     /* prettier-ignore */ warn(`validateCerts: bad certificate format;  ${callerTag}`)
-    /* prettier-ignore */ warn( `validateCerts:   sent by: port:${NodeList.nodes.get(sender).externalPort} id:${Utils.safeStringify(sender)}` )
+    /* prettier-ignore */ warn(`validateCerts:   sent by: port:${NodeList.nodes.get(sender).externalPort} id:${Utils.safeStringify(sender)}`)
     return false
   }
   if (!record || record === null || typeof record !== 'object') return false
   //  make sure the cycle counter is what we expect
   if (record.counter !== CycleChain.newest.counter + 1) {
-    /* prettier-ignore */ warn( `validateCerts: bad cycle record counter; ${callerTag} expected ${CycleChain.newest.counter + 1} but got ${ record.counter } ` )
-    /* prettier-ignore */ warn( `validateCerts:   sent by: port:${NodeList.nodes.get(sender).externalPort} id:${Utils.safeStringify(sender)}` )
+    /* prettier-ignore */ warn(`validateCerts: bad cycle record counter; ${callerTag} expected ${CycleChain.newest.counter + 1} but got ${record.counter} `)
+    /* prettier-ignore */ warn(`validateCerts:   sent by: port:${NodeList.nodes.get(sender).externalPort} id:${Utils.safeStringify(sender)}`)
     return false
   }
   // make sure all the certs are for the same cycle marker
@@ -1057,7 +1057,7 @@ function validateCerts(certs: P2P.CycleCreatorTypes.CycleCert[], record, sender,
   for (let i = 1; i < certs.length; i++) {
     if (inpMarker !== certs[i].marker) {
       /* prettier-ignore */ warn(`validateCerts: certificates marker does not match hash of record;  ${callerTag}`)
-      /* prettier-ignore */ warn( `validateCerts:   sent by: port:${NodeList.nodes.get(sender).externalPort} id:${Utils.safeStringify( sender )}` )
+      /* prettier-ignore */ warn(`validateCerts:   sent by: port:${NodeList.nodes.get(sender).externalPort} id:${Utils.safeStringify(sender)}`)
       return false
     }
   }
@@ -1066,7 +1066,7 @@ function validateCerts(certs: P2P.CycleCreatorTypes.CycleCert[], record, sender,
   for (let i = 0; i < certs.length; i++) {
     if (seen[certs[i].sign.owner]) {
       /* prettier-ignore */ warn(`validateCerts: multiple certificate from same owner; ${callerTag} certs: ${Utils.safeStringify(certs)}`)
-      /* prettier-ignore */ warn( `validateCerts:   sent by: port:${NodeList.nodes.get(sender).externalPort} id:${Utils.safeStringify( sender )}` )
+      /* prettier-ignore */ warn(`validateCerts:   sent by: port:${NodeList.nodes.get(sender).externalPort} id:${Utils.safeStringify(sender)}`)
       return false
     }
     seen[certs[i].sign.owner] = true
@@ -1074,7 +1074,7 @@ function validateCerts(certs: P2P.CycleCreatorTypes.CycleCert[], record, sender,
   //  checks signatures; more expensive
   if (!validateCertSign(certs, sender)) {
     /* prettier-ignore */ warn(`validateCerts: certificate has bad sign;  ${callerTag} certs:${Utils.safeStringify(certs)}`)
-    /* prettier-ignore */ warn( `validateCerts:   sent by: port:${NodeList.nodes.get(sender).externalPort} id:${Utils.safeStringify(sender)}` )
+    /* prettier-ignore */ warn(`validateCerts:   sent by: port:${NodeList.nodes.get(sender).externalPort} id:${Utils.safeStringify(sender)}`)
     return false
   }
   return true

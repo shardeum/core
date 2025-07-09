@@ -1514,7 +1514,7 @@ class TransactionConsenus {
         } catch (e) {
           /* prettier-ignore */ if (logFlags.error) console.error(`Error processing poqoSendReceiptBinary handler: ${e}`)
           nestedCountersInstance.countEvent('internal', `${route}-exception`)
-          /* prettier-ignore */ if (logFlags.error)this.mainLogger.error(`${route}: Exception executing request: ${utils.errorToStringFull(e)}`)
+          /* prettier-ignore */ if (logFlags.error) this.mainLogger.error(`${route}: Exception executing request: ${utils.errorToStringFull(e)}`)
         } finally {
           profilerInstance.scopedProfileSectionEnd(route)
         }
@@ -3281,8 +3281,7 @@ class TransactionConsenus {
           nestedCountersInstance.countEvent('checkAccountIntegrity', 'collected data and robust data do not match')
           if (logFlags.debug) {
             this.mainLogger.debug(
-              `checkAccountIntegrity: ${
-                queueEntry.logID
+              `checkAccountIntegrity: ${queueEntry.logID
               } key: ${key} failed. collectedAccountData: ${Utils.safeStringify(
                 collectedAccountData
               )} robustAccountData: ${Utils.safeStringify(robustQueryAccountData)}`
@@ -3588,8 +3587,8 @@ class TransactionConsenus {
     }
     const accountsHash = this.crypto.hash(
       this.crypto.hash(proposal.accountIDs) +
-        this.crypto.hash(proposal.beforeStateHashes) +
-        this.crypto.hash(proposal.afterStateHashes)
+      this.crypto.hash(proposal.beforeStateHashes) +
+      this.crypto.hash(proposal.afterStateHashes)
     )
     const proposalHash = this.crypto.hash(
       this.crypto.hash(applyStatus) + accountsHash + proposal.appReceiptDataHash + proposal.executionShardKey

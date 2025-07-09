@@ -1337,8 +1337,7 @@ function downGossipHandler(payload: P2P.LostTypes.SignedDownGossipMessage, sende
   }
   if (logFlags.verbose)
     info(
-      `downGossip for target ${payload.report.target} at cycle ${payload.report.cycle} is processed. Total received: ${
-        receivedLostRecordMap.get(key).size
+      `downGossip for target ${payload.report.target} at cycle ${payload.report.cycle} is processed. Total received: ${receivedLostRecordMap.get(key).size
       }`
     )
   /* prettier-ignore */ if (logFlags.lost) console.log('downGossipHandler: sending gossip')
@@ -1386,7 +1385,7 @@ function upGossipHandler(payload, sender, tracker) {
   const key = `${payload.target}-${payload.cycle}`
   const rec = upGossipMap.get(key)
   if (rec && rec.status === 'up') return // we have already gossiped this node for this cycle
-  ;[valid, reason] = checkUpMsg(payload, currentCycle)
+    ;[valid, reason] = checkUpMsg(payload, currentCycle)
   if (!valid) {
     warn(`Bad upGossip message. reason:${reason} message:${Utils.safeStringify(payload)}`)
     return
