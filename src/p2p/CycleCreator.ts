@@ -1042,6 +1042,7 @@ function validateCerts(certs: P2P.CycleCreatorTypes.CycleCert[], record, sender,
   if (!certs || !Array.isArray(certs) || certs.length <= 0) {
     /* prettier-ignore */ warn(`validateCerts: bad certificate format;  ${callerTag}`)
     /* prettier-ignore */ warn( `validateCerts:   sent by: port:${NodeList.nodes.get(sender).externalPort} id:${Utils.safeStringify(sender)}` )
+    nestedCountersInstance.countEvent('cycle', `validateCerts: bad certificate format`)
     return false
   }
   if (!record || record === null || typeof record !== 'object') return false
@@ -1049,14 +1050,16 @@ function validateCerts(certs: P2P.CycleCreatorTypes.CycleCert[], record, sender,
   if (record.counter !== CycleChain.newest.counter + 1) {
     /* prettier-ignore */ warn( `validateCerts: bad cycle record counter; ${callerTag} expected ${CycleChain.newest.counter + 1} but got ${ record.counter } ` )
     /* prettier-ignore */ warn( `validateCerts:   sent by: port:${NodeList.nodes.get(sender).externalPort} id:${Utils.safeStringify(sender)}` )
+    nestedCountersInstance.countEvent('cycle', `validateCerts: bad cycle record counter`)
     return false
   }
   // make sure all the certs are for the same cycle marker
   const inpMarker = crypto.hash(record)
-  for (let i = 1; i < certs.length; i++) {
+  for (let i = 0; i < certs.length; i++) {
     if (inpMarker !== certs[i].marker) {
       /* prettier-ignore */ warn(`validateCerts: certificates marker does not match hash of record;  ${callerTag}`)
       /* prettier-ignore */ warn( `validateCerts:   sent by: port:${NodeList.nodes.get(sender).externalPort} id:${Utils.safeStringify( sender )}` )
+      nestedCountersInstance.countEvent('cycle', `validateCerts: certificates marker does not match hash of record`)
       return false
     }
   }
@@ -1066,6 +1069,7 @@ function validateCerts(certs: P2P.CycleCreatorTypes.CycleCert[], record, sender,
     if (seen[certs[i].sign.owner]) {
       /* prettier-ignore */ warn(`validateCerts: multiple certificate from same owner; ${callerTag} certs: ${Utils.safeStringify(certs)}`)
       /* prettier-ignore */ warn( `validateCerts:   sent by: port:${NodeList.nodes.get(sender).externalPort} id:${Utils.safeStringify( sender )}` )
+      nestedCountersInstance.countEvent('cycle', `validateCerts: multiple certificate from same owner`)
       return false
     }
     seen[certs[i].sign.owner] = true
@@ -1074,6 +1078,7 @@ function validateCerts(certs: P2P.CycleCreatorTypes.CycleCert[], record, sender,
   if (!validateCertSign(certs, sender)) {
     /* prettier-ignore */ warn(`validateCerts: certificate has bad sign;  ${callerTag} certs:${Utils.safeStringify(certs)}`)
     /* prettier-ignore */ warn( `validateCerts:   sent by: port:${NodeList.nodes.get(sender).externalPort} id:${Utils.safeStringify(sender)}` )
+    nestedCountersInstance.countEvent('cycle', `validateCerts: certificate has bad sign`)
     return false
   }
   return true
@@ -1352,6 +1357,7 @@ function gossipHandlerCycleCert(inp: CompareCertReq, sender: P2P.NodeListTypes.N
   if (!validateCertsRecordTypes(inp, 'gossipHandlerCycleCert')) return
   const { certs: inpCerts, record: inpRecord } = inp
   if (!validateCerts(inpCerts, inpRecord, sender, 'gossipHandlerCycleCert')) {
+    nestedCountersInstance.countEvent('cycle', `cert gossip: rejecting invalid certs`)
     return
   }
   if (improveBestCert(inpCerts, inpRecord)) {
