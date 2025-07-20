@@ -385,42 +385,17 @@ class CachedAppDataManager {
     )
 
     if (isValidFactSender === false) {
-      // populate isSenderWrappedTxGroup
-      let uniqueKeys = [executionShardKey]
-      let isSenderWrappedAllNodes = {}
-      for (const key of uniqueKeys) {
-        const consensusGroupForKey = senderGroup.map((n) => n.id)
-        const startAndEndIndices = this.stateManager.transactionQueue.getStartAndEndIndexOfTargetGroup(
-          consensusGroupForKey,
-          allNodes
-        )
-        const isWrapped = startAndEndIndices.endIndex < startAndEndIndices.startIndex
-        if (isWrapped === false) continue
-        const unwrappedEndIndex = startAndEndIndices.endIndex + allNodes.length
-        for (let i = startAndEndIndices.startIndex; i < unwrappedEndIndex; i++) {
-          if (i >= allNodes.length) {
-            const wrappedIndex = i - allNodes.length
-            isSenderWrappedAllNodes[allNodes[wrappedIndex].id] = i
-          }
-        }
-      }
-      const unwrappedIndex = isSenderWrappedAllNodes[senderNode.id]
-      if (unwrappedIndex != null) {
-        isValidFactSender = verifyCorrespondingSender(
-          ourIndexInTxGroup,
-          unwrappedIndex,
-          globalOffset,
-          targetGroupSize,
-          senderGroupSize,
-          targetStartIndex,
-          targetEndIndex,
-          allNodes.length
-        )
-      }
-      if (logFlags.shardedCache && logFlags.verbose) {
-        console.log(`isSenderWrappedAllNodes: `, isSenderWrappedAllNodes, unwrappedIndex, senderNode.id)
-        console.log(`unwrappedIndex: ${unwrappedIndex}, isValidFactSender: ${isValidFactSender}`)
-      }
+      isValidFactSender = verifyCorrespondingSender(
+        ourIndexInTxGroup,
+        senderIndexInTxGroup,
+        globalOffset,
+        targetGroupSize,
+        senderGroupSize,
+        targetStartIndex,
+        targetEndIndex,
+        allNodes.length,
+        true // shouldUnwrapSender
+      )
     }
     if (logFlags.shardedCache && logFlags.verbose) {
       console.log(
