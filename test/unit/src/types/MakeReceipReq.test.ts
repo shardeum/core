@@ -157,7 +157,8 @@ describe('MakeReceipReq', () => {
         'tx456',
         'afterhash789',
       ]
-      stream.readString = jest.fn()
+      stream.readString = jest
+        .fn()
         .mockReturnValueOnce(stringCallSequence[0])
         .mockReturnValueOnce(stringCallSequence[1])
         .mockReturnValueOnce(stringCallSequence[2])
@@ -261,7 +262,8 @@ describe('MakeReceipReq', () => {
     })
 
     it('should handle JSON parsing of null value', () => {
-      stream.readString = jest.fn()
+      stream.readString = jest
+        .fn()
         .mockReturnValueOnce('owner123')
         .mockReturnValueOnce('signature456')
         .mockReturnValueOnce('addr789')
@@ -281,7 +283,8 @@ describe('MakeReceipReq', () => {
 
     it('should handle JSON parsing of complex objects', () => {
       const complexValue = { nested: { data: [1, 2, 3] }, flag: true }
-      stream.readString = jest.fn()
+      stream.readString = jest
+        .fn()
         .mockReturnValueOnce('owner123')
         .mockReturnValueOnce('signature456')
         .mockReturnValueOnce('addr789')

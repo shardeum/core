@@ -15,7 +15,7 @@ describe('ResponseError', () => {
   describe('ResponseError class', () => {
     it('should create instance with correct properties', () => {
       const error = new ResponseError(ResponseErrorEnum.BadRequest, 123, 'Test error message')
-      
+
       expect(error).toBeInstanceOf(Error)
       expect(error).toBeInstanceOf(ResponseError)
       expect(error.Code).toBe(ResponseErrorEnum.BadRequest)

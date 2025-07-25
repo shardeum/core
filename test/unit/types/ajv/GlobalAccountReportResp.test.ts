@@ -1,4 +1,7 @@
-import { initGlobalAccountReportResp, schemaGlobalAccountReportResp } from '../../../../src/types/ajv/GlobalAccountReportResp'
+import {
+  initGlobalAccountReportResp,
+  schemaGlobalAccountReportResp,
+} from '../../../../src/types/ajv/GlobalAccountReportResp'
 import * as SchemaHelpers from '../../../../src/utils/serialization/SchemaHelpers'
 import { AJVSchemaEnum } from '../../../../src/types/enum/AJVSchemaEnum'
 
@@ -54,7 +57,7 @@ describe('GlobalAccountReportResp', () => {
 
     it('should define success response schema', () => {
       const successSchema = schemaGlobalAccountReportResp.oneOf[0] as any
-      
+
       expect(successSchema.type).toBe('object')
       expect(successSchema.properties).toHaveProperty('ready')
       expect(successSchema.properties).toHaveProperty('combinedHash')
@@ -64,7 +67,7 @@ describe('GlobalAccountReportResp', () => {
 
     it('should define error response schema', () => {
       const errorSchema = schemaGlobalAccountReportResp.oneOf[1] as any
-      
+
       expect(errorSchema.type).toBe('object')
       expect(errorSchema.properties).toHaveProperty('error')
       expect(errorSchema.properties.error.type).toBe('string')
@@ -75,7 +78,7 @@ describe('GlobalAccountReportResp', () => {
       const successSchema = schemaGlobalAccountReportResp.oneOf[0] as any
       const accountsSchema = successSchema.properties.accounts
       const accountItemSchema = accountsSchema.items
-      
+
       expect(accountsSchema.type).toBe('array')
       expect(accountItemSchema.type).toBe('object')
       expect(accountItemSchema.properties).toHaveProperty('id')
@@ -89,7 +92,7 @@ describe('GlobalAccountReportResp', () => {
 
     it('should define correct property types for success response', () => {
       const successSchema = schemaGlobalAccountReportResp.oneOf[0] as any
-      
+
       expect(successSchema.properties.ready.type).toBe('boolean')
       expect(successSchema.properties.combinedHash.type).toBe('string')
       expect(successSchema.properties.accounts.type).toBe('array')
@@ -120,14 +123,14 @@ describe('GlobalAccountReportResp', () => {
           {
             id: 'acc1',
             hash: 'hash1',
-            timestamp: 1234567890
+            timestamp: 1234567890,
           },
           {
             id: 'acc2',
             hash: 'hash2',
-            timestamp: 1234567891
-          }
-        ]
+            timestamp: 1234567891,
+          },
+        ],
       }
 
       // The schema should accept this structure
@@ -139,7 +142,7 @@ describe('GlobalAccountReportResp', () => {
 
     it('should validate error response structure', () => {
       const validErrorResponse = {
-        error: 'Something went wrong'
+        error: 'Something went wrong',
       }
 
       // The schema should accept this structure
@@ -151,7 +154,7 @@ describe('GlobalAccountReportResp', () => {
       const responseWithEmptyAccounts = {
         ready: false,
         combinedHash: '',
-        accounts: []
+        accounts: [],
       }
 
       // Empty arrays should still be valid
@@ -162,13 +165,13 @@ describe('GlobalAccountReportResp', () => {
     it('should not allow mixing success and error properties', () => {
       // The oneOf schema ensures that only one of the two schemas can match
       expect(schemaGlobalAccountReportResp.oneOf).toHaveLength(2)
-      
+
       // Success schema requires ready, combinedHash, accounts
       const successSchema = schemaGlobalAccountReportResp.oneOf[0] as any
       expect(successSchema.required).toContain('ready')
       expect(successSchema.required).toContain('combinedHash')
       expect(successSchema.required).toContain('accounts')
-      
+
       // Error schema requires only error
       const errorSchema = schemaGlobalAccountReportResp.oneOf[1] as any
       expect(errorSchema.required).toEqual(['error'])
@@ -176,13 +179,13 @@ describe('GlobalAccountReportResp', () => {
 
     it('should register schema only once per initialization', () => {
       initGlobalAccountReportResp()
-      
+
       expect(mockAddSchema).toHaveBeenCalledTimes(1)
-      
+
       // Clear mocks and call again
       mockAddSchema.mockClear()
       initGlobalAccountReportResp()
-      
+
       expect(mockAddSchema).toHaveBeenCalledTimes(1)
     })
   })

@@ -20,20 +20,17 @@ describe('sendCachedAppDataReq', () => {
       initSendCachedAppDataReq()
 
       expect(addSchemaSpy).toHaveBeenCalledTimes(1)
-      expect(addSchemaSpy).toHaveBeenCalledWith(
-        AJVSchemaEnum.SendCachedAppDataReq,
-        {
-          type: 'object',
-          properties: {
-            topic: { type: 'string' },
-            txId: { type: 'string' },
-            executionShardKey: { type: 'string' },
-            cachedAppData: schemaCachedAppData,
-          },
-          required: ['topic', 'cachedAppData', 'executionShardKey', 'txId'],
-          additionalProperties: false,
-        }
-      )
+      expect(addSchemaSpy).toHaveBeenCalledWith(AJVSchemaEnum.SendCachedAppDataReq, {
+        type: 'object',
+        properties: {
+          topic: { type: 'string' },
+          txId: { type: 'string' },
+          executionShardKey: { type: 'string' },
+          cachedAppData: schemaCachedAppData,
+        },
+        required: ['topic', 'cachedAppData', 'executionShardKey', 'txId'],
+        additionalProperties: false,
+      })
     })
 
     it('should not throw any errors', () => {
@@ -85,12 +82,7 @@ describe('sendCachedAppDataReq', () => {
 
       initSendCachedAppDataReq()
 
-      expect(capturedSchema.required).toEqual([
-        'topic',
-        'cachedAppData',
-        'executionShardKey',
-        'txId'
-      ])
+      expect(capturedSchema.required).toEqual(['topic', 'cachedAppData', 'executionShardKey', 'txId'])
     })
 
     it('should reference schemaCachedAppData correctly', () => {

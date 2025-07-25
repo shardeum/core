@@ -11,15 +11,15 @@ jest.mock('@shardeum-foundation/lib-crypto-utils', () => ({
   sign: jest.fn(),
   verify: jest.fn(),
   signObj: jest.fn(),
-  verifyObj: jest.fn()
+  verifyObj: jest.fn(),
 }))
 
 // Mock sqlite3 before other modules to avoid loading issues
 jest.mock('sqlite3', () => ({
   Database: jest.fn(),
   verbose: jest.fn(() => ({
-    Database: jest.fn()
-  }))
+    Database: jest.fn(),
+  })),
 }))
 
 // Mock other dependencies
@@ -27,20 +27,20 @@ jest.mock('../../../../src/network')
 jest.mock('../../../../src/p2p/Context', () => ({
   config: {
     debug: {
-      forcedExpiration: false
-    }
+      forcedExpiration: false,
+    },
   },
   p2p: {
     state: {
-      getLastCycle: jest.fn().mockReturnValue({ counter: 100 })
-    }
+      getLastCycle: jest.fn().mockReturnValue({ counter: 100 }),
+    },
   },
-  setDefaultConfigs: jest.fn()
+  setDefaultConfigs: jest.fn(),
 }))
 jest.mock('../../../../src/p2p/ProblemNodeHandler', () => ({
   getRefutePercentage: jest.fn(),
   getConsecutiveRefutes: jest.fn(),
-  isNodeProblematic: jest.fn()
+  isNodeProblematic: jest.fn(),
 }))
 jest.mock('../../../../src/utils/nestedCounters')
 jest.mock('../../../../src/logger', () => ({
@@ -50,19 +50,19 @@ jest.mock('../../../../src/logger', () => ({
     log: jest.fn(),
     warn: jest.fn(),
     debug: jest.fn(),
-    combine: jest.fn((...args) => args.join(' '))
+    combine: jest.fn((...args) => args.join(' ')),
   },
   logFlags: {
     error: true,
-    verbose: false
-  }
+    verbose: false,
+  },
 }))
 jest.mock('../../../../src/p2p/NodeList', () => ({
-  nodes: new Map()
+  nodes: new Map(),
 }))
 jest.mock('../../../../src/p2p/CycleCreator', () => ({
   currentCycle: null,
-  currentQuarter: 0
+  currentQuarter: 0,
 }))
 jest.mock('../../../../src/shardus', () => ({
   initState: jest.fn(),
@@ -70,14 +70,14 @@ jest.mock('../../../../src/shardus', () => ({
   StateManager: {},
   shardFunctionTypes: {},
   StateManagerTypes: {},
-  StateMetaDataTypes: {}
+  StateMetaDataTypes: {},
 }))
 jest.mock('tar-fs')
 jest.mock('fs')
 jest.mock('zlib', () => ({
   createGzip: jest.fn(() => ({
-    pipe: jest.fn().mockReturnThis()
-  }))
+    pipe: jest.fn().mockReturnThis(),
+  })),
 }))
 
 const tar = require('tar-fs')
@@ -100,15 +100,15 @@ describe('Debug', () => {
 
   beforeEach(() => {
     jest.clearAllMocks()
-    
+
     // Setup mock network
     mockNetwork = {
       ipInfo: {
         externalIp: '127.0.0.1',
-        externalPort: 8080
+        externalPort: 8080,
       },
       registerExternalGet: jest.fn(),
-      setDebugNetworkDelay: jest.fn()
+      setDebugNetworkDelay: jest.fn(),
     } as any
 
     // Reset Context mock values
@@ -117,19 +117,19 @@ describe('Debug', () => {
     Object.defineProperty(contextMock.config.debug, 'forcedExpiration', {
       value: false,
       writable: true,
-      configurable: true
+      configurable: true,
     })
     contextMock.p2p.state.getLastCycle = jest.fn().mockReturnValue({ counter: 100 })
 
     // Setup mock request and response
     mockReq = {
-      query: {}
+      query: {},
     }
 
     mockRes = {
       json: jest.fn(),
       set: jest.fn(),
-      pipe: jest.fn()
+      pipe: jest.fn(),
     }
 
     // Setup nestedCountersInstance mock
@@ -176,7 +176,7 @@ describe('Debug', () => {
 
     beforeEach(() => {
       mockPackStream = {
-        pipe: jest.fn().mockReturnThis()
+        pipe: jest.fn().mockReturnThis(),
       }
       tar.pack = jest.fn().mockReturnValue(mockPackStream)
     })
@@ -209,7 +209,7 @@ describe('Debug', () => {
       // Capture registered handlers
       mockNetwork.registerExternalGet.mockImplementation((route, ...args) => {
         const handler = args.length === 2 ? args[1] : args[0]
-        switch(route) {
+        switch (route) {
           case 'debug':
             debugHandler = handler
             break
@@ -234,23 +234,26 @@ describe('Debug', () => {
     describe('debug endpoint', () => {
       it('should create and pipe archive stream', () => {
         const mockArchiveStream = {
-          pipe: jest.fn()
+          pipe: jest.fn(),
         }
         const mockGzipStream = {
-          pipe: jest.fn()
+          pipe: jest.fn(),
         }
-        
+
         // Make pipe chain return the gzip stream
         mockArchiveStream.pipe.mockReturnValue(mockGzipStream)
         mockGzipStream.pipe.mockReturnValue(mockRes)
-        
+
         jest.spyOn(debug, 'createArchiveStream').mockReturnValue(mockArchiveStream as any)
         const zlib = require('zlib')
         zlib.createGzip.mockReturnValue(mockGzipStream)
 
         debugHandler(mockReq, mockRes)
 
-        expect(mockRes.set).toHaveBeenCalledWith('content-disposition', 'attachment; filename="debug-127.0.0.1-8080.tar.gz"')
+        expect(mockRes.set).toHaveBeenCalledWith(
+          'content-disposition',
+          'attachment; filename="debug-127.0.0.1-8080.tar.gz"'
+        )
         expect(mockRes.set).toHaveBeenCalledWith('content-type', 'application/gzip')
         expect(mockArchiveStream.pipe).toHaveBeenCalledWith(mockGzipStream)
         expect(mockGzipStream.pipe).toHaveBeenCalledWith(mockRes)
@@ -260,21 +263,21 @@ describe('Debug', () => {
     describe('debug-logfile endpoint', () => {
       it('should return error if file parameter is missing', () => {
         debugLogfileHandler(mockReq, mockRes)
-        
+
         expect(mockRes.json).toHaveBeenCalledWith({
           success: false,
-          error: 'Invalid file parameter'
+          error: 'Invalid file parameter',
         })
       })
 
       it('should return error if logs directory not found', () => {
         mockReq.query.file = 'test.log'
-        
+
         debugLogfileHandler(mockReq, mockRes)
-        
+
         expect(mockRes.json).toHaveBeenCalledWith({
           success: false,
-          error: 'Logs directory not found'
+          error: 'Logs directory not found',
         })
       })
 
@@ -285,7 +288,7 @@ describe('Debug', () => {
         // Testing with a file that doesn't exist instead
         debug.files['/test/logs'] = './logs'
         mockReq.query.file = 'nonexistent.log'
-        
+
         const mockStream = new Readable()
         mockStream._read = () => {}
         mockStream.pipe = jest.fn()
@@ -295,15 +298,15 @@ describe('Debug', () => {
           }
           return mockStream
         }) as any
-        
+
         fs.createReadStream = jest.fn().mockReturnValue(mockStream)
-        
+
         debugLogfileHandler(mockReq, mockRes)
-        
+
         // File read error should be caught
         expect(mockRes.json).toHaveBeenCalledWith({
           success: false,
-          error: 'Error reading the file'
+          error: 'Error reading the file',
         })
       })
 
@@ -311,13 +314,13 @@ describe('Debug', () => {
         const mockStream = new Readable()
         mockStream._read = () => {}
         mockStream.pipe = jest.fn()
-        
+
         fs.createReadStream = jest.fn().mockReturnValue(mockStream)
         debug.files['/test/logs'] = './logs'
         mockReq.query.file = 'test.log'
-        
+
         debugLogfileHandler(mockReq, mockRes)
-        
+
         expect(mockRes.set).toHaveBeenCalledWith('Content-Disposition', 'attachment; filename="test.log"')
         expect(mockRes.set).toHaveBeenCalledWith('Content-Type', 'text/plain')
         expect(fs.createReadStream).toHaveBeenCalledWith('/test/logs/test.log')
@@ -328,19 +331,19 @@ describe('Debug', () => {
         const mockStream = new Readable()
         mockStream._read = () => {}
         mockStream.pipe = jest.fn()
-        
+
         fs.createReadStream = jest.fn().mockReturnValue(mockStream)
         debug.files['/test/logs'] = './logs'
         mockReq.query.file = 'test.log'
-        
+
         debugLogfileHandler(mockReq, mockRes)
-        
+
         // Simulate error
         mockStream.emit('error', new Error('Read error'))
-        
+
         expect(mockRes.json).toHaveBeenCalledWith({
           success: false,
-          error: 'Error reading the file'
+          error: 'Error reading the file',
         })
       })
     })
@@ -348,16 +351,16 @@ describe('Debug', () => {
     describe('debug-network-delay endpoint', () => {
       it('should set default delay if not provided', () => {
         debugNetworkDelayHandler(mockReq, mockRes)
-        
+
         expect(mockNetwork.setDebugNetworkDelay).toHaveBeenCalledWith(120000)
         expect(mockRes.json).toHaveBeenCalledWith({ success: true })
       })
 
       it('should set custom delay from query parameter', () => {
         mockReq.query.delay = '5000'
-        
+
         debugNetworkDelayHandler(mockReq, mockRes)
-        
+
         expect(mockNetwork.setDebugNetworkDelay).toHaveBeenCalledWith(5000)
         expect(mockRes.json).toHaveBeenCalledWith({ success: true })
       })
@@ -366,12 +369,12 @@ describe('Debug', () => {
         mockNetwork.setDebugNetworkDelay.mockImplementation(() => {
           throw new Error('Network error')
         })
-        
+
         debugNetworkDelayHandler(mockReq, mockRes)
-        
+
         expect(mockRes.json).toHaveBeenCalledWith({
           success: false,
-          error: 'Network error'
+          error: 'Network error',
         })
       })
     })
@@ -379,9 +382,9 @@ describe('Debug', () => {
     describe('debug-forcedExpiration endpoint', () => {
       it('should set forcedExpiration to true', () => {
         mockReq.query.forcedExpiration = 'true'
-        
+
         debugForcedExpirationHandler(mockReq, mockRes)
-        
+
         const contextMock = require('../../../../src/p2p/Context')
         expect(contextMock.config.debug.forcedExpiration).toBe(true)
         expect(nestedCountersInstance.countEvent).toHaveBeenCalledWith('debug', 'forcedExpiration set to true')
@@ -390,9 +393,9 @@ describe('Debug', () => {
 
       it('should set forcedExpiration to false', () => {
         mockReq.query.forcedExpiration = 'false'
-        
+
         debugForcedExpirationHandler(mockReq, mockRes)
-        
+
         const contextMock = require('../../../../src/p2p/Context')
         expect(contextMock.config.debug.forcedExpiration).toBe(false)
         expect(nestedCountersInstance.countEvent).toHaveBeenCalledWith('debug', 'forcedExpiration set to false')
@@ -401,7 +404,7 @@ describe('Debug', () => {
 
       it('should default to false if not provided', () => {
         debugForcedExpirationHandler(mockReq, mockRes)
-        
+
         const contextMock = require('../../../../src/p2p/Context')
         expect(contextMock.config.debug.forcedExpiration).toBe(false)
         expect(mockRes.json).toHaveBeenCalledWith({ success: true })
@@ -410,15 +413,17 @@ describe('Debug', () => {
       it('should handle errors', () => {
         const contextMock = require('../../../../src/p2p/Context')
         Object.defineProperty(contextMock.config.debug, 'forcedExpiration', {
-          set: () => { throw new Error('Config error') },
-          configurable: true
+          set: () => {
+            throw new Error('Config error')
+          },
+          configurable: true,
         })
-        
+
         debugForcedExpirationHandler(mockReq, mockRes)
-        
+
         expect(mockRes.json).toHaveBeenCalledWith({
           success: false,
-          error: 'Config error'
+          error: 'Config error',
         })
       })
     })

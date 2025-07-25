@@ -13,7 +13,7 @@ describe('WrappedDataResponse', () => {
 
     it('should extend schemaWrappedData properties', () => {
       const baseProperties = Object.keys(schemaWrappedData.properties)
-      baseProperties.forEach(prop => {
+      baseProperties.forEach((prop) => {
         expect(schemaWrappedDataResponse.properties).toHaveProperty(prop)
       })
     })
@@ -26,12 +26,12 @@ describe('WrappedDataResponse', () => {
     it('should have correct required fields', () => {
       expect(schemaWrappedDataResponse.required).toBeDefined()
       expect(Array.isArray(schemaWrappedDataResponse.required)).toBe(true)
-      
+
       // Should include all base required fields
-      schemaWrappedData.required.forEach(field => {
+      schemaWrappedData.required.forEach((field) => {
         expect(schemaWrappedDataResponse.required).toContain(field)
       })
-      
+
       // Should include additional required fields
       expect(schemaWrappedDataResponse.required).toContain('accountCreated')
       expect(schemaWrappedDataResponse.required).toContain('isPartial')
@@ -63,10 +63,7 @@ describe('WrappedDataResponse', () => {
       initWrappedDataResponse()
 
       expect(addSchemaSpy).toHaveBeenCalledTimes(1)
-      expect(addSchemaSpy).toHaveBeenCalledWith(
-        AJVSchemaEnum.WrappedDataResponse,
-        schemaWrappedDataResponse
-      )
+      expect(addSchemaSpy).toHaveBeenCalledWith(AJVSchemaEnum.WrappedDataResponse, schemaWrappedDataResponse)
     })
 
     it('should not throw any errors', () => {

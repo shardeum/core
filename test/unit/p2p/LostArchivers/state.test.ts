@@ -31,7 +31,7 @@ describe('LostArchivers state', () => {
         gossippedUpMsg: false,
         target: 'target-public-key' as publicKey,
         status: 'reported',
-        cyclesToWait: 5
+        cyclesToWait: 5,
       }
 
       lostArchiversMap.set(testPublicKey, testRecord)
@@ -47,7 +47,7 @@ describe('LostArchivers state', () => {
         gossippedUpMsg: false,
         target: 'target1' as publicKey,
         status: 'investigating',
-        cyclesToWait: 3
+        cyclesToWait: 3,
       }
 
       const record2: LostArchiverRecord = {
@@ -56,7 +56,7 @@ describe('LostArchivers state', () => {
         gossippedUpMsg: true,
         target: 'target2' as publicKey,
         status: 'down',
-        cyclesToWait: 0
+        cyclesToWait: 0,
       }
 
       lostArchiversMap.set('key1' as publicKey, record1)
@@ -75,15 +75,15 @@ describe('LostArchivers state', () => {
         gossippedUpMsg: false,
         target: 'target' as publicKey,
         status: 'reported',
-        cyclesToWait: 5
+        cyclesToWait: 5,
       }
 
       lostArchiversMap.set(key, initialRecord)
-      
+
       const updatedRecord: LostArchiverRecord = {
         ...initialRecord,
         status: 'up',
-        gossippedUpMsg: true
+        gossippedUpMsg: true,
       }
 
       lostArchiversMap.set(key, updatedRecord)
@@ -100,7 +100,7 @@ describe('LostArchivers state', () => {
         gossippedUpMsg: false,
         target: 'target' as publicKey,
         status: 'down',
-        cyclesToWait: 2
+        cyclesToWait: 2,
       }
 
       lostArchiversMap.set(key, record)
@@ -122,11 +122,11 @@ describe('LostArchivers state', () => {
         investigateMsg: {} as SignedObject<InvestigateArchiverMsg>,
         archiverDownMsg: {} as SignedObject<ArchiverDownMsg>,
         archiverUpMsg: {} as SignedObject<ArchiverUpMsg>,
-        archiverRefuteMsg: {} as SignedObject<ArchiverRefutesLostMsg>
+        archiverRefuteMsg: {} as SignedObject<ArchiverRefutesLostMsg>,
       }
 
       lostArchiversMap.set('key-with-optional' as publicKey, recordWithOptionalFields)
-      
+
       const retrieved = lostArchiversMap.get('key-with-optional' as publicKey)
       expect(retrieved).toBeDefined()
       expect(retrieved?.investigateMsg).toBeDefined()
@@ -137,7 +137,7 @@ describe('LostArchivers state', () => {
 
     it('should handle all status types', () => {
       const statuses: LostArchiverRecord['status'][] = ['reported', 'investigating', 'down', 'up']
-      
+
       statuses.forEach((status, index) => {
         const record: LostArchiverRecord = {
           isInvestigator: index % 2 === 0,
@@ -145,15 +145,15 @@ describe('LostArchivers state', () => {
           gossippedUpMsg: index === 3,
           target: `target-${index}` as publicKey,
           status,
-          cyclesToWait: index
+          cyclesToWait: index,
         }
-        
+
         lostArchiversMap.set(`key-${status}` as publicKey, record)
       })
 
       expect(lostArchiversMap.size).toBe(4)
-      
-      statuses.forEach(status => {
+
+      statuses.forEach((status) => {
         const record = lostArchiversMap.get(`key-${status}` as publicKey)
         expect(record?.status).toBe(status)
       })
@@ -168,7 +168,7 @@ describe('LostArchivers state', () => {
         gossippedUpMsg: false,
         target: 'valid-target' as publicKey,
         status: 'reported',
-        cyclesToWait: 10
+        cyclesToWait: 10,
       }
 
       expect(() => {

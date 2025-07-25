@@ -1,5 +1,5 @@
 jest.mock('../../../src/network', () => ({
-  shardusGetTime: jest.fn(() => Date.now())
+  shardusGetTime: jest.fn(() => Date.now()),
 }))
 jest.mock('../../../src/p2p/Comms')
 jest.mock('../../../src/p2p/Context')
@@ -13,19 +13,19 @@ jest.mock('../../../src/logger', () => ({
     console: false,
     error: false,
     important_as_fatal: false,
-    p2pNonFatal: false
-  }
+    p2pNonFatal: false,
+  },
 }))
 jest.mock('../../../src/utils/nestedCounters', () => ({
   nestedCountersInstance: {
-    countEvent: jest.fn()
-  }
+    countEvent: jest.fn(),
+  },
 }))
 jest.mock('../../../src/utils/profiler', () => ({
   profilerInstance: {
     scopedProfileSectionStart: jest.fn(),
-    scopedProfileSectionEnd: jest.fn()
-  }
+    scopedProfileSectionEnd: jest.fn(),
+  },
 }))
 jest.mock('../../../src/utils/getCallstack')
 jest.mock('../../../src/types/Helpers')
@@ -50,27 +50,27 @@ import { InternalRouteEnum } from '../../../src/types/enum/InternalRouteEnum'
 import { TypeIdentifierEnum } from '../../../src/types/enum/TypeIdentifierEnum'
 import { RequestErrorEnum } from '../../../src/types/enum/RequestErrorEnum'
 import { getStreamWithTypeCheck, requestErrorHandler } from '../../../src/types/Helpers'
-import { 
-  ApoptosisProposalReq, 
-  deserializeApoptosisProposalReq, 
-  serializeApoptosisProposalReq 
+import {
+  ApoptosisProposalReq,
+  deserializeApoptosisProposalReq,
+  serializeApoptosisProposalReq,
 } from '../../../src/types/ApoptosisProposalReq'
-import { 
-  ApoptosisProposalResp, 
-  deserializeApoptosisProposalResp, 
-  serializeApoptosisProposalResp 
+import {
+  ApoptosisProposalResp,
+  deserializeApoptosisProposalResp,
+  serializeApoptosisProposalResp,
 } from '../../../src/types/ApoptosisProposalResp'
 import { BadRequest, serializeResponseError } from '../../../src/types/ResponseError'
 
 describe('Apoptosis', () => {
   beforeEach(() => {
     jest.clearAllMocks()
-    
+
     // Setup default mocks
     ;(Self as any).id = 'test-node-id'
     ;(Self as any).isFailed = false
     ;(Self as any).emitter = {
-      emit: jest.fn()
+      emit: jest.fn(),
     }
     ;(CycleCreator as any).currentCycle = 10
     ;(CycleCreator as any).currentQuarter = 1
@@ -82,15 +82,15 @@ describe('Apoptosis', () => {
       getLogger: jest.fn().mockReturnValue({
         info: jest.fn(),
         warn: jest.fn(),
-        error: jest.fn()
-      })
+        error: jest.fn(),
+      }),
     }
     ;(Context as any).crypto = {
       sign: jest.fn((obj) => ({ ...obj, sign: { owner: 'test-owner', sig: 'test-sig' } })),
-      verify: jest.fn(() => true)
+      verify: jest.fn(() => true),
     }
     ;(Context as any).network = {
-      _registerExternal: jest.fn()
+      _registerExternal: jest.fn(),
     }
     ;(isDebugMode as jest.Mock).mockReturnValue(true)
     ;(getCallstack as jest.Mock).mockReturnValue('test-callstack')
@@ -99,17 +99,14 @@ describe('Apoptosis', () => {
   describe('init', () => {
     it('should register all routes', () => {
       Apoptosis.init()
-      
+
       // Verify external routes are registered
       expect(Context.network._registerExternal).toHaveBeenCalledWith('GET', 'stop', expect.any(Function))
       expect(Context.network._registerExternal).toHaveBeenCalledWith('GET', 'fail', expect.any(Function))
-      
+
       // Verify internal binary route is registered
-      expect(Comms.registerInternalBinary).toHaveBeenCalledWith(
-        InternalRouteEnum.apoptosize,
-        expect.any(Function)
-      )
-      
+      expect(Comms.registerInternalBinary).toHaveBeenCalledWith(InternalRouteEnum.apoptosize, expect.any(Function))
+
       // Verify gossip handler is registered
       expect(Comms.registerGossipHandler).toHaveBeenCalledWith('apoptosis', expect.any(Function))
     })
@@ -121,26 +118,26 @@ describe('Apoptosis', () => {
       const node1 = { id: 'node1', publicKey: 'pk1' }
       const node2 = { id: 'node2', publicKey: 'pk2' }
       ;(NodeList.nodes as Map<string, any>).set('node1', node1)
-      
+
       // Create proposals
       const proposals1 = { id: 'node1', when: 10, sign: { owner: 'pk1', sig: 'sig1' } }
       const proposals2 = { id: 'node2', when: 10, sign: { owner: 'pk2', sig: 'sig2' } }
-      
+
       // Get proposals object and add entries
       const proposalsObj = Apoptosis.getTxs().apoptosis
-      
+
       // Initialize and add some proposals
       Apoptosis.init()
-      
+
       // Mock internal state by calling addProposal indirectly through handler
       const mockProposals = {
-        'node1': proposals1,
-        'node2': proposals2
+        node1: proposals1,
+        node2: proposals2,
       }
-      
+
       // Call reset
       Apoptosis.reset()
-      
+
       // Verify that only proposals for removed nodes are deleted
       const txs = Apoptosis.getTxs()
       expect(txs.apoptosis).toEqual([])
@@ -150,9 +147,9 @@ describe('Apoptosis', () => {
   describe('getTxs', () => {
     it('should return all proposals as apoptosis transactions', () => {
       const txs = Apoptosis.getTxs()
-      
+
       expect(txs).toEqual({
-        apoptosis: []
+        apoptosis: [],
       })
     })
   })
@@ -160,29 +157,29 @@ describe('Apoptosis', () => {
   describe('validateRecordTypes', () => {
     it('should return empty string for valid record', () => {
       const record: P2P.ApoptosisTypes.Record = {
-        apoptosized: ['node1', 'node2']
+        apoptosized: ['node1', 'node2'],
       }
-      
+
       const result = Apoptosis.validateRecordTypes(record)
-      
+
       expect(result).toBe('')
     })
 
     it('should return error for missing apoptosized field', () => {
       const record = {} as P2P.ApoptosisTypes.Record
-      
+
       const result = Apoptosis.validateRecordTypes(record)
-      
+
       expect(result).toBeTruthy()
     })
 
     it('should return error for non-string items in apoptosized array', () => {
       const record = {
-        apoptosized: ['node1', 123, 'node3']
+        apoptosized: ['node1', 123, 'node3'],
       } as any
-      
+
       const result = Apoptosis.validateRecordTypes(record)
-      
+
       expect(result).toBe('items of apoptosized array must be strings')
     })
   })
@@ -192,25 +189,25 @@ describe('Apoptosis', () => {
       const node1 = { id: 'node1', publicKey: 'pk1' }
       ;(NodeList.nodes as Map<string, any>).set('node1', node1)
       ;(Context.crypto.verify as jest.Mock).mockReturnValue(true)
-      
+
       const validProposal: P2P.ApoptosisTypes.SignedApoptosisProposal = {
         id: 'node1',
         when: 10,
-        sign: { owner: 'pk1', sig: 'sig1' }
+        sign: { owner: 'pk1', sig: 'sig1' },
       }
-      
+
       const invalidProposal = {
         id: 'node2', // Node doesn't exist
         when: 10,
-        sign: { owner: 'pk2', sig: 'sig2' }
+        sign: { owner: 'pk2', sig: 'sig2' },
       }
-      
+
       const txs: P2P.ApoptosisTypes.Txs = {
-        apoptosis: [validProposal, invalidProposal as any]
+        apoptosis: [validProposal, invalidProposal as any],
       }
-      
+
       const result = Apoptosis.dropInvalidTxs(txs)
-      
+
       expect(result.apoptosis).toHaveLength(1)
       expect(result.apoptosis[0]).toEqual(validProposal)
     })
@@ -222,20 +219,20 @@ describe('Apoptosis', () => {
       const node2 = { id: 'node2', publicKey: 'pk2' }
       ;(NodeList.byPubKey as Map<string, any>).set('pk1', node1)
       ;(NodeList.byPubKey as Map<string, any>).set('pk2', node2)
-      
+
       const txs: P2P.ApoptosisTypes.Txs = {
         apoptosis: [
           { id: 'node1', when: 10, sign: { owner: 'pk1', sig: 'sig1' } },
-          { id: 'node2', when: 10, sign: { owner: 'pk2', sig: 'sig2' } }
-        ]
+          { id: 'node2', when: 10, sign: { owner: 'pk2', sig: 'sig2' } },
+        ],
       }
-      
+
       const record: P2P.ApoptosisTypes.Record = {
-        apoptosized: ['node0']
+        apoptosized: ['node0'],
       }
-      
+
       Apoptosis.updateRecord(txs, record)
-      
+
       expect(record.apoptosized).toEqual(['node0', 'node1', 'node2'])
     })
 
@@ -244,20 +241,20 @@ describe('Apoptosis', () => {
       const node2 = { id: 'nodeA', publicKey: 'pk2' }
       ;(NodeList.byPubKey as Map<string, any>).set('pk1', node1)
       ;(NodeList.byPubKey as Map<string, any>).set('pk2', node2)
-      
+
       const txs: P2P.ApoptosisTypes.Txs = {
         apoptosis: [
           { id: 'nodeB', when: 10, sign: { owner: 'pk1', sig: 'sig1' } },
-          { id: 'nodeA', when: 10, sign: { owner: 'pk2', sig: 'sig2' } }
-        ]
+          { id: 'nodeA', when: 10, sign: { owner: 'pk2', sig: 'sig2' } },
+        ],
       }
-      
+
       const record: P2P.ApoptosisTypes.Record = {
-        apoptosized: []
+        apoptosized: [],
       }
-      
+
       Apoptosis.updateRecord(txs, record)
-      
+
       expect(record.apoptosized).toEqual(['nodeA', 'nodeB'])
     })
   })
@@ -265,36 +262,36 @@ describe('Apoptosis', () => {
   describe('parseRecord', () => {
     it('should return removed nodes', () => {
       const record: P2P.ApoptosisTypes.Record = {
-        apoptosized: ['node1', 'node2']
+        apoptosized: ['node1', 'node2'],
       }
-      
+
       const result = Apoptosis.parseRecord(record)
-      
+
       expect(result).toEqual({
         added: [],
         removed: ['node1', 'node2'],
-        updated: []
+        updated: [],
       })
     })
 
     it('should emit exit event if self is apoptosized', () => {
       const record: P2P.ApoptosisTypes.Record = {
-        apoptosized: ['test-node-id', 'node2']
+        apoptosized: ['test-node-id', 'node2'],
       }
-      
+
       const result = Apoptosis.parseRecord(record)
-      
+
       expect(Self.emitter.emit).toHaveBeenCalledWith(
         'invoke-exit',
         'node left active state due to un-refuted lost report',
         'test-callstack',
         expect.stringContaining('found our id in the apoptosis list')
       )
-      
+
       expect(result).toEqual({
         added: [],
         removed: ['test-node-id', 'node2'],
-        updated: []
+        updated: [],
       })
     })
   })
@@ -306,15 +303,15 @@ describe('Apoptosis', () => {
       const node2 = { id: 'node2', publicKey: 'pk2' }
       ;(NodeList.nodes as Map<string, any>).set('node1', node1)
       // node2 is not in network
-      
+
       // Since we can't directly manipulate internal proposals state,
       // we need to test through the public interface
       // The sendRequests function iterates over internal proposals
       // and gossips only those nodes still in the network
-      
+
       // For now, we'll test that the function executes without error
       Apoptosis.sendRequests()
-      
+
       // In the actual implementation, it would only gossip proposals
       // for nodes that exist in NodeList.nodes
       expect(Comms.sendGossip).toHaveBeenCalledTimes(0) // No proposals in initial state
@@ -323,23 +320,19 @@ describe('Apoptosis', () => {
 
   describe('apoptosizeSelf', () => {
     it('should create proposal and send to active nodes', async () => {
-      const activeNodes = [
-        { id: 'node1' },
-        { id: 'node2' },
-        { id: 'node3' }
-      ]
+      const activeNodes = [{ id: 'node1' }, { id: 'node2' }, { id: 'node3' }]
       ;(NodeList.activeByIdOrder as any[]) = activeNodes
       ;(robustQuery as jest.Mock).mockResolvedValue(true)
       ;(Comms.askBinary as jest.Mock).mockResolvedValue({ s: 'pass', r: 1 })
-      
+
       await Apoptosis.apoptosizeSelf('test message', 'user friendly message')
-      
+
       // Verify proposal was created and sent
       expect(Context.crypto.sign).toHaveBeenCalledWith({
         id: 'test-node-id',
-        when: 10
+        when: 10,
       })
-      
+
       expect(Comms.tellBinary).toHaveBeenCalledWith(
         activeNodes,
         InternalRouteEnum.apoptosize,
@@ -347,9 +340,9 @@ describe('Apoptosis', () => {
         serializeApoptosisProposalReq,
         {}
       )
-      
+
       expect(robustQuery).toHaveBeenCalled()
-      
+
       // Verify exit event was emitted
       expect(Self.emitter.emit).toHaveBeenCalledWith(
         'invoke-exit',
@@ -361,17 +354,12 @@ describe('Apoptosis', () => {
 
     it('should handle case with no active nodes', async () => {
       ;(NodeList.activeByIdOrder as any[]) = []
-      
+
       await Apoptosis.apoptosizeSelf('test message')
-      
+
       // Should still emit exit event
-      expect(Self.emitter.emit).toHaveBeenCalledWith(
-        'invoke-exit',
-        undefined,
-        'test-callstack',
-        'test message'
-      )
-      
+      expect(Self.emitter.emit).toHaveBeenCalledWith('invoke-exit', undefined, 'test-callstack', 'test message')
+
       // But should not call robustQuery
       expect(robustQuery).not.toHaveBeenCalled()
     })
@@ -381,12 +369,12 @@ describe('Apoptosis', () => {
     it('should return true if node is in proposals', () => {
       // Mock internal state by adding a proposal
       jest.spyOn(Apoptosis, 'getTxs').mockReturnValue({
-        apoptosis: [{ id: 'node1', when: 10, sign: { owner: 'pk1', sig: 'sig1' } }]
+        apoptosis: [{ id: 'node1', when: 10, sign: { owner: 'pk1', sig: 'sig1' } }],
       })
-      
+
       // Since we can't directly access proposals, we test through the handler
       Apoptosis.init()
-      
+
       // The actual implementation checks proposals[id]
       // For now, we'll just verify the function exists and returns boolean
       const result = Apoptosis.isApopMarkedNode('node1')
@@ -407,12 +395,12 @@ describe('Apoptosis', () => {
 
     beforeEach(() => {
       Apoptosis.init()
-      
+
       // Get the handler from the mock
       handler = (Comms.registerInternalBinary as jest.Mock).mock.calls.find(
-        call => call[0] === InternalRouteEnum.apoptosize
+        (call) => call[0] === InternalRouteEnum.apoptosize
       )?.[1]
-      
+
       mockResponse = jest.fn()
       mockHeader = { sender_id: 'node1' }
       mockSign = { owner: 'pk1', sig: 'sig1' }
@@ -423,12 +411,12 @@ describe('Apoptosis', () => {
       ;(getStreamWithTypeCheck as jest.Mock).mockReturnValue({})
       ;(deserializeApoptosisProposalReq as jest.Mock).mockReturnValue({
         id: 'isDownCheck',
-        when: 10
+        when: 10,
       })
       ;(Self as any).isFailed = false
-      
+
       await handler(mockPayload, mockResponse, mockHeader, mockSign)
-      
+
       expect(mockResponse).toHaveBeenCalledWith(
         { s: Apoptosis.nodeNotDownString, r: 1 },
         serializeApoptosisProposalResp
@@ -440,16 +428,13 @@ describe('Apoptosis', () => {
       ;(getStreamWithTypeCheck as jest.Mock).mockReturnValue({})
       ;(deserializeApoptosisProposalReq as jest.Mock).mockReturnValue({
         id: 'isDownCheck',
-        when: 10
+        when: 10,
       })
       ;(Self as any).isFailed = true
-      
+
       await handler(mockPayload, mockResponse, mockHeader, mockSign)
-      
-      expect(mockResponse).toHaveBeenCalledWith(
-        { s: Apoptosis.nodeDownString, r: 1 },
-        serializeApoptosisProposalResp
-      )
+
+      expect(mockResponse).toHaveBeenCalledWith({ s: Apoptosis.nodeDownString, r: 1 }, serializeApoptosisProposalResp)
     })
 
     it('should reject proposal with invalid when time', async () => {
@@ -457,15 +442,12 @@ describe('Apoptosis', () => {
       ;(getStreamWithTypeCheck as jest.Mock).mockReturnValue({})
       ;(deserializeApoptosisProposalReq as jest.Mock).mockReturnValue({
         id: 'node1',
-        when: 100 // Too far in future
+        when: 100, // Too far in future
       })
-      
+
       await handler(mockPayload, mockResponse, mockHeader, mockSign)
-      
-      expect(mockResponse).toHaveBeenCalledWith(
-        { s: 'fail', r: 2 },
-        serializeApoptosisProposalResp
-      )
+
+      expect(mockResponse).toHaveBeenCalledWith({ s: 'fail', r: 2 }, serializeApoptosisProposalResp)
     })
 
     it('should reject proposal if sender is not the apoptosizing node', async () => {
@@ -473,15 +455,12 @@ describe('Apoptosis', () => {
       ;(getStreamWithTypeCheck as jest.Mock).mockReturnValue({})
       ;(deserializeApoptosisProposalReq as jest.Mock).mockReturnValue({
         id: 'node2', // Different from sender
-        when: 10
+        when: 10,
       })
-      
+
       await handler(mockPayload, mockResponse, mockHeader, { sender_id: 'node1' }, mockSign)
-      
-      expect(mockResponse).toHaveBeenCalledWith(
-        { s: 'fail', r: 3 },
-        serializeApoptosisProposalResp
-      )
+
+      expect(mockResponse).toHaveBeenCalledWith({ s: 'fail', r: 3 }, serializeApoptosisProposalResp)
     })
 
     it('should accept valid proposal and gossip in Q1', async () => {
@@ -489,43 +468,37 @@ describe('Apoptosis', () => {
       ;(getStreamWithTypeCheck as jest.Mock).mockReturnValue({})
       ;(deserializeApoptosisProposalReq as jest.Mock).mockReturnValue({
         id: 'node1',
-        when: 10
+        when: 10,
       })
       ;(CycleCreator as any).currentQuarter = 1
-      
+
       // Setup node to make validation pass
       const node1 = { id: 'node1', publicKey: 'pk1' }
       ;(NodeList.nodes as Map<string, any>).set('node1', node1)
       ;(Context.crypto.verify as jest.Mock).mockReturnValue(true)
-      
+
       await handler(mockPayload, mockResponse, mockHeader, mockSign)
-      
+
       expect(Comms.sendGossip).toHaveBeenCalledWith(
         'apoptosis',
         expect.objectContaining({
           id: 'node1',
           when: 10,
-          sign: mockSign
+          sign: mockSign,
         })
       )
-      
-      expect(mockResponse).toHaveBeenCalledWith(
-        { s: 'pass', r: 1 },
-        serializeApoptosisProposalResp
-      )
+
+      expect(mockResponse).toHaveBeenCalledWith({ s: 'pass', r: 1 }, serializeApoptosisProposalResp)
     })
 
     it('should handle invalid stream', async () => {
       const mockPayload = Buffer.from('test')
       ;(getStreamWithTypeCheck as jest.Mock).mockReturnValue(null)
       ;(BadRequest as jest.Mock).mockReturnValue('bad request')
-      
+
       await handler(mockPayload, mockResponse, mockHeader, mockSign)
-      
-      expect(mockResponse).toHaveBeenCalledWith(
-        'bad request',
-        serializeResponseError
-      )
+
+      expect(mockResponse).toHaveBeenCalledWith('bad request', serializeResponseError)
     })
   })
 
@@ -534,28 +507,26 @@ describe('Apoptosis', () => {
 
     beforeEach(() => {
       Apoptosis.init()
-      
+
       // Get the handler from the mock
-      handler = (Comms.registerGossipHandler as jest.Mock).mock.calls.find(
-        call => call[0] === 'apoptosis'
-      )?.[1]
+      handler = (Comms.registerGossipHandler as jest.Mock).mock.calls.find((call) => call[0] === 'apoptosis')?.[1]
     })
 
     it('should validate and gossip valid proposal in Q1', () => {
       const mockProposal: P2P.ApoptosisTypes.SignedApoptosisProposal = {
         id: 'node1',
         when: 10,
-        sign: { owner: 'pk1', sig: 'sig1' }
+        sign: { owner: 'pk1', sig: 'sig1' },
       }
-      
+
       // Setup for validation
       const node1 = { id: 'node1', publicKey: 'pk1' }
       ;(NodeList.nodes as Map<string, any>).set('node1', node1)
       ;(Context.crypto.verify as jest.Mock).mockReturnValue(true)
       ;(CycleCreator as any).currentQuarter = 1
-      
+
       handler(mockProposal, 'sender', 'tracker')
-      
+
       expect(Comms.sendGossip).toHaveBeenCalledWith(
         'apoptosis',
         mockProposal,
@@ -570,17 +541,17 @@ describe('Apoptosis', () => {
       const mockProposal: P2P.ApoptosisTypes.SignedApoptosisProposal = {
         id: 'node1',
         when: 10,
-        sign: { owner: 'pk1', sig: 'sig1' }
+        sign: { owner: 'pk1', sig: 'sig1' },
       }
-      
+
       // Setup for validation
       const node1 = { id: 'node1', publicKey: 'pk1' }
       ;(NodeList.nodes as Map<string, any>).set('node1', node1)
       ;(Context.crypto.verify as jest.Mock).mockReturnValue(true)
       ;(CycleCreator as any).currentQuarter = 2
-      
+
       handler(mockProposal, 'sender', 'tracker')
-      
+
       expect(Comms.sendGossip).toHaveBeenCalledWith(
         'apoptosis',
         mockProposal,
@@ -595,13 +566,13 @@ describe('Apoptosis', () => {
       const mockProposal: P2P.ApoptosisTypes.SignedApoptosisProposal = {
         id: 'node1',
         when: 10,
-        sign: { owner: 'pk1', sig: 'sig1' }
+        sign: { owner: 'pk1', sig: 'sig1' },
       }
-      
+
       ;(CycleCreator as any).currentQuarter = 3
-      
+
       handler(mockProposal, 'sender', 'tracker')
-      
+
       expect(Comms.sendGossip).not.toHaveBeenCalled()
     })
 
@@ -609,11 +580,11 @@ describe('Apoptosis', () => {
       const mockProposal = {
         id: 'node1',
         // Missing when field
-        sign: { owner: 'pk1', sig: 'sig1' }
+        sign: { owner: 'pk1', sig: 'sig1' },
       }
-      
+
       handler(mockProposal, 'sender', 'tracker')
-      
+
       expect(Comms.sendGossip).not.toHaveBeenCalled()
     })
 
@@ -621,11 +592,11 @@ describe('Apoptosis', () => {
       const mockProposal = {
         id: 'node1',
         when: 10,
-        sign: { owner: 'pk1' } // Missing sig field
+        sign: { owner: 'pk1' }, // Missing sig field
       }
-      
+
       handler(mockProposal, 'sender', 'tracker')
-      
+
       expect(Comms.sendGossip).not.toHaveBeenCalled()
     })
   })
@@ -634,27 +605,27 @@ describe('Apoptosis', () => {
     it('should handle stop route in debug mode', () => {
       // Mock module-level function before importing
       const apoptosizeSelfMock = jest.fn()
-      
+
       // Need to mock the whole module to intercept the internal function call
       jest.isolateModules(() => {
         // First init to register routes
         Apoptosis.init()
-        
+
         const stopHandler = (Context.network._registerExternal as jest.Mock).mock.calls.find(
-          call => call[1] === 'stop'
+          (call) => call[1] === 'stop'
         )?.[2]
-        
+
         expect(stopHandler).toBeDefined()
-        
+
         const mockReq = {}
         const mockRes = {
-          json: jest.fn()
+          json: jest.fn(),
         }
-        
+
         stopHandler(mockReq, mockRes)
-        
+
         expect(mockRes.json).toHaveBeenCalledWith({ status: 'goodbye cruel world' })
-        
+
         // Since we can't easily intercept the internal apoptosizeSelf call,
         // we'll verify the route was registered and the response was sent
         // The actual apoptosizeSelf behavior is tested separately
@@ -664,16 +635,16 @@ describe('Apoptosis', () => {
     it('should handle fail route in debug mode', () => {
       // First init to register routes
       Apoptosis.init()
-      
+
       const failHandler = (Context.network._registerExternal as jest.Mock).mock.calls.find(
-        call => call[1] === 'fail'
+        (call) => call[1] === 'fail'
       )?.[2]
-      
+
       expect(failHandler).toBeDefined()
-      
+
       const mockReq = {}
       const mockRes = {}
-      
+
       expect(() => failHandler(mockReq, mockRes)).toThrow('fail_endpoint_debug')
     })
   })

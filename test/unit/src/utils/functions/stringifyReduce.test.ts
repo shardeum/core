@@ -7,14 +7,14 @@ import {
   reviverExpander,
   reviverMemoize,
   debugReplacer,
-  debugReviver
+  debugReviver,
 } from '../../../../../src/utils/functions/stringifyReduce'
 import { makeShortHash } from '../../../../../src/utils'
 
 jest.mock('@shardeum-foundation/lib-types', () => ({
   Utils: {
-    safeStringify: jest.fn().mockImplementation((val) => JSON.stringify(val))
-  }
+    safeStringify: jest.fn().mockImplementation((val) => JSON.stringify(val)),
+  },
 }))
 
 jest.mock('../../../../../src/utils', () => ({
@@ -32,7 +32,7 @@ jest.mock('../../../../../src/utils', () => ({
       }
     }
     return x
-  })
+  }),
 }))
 
 // Global setup for all tests
@@ -55,14 +55,12 @@ beforeEach(() => {
     }
     return x
   })
-  
+
   const { Utils } = require('@shardeum-foundation/lib-types')
   Utils.safeStringify.mockImplementation((val) => JSON.stringify(val))
 })
 
 describe('stringifyReduce', () => {
-
-
   describe('primitive values', () => {
     it('should handle boolean true', () => {
       const result = stringifyReduce(true)
@@ -124,7 +122,7 @@ describe('stringifyReduce', () => {
     it('should reduce strings using makeShortHash', () => {
       const testString = 'this is a long string'
       const result = stringifyReduce(testString)
-      
+
       expect(makeShortHash).toHaveBeenCalledWith(testString)
       expect(Utils.safeStringify).toHaveBeenCalledWith('this is a long string')
       expect(result).toBe('"this is a long string"')
@@ -135,7 +133,7 @@ describe('stringifyReduce', () => {
     it('should handle bigint values', () => {
       const bigintValue = BigInt(123456789)
       const result = stringifyReduce(bigintValue)
-      
+
       expect(Utils.safeStringify).toHaveBeenCalledWith('75bcd15')
       expect(result).toBe('"75bcd15"')
     })
@@ -144,7 +142,7 @@ describe('stringifyReduce', () => {
       // Mock typeof to return 'bigint' in default case
       const bigintValue = BigInt(999)
       const result = stringifyReduce(bigintValue)
-      
+
       expect(result).toBe('"3e7"')
     })
   })
@@ -162,13 +160,16 @@ describe('stringifyReduce', () => {
 
     it('should handle arrays with mixed types', () => {
       const result = stringifyReduce([1, 'test', true, null])
-      
+
       expect(makeShortHash).toHaveBeenCalledWith('test')
       expect(result).toBe('[1,"test",true,null]')
     })
 
     it('should handle nested arrays', () => {
-      const result = stringifyReduce([[1, 2], [3, 4]])
+      const result = stringifyReduce([
+        [1, 2],
+        [3, 4],
+      ])
       expect(result).toBe('[[1,2],[3,4]]')
     })
   })
@@ -204,40 +205,42 @@ describe('stringifyReduce', () => {
     it('should handle objects with toJSON method', () => {
       const objWithToJSON = {
         value: 'test',
-        toJSON: jest.fn(() => ({ serialized: true }))
+        toJSON: jest.fn(() => ({ serialized: true })),
       }
-      
+
       const result = stringifyReduce(objWithToJSON)
-      
+
       expect(objWithToJSON.toJSON).toHaveBeenCalled()
       expect(result).toBe('{"serialized":true}')
     })
 
     it('should handle Map objects', () => {
-      const map = new Map([['key1', 'value1'], ['key2', 'value2']])
+      const map = new Map([
+        ['key1', 'value1'],
+        ['key2', 'value2'],
+      ])
       const result = stringifyReduce(map)
-      
+
       expect(result).toBe('{"dataType":"stringifyReduce_map_2_array","value":[["key1","value1"],["key2","value2"]]}')
     })
 
     it('should handle Uint8Array', () => {
       const uint8Array = new Uint8Array([72, 101, 108, 108, 111])
       const result = stringifyReduce(uint8Array)
-      
+
       expect(result).toBe('48656c6c6f')
     })
 
     it('should handle other object types using safeStringify', () => {
       const date = new Date('2023-01-01')
       const result = stringifyReduce(date)
-      
+
       expect(Utils.safeStringify).toHaveBeenCalledWith('2023-01-01T00:00:00.000Z')
     })
   })
 })
 
 describe('stringifyReduceLimit', () => {
-
   it('should return LIMIT when limit is negative', () => {
     const result = stringifyReduceLimit({ a: 1 }, -1)
     expect(result).toBe('undefinedLIMIT')
@@ -267,12 +270,12 @@ describe('stringifyReduceLimit', () => {
 
   it('should truncate objects when limit exceeded', () => {
     const result = stringifyReduceLimit({ a: 1, b: 2, c: 3, d: 4 }, 10)
-    expect(result).toBe('\"a\":1,\"b\":2LIMIT')
+    expect(result).toBe('"a":1,"b":2LIMIT')
   })
 
   it('should handle strings with makeShortHash', () => {
     const result = stringifyReduceLimit('test string')
-    
+
     expect(makeShortHash).toHaveBeenCalledWith('test string')
     expect(result).toBe('"test string"')
   })
@@ -280,17 +283,17 @@ describe('stringifyReduceLimit', () => {
   it('should handle bigint by converting to string', () => {
     const bigintValue = BigInt(123)
     const result = stringifyReduceLimit(bigintValue)
-    
+
     expect(result).toBe('123')
   })
 
   it('should handle objects with toJSON method', () => {
     const objWithToJSON = {
-      toJSON: jest.fn(() => ({ reduced: true }))
+      toJSON: jest.fn(() => ({ reduced: true })),
     }
-    
+
     const result = stringifyReduceLimit(objWithToJSON, 100)
-    
+
     expect(objWithToJSON.toJSON).toHaveBeenCalled()
     expect(result).toBe('{"reduced":true}')
   })
@@ -298,19 +301,25 @@ describe('stringifyReduceLimit', () => {
 
 describe('replacer', () => {
   it('should convert Map to stringifyReduce_map_2_array format', () => {
-    const map = new Map([['key1', 'value1'], ['key2', 'value2']])
+    const map = new Map([
+      ['key1', 'value1'],
+      ['key2', 'value2'],
+    ])
     const result = replacer('testKey', map)
-    
+
     expect(result).toEqual({
       dataType: 'stringifyReduce_map_2_array',
-      value: [['key1', 'value1'], ['key2', 'value2']]
+      value: [
+        ['key1', 'value1'],
+        ['key2', 'value2'],
+      ],
     })
   })
 
   it('should return value unchanged for non-Map objects', () => {
     const obj = { a: 1, b: 2 }
     const result = replacer('testKey', obj)
-    
+
     expect(result).toBe(obj)
   })
 
@@ -325,11 +334,14 @@ describe('reviver', () => {
   it('should convert stringifyReduce_map_2_array back to Map', () => {
     const mapData = {
       dataType: 'stringifyReduce_map_2_array',
-      value: [['key1', 'value1'], ['key2', 'value2']]
+      value: [
+        ['key1', 'value1'],
+        ['key2', 'value2'],
+      ],
     }
-    
+
     const result = reviver('testKey', mapData)
-    
+
     expect(result).toBeInstanceOf(Map)
     expect((result as Map<string, string>).get('key1')).toBe('value1')
     expect((result as Map<string, string>).get('key2')).toBe('value2')
@@ -338,7 +350,7 @@ describe('reviver', () => {
   it('should return value unchanged for non-map objects', () => {
     const obj = { a: 1, b: 2 }
     const result = reviver('testKey', obj)
-    
+
     expect(result).toBe(obj)
   })
 
@@ -353,11 +365,14 @@ describe('reviverExpander', () => {
   it('should convert stringifyReduce_map_2_array back to Map', () => {
     const mapData = {
       dataType: 'stringifyReduce_map_2_array',
-      value: [['key1', 'value1'], ['key2', 'value2']]
+      value: [
+        ['key1', 'value1'],
+        ['key2', 'value2'],
+      ],
     }
-    
+
     const result = reviverExpander('testKey', mapData)
-    
+
     expect(result).toBeInstanceOf(Map)
     expect((result as Map<string, string>).get('key1')).toBe('value1')
   })
@@ -365,21 +380,21 @@ describe('reviverExpander', () => {
   it('should expand shortened strings', () => {
     const shortString = '1234x56789'
     const result = reviverExpander('testKey', shortString)
-    
+
     expect(result).toBe('1234' + '0'.repeat(55) + '56789')
   })
 
   it('should not expand strings that do not match pattern', () => {
     const normalString = 'normal string'
     const result = reviverExpander('testKey', normalString)
-    
+
     expect(result).toBe(normalString)
   })
 
   it('should return other values unchanged', () => {
     const obj = { a: 1 }
     const result = reviverExpander('testKey', obj)
-    
+
     expect(result).toBe(obj)
   })
 })
@@ -388,11 +403,14 @@ describe('reviverMemoize', () => {
   it('should convert stringifyReduce_map_2_array back to Map', () => {
     const mapData = {
       dataType: 'stringifyReduce_map_2_array',
-      value: [['key1', 'value1'], ['key2', 'value2']]
+      value: [
+        ['key1', 'value1'],
+        ['key2', 'value2'],
+      ],
     }
-    
+
     const result = reviverMemoize('testKey', mapData)
-    
+
     expect(result).toBeInstanceOf(Map)
     expect((result as Map<string, string>).get('key1')).toBe('value1')
   })
@@ -400,13 +418,12 @@ describe('reviverMemoize', () => {
   it('should return value unchanged for non-map objects', () => {
     const obj = { a: 1, b: 2 }
     const result = reviverMemoize('testKey', obj)
-    
+
     expect(result).toBe(obj)
   })
 })
 
 describe('debugReplacer', () => {
-
   it('should return empty object for accountTempMap key', () => {
     const result = debugReplacer('accountTempMap', { some: 'data' })
     expect(result).toEqual({})
@@ -415,25 +432,31 @@ describe('debugReplacer', () => {
   it('should reduce strings using makeShortHash', () => {
     const testString = 'this is a test string'
     const result = debugReplacer('testKey', testString)
-    
+
     expect(makeShortHash).toHaveBeenCalledWith(testString)
     expect(result).toBe('this is a test string')
   })
 
   it('should convert Map to stringifyReduce_map_2_array format', () => {
-    const map = new Map([['key1', 'value1'], ['key2', 'value2']])
+    const map = new Map([
+      ['key1', 'value1'],
+      ['key2', 'value2'],
+    ])
     const result = debugReplacer('testKey', map)
-    
+
     expect(result).toEqual({
       dataType: 'stringifyReduce_map_2_array',
-      value: [['key1', 'value1'], ['key2', 'value2']]
+      value: [
+        ['key1', 'value1'],
+        ['key2', 'value2'],
+      ],
     })
   })
 
   it('should return value unchanged for other types', () => {
     const obj = { a: 1, b: 2 }
     const result = debugReplacer('testKey', obj)
-    
+
     expect(result).toBe(obj)
   })
 })
@@ -442,11 +465,14 @@ describe('debugReviver', () => {
   it('should convert stringifyReduce_map_2_array back to Map', () => {
     const mapData = {
       dataType: 'stringifyReduce_map_2_array',
-      value: [['key1', 'value1'], ['key2', 'value2']]
+      value: [
+        ['key1', 'value1'],
+        ['key2', 'value2'],
+      ],
     }
-    
+
     const result = debugReviver('testKey', mapData)
-    
+
     expect(result).toBeInstanceOf(Map)
     expect((result as Map<string, string>).get('key1')).toBe('value1')
   })
@@ -454,13 +480,12 @@ describe('debugReviver', () => {
   it('should return value unchanged for non-map objects', () => {
     const obj = { a: 1, b: 2 }
     const result = debugReviver('testKey', obj)
-    
+
     expect(result).toBe(obj)
   })
 })
 
 describe('edge cases and integration', () => {
-
   it('should handle complex nested structures', () => {
     const complex = {
       array: [1, 'test', { nested: true }],
@@ -469,11 +494,11 @@ describe('edge cases and integration', () => {
       number: 42,
       boolean: true,
       nullValue: null,
-      undefinedValue: undefined
+      undefinedValue: undefined,
     }
-    
+
     const result = stringifyReduce(complex)
-    
+
     expect(result).toContain('"array":[1,"test",{"nested":true}]')
     expect(result).toContain('"boolean":true')
     expect(result).toContain('"number":42')
@@ -484,10 +509,10 @@ describe('edge cases and integration', () => {
   it('should handle circular references through toJSON', () => {
     const obj = { value: 'test' }
     obj['circular'] = obj
-    
+
     // Add toJSON to handle circular reference
     obj['toJSON'] = () => ({ value: obj.value, hasCircular: true })
-    
+
     const result = stringifyReduce(obj)
     expect(result).toBe('{"hasCircular":true,"value":"test"}')
   })
@@ -495,7 +520,7 @@ describe('edge cases and integration', () => {
   it('should handle Uint8Array with various byte values', () => {
     const uint8Array = new Uint8Array([0, 255, 128, 64])
     const result = stringifyReduce(uint8Array)
-    
+
     expect(result).toBe('00ff8040')
   })
 })

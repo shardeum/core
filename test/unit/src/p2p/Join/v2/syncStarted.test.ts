@@ -4,26 +4,28 @@ import { SignedObject } from '@shardeum-foundation/lib-types/build/src/p2p/P2PTy
 
 // Mock all dependencies at the top level
 jest.mock('../../../../../../src/logger', () => ({
-  logFlags: { verbose: false }
+  logFlags: { verbose: false },
 }))
 
 jest.mock('../../../../../../src/p2p/NodeList', () => ({
-  byIdOrder: [{ id: 'node123', publicKey: 'publicKey123' }]
+  byIdOrder: [{ id: 'node123', publicKey: 'publicKey123' }],
 }))
 
 jest.mock('../../../../../../src/p2p/CycleChain', () => ({
-  getNewest: jest.fn().mockReturnValue({ counter: 100 })
+  getNewest: jest.fn().mockReturnValue({ counter: 100 }),
 }))
 
 jest.mock('../../../../../../src/p2p/Context', () => ({
   crypto: {
-    verify: jest.fn().mockReturnValue(true)
-  }
+    verify: jest.fn().mockReturnValue(true),
+  },
 }))
 
 let mockCurrentQuarter = 3
 jest.mock('../../../../../../src/p2p/CycleCreator', () => ({
-  get currentQuarter() { return mockCurrentQuarter }
+  get currentQuarter() {
+    return mockCurrentQuarter
+  },
 }))
 
 describe('syncStarted', () => {
@@ -35,8 +37,8 @@ describe('syncStarted', () => {
       cycleNumber: 100,
       sign: {
         owner: 'publicKey123',
-        sig: 'signature123'
-      }
+        sig: 'signature123',
+      },
     } as StartedSyncingRequest
 
     mockCurrentQuarter = 3
@@ -44,15 +46,15 @@ describe('syncStarted', () => {
     // Reset module state
     syncStarted.nodesYetToStartSyncing.clear()
     syncStarted.lostAfterSelection.length = 0
-    
+
     // Reset CycleChain mock
     const CycleChain = require('../../../../../../src/p2p/CycleChain')
     CycleChain.getNewest.mockReturnValue({ counter: 100 })
-    
+
     // Reset crypto mock
     const { crypto } = require('../../../../../../src/p2p/Context')
     crypto.verify.mockReturnValue(true)
-    
+
     // Clear the internal newSyncStarted map
     syncStarted.drainSyncStarted()
   })

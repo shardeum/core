@@ -9,7 +9,7 @@ jest.mock('../../../../src/p2p/Context', () => {
     trace: jest.fn(),
     fatal: jest.fn(),
   }
-  
+
   // Define the implementation inside the factory function
   const hashImplementation = (input: any) => {
     // Handle different types of input for hash
@@ -19,7 +19,7 @@ jest.mock('../../../../src/p2p/Context', () => {
     }
     return `hash-${JSON.stringify(input)}`
   }
-  
+
   return {
     crypto: {
       hash: jest.fn(hashImplementation),
@@ -66,22 +66,22 @@ describe('CycleChain Core', () => {
   beforeEach(() => {
     // Clear mock function call history only, not implementations
     const Context = require('../../../../src/p2p/Context')
-    
+
     // Clear call history for logger methods
     const mockLogger = Context.logger.getLogger()
     if (mockLogger) {
-      Object.keys(mockLogger).forEach(key => {
+      Object.keys(mockLogger).forEach((key) => {
         if (typeof mockLogger[key] === 'function' && mockLogger[key].mockClear) {
           mockLogger[key].mockClear()
         }
       })
     }
-    
+
     // Clear other mocks
     Context.crypto.hash.mockClear()
     Context.stateManager.getCurrentCycleShardData.mockClear()
     Context.stateManager.statemanager_fatal.mockClear()
-    
+
     // Re-ensure hash function has correct implementation
     Context.crypto.hash.mockImplementation((input: any) => {
       if (typeof input === 'object' && input.counter !== undefined) {
@@ -89,10 +89,10 @@ describe('CycleChain Core', () => {
       }
       return `hash-${JSON.stringify(input)}`
     })
-    
+
     // Reset the module state
     CycleChain.reset()
-    
+
     // Re-initialize CycleChain to ensure logger is set up
     CycleChain.init()
   })
@@ -112,7 +112,7 @@ describe('CycleChain Core', () => {
       } as P2P.CycleCreatorTypes.CycleRecord
 
       CycleChain.append(cycle)
-      
+
       // Verify data was added
       expect(CycleChain.cycles).toHaveLength(1)
       expect(CycleChain.oldest).toBe(cycle)
@@ -261,7 +261,7 @@ describe('CycleChain Core', () => {
 
       // Add cycle2 first
       CycleChain.append(cycle2)
-      
+
       // Then prepend cycle1
       CycleChain.prepend(cycle1)
 
@@ -304,7 +304,7 @@ describe('CycleChain Core', () => {
 
       // Add cycle1 first
       CycleChain.append(cycle1)
-      
+
       // Prepend cycle3 (higher counter)
       CycleChain.prepend(cycle3)
 

@@ -39,7 +39,7 @@ describe('MakeReceiptReq', () => {
 
       const secondCall = mockAddSchema.mock.calls[1]
       expect(secondCall[0]).toBe(AJVSchemaEnum.MakeReceiptReq)
-      
+
       const schema = secondCall[1] as any
       expect(schema.type).toBe('object')
       expect(schema.properties).toHaveProperty('sign')
@@ -71,7 +71,7 @@ describe('MakeReceiptReq', () => {
       initMakeReceiptReq()
 
       const makeReceiptReqSchema = mockAddSchema.mock.calls[1][1] as any
-      
+
       expect(makeReceiptReqSchema.properties.address.type).toBe('string')
       expect(makeReceiptReqSchema.properties.value).toEqual({}) // opaque value
       expect(makeReceiptReqSchema.properties.when.type).toBe('number')
@@ -82,18 +82,18 @@ describe('MakeReceiptReq', () => {
       const validData = {
         sign: {
           owner: '0xabc123',
-          sig: 'signature_data'
+          sig: 'signature_data',
         },
         address: '0xdef456',
         value: { amount: 100, currency: 'USD' },
         when: Date.now(),
-        source: 'node1'
+        source: 'node1',
       }
 
       initMakeReceiptReq()
-      
+
       const makeReceiptReqSchema = mockAddSchema.mock.calls[1][1] as any
-      
+
       // Check that all required fields are in the schema
       expect(makeReceiptReqSchema.required).toContain('sign')
       expect(makeReceiptReqSchema.required).toContain('address')
@@ -106,7 +106,7 @@ describe('MakeReceiptReq', () => {
       initMakeReceiptReq()
 
       const makeReceiptReqSchema = mockAddSchema.mock.calls[1][1] as any
-      
+
       // value property is defined as empty object, meaning any type is accepted
       expect(makeReceiptReqSchema.properties.value).toEqual({})
     })
@@ -121,13 +121,13 @@ describe('MakeReceiptReq', () => {
 
     it('should register schemas only once per initialization', () => {
       initMakeReceiptReq()
-      
+
       expect(mockAddSchema).toHaveBeenCalledTimes(2)
-      
+
       // Clear mocks and call again
       mockAddSchema.mockClear()
       initMakeReceiptReq()
-      
+
       expect(mockAddSchema).toHaveBeenCalledTimes(2)
     })
   })

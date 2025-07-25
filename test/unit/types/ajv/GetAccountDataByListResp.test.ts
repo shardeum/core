@@ -1,4 +1,7 @@
-import { initGetAccountDataByListResp, schemaGetAccountDataByListResp } from '../../../../src/types/ajv/GetAccountDataByListResp'
+import {
+  initGetAccountDataByListResp,
+  schemaGetAccountDataByListResp,
+} from '../../../../src/types/ajv/GetAccountDataByListResp'
 import { addSchema } from '../../../../src/utils/serialization/SchemaHelpers'
 import { AJVSchemaEnum } from '../../../../src/types/enum/AJVSchemaEnum'
 import { schemaWrappedData } from '../../../../src/types/ajv/WrappedData'
@@ -57,10 +60,7 @@ describe('GetAccountDataByListResp', () => {
       initGetAccountDataByListResp()
 
       expect(mockAddSchema).toHaveBeenCalledTimes(1)
-      expect(mockAddSchema).toHaveBeenCalledWith(
-        AJVSchemaEnum.GetAccountDataByListResp,
-        schemaGetAccountDataByListResp
-      )
+      expect(mockAddSchema).toHaveBeenCalledWith(AJVSchemaEnum.GetAccountDataByListResp, schemaGetAccountDataByListResp)
     })
 
     it('should not throw any errors during initialization', () => {

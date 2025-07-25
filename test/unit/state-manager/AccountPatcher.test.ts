@@ -11,17 +11,17 @@ import {
   RadixAndHash,
   ShardedHashTrie,
   IsInsyncResult,
-  HashTrieSyncConsensus
+  HashTrieSyncConsensus,
 } from '../../../src/state-manager/state-manager-types'
 import { Ordering } from '../../../src/utils'
 
 // Mock the Context module
 jest.mock('../../../src/p2p/Context', () => ({
   network: {
-    registerExternalGet: jest.fn()
+    registerExternalGet: jest.fn(),
   },
   setDefaultConfigs: jest.fn(),
-  P2PModuleContext: jest.fn()
+  P2PModuleContext: jest.fn(),
 }))
 
 import * as Context from '../../../src/p2p/Context'
@@ -43,25 +43,25 @@ describe('AccountPatcher', () => {
       currentCycleShardData: {
         cycleNumber: 10,
         shardGlobals: {
-          nodesPerConsenusGroup: 5
+          nodesPerConsenusGroup: 5,
         },
-        nodes: []
+        nodes: [],
       },
       shardValuesByCycle: new Map(),
       lastShardReport: 'test shard report',
       accountCache: {
         getAccountHash: jest.fn(),
-        getAccountDebugObject: jest.fn()
+        getAccountDebugObject: jest.fn(),
       },
       transactionQueue: {
         getConsenusGroupForAccount: jest.fn(() => []),
-        getStorageGroupForAccount: jest.fn(() => [])
-      }
+        getStorageGroupForAccount: jest.fn(() => []),
+      },
     }
 
     mockProfiler = {
       scopedProfileSectionStart: jest.fn(),
-      scopedProfileSectionEnd: jest.fn()
+      scopedProfileSectionEnd: jest.fn(),
     } as any
 
     mockApp = {} as Shardus.App
@@ -71,25 +71,25 @@ describe('AccountPatcher', () => {
         debug: jest.fn(),
         info: jest.fn(),
         warn: jest.fn(),
-        error: jest.fn()
-      }))
+        error: jest.fn(),
+      })),
     }
 
     mockP2P = {
-      registerInternalBinary: jest.fn()
+      registerInternalBinary: jest.fn(),
     } as any
 
     mockCrypto = {
-      hash: jest.fn((value) => `hash_${JSON.stringify(value)}`)
+      hash: jest.fn((value) => `hash_${JSON.stringify(value)}`),
     } as any
 
     mockConfig = {
       debug: {
-        verboseNestedCounters: false
+        verboseNestedCounters: false,
       },
       stateManager: {
-        patcherMaxChildHashResponses: 1000
-      }
+        patcherMaxChildHashResponses: 1000,
+      },
     } as any
 
     accountPatcher = new AccountPatcher(
@@ -115,7 +115,7 @@ describe('AccountPatcher', () => {
 
     it('should initialize shardTrie with correct number of layers', () => {
       expect(accountPatcher.shardTrie.layerMaps).toHaveLength(5) // treeMaxDepth + 1
-      accountPatcher.shardTrie.layerMaps.forEach(layerMap => {
+      accountPatcher.shardTrie.layerMaps.forEach((layerMap) => {
         expect(layerMap).toBeInstanceOf(Map)
       })
     })
@@ -214,7 +214,7 @@ describe('AccountPatcher', () => {
       const accounts: TrieAccount[] = [
         { accountID: 'zzz', hash: 'hash1' },
         { accountID: 'aaa', hash: 'hash2' },
-        { accountID: 'mmm', hash: 'hash3' }
+        { accountID: 'mmm', hash: 'hash3' },
       ]
       const sorted = accounts.sort((a, b) => accountPatcher.sortByAccountID(a, b))
       expect(sorted[0].accountID).toBe('aaa')
@@ -252,7 +252,7 @@ describe('AccountPatcher', () => {
       const items: RadixAndHash[] = [
         { radix: 'ff', hash: 'hash1' },
         { radix: '00', hash: 'hash2' },
-        { radix: 'aa', hash: 'hash3' }
+        { radix: 'aa', hash: 'hash3' },
       ]
       const sorted = items.sort((a, b) => accountPatcher.sortByRadix(a, b))
       expect(sorted[0].radix).toBe('00')
@@ -265,23 +265,23 @@ describe('AccountPatcher', () => {
     it('should return null when tree node does not exist', () => {
       const accountID = 'abcd1234'
       const result = accountPatcher.getAccountTreeInfo(accountID)
-      
+
       expect(result).toBeNull()
     })
 
     it('should return null when accountTempMap is null', () => {
       const accountID = 'abcd1234'
       const radix = 'abcd' // First 4 chars based on treeMaxDepth
-      
+
       // Add a tree node without accountTempMap
       accountPatcher.shardTrie.layerMaps[4].set(radix, {
         radix,
         hash: 'somehash',
         accounts: [],
         children: [],
-        accountTempMap: null
+        accountTempMap: null,
       } as any)
-      
+
       const result = accountPatcher.getAccountTreeInfo(accountID)
       expect(result).toBeNull()
     })
@@ -290,20 +290,20 @@ describe('AccountPatcher', () => {
       const accountID = 'abcd1234567890'
       const radix = 'abcd' // First 4 chars based on treeMaxDepth
       const expectedAccount = { accountID, hash: 'hash123' }
-      
+
       // Create accountTempMap with the account
       const accountTempMap = new Map()
       accountTempMap.set(accountID, expectedAccount)
-      
+
       // Add a tree node with accountTempMap
       accountPatcher.shardTrie.layerMaps[4].set(radix, {
         radix,
         hash: 'somehash',
         accounts: [],
         children: [],
-        accountTempMap
+        accountTempMap,
       } as any)
-      
+
       const result = accountPatcher.getAccountTreeInfo(accountID)
       expect(result).toEqual(expectedAccount)
     })
@@ -319,13 +319,13 @@ describe('AccountPatcher', () => {
     it('should add account to update queue when not ignoring updates', () => {
       const accountID = 'account123'
       const hash = 'hash123'
-      
+
       accountPatcher.updateAccountHash(accountID, hash)
-      
+
       expect(accountPatcher.accountUpdateQueue).toHaveLength(1)
       expect(accountPatcher.accountUpdateQueue[0]).toEqual({
         accountID,
-        hash
+        hash,
       })
     })
 
@@ -333,9 +333,9 @@ describe('AccountPatcher', () => {
       accountPatcher.debug_ignoreUpdates = true
       const accountID = 'account123'
       const hash = 'hash123'
-      
+
       accountPatcher.updateAccountHash(accountID, hash)
-      
+
       expect(accountPatcher.accountUpdateQueue).toHaveLength(0)
     })
 
@@ -343,7 +343,7 @@ describe('AccountPatcher', () => {
       accountPatcher.updateAccountHash('acc1', 'hash1')
       accountPatcher.updateAccountHash('acc2', 'hash2')
       accountPatcher.updateAccountHash('acc3', 'hash3')
-      
+
       expect(accountPatcher.accountUpdateQueue).toHaveLength(3)
       expect(accountPatcher.accountUpdateQueue[0].accountID).toBe('acc1')
       expect(accountPatcher.accountUpdateQueue[1].accountID).toBe('acc2')
@@ -353,7 +353,7 @@ describe('AccountPatcher', () => {
     it('should allow duplicate account IDs with different hashes', () => {
       accountPatcher.updateAccountHash('acc1', 'hash1')
       accountPatcher.updateAccountHash('acc1', 'hash2')
-      
+
       expect(accountPatcher.accountUpdateQueue).toHaveLength(2)
       expect(accountPatcher.accountUpdateQueue[0].hash).toBe('hash1')
       expect(accountPatcher.accountUpdateQueue[1].hash).toBe('hash2')
@@ -369,9 +369,9 @@ describe('AccountPatcher', () => {
 
     it('should add account ID to removal queue when not ignoring updates', () => {
       const accountID = 'account123'
-      
+
       accountPatcher.removeAccountHash(accountID)
-      
+
       expect(accountPatcher.accountRemovalQueue).toHaveLength(1)
       expect(accountPatcher.accountRemovalQueue[0]).toBe(accountID)
     })
@@ -380,9 +380,9 @@ describe('AccountPatcher', () => {
       // removeAccountHash doesn't check debug_ignoreUpdates unlike updateAccountHash
       accountPatcher.debug_ignoreUpdates = true
       const accountID = 'account123'
-      
+
       accountPatcher.removeAccountHash(accountID)
-      
+
       expect(accountPatcher.accountRemovalQueue).toHaveLength(1)
       expect(accountPatcher.accountRemovalQueue[0]).toBe(accountID)
     })
@@ -391,7 +391,7 @@ describe('AccountPatcher', () => {
       accountPatcher.removeAccountHash('acc1')
       accountPatcher.removeAccountHash('acc2')
       accountPatcher.removeAccountHash('acc3')
-      
+
       expect(accountPatcher.accountRemovalQueue).toHaveLength(3)
       expect(accountPatcher.accountRemovalQueue[0]).toBe('acc1')
       expect(accountPatcher.accountRemovalQueue[1]).toBe('acc2')
@@ -401,7 +401,7 @@ describe('AccountPatcher', () => {
     it('should allow duplicate account ID removals', () => {
       accountPatcher.removeAccountHash('acc1')
       accountPatcher.removeAccountHash('acc1')
-      
+
       expect(accountPatcher.accountRemovalQueue).toHaveLength(2)
       expect(accountPatcher.accountRemovalQueue[0]).toBe('acc1')
       expect(accountPatcher.accountRemovalQueue[1]).toBe('acc1')
@@ -436,13 +436,13 @@ describe('AccountPatcher', () => {
     it('should handle multiple ranges correctly', () => {
       accountPatcher.nonStoredRanges = [
         { low: 'aaaa', high: 'bbbb' },
-        { low: 'eeee', high: 'ffff' }
+        { low: 'eeee', high: 'ffff' },
       ]
-      
+
       expect(accountPatcher.isRadixStored(1, 'abcd')).toBe(false) // In first range
-      expect(accountPatcher.isRadixStored(1, 'cccc')).toBe(true)  // Not in any range
+      expect(accountPatcher.isRadixStored(1, 'cccc')).toBe(true) // Not in any range
       expect(accountPatcher.isRadixStored(1, 'efgh')).toBe(false) // In second range
-      expect(accountPatcher.isRadixStored(1, 'gggg')).toBe(true)  // Not in any range
+      expect(accountPatcher.isRadixStored(1, 'gggg')).toBe(true) // Not in any range
     })
   })
 
@@ -495,19 +495,10 @@ describe('AccountPatcher', () => {
   describe('setupHandlers', () => {
     it('should register internal binary handlers', () => {
       accountPatcher.setupHandlers()
-      
-      expect(mockP2P.registerInternalBinary).toHaveBeenCalledWith(
-        'binary/get_trie_hashes',
-        expect.any(Function)
-      )
-      expect(mockP2P.registerInternalBinary).toHaveBeenCalledWith(
-        'binary/repair_oos_accounts',
-        expect.any(Function)
-      )
-      expect(mockP2P.registerInternalBinary).toHaveBeenCalledWith(
-        'binary/sync_trie_hashes',
-        expect.any(Function)
-      )
+
+      expect(mockP2P.registerInternalBinary).toHaveBeenCalledWith('binary/get_trie_hashes', expect.any(Function))
+      expect(mockP2P.registerInternalBinary).toHaveBeenCalledWith('binary/repair_oos_accounts', expect.any(Function))
+      expect(mockP2P.registerInternalBinary).toHaveBeenCalledWith('binary/sync_trie_hashes', expect.any(Function))
       expect(mockP2P.registerInternalBinary).toHaveBeenCalledWith(
         'binary/get_trie_account_hashes',
         expect.any(Function)
@@ -516,7 +507,7 @@ describe('AccountPatcher', () => {
 
     it('should register external GET endpoints', () => {
       accountPatcher.setupHandlers()
-      
+
       expect(Context.network.registerExternalGet).toHaveBeenCalledWith(
         'debug-patcher-ignore-hash-updates',
         expect.any(Function),
@@ -547,7 +538,7 @@ describe('AccountPatcher', () => {
         expect.any(Function),
         expect.any(Function)
       )
-      
+
       // Verify it was called multiple times
       expect(Context.network.registerExternalGet).toHaveBeenCalledTimes(14)
     })

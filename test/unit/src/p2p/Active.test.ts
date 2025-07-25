@@ -10,14 +10,14 @@ jest.mock('@shardeum-foundation/lib-crypto-utils', () => ({
   sign: jest.fn(),
   verify: jest.fn(),
   signObj: jest.fn(),
-  verifyObj: jest.fn()
+  verifyObj: jest.fn(),
 }))
 
 jest.mock('sqlite3', () => ({
   Database: jest.fn(),
   verbose: jest.fn(() => ({
-    Database: jest.fn()
-  }))
+    Database: jest.fn(),
+  })),
 }))
 
 jest.mock('../../../../src/logger', () => ({
@@ -25,27 +25,27 @@ jest.mock('../../../../src/logger', () => ({
     getLogger: jest.fn(() => ({
       info: jest.fn(),
       warn: jest.fn(),
-      error: jest.fn()
-    }))
+      error: jest.fn(),
+    })),
   },
   logFlags: {
     p2pNonFatal: false,
     important_as_error: false,
     important_as_fatal: false,
-    error: false
-  }
+    error: false,
+  },
 }))
 
 jest.mock('../../../../src/utils', () => ({
   getTime: jest.fn(() => 1234567890),
   validateTypes: jest.fn(),
-  safeStringify: jest.fn((obj) => JSON.stringify(obj))
+  safeStringify: jest.fn((obj) => JSON.stringify(obj)),
 }))
 
 jest.mock('../../../../src/p2p/Comms', () => ({
   sendGossip: jest.fn(),
   registerInternal: jest.fn(),
-  registerGossipHandler: jest.fn()
+  registerGossipHandler: jest.fn(),
 }))
 
 jest.mock('../../../../src/p2p/Context', () => ({
@@ -54,28 +54,28 @@ jest.mock('../../../../src/p2p/Context', () => ({
       validateActiveRequests: true,
       cycleDuration: 60,
       maxNodeForSyncTime: 100,
-      maxSyncTimeFloor: 120
-    }
+      maxSyncTimeFloor: 120,
+    },
   },
   crypto: {
     sign: jest.fn((obj) => ({ ...obj, sign: { owner: 'test-owner' } })),
-    verify: jest.fn(() => true)
+    verify: jest.fn(() => true),
   },
   logger: {
     getLogger: jest.fn(() => ({
       info: jest.fn(),
       warn: jest.fn(),
-      error: jest.fn()
-    }))
+      error: jest.fn(),
+    })),
   },
   network: {
-    registerExternalGet: jest.fn()
-  }
+    registerExternalGet: jest.fn(),
+  },
 }))
 
 jest.mock('../../../../src/p2p/CycleCreator')
 jest.mock('../../../../src/p2p/CycleChain', () => ({
-  newest: { counter: 100 }
+  newest: { counter: 100 },
 }))
 
 jest.mock('../../../../src/p2p/NodeList', () => {
@@ -83,17 +83,33 @@ jest.mock('../../../../src/p2p/NodeList', () => {
     activeByIdOrder: [],
     readyByTimeAndIdOrder: [],
     byPubKey: new Map(),
-    nodes: new Map()
+    nodes: new Map(),
   }
   return {
-    get activeByIdOrder() { return state.activeByIdOrder },
-    set activeByIdOrder(value) { state.activeByIdOrder = value },
-    get readyByTimeAndIdOrder() { return state.readyByTimeAndIdOrder },
-    set readyByTimeAndIdOrder(value) { state.readyByTimeAndIdOrder = value },
-    get byPubKey() { return state.byPubKey },
-    set byPubKey(value) { state.byPubKey = value },
-    get nodes() { return state.nodes },
-    set nodes(value) { state.nodes = value }
+    get activeByIdOrder() {
+      return state.activeByIdOrder
+    },
+    set activeByIdOrder(value) {
+      state.activeByIdOrder = value
+    },
+    get readyByTimeAndIdOrder() {
+      return state.readyByTimeAndIdOrder
+    },
+    set readyByTimeAndIdOrder(value) {
+      state.readyByTimeAndIdOrder = value
+    },
+    get byPubKey() {
+      return state.byPubKey
+    },
+    set byPubKey(value) {
+      state.byPubKey = value
+    },
+    get nodes() {
+      return state.nodes
+    },
+    set nodes(value) {
+      state.nodes = value
+    },
   }
 })
 
@@ -101,55 +117,55 @@ jest.mock('../../../../src/p2p/Self', () => ({
   id: 'self-id',
   setActive: jest.fn(),
   emitter: new EventEmitter(),
-  updateNodeState: jest.fn()
+  updateNodeState: jest.fn(),
 }))
 
 jest.mock('../../../../src/utils/profiler', () => ({
   profilerInstance: {
     scopedProfileSectionStart: jest.fn(),
-    scopedProfileSectionEnd: jest.fn()
-  }
+    scopedProfileSectionEnd: jest.fn(),
+  },
 }))
 
 jest.mock('../../../../src/utils/nestedCounters', () => ({
   nestedCountersInstance: {
-    countEvent: jest.fn()
-  }
+    countEvent: jest.fn(),
+  },
 }))
 
 jest.mock('../../../../src/p2p/Join/v2', () => ({
-  getSortedStandbyJoinRequests: jest.fn(() => [])
+  getSortedStandbyJoinRequests: jest.fn(() => []),
 }))
 
 jest.mock('../../../../src/p2p/Join/v2/syncFinished', () => ({
-  selectNodesFromReadyList: jest.fn(() => [])
+  selectNodesFromReadyList: jest.fn(() => []),
 }))
 
 jest.mock('../../../../src/network/debugMiddleware', () => ({
-  isDebugModeMiddleware: jest.fn((req, res, next) => next())
+  isDebugModeMiddleware: jest.fn((req, res, next) => next()),
 }))
 
 jest.mock('@shardeum-foundation/lib-types', () => ({
   Utils: {
-    safeStringify: jest.fn((obj) => JSON.stringify(obj))
+    safeStringify: jest.fn((obj) => JSON.stringify(obj)),
   },
   P2P: {
     P2PTypes: {
       NodeStatus: {
         ACTIVE: 'ACTIVE',
         READY: 'READY',
-        SYNCING: 'SYNCING'
-      }
-    }
-  }
+        SYNCING: 'SYNCING',
+      },
+    },
+  },
 }))
 
 jest.mock('../../../../src/p2p/Join', () => ({
-  nodeListFromStates: jest.fn(() => undefined)
+  nodeListFromStates: jest.fn(() => undefined),
 }))
 
 jest.mock('../../../../src/utils/GossipValidation', () => ({
-  checkGossipPayload: jest.fn(() => true)
+  checkGossipPayload: jest.fn(() => true),
 }))
 
 // Import after mocking
@@ -173,32 +189,32 @@ describe('Active', () => {
 
   beforeEach(() => {
     jest.clearAllMocks()
-    
+
     mockLogger = {
       info: jest.fn(),
       warn: jest.fn(),
-      error: jest.fn()
+      error: jest.fn(),
     }
-    
+
     // Mock the logger
     ;(logger.getLogger as jest.Mock).mockReturnValue(mockLogger)
-    
+
     // Reset module state
     Active.reset()
     ;(Active as any).neverGoActive = false
     ;(Active as any).queuedRequest = undefined
-    
+
     // Reset NodeList state
     nodeListMock = require('../../../../src/p2p/NodeList')
     nodeListMock.activeByIdOrder = []
     nodeListMock.readyByTimeAndIdOrder = []
     nodeListMock.byPubKey = new Map()
     nodeListMock.nodes = new Map()
-    
+
     // Initialize the module to set up p2pLogger
     Active.init()
   })
-  
+
   afterEach(() => {
     jest.restoreAllMocks()
   })
@@ -243,7 +259,7 @@ describe('Active', () => {
 
       // Reset
       Active.reset()
-      
+
       const txsAfter = Active.getTxs()
       expect(txsAfter.active).toEqual([])
       expect(Active.activated).toEqual([])
@@ -264,7 +280,7 @@ describe('Active', () => {
         activated: ['node1', 'node2'],
         activatedPublicKeys: ['key1', 'key2'],
         standby: 5,
-        maxSyncTime: 120
+        maxSyncTime: 120,
       }
 
       const result = Active.validateRecordTypes(record)
@@ -277,7 +293,7 @@ describe('Active', () => {
         activated: ['node1', 123], // Invalid: number instead of string
         activatedPublicKeys: ['key1', 'key2'],
         standby: 5,
-        maxSyncTime: 120
+        maxSyncTime: 120,
       }
 
       const result = Active.validateRecordTypes(record)
@@ -290,7 +306,7 @@ describe('Active', () => {
         activated: ['node1', 'node2'],
         activatedPublicKeys: ['key1', {}], // Invalid: object instead of string
         standby: 5,
-        maxSyncTime: 120
+        maxSyncTime: 120,
       }
 
       const result = Active.validateRecordTypes(record)
@@ -298,14 +314,14 @@ describe('Active', () => {
     })
 
     it('should return error from validateTypes', () => {
-      (utils.validateTypes as jest.Mock).mockReturnValueOnce('Invalid field type')
+      ;(utils.validateTypes as jest.Mock).mockReturnValueOnce('Invalid field type')
 
       const record: P2P.ActiveTypes.Record = {
         active: 10,
         activated: ['node1'],
         activatedPublicKeys: ['key1'],
         standby: 5,
-        maxSyncTime: 120
+        maxSyncTime: 120,
       }
 
       const result = Active.validateRecordTypes(record)
@@ -319,31 +335,31 @@ describe('Active', () => {
         nodeId: 'node1',
         status: 'active',
         timestamp: 1234567890,
-        sign: { owner: 'owner1', sig: 'sig1' }
+        sign: { owner: 'owner1', sig: 'sig1' },
       }
 
       const invalidRequest: P2P.ActiveTypes.SignedActiveRequest = {
         nodeId: 'invalid-node',
         status: 'active',
         timestamp: 1234567890,
-        sign: { owner: 'owner2', sig: 'sig2' }
+        sign: { owner: 'owner2', sig: 'sig2' },
       }
 
       // Setup node for valid request
       const node1 = { id: 'node1', publicKey: 'owner1', status: NodeStatus.READY }
       nodeListMock.nodes.set('node1', node1)
-      
+
       // Mock crypto.verify to return true for valid request
       ;(crypto.verify as jest.Mock).mockImplementation((request, publicKey) => {
         return request.nodeId === 'node1' && publicKey === 'owner1'
       })
 
       const txs: P2P.ActiveTypes.Txs = {
-        active: [validRequest, invalidRequest]
+        active: [validRequest, invalidRequest],
       }
 
       const result = Active.dropInvalidTxs(txs)
-      
+
       expect(result.active).toHaveLength(1)
       expect(result.active[0]).toBe(validRequest)
     })
@@ -353,7 +369,7 @@ describe('Active', () => {
     it('should update record with activated nodes from ready list', () => {
       const readyNode1 = { id: 'ready1', publicKey: 'readyKey1' }
       const readyNode2 = { id: 'ready2', publicKey: 'readyKey2' }
-      
+
       nodeListMock.activeByIdOrder = [{ id: 'active1' }]
       nodeListMock.readyByTimeAndIdOrder = [readyNode1, readyNode2]
       ;(selectNodesFromReadyList as jest.Mock).mockReturnValue([readyNode1])
@@ -376,12 +392,12 @@ describe('Active', () => {
       const activeNode1 = {
         id: 'active1',
         activeTimestamp: 1000,
-        syncingTimestamp: 500
+        syncingTimestamp: 500,
       }
       const activeNode2 = {
         id: 'active2',
         activeTimestamp: 2000,
-        syncingTimestamp: 1000
+        syncingTimestamp: 1000,
       }
 
       nodeListMock.activeByIdOrder = [activeNode1, activeNode2]
@@ -405,7 +421,7 @@ describe('Active', () => {
       // Set up normal mocks first
       ;(selectNodesFromReadyList as jest.Mock).mockReturnValue([])
       ;(JoinV2.getSortedStandbyJoinRequests as jest.Mock).mockReturnValue([])
-      
+
       // Set up activeByIdOrder with no nodes (empty array)
       nodeListMock.activeByIdOrder = []
 
@@ -426,7 +442,7 @@ describe('Active', () => {
       const record: any = {
         activated: ['self-id', 'other-id'],
         start: 1234567890,
-        counter: 100
+        counter: 100,
       }
 
       const result = Active.parseRecord(record)
@@ -438,17 +454,17 @@ describe('Active', () => {
         id: 'self-id',
         activeTimestamp: 1234567890,
         activeCycle: 100,
-        status: 'ACTIVE'
+        status: 'ACTIVE',
       })
     })
 
     it('should not activate self if neverGoActive is true', () => {
       ;(Active as any).neverGoActive = true
-      
+
       const record: any = {
         activated: ['self-id'],
         start: 1234567890,
-        counter: 100
+        counter: 100,
       }
 
       const result = Active.parseRecord(record)
@@ -461,7 +477,7 @@ describe('Active', () => {
       const record: any = {
         activated: ['other-id'],
         start: 1234567890,
-        counter: 100
+        counter: 100,
       }
 
       const result = Active.parseRecord(record)
@@ -476,11 +492,11 @@ describe('Active', () => {
       const request: P2P.ActiveTypes.ActiveRequest = {
         nodeId: 'self-id',
         status: 'active',
-        timestamp: 1234567890
+        timestamp: 1234567890,
       }
 
       Active.queueRequest(request)
-      
+
       const signedRequest = { ...request, sign: { owner: 'test-owner' } }
       ;(crypto.sign as jest.Mock).mockReturnValue(signedRequest)
 
@@ -492,23 +508,16 @@ describe('Active', () => {
       Active.sendRequests()
 
       expect(crypto.sign).toHaveBeenCalledWith(request)
-      expect(Comms.sendGossip).toHaveBeenCalledWith(
-        'gossip-active',
-        signedRequest,
-        '',
-        null,
-        undefined,
-        true
-      )
+      expect(Comms.sendGossip).toHaveBeenCalledWith('gossip-active', signedRequest, '', null, undefined, true)
     })
 
     it('should not send if neverGoActive is true', () => {
       ;(Active as any).neverGoActive = true
-      
+
       const request: P2P.ActiveTypes.ActiveRequest = {
         nodeId: 'self-id',
         status: 'active',
-        timestamp: 1234567890
+        timestamp: 1234567890,
       }
 
       Active.queueRequest(request)
@@ -516,12 +525,11 @@ describe('Active', () => {
 
       expect(crypto.sign).not.toHaveBeenCalled()
       expect(Comms.sendGossip).not.toHaveBeenCalled()
-      
+
       // Clean up - reset neverGoActive and clear the request
       ;(Active as any).neverGoActive = false
       ;(Active as any).queuedRequest = undefined
     })
-
 
     it('should retry if not activated within timeout', () => {
       jest.useFakeTimers()
@@ -529,11 +537,11 @@ describe('Active', () => {
       const request: P2P.ActiveTypes.ActiveRequest = {
         nodeId: 'self-id',
         status: 'active',
-        timestamp: 1234567890
+        timestamp: 1234567890,
       }
 
       Active.queueRequest(request)
-      
+
       const signedRequest = { ...request, sign: { owner: 'test-owner' } }
       ;(crypto.sign as jest.Mock).mockReturnValue(signedRequest)
 
@@ -547,13 +555,10 @@ describe('Active', () => {
       Active.sendRequests()
 
       expect(crypto.sign).toHaveBeenCalled()
-      expect(setTimeoutSpy).toHaveBeenCalledWith(
-        Active.requestActive,
-        (config.p2p.cycleDuration * 1000) + 500
-      )
+      expect(setTimeoutSpy).toHaveBeenCalledWith(Active.requestActive, config.p2p.cycleDuration * 1000 + 500)
 
       jest.useRealTimers()
-      
+
       // Clean up
       ;(Active as any).queuedRequest = undefined
     })
@@ -564,11 +569,11 @@ describe('Active', () => {
       const request: P2P.ActiveTypes.ActiveRequest = {
         nodeId: 'self-id',
         status: 'active',
-        timestamp: 1234567890
+        timestamp: 1234567890,
       }
 
       Active.queueRequest(request)
-      
+
       const signedRequest = { ...request, sign: { owner: 'test-owner' } }
       ;(crypto.sign as jest.Mock).mockReturnValue(signedRequest)
 
@@ -584,13 +589,13 @@ describe('Active', () => {
       Self.emitter.emit('active')
 
       // Fast-forward time - timeout is set for cycleDuration * 1000 + 500
-      jest.advanceTimersByTime((config.p2p.cycleDuration * 1000) + 500)
+      jest.advanceTimersByTime(config.p2p.cycleDuration * 1000 + 500)
 
       // requestActive should not be called because timeout was cleared
       expect(requestActiveSpy).not.toHaveBeenCalled()
 
       jest.useRealTimers()
-      
+
       // Clean up
       ;(Active as any).queuedRequest = undefined
     })
@@ -601,11 +606,11 @@ describe('Active', () => {
       const request: P2P.ActiveTypes.ActiveRequest = {
         nodeId: 'test-id',
         status: 'active',
-        timestamp: 1234567890
+        timestamp: 1234567890,
       }
 
       Active.queueRequest(request)
-      
+
       // Can't directly access queuedRequest, but we can test by calling sendRequests
       const signedRequest = { ...request, sign: { owner: 'test-owner' } }
       ;(crypto.sign as jest.Mock).mockReturnValue(signedRequest)
@@ -617,7 +622,7 @@ describe('Active', () => {
       Active.sendRequests()
 
       expect(crypto.sign).toHaveBeenCalledWith(request)
-      
+
       // The request should be cleared after sendRequests
       expect((Active as any).queuedRequest).toBeUndefined()
     })
@@ -626,7 +631,7 @@ describe('Active', () => {
   describe('requestActive', () => {
     it('should create and queue an active request', () => {
       ;(utils.getTime as jest.Mock).mockReturnValue(9876543210)
-      
+
       // Clear any existing queued request
       ;(Active as any).queuedRequest = undefined
 
@@ -634,9 +639,14 @@ describe('Active', () => {
 
       // After calling requestActive, the request should be queued
       // We'll call sendRequests to verify the request was queued correctly
-      const signedRequest = { nodeId: 'self-id', status: 'active', timestamp: 9876543210, sign: { owner: 'test-owner' } }
+      const signedRequest = {
+        nodeId: 'self-id',
+        status: 'active',
+        timestamp: 9876543210,
+        sign: { owner: 'test-owner' },
+      }
       ;(crypto.sign as jest.Mock).mockReturnValue(signedRequest)
-      
+
       // Setup node for validation
       const selfNode = { id: 'self-id', publicKey: 'test-owner', status: NodeStatus.READY }
       nodeListMock.nodes.set('self-id', selfNode)
@@ -646,7 +656,7 @@ describe('Active', () => {
       expect(crypto.sign).toHaveBeenCalledWith({
         nodeId: 'self-id',
         status: 'active',
-        timestamp: 9876543210
+        timestamp: 9876543210,
       })
     })
   })
@@ -664,7 +674,7 @@ describe('Active', () => {
         nodeId: 'node1',
         status: 'active',
         timestamp: 1234567890,
-        sign: { owner: 'node1-pubkey', sig: 'sig1' }
+        sign: { owner: 'node1-pubkey', sig: 'sig1' },
       }
 
       const sender = 'sender-id'
@@ -677,10 +687,10 @@ describe('Active', () => {
 
       // Mock crypto.verify to return true
       ;(crypto.verify as jest.Mock).mockReturnValue(true)
-      
+
       // Make sure checkGossipPayload returns true
       ;(checkGossipPayload as jest.Mock).mockReturnValue(true)
-      
+
       // Make sure nodeListFromStates returns something
       ;(nodeListFromStates as jest.Mock).mockReturnValue(['some-node'])
 
@@ -692,14 +702,7 @@ describe('Active', () => {
         'gossip-active',
         sender
       )
-      expect(Comms.sendGossip).toHaveBeenCalledWith(
-        'gossip-active',
-        payload,
-        tracker,
-        sender,
-        ['some-node'],
-        false
-      )
+      expect(Comms.sendGossip).toHaveBeenCalledWith('gossip-active', payload, tracker, sender, ['some-node'], false)
     })
 
     it('should ignore invalid payload structure', () => {
@@ -707,7 +710,7 @@ describe('Active', () => {
         nodeId: 'node1',
         status: 'active',
         timestamp: 1234567890,
-        sign: { owner: 'owner1', sig: 'sig1' }
+        sign: { owner: 'owner1', sig: 'sig1' },
       }
 
       ;(checkGossipPayload as jest.Mock).mockReturnValue(false)
@@ -722,7 +725,7 @@ describe('Active', () => {
         nodeId: 'invalid-node',
         status: 'active',
         timestamp: 1234567890,
-        sign: { owner: 'owner1', sig: 'sig1' }
+        sign: { owner: 'owner1', sig: 'sig1' },
       }
 
       // No node setup, so validation will fail
@@ -745,10 +748,10 @@ describe('Active', () => {
       // Reset the entire module state to ensure clean state
       Active.reset()
       jest.clearAllMocks()
-      
+
       // Explicitly ensure no request is queued
       ;(Active as any).queuedRequest = undefined
-      
+
       // Don't queue any request, just call sendRequests
       Active.sendRequests()
 

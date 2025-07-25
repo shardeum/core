@@ -1,4 +1,7 @@
-import { schemaRequestReceiptForTxResp, initRequestReceiptForTxResp } from '../../../../src/types/ajv/RequestReceiptForTxResp'
+import {
+  schemaRequestReceiptForTxResp,
+  initRequestReceiptForTxResp,
+} from '../../../../src/types/ajv/RequestReceiptForTxResp'
 import { addSchema } from '../../../../src/utils/serialization/SchemaHelpers'
 import { AJVSchemaEnum } from '../../../../src/types/enum/AJVSchemaEnum'
 import { schemaSignedReceipt } from '../../../../src/types/ajv/RepairOOSAccountsReq'
@@ -46,10 +49,7 @@ describe('RequestReceiptForTxResp', () => {
       initRequestReceiptForTxResp()
 
       expect(mockAddSchema).toHaveBeenCalledTimes(1)
-      expect(mockAddSchema).toHaveBeenCalledWith(
-        AJVSchemaEnum.RequestReceiptForTxResp,
-        schemaRequestReceiptForTxResp
-      )
+      expect(mockAddSchema).toHaveBeenCalledWith(AJVSchemaEnum.RequestReceiptForTxResp, schemaRequestReceiptForTxResp)
     })
 
     it('should not throw any errors during initialization', () => {
@@ -62,17 +62,14 @@ describe('RequestReceiptForTxResp', () => {
       initRequestReceiptForTxResp()
 
       expect(mockAddSchema).toHaveBeenCalledTimes(3)
-      expect(mockAddSchema).toHaveBeenCalledWith(
-        AJVSchemaEnum.RequestReceiptForTxResp,
-        schemaRequestReceiptForTxResp
-      )
+      expect(mockAddSchema).toHaveBeenCalledWith(AJVSchemaEnum.RequestReceiptForTxResp, schemaRequestReceiptForTxResp)
     })
   })
 
   describe('addSchemaDependencies', () => {
     it('should not add any dependencies (function is empty)', () => {
       initRequestReceiptForTxResp()
-      
+
       // Verify only one call to addSchema (no dependencies added)
       expect(mockAddSchema).toHaveBeenCalledTimes(1)
     })
@@ -131,7 +128,7 @@ describe('RequestReceiptForTxResp', () => {
 
     it('should reference the correct nested schema for receipt', () => {
       expect(schemaRequestReceiptForTxResp.properties.receipt).toBe(schemaSignedReceipt)
-      
+
       // Verify the nested schema has expected structure
       expect(schemaSignedReceipt).toBeDefined()
       expect(schemaSignedReceipt.type).toBe('object')

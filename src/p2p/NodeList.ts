@@ -340,7 +340,7 @@ export function emitSyncTimeoutEvent(node: P2P.NodeListTypes.Node, cycle: P2P.Cy
 
 export function removeNodes(ids: string[], raiseEvents: boolean, cycle: P2P.CycleCreatorTypes.CycleRecord | null) {
   for (const id of ids) removeNode(id, raiseEvents, cycle)
-  
+
   // Prune inactive nodes from problematic node cache after bulk removal
   if (config.p2p.enableProblematicNodeCacheBuilding && ids.length > 0) {
     ProblemNodeHandler.pruneInactiveNodesFromCache()

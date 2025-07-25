@@ -19,11 +19,13 @@ describe('InternalBinaryHandler type', () => {
     const mockSerializerFunc = (stream: VectorBufferStream, obj: any, root?: boolean) => {}
 
     // Mock respond function
-    const mockRespond = jest.fn((
-      response: typeof mockResponse,
-      serializerFunc: (stream: VectorBufferStream, obj: typeof mockResponse, root?: boolean) => void,
-      header?: AppHeader
-    ) => {})
+    const mockRespond = jest.fn(
+      (
+        response: typeof mockResponse,
+        serializerFunc: (stream: VectorBufferStream, obj: typeof mockResponse, root?: boolean) => void,
+        header?: AppHeader
+      ) => {}
+    )
 
     // Create a handler that matches the type
     const handler: InternalBinaryHandler<typeof mockPayload, typeof mockResponse> = (
@@ -67,21 +69,16 @@ describe('InternalBinaryHandler type', () => {
       message: string
     }
 
-    const handler: InternalBinaryHandler<TestPayload, TestResponse> = (
-      payload,
-      respond,
-      header,
-      sign
-    ) => {
+    const handler: InternalBinaryHandler<TestPayload, TestResponse> = (payload, respond, header, sign) => {
       // TypeScript should enforce these types
       const id: number = payload.id
       const name: string = payload.name
-      
+
       const response: TestResponse = {
         success: true,
-        message: `Processed ${name} with id ${id}`
+        message: `Processed ${name} with id ${id}`,
       }
-      
+
       respond(response, jest.fn())
     }
 
@@ -92,7 +89,7 @@ describe('InternalBinaryHandler type', () => {
     const handler: InternalBinaryHandler<any, any> = (payload, respond, header, sign) => {
       // Should be able to call respond without header
       respond({ data: 'test' }, jest.fn())
-      
+
       // Should also be able to call with header
       respond({ data: 'test' }, jest.fn(), header)
     }

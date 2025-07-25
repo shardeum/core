@@ -39,7 +39,7 @@ describe('storage models index', () => {
         'summary',
         'network',
         'networkReceipt',
-        'networkSummary'
+        'networkSummary',
       ]
 
       expect(models).toEqual(expectedModels)
@@ -51,7 +51,7 @@ describe('storage models index', () => {
     })
 
     it('should not contain null or undefined models', () => {
-      models.forEach(model => {
+      models.forEach((model) => {
         expect(model).not.toBeNull()
         expect(model).not.toBeUndefined()
       })
@@ -61,7 +61,7 @@ describe('storage models index', () => {
       // This test ensures that the export is consistent
       const firstImport = [...models]
       const secondImport = [...models]
-      
+
       expect(firstImport).toEqual(secondImport)
     })
   })

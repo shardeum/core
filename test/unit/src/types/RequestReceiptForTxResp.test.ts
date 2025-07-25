@@ -203,9 +203,7 @@ describe('RequestReceiptForTxResp', () => {
       stream.writeUInt8(1)
 
       const readStream = VectorBufferStream.fromBuffer(stream.getBuffer())
-      expect(() => deserializeRequestReceiptForTxResp(readStream)).toThrow(
-        'RequestReceiptForTxResp version mismatch'
-      )
+      expect(() => deserializeRequestReceiptForTxResp(readStream)).toThrow('RequestReceiptForTxResp version mismatch')
     })
 
     it('should throw error for AJV validation failure', () => {

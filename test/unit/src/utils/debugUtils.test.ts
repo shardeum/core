@@ -30,7 +30,9 @@ describe('debugUtils', () => {
 
     test('should handle TCP line parsing', () => {
       const tcpLine = 'TCP:   567 (estab 123, closed 45, orphaned 6, timewait 78)'
-      const match = tcpLine.match(/TCP:\s+(\d+)\s+\(estab\s+(\d+),\s+closed\s+(\d+),\s+orphaned\s+(\d+),\s+timewait\s+(\d+)\)/)
+      const match = tcpLine.match(
+        /TCP:\s+(\d+)\s+\(estab\s+(\d+),\s+closed\s+(\d+),\s+orphaned\s+(\d+),\s+timewait\s+(\d+)\)/
+      )
       expect(match?.[1]).toBe('567')
       expect(match?.[2]).toBe('123')
       expect(match?.[3]).toBe('45')

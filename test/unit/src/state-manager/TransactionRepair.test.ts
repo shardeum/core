@@ -1,7 +1,12 @@
 import TransactionRepair from '../../../../src/state-manager/TransactionRepair'
 import * as Shardus from '../../../../src/shardus/shardus-types'
 import { StateManager as StateManagerTypes } from '@shardeum-foundation/lib-types'
-import { QueueEntry, AccountHashCache, RequestStateForTxResp, Proposal } from '../../../../src/state-manager/state-manager-types'
+import {
+  QueueEntry,
+  AccountHashCache,
+  RequestStateForTxResp,
+  Proposal,
+} from '../../../../src/state-manager/state-manager-types'
 import { RequestStateForTxPostReq } from '../../../../src/types/RequestStateForTxPostReq'
 import { RequestStateForTxPostResp } from '../../../../src/types/RequestStateForTxPostResp'
 import { InternalRouteEnum } from '../../../../src/types/enum/InternalRouteEnum'
@@ -12,18 +17,18 @@ import { nestedCountersInstance } from '../../../../src/utils/nestedCounters'
 jest.mock('../../../../src/state-manager/shardFunctions', () => ({
   __esModule: true,
   default: {
-    testAddressInRange: jest.fn()
-  }
+    testAddressInRange: jest.fn(),
+  },
 }))
 jest.mock('../../../../src/utils/nestedCounters')
 jest.mock('../../../../src/network', () => ({
-  shardusGetTime: jest.fn(() => 1234567890)
+  shardusGetTime: jest.fn(() => 1234567890),
 }))
 jest.mock('../../../../src/p2p/NodeList', () => ({
-  activeIdToPartition: new Map()
+  activeIdToPartition: new Map(),
 }))
 jest.mock('../../../../src/p2p/Self', () => ({
-  id: 'self-node-id'
+  id: 'self-node-id',
 }))
 
 describe('TransactionRepair', () => {
@@ -50,50 +55,50 @@ describe('TransactionRepair', () => {
         cycleNumber: 10,
         ourNode: {
           id: 'our-node-id',
-          publicKey: 'our-public-key'
+          publicKey: 'our-public-key',
         },
         nodeShardDataMap: new Map(),
         nodeShardData: {
-          storedPartitions: []
-        }
+          storedPartitions: [],
+        },
       },
       accountCache: {
         getAccountHash: jest.fn(),
-        hasAccount: jest.fn()
+        hasAccount: jest.fn(),
       },
       accountGlobals: {
-        isGlobalAccount: jest.fn()
+        isGlobalAccount: jest.fn(),
       },
       dataRepairsStarted: 0,
       dataRepairsCompleted: 0,
       cycleDebugNotes: {
         repairs: 0,
-        lateRepairs: 0
+        lateRepairs: 0,
       },
       transactionQueue: {
-        addReceiptToForward: jest.fn()
+        addReceiptToForward: jest.fn(),
       },
       checkAndSetAccountData: jest.fn().mockResolvedValue([]),
       writeCombinedAccountDataToBackups: jest.fn().mockResolvedValue(undefined),
       isNodeValidForInternalMessage: jest.fn().mockReturnValue(true),
       p2p: {
         state: {
-          getNodeByPubKey: jest.fn()
-        }
+          getNodeByPubKey: jest.fn(),
+        },
       },
-      statemanager_fatal: jest.fn()
+      statemanager_fatal: jest.fn(),
     }
 
     // Mock Profiler
     mockProfiler = {
       profileSectionStart: jest.fn(),
-      profileSectionEnd: jest.fn()
+      profileSectionEnd: jest.fn(),
     }
 
     // Mock App
     mockApp = {
       getAccountDataByList: jest.fn(),
-      getTimestampAndHashFromAccount: jest.fn()
+      getTimestampAndHashFromAccount: jest.fn(),
     }
 
     // Mock Logger
@@ -103,22 +108,22 @@ describe('TransactionRepair', () => {
       info: jest.fn(),
       debug: jest.fn(),
       trace: jest.fn(),
-      fatal: jest.fn()
+      fatal: jest.fn(),
     }
     mockLogger = {
       getLogger: jest.fn().mockReturnValue(loggerInstance),
-      playbackLogNote: jest.fn()
+      playbackLogNote: jest.fn(),
     }
 
     // Mock Storage
     mockStorage = {
-      addAccountStates: jest.fn()
+      addAccountStates: jest.fn(),
     }
 
     // Mock P2P
     mockP2P = {
       askBinary: jest.fn(),
-      ask: jest.fn()
+      ask: jest.fn(),
     }
 
     // Mock Crypto
@@ -129,8 +134,8 @@ describe('TransactionRepair', () => {
       p2p: {
         useBinarySerializedEndpoints: true,
         requestStateForTxPostBinary: true,
-        experimentalSnapshot: false
-      }
+        experimentalSnapshot: false,
+      },
     }
 
     // Create TransactionRepair instance
@@ -178,7 +183,7 @@ describe('TransactionRepair', () => {
         uniqueKeys: ['account1', 'account2'],
         acceptedTx: {
           txId: 'tx-123',
-          timestamp: 1234567890
+          timestamp: 1234567890,
         },
         executionGroupMap: new Map(),
         didSync: false,
@@ -187,10 +192,10 @@ describe('TransactionRepair', () => {
             applied: true,
             accountIDs: ['account1', 'account2'],
             afterStateHashes: ['hash1', 'hash2'],
-            txid: 'tx-123'
+            txid: 'tx-123',
           },
           proposalHash: 'proposal-hash-123',
-          signaturePack: []
+          signaturePack: [],
         },
         preApplyTXResult: null,
         repairStarted: false,
@@ -199,7 +204,7 @@ describe('TransactionRepair', () => {
         isInExecutionHome: false,
         state: 'processing',
         cycleToRecordOn: 10,
-        collectedData: {}
+        collectedData: {},
       } as any
     })
 
@@ -251,17 +256,17 @@ describe('TransactionRepair', () => {
         accountId: 'account1',
         data: {
           stateId: 'hash1',
-          timestamp: 1234567890
+          timestamp: 1234567890,
         },
         stateId: 'hash1',
         timestamp: 1234567890,
-        txId: 'tx-123'
+        txId: 'tx-123',
       }
 
       mockQueueEntry.preApplyTXResult = {
         applyResponse: {
-          accountWrites: [mockAccountData]
-        }
+          accountWrites: [mockAccountData],
+        },
       } as any
 
       mockStateManager.accountCache.getAccountHash.mockReturnValue(null)
@@ -283,51 +288,54 @@ describe('TransactionRepair', () => {
         accountId: 'account1',
         data: {
           stateId: 'hash1',
-          timestamp: 1234567890
+          timestamp: 1234567890,
         },
         stateId: 'hash1',
         timestamp: 1234567890,
-        txId: 'tx-123'
+        txId: 'tx-123',
       }
 
       mockQueueEntry.preApplyTXResult = {
         applyResponse: {
-          accountWrites: [mockAccountData]
-        }
+          accountWrites: [mockAccountData],
+        },
       } as any
 
       // Mock account cache to have newer timestamp
       mockStateManager.accountCache.getAccountHash.mockReturnValue({
         h: 'different-hash',
-        t: 1234567900 // newer timestamp
+        t: 1234567900, // newer timestamp
       })
       ;(ShardFunctions.default.testAddressInRange as jest.Mock).mockReturnValue(true)
 
       await transactionRepair.repairToMatchReceipt(mockQueueEntry)
 
       expect(mockStateManager.checkAndSetAccountData).not.toHaveBeenCalled()
-      expect(nestedCountersInstance.countEvent).toHaveBeenCalledWith('repair1', 'skip account repair 4, we have a newer copy')
+      expect(nestedCountersInstance.countEvent).toHaveBeenCalledWith(
+        'repair1',
+        'skip account repair 4, we have a newer copy'
+      )
     })
 
     it('should build request objects for missing accounts', async () => {
       // Setup voters
       const mockVoter = {
         owner: 'voter-public-key',
-        sig: 'signature'
+        sig: 'signature',
       }
       mockQueueEntry.signedReceiptForRepair.signaturePack = [mockVoter]
 
       // Mock node lookup
       const mockNode = {
         id: 'node-123',
-        publicKey: 'voter-public-key'
+        publicKey: 'voter-public-key',
       }
       mockStateManager.p2p.state.getNodeByPubKey.mockReturnValue(mockNode)
 
       // Mock node shard data
       const mockNodeShardData = {
         node: mockNode,
-        storedPartitions: []
+        storedPartitions: [],
       }
       mockStateManager.currentCycleShardData.nodeShardDataMap.set('node-123', mockNodeShardData)
 
@@ -348,13 +356,13 @@ describe('TransactionRepair', () => {
             timestamp: 1234567890,
             data: { someData: 'value' },
             accountCreated: false,
-            isPartial: false
-          } as any
+            isPartial: false,
+          } as any,
         ],
         beforeHashes: {
-          account1: 'before-hash1'
+          account1: 'before-hash1',
         },
-        note: 'success'
+        note: 'success',
       }
       mockP2P.askBinary.mockResolvedValue(mockResponse)
 
@@ -371,7 +379,7 @@ describe('TransactionRepair', () => {
           key: 'account1',
           hash: 'hash1',
           txid: 'tx-123',
-          timestamp: 1234567890
+          timestamp: 1234567890,
         }),
         expect.any(Function),
         expect.any(Function),
@@ -390,7 +398,6 @@ describe('TransactionRepair', () => {
 
       // Mock node shard data
       mockStateManager.currentCycleShardData.nodeShardDataMap.set('node-123', { node: mockNode, storedPartitions: [] })
-
       ;(ShardFunctions.default.testAddressInRange as jest.Mock).mockReturnValue(true)
       mockStateManager.accountCache.getAccountHash.mockReturnValue(null)
 
@@ -406,21 +413,18 @@ describe('TransactionRepair', () => {
       // Setup voters with multiple nodes for alternates
       const mockVoters = [
         { owner: 'voter1-public-key', sig: 'sig1' },
-        { owner: 'voter2-public-key', sig: 'sig2' }
+        { owner: 'voter2-public-key', sig: 'sig2' },
       ]
       mockQueueEntry.signedReceiptForRepair.signaturePack = mockVoters
 
       // Mock nodes
       const mockNode1 = { id: 'node-1', publicKey: 'voter1-public-key' }
       const mockNode2 = { id: 'node-2', publicKey: 'voter2-public-key' }
-      mockStateManager.p2p.state.getNodeByPubKey
-        .mockReturnValueOnce(mockNode1)
-        .mockReturnValueOnce(mockNode2)
+      mockStateManager.p2p.state.getNodeByPubKey.mockReturnValueOnce(mockNode1).mockReturnValueOnce(mockNode2)
 
       // Mock node shard data
       mockStateManager.currentCycleShardData.nodeShardDataMap.set('node-1', { node: mockNode1, storedPartitions: [] })
       mockStateManager.currentCycleShardData.nodeShardDataMap.set('node-2', { node: mockNode2, storedPartitions: [] })
-
       ;(ShardFunctions.default.testAddressInRange as jest.Mock).mockReturnValue(true)
       mockStateManager.accountCache.getAccountHash.mockReturnValue(null)
 
@@ -429,15 +433,17 @@ describe('TransactionRepair', () => {
         .mockResolvedValueOnce(null) // First node fails
         .mockResolvedValueOnce({
           success: true,
-          stateList: [{
-            accountId: 'account1',
-            stateId: 'hash1',
-            timestamp: 1234567890,
-            data: { someData: 'value' },
-            accountCreated: false,
-            isPartial: false
-          } as any],
-          beforeHashes: { account1: 'before-hash1' }
+          stateList: [
+            {
+              accountId: 'account1',
+              stateId: 'hash1',
+              timestamp: 1234567890,
+              data: { someData: 'value' },
+              accountCreated: false,
+              isPartial: false,
+            } as any,
+          ],
+          beforeHashes: { account1: 'before-hash1' },
         })
 
       mockApp.getTimestampAndHashFromAccount.mockReturnValue({ timestamp: 1234567890, hash: 'hash1' })
@@ -456,22 +462,23 @@ describe('TransactionRepair', () => {
       const mockNode = { id: 'node-123', publicKey: 'voter-public-key' }
       mockStateManager.p2p.state.getNodeByPubKey.mockReturnValue(mockNode)
       mockStateManager.currentCycleShardData.nodeShardDataMap.set('node-123', { node: mockNode, storedPartitions: [] })
-
       ;(ShardFunctions.default.testAddressInRange as jest.Mock).mockReturnValue(true)
       mockStateManager.accountGlobals.isGlobalAccount.mockReturnValue(false)
       mockStateManager.accountCache.getAccountHash.mockReturnValue(null)
 
       const mockResponse = {
         success: true,
-        stateList: [{
-          accountId: 'account1',
-          stateId: 'hash1',
-          timestamp: 1234567890,
-          data: { someData: 'value' },
-          accountCreated: false,
-          isPartial: false
-        } as any],
-        beforeHashes: { account1: 'before-hash1' }
+        stateList: [
+          {
+            accountId: 'account1',
+            stateId: 'hash1',
+            timestamp: 1234567890,
+            data: { someData: 'value' },
+            accountCreated: false,
+            isPartial: false,
+          } as any,
+        ],
+        beforeHashes: { account1: 'before-hash1' },
       }
       mockP2P.askBinary.mockResolvedValue(mockResponse)
 
@@ -487,7 +494,7 @@ describe('TransactionRepair', () => {
         txId: 'tx-123',
         stateBefore: 'before-hash1',
         stateAfter: 'hash1',
-        txTimestamp: '1234567890'
+        txTimestamp: '1234567890',
       })
     })
 
@@ -497,22 +504,23 @@ describe('TransactionRepair', () => {
       const mockNode = { id: 'node-123', publicKey: 'voter-public-key' }
       mockStateManager.p2p.state.getNodeByPubKey.mockReturnValue(mockNode)
       mockStateManager.currentCycleShardData.nodeShardDataMap.set('node-123', { node: mockNode, storedPartitions: [] })
-
       ;(ShardFunctions.default.testAddressInRange as jest.Mock).mockReturnValue(true)
       mockStateManager.accountGlobals.isGlobalAccount.mockReturnValue(true) // Global account
       mockStateManager.accountCache.getAccountHash.mockReturnValue(null)
 
       const mockResponse = {
         success: true,
-        stateList: [{
-          accountId: 'account1',
-          stateId: 'hash1',
-          timestamp: 1234567890,
-          data: { someData: 'value' },
-          accountCreated: false,
-          isPartial: false
-        } as any],
-        beforeHashes: { account1: 'hash1' } // Same hash before and after
+        stateList: [
+          {
+            accountId: 'account1',
+            stateId: 'hash1',
+            timestamp: 1234567890,
+            data: { someData: 'value' },
+            accountCreated: false,
+            isPartial: false,
+          } as any,
+        ],
+        beforeHashes: { account1: 'hash1' }, // Same hash before and after
       }
       mockP2P.askBinary.mockResolvedValue(mockResponse)
 
@@ -531,7 +539,6 @@ describe('TransactionRepair', () => {
       const mockNode = { id: 'node-123', publicKey: 'voter-public-key' }
       mockStateManager.p2p.state.getNodeByPubKey.mockReturnValue(mockNode)
       mockStateManager.currentCycleShardData.nodeShardDataMap.set('node-123', { node: mockNode, storedPartitions: [] })
-
       ;(ShardFunctions.default.testAddressInRange as jest.Mock).mockReturnValue(true)
       mockStateManager.accountCache.getAccountHash.mockReturnValue(null)
 
@@ -549,7 +556,6 @@ describe('TransactionRepair', () => {
       const mockNode = { id: 'node-123', publicKey: 'voter-public-key' }
       mockStateManager.p2p.state.getNodeByPubKey.mockReturnValue(mockNode)
       mockStateManager.currentCycleShardData.nodeShardDataMap.set('node-123', { node: mockNode, storedPartitions: [] })
-
       ;(ShardFunctions.default.testAddressInRange as jest.Mock).mockReturnValue(true)
       mockStateManager.accountCache.getAccountHash.mockReturnValue(null)
 
@@ -568,45 +574,51 @@ describe('TransactionRepair', () => {
       const mockNode = { id: 'node-123', publicKey: 'voter-public-key' }
       mockStateManager.p2p.state.getNodeByPubKey.mockReturnValue(mockNode)
       mockStateManager.currentCycleShardData.nodeShardDataMap.set('node-123', { node: mockNode, storedPartitions: [] })
-
       ;(ShardFunctions.default.testAddressInRange as jest.Mock).mockReturnValue(true)
       mockStateManager.accountCache.getAccountHash.mockReturnValue(null)
 
       // Mock response with wrong state ID
       const mockResponse = {
         success: true,
-        stateList: [{
-          accountId: 'account1',
-          stateId: 'wrong-hash', // Different from expected hash1
-          timestamp: 1234567890,
-          data: { someData: 'value' }
-        }],
-        beforeHashes: { account1: 'before-hash1' }
+        stateList: [
+          {
+            accountId: 'account1',
+            stateId: 'wrong-hash', // Different from expected hash1
+            timestamp: 1234567890,
+            data: { someData: 'value' },
+          },
+        ],
+        beforeHashes: { account1: 'before-hash1' },
       }
       mockP2P.askBinary.mockResolvedValue(mockResponse)
 
       await transactionRepair.repairToMatchReceipt(mockQueueEntry)
 
       expect(mockStateManager.checkAndSetAccountData).not.toHaveBeenCalled()
-      expect(nestedCountersInstance.countEvent).toHaveBeenCalledWith('repair1', 'skip account repair 3, stateId mismatch')
+      expect(nestedCountersInstance.countEvent).toHaveBeenCalledWith(
+        'repair1',
+        'skip account repair 3, stateId mismatch'
+      )
     })
 
     it('should forward receipt if repair succeeds and vote hashes match', async () => {
       // Setup successful repair
       mockQueueEntry.isInExecutionHome = true
       mockQueueEntry.ourVoteHash = 'proposal-hash-123'
-      mockQueueEntry.preApplyTXResult = { applyResponse: {
-        stateTableResults: [],
-        txId: 'tx-123',
-        txTimestamp: '1234567890',
-        accountData: [],
-        accountsToDelete: [],
-        appReceiptData: null,
-        appReceiptDataHash: null,
-        failed: false,
-        reason: null,
-        txResult: null
-      } } as any
+      mockQueueEntry.preApplyTXResult = {
+        applyResponse: {
+          stateTableResults: [],
+          txId: 'tx-123',
+          txTimestamp: '1234567890',
+          accountData: [],
+          accountsToDelete: [],
+          appReceiptData: null,
+          appReceiptDataHash: null,
+          failed: false,
+          reason: null,
+          txResult: null,
+        },
+      } as any
       mockConfig.p2p.experimentalSnapshot = true
 
       // Setup for successful repair
@@ -614,7 +626,6 @@ describe('TransactionRepair', () => {
       const mockNode = { id: 'node-123', publicKey: 'voter-public-key' }
       mockStateManager.p2p.state.getNodeByPubKey.mockReturnValue(mockNode)
       mockStateManager.currentCycleShardData.nodeShardDataMap.set('node-123', { node: mockNode, storedPartitions: [] })
-
       ;(ShardFunctions.default.testAddressInRange as jest.Mock).mockReturnValue(true)
       // Make repair succeed by having correct hashes for all accounts
       mockStateManager.accountCache.getAccountHash
@@ -633,7 +644,6 @@ describe('TransactionRepair', () => {
       const mockNode = { id: 'node-123', publicKey: 'voter-public-key' }
       mockStateManager.p2p.state.getNodeByPubKey.mockReturnValue(mockNode)
       mockStateManager.currentCycleShardData.nodeShardDataMap.set('node-123', { node: mockNode, storedPartitions: [] })
-
       ;(ShardFunctions.default.testAddressInRange as jest.Mock).mockReturnValue(true)
       // Make repair succeed by having correct hashes
       mockStateManager.accountCache.getAccountHash
@@ -651,24 +661,25 @@ describe('TransactionRepair', () => {
       const mockNode = { id: 'node-123', publicKey: 'voter-public-key' }
       mockStateManager.p2p.state.getNodeByPubKey.mockReturnValue(mockNode)
       mockStateManager.currentCycleShardData.nodeShardDataMap.set('node-123', { node: mockNode, storedPartitions: [] })
-
       ;(ShardFunctions.default.testAddressInRange as jest.Mock).mockReturnValue(true)
       mockStateManager.accountGlobals.isGlobalAccount.mockReturnValue(false) // Not a global account
       mockStateManager.accountCache.getAccountHash.mockReturnValue(null) // No cached hash
 
       const mockResponse = {
         success: true,
-        stateList: [{
-          accountId: 'account1',
-          stateId: 'hash1',
-          timestamp: 1234567890,
-          data: { someData: 'value' },
-          accountCreated: false,
-          isPartial: false,
-          prevDataCopy: null // No previous data
-        } as any],
+        stateList: [
+          {
+            accountId: 'account1',
+            stateId: 'hash1',
+            timestamp: 1234567890,
+            data: { someData: 'value' },
+            accountCreated: false,
+            isPartial: false,
+            prevDataCopy: null, // No previous data
+          } as any,
+        ],
         beforeHashes: { account1: null }, // Null before hash
-        note: 'success'
+        note: 'success',
       } as RequestStateForTxResp
       mockP2P.askBinary.mockResolvedValue(mockResponse)
 
@@ -676,7 +687,7 @@ describe('TransactionRepair', () => {
       mockApp.getTimestampAndHashFromAccount
         .mockReturnValueOnce({ timestamp: 1234567890, hash: 'hash1' }) // For data.data (updatedHash)
         .mockReturnValueOnce({ timestamp: 1234567890, hash: 'before-hash' }) // For beforeData (will be overridden by beforeHashes)
-      
+
       // Return some beforeData object so the code doesn't skip the state table update
       mockApp.getAccountDataByList.mockResolvedValue([{ someBeforeData: 'value' }]) // Has before data
 
@@ -687,7 +698,7 @@ describe('TransactionRepair', () => {
         txId: 'tx-123',
         stateBefore: '0000', // Default value for null
         stateAfter: 'hash1',
-        txTimestamp: '1234567890'
+        txTimestamp: '1234567890',
       })
       expect(nestedCountersInstance.countEvent).toHaveBeenCalledWith('repair1', 'addAccountStates-null')
     })

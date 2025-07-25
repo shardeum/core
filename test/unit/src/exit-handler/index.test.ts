@@ -8,33 +8,33 @@ jest.mock('path')
 jest.mock('log4js')
 const mockContext = {
   logger: {
-    getLogger: jest.fn()
+    getLogger: jest.fn(),
   },
   p2p: {
-    getLatestCycles: jest.fn()
-  }
+    getLatestCycles: jest.fn(),
+  },
 }
 
 const mockSelf = {
   getPublicNodeInfo: jest.fn(),
   emitter: {
     once: jest.fn(),
-    on: jest.fn()
+    on: jest.fn(),
   },
-  isActive: false
+  isActive: false,
 }
 
 jest.mock('../../../../src/p2p/Context', () => mockContext)
 jest.mock('../../../../src/utils/profiler', () => ({
   profilerInstance: {
     scopedProfileSectionStart: jest.fn(),
-    scopedProfileSectionEnd: jest.fn()
-  }
+    scopedProfileSectionEnd: jest.fn(),
+  },
 }))
 jest.mock('../../../../src/p2p/Self', () => mockSelf)
 const mockNodeList = {
   getAgeIndex: jest.fn(),
-  activeByIdOrder: []
+  activeByIdOrder: [],
 }
 
 // Mock global process
@@ -44,14 +44,14 @@ const mockMemoryUsage = jest.fn(() => ({
   heapTotal: 50000000,
   heapUsed: 30000000,
   external: 10000000,
-  arrayBuffers: 5000000
+  arrayBuffers: 5000000,
 }))
 
 global.process = {
   ...originalProcess,
   memoryUsage: mockMemoryUsage,
   on: jest.fn(),
-  exit: jest.fn()
+  exit: jest.fn(),
 } as any
 
 jest.mock('../../../../src/p2p/NodeList', () => mockNodeList)
@@ -86,12 +86,12 @@ describe('ExitHandler', () => {
       heapTotal: 50000000,
       heapUsed: 30000000,
       external: 10000000,
-      arrayBuffers: 5000000
+      arrayBuffers: 5000000,
     })
 
     // Setup mock logger
     mockLogger = {
-      fatal: jest.fn()
+      fatal: jest.fn(),
     }
     mockContext.logger.getLogger.mockReturnValue(mockLogger)
 
@@ -99,14 +99,14 @@ describe('ExitHandler', () => {
     mockMemStats = {
       gatherReport: jest.fn(),
       reportToStream: jest.fn(),
-      report: {}
+      report: {},
     }
 
     // Setup mock counters
     mockCounters = {
       arrayitizeAndSort: jest.fn().mockReturnValue([]),
       printArrayReport: jest.fn(),
-      eventCounters: {}
+      eventCounters: {},
     }
 
     // Mock fs operations
@@ -121,7 +121,7 @@ describe('ExitHandler', () => {
     mockedSelf.getPublicNodeInfo.mockReturnValue({
       id: 'test-node',
       ip: '127.0.0.1',
-      port: 9001
+      port: 9001,
     } as any)
 
     // Mock NodeList
@@ -129,9 +129,7 @@ describe('ExitHandler', () => {
     mockNodeList.activeByIdOrder = ['node1', 'node2', 'node3'] as any
 
     // Mock Context.p2p
-    mockContext.p2p.getLatestCycles.mockReturnValue([
-      { start: Date.now() / 1000 }
-    ] as any)
+    mockContext.p2p.getLatestCycles.mockReturnValue([{ start: Date.now() / 1000 }] as any)
 
     exitHandler = new ExitHandler('/test/logs', mockMemStats, mockCounters)
   })
@@ -167,7 +165,7 @@ describe('ExitHandler', () => {
     it('should register sync function', () => {
       const testFunc = jest.fn()
       exitHandler.registerSync('test', testFunc)
-      
+
       expect(exitHandler.syncFuncs.get('test')).toBe(testFunc)
     })
   })
@@ -176,7 +174,7 @@ describe('ExitHandler', () => {
     it('should register async function', () => {
       const testFunc = jest.fn()
       exitHandler.registerAsync('test', testFunc)
-      
+
       expect(exitHandler.asyncFuncs.get('test')).toBe(testFunc)
     })
   })
@@ -185,12 +183,12 @@ describe('ExitHandler', () => {
     it('should call all registered sync functions', () => {
       const func1 = jest.fn()
       const func2 = jest.fn()
-      
+
       exitHandler.registerSync('test1', func1)
       exitHandler.registerSync('test2', func2)
-      
+
       exitHandler._cleanupSync()
-      
+
       expect(func1).toHaveBeenCalled()
       expect(func2).toHaveBeenCalled()
     })
@@ -200,12 +198,12 @@ describe('ExitHandler', () => {
     it('should call all registered async functions', async () => {
       const func1 = jest.fn().mockResolvedValue(undefined)
       const func2 = jest.fn().mockResolvedValue(undefined)
-      
+
       exitHandler.registerAsync('test1', func1)
       exitHandler.registerAsync('test2', func2)
-      
+
       await exitHandler._cleanupAsync()
-      
+
       expect(func1).toHaveBeenCalled()
       expect(func2).toHaveBeenCalled()
     })
@@ -216,17 +214,17 @@ describe('ExitHandler', () => {
       const exitSpy = jest.spyOn(process, 'exit').mockImplementation(() => {
         throw new Error('process.exit called')
       })
-      
+
       try {
         await exitHandler.exitCleanly('test', 'test message')
       } catch (e) {
         // Expected to throw because of process.exit mock
       }
-      
+
       expect(exitHandler.exited).toBe(true)
       expect(mockLogger.fatal).toHaveBeenCalled()
       expect(exitSpy).toHaveBeenCalled()
-      
+
       exitSpy.mockRestore()
     })
 
@@ -235,9 +233,9 @@ describe('ExitHandler', () => {
       const exitSpy = jest.spyOn(process, 'exit').mockImplementation(() => {
         throw new Error('process.exit called')
       })
-      
+
       await exitHandler.exitCleanly('test', 'test message')
-      
+
       expect(exitSpy).not.toHaveBeenCalled()
       exitSpy.mockRestore()
     })
@@ -246,9 +244,9 @@ describe('ExitHandler', () => {
       const exitSpy = jest.spyOn(process, 'exit').mockImplementation(() => {
         throw new Error('process.exit called')
       })
-      
+
       await exitHandler.exitCleanly('test', 'test message', false)
-      
+
       expect(exitHandler.exited).toBe(true)
       expect(exitSpy).not.toHaveBeenCalled()
       exitSpy.mockRestore()
@@ -260,13 +258,13 @@ describe('ExitHandler', () => {
       const exitSpy = jest.spyOn(process, 'exit').mockImplementation(() => {
         throw new Error('process.exit called')
       })
-      
+
       try {
         await exitHandler.exitUncleanly('test', 'test message')
       } catch (e) {
         // Expected to throw because of process.exit mock
       }
-      
+
       expect(exitHandler.exited).toBe(true)
       expect(exitSpy).toHaveBeenCalledWith(1)
       exitSpy.mockRestore()
@@ -277,9 +275,9 @@ describe('ExitHandler', () => {
       const exitSpy = jest.spyOn(process, 'exit').mockImplementation(() => {
         throw new Error('process.exit called')
       })
-      
+
       await exitHandler.exitUncleanly('test', 'test message')
-      
+
       expect(exitSpy).not.toHaveBeenCalled()
       exitSpy.mockRestore()
     })
@@ -288,7 +286,7 @@ describe('ExitHandler', () => {
   describe('runExitLog', () => {
     it('should log memory and counter reports', () => {
       exitHandler.runExitLog(true, 'test', 'test message')
-      
+
       expect(mockLogger.fatal).toHaveBeenCalledWith(
         expect.stringContaining('isCleanExit: true  exitType: test  msg: test message')
       )
@@ -302,7 +300,7 @@ describe('ExitHandler', () => {
 
     it('should write exit summary', () => {
       exitHandler.runExitLog(true, 'test', 'test message')
-      
+
       expect(mockedFs.writeFileSync).toHaveBeenCalledWith(
         '/test/logs/exit-summary.json',
         expect.stringContaining('"status"'),
@@ -316,9 +314,9 @@ describe('ExitHandler', () => {
       exitHandler.lastRotationIndex = { idx: 5, total: 10 }
       exitHandler.lastActiveTime = Date.now()
       exitHandler.activeStartTime = Date.now() - 60000
-      
+
       exitHandler.writeNodeProgress()
-      
+
       expect(mockedFs.writeFileSync).toHaveBeenCalledWith(
         '/test/logs/node-progress.json',
         expect.stringContaining('"lastRotationIndex"'),
@@ -333,7 +331,7 @@ describe('ExitHandler', () => {
       mockedFs.writeFileSync.mockImplementation(() => {
         throw new Error('File write error')
       })
-      
+
       expect(() => exitHandler.writeNodeProgress()).not.toThrow()
     })
   })
@@ -341,8 +339,8 @@ describe('ExitHandler', () => {
   describe('writeExitSummary', () => {
     it('should set status to "Exited cleanly" for clean exits', () => {
       exitHandler.writeExitSummary(true, 'normal', 'test message')
-      
-      const writeCall = mockedFs.writeFileSync.mock.calls.find(call => 
+
+      const writeCall = mockedFs.writeFileSync.mock.calls.find((call) =>
         (call[0] as string).includes('exit-summary.json')
       )
       const content = JSON.parse(writeCall[1] as string)
@@ -351,8 +349,8 @@ describe('ExitHandler', () => {
 
     it('should set status to "Exit with warning" for Apoptosized clean exits', () => {
       exitHandler.writeExitSummary(true, 'Apoptosized', 'test message')
-      
-      const writeCall = mockedFs.writeFileSync.mock.calls.find(call => 
+
+      const writeCall = mockedFs.writeFileSync.mock.calls.find((call) =>
         (call[0] as string).includes('exit-summary.json')
       )
       const content = JSON.parse(writeCall[1] as string)
@@ -361,8 +359,8 @@ describe('ExitHandler', () => {
 
     it('should set status to "Exit with warning" for SIGINT unclean exits', () => {
       exitHandler.writeExitSummary(false, 'SIGINT', 'test message')
-      
-      const writeCall = mockedFs.writeFileSync.mock.calls.find(call => 
+
+      const writeCall = mockedFs.writeFileSync.mock.calls.find((call) =>
         (call[0] as string).includes('exit-summary.json')
       )
       const content = JSON.parse(writeCall[1] as string)
@@ -371,8 +369,8 @@ describe('ExitHandler', () => {
 
     it('should set status to "Exit with error" for SIGTERM unclean exits', () => {
       exitHandler.writeExitSummary(false, 'SIGTERM', 'test message')
-      
-      const writeCall = mockedFs.writeFileSync.mock.calls.find(call => 
+
+      const writeCall = mockedFs.writeFileSync.mock.calls.find((call) =>
         (call[0] as string).includes('exit-summary.json')
       )
       const content = JSON.parse(writeCall[1] as string)
@@ -382,10 +380,10 @@ describe('ExitHandler', () => {
     it('should calculate total active time', () => {
       exitHandler.activeStartTime = 1000
       exitHandler.lastActiveTime = 5000
-      
+
       exitHandler.writeExitSummary(true, 'test', 'test message')
-      
-      const writeCall = mockedFs.writeFileSync.mock.calls.find(call => 
+
+      const writeCall = mockedFs.writeFileSync.mock.calls.find((call) =>
         (call[0] as string).includes('exit-summary.json')
       )
       const content = JSON.parse(writeCall[1] as string)
@@ -399,7 +397,7 @@ describe('ExitHandler', () => {
       mockedFs.writeFileSync.mockImplementation(() => {
         throw new Error('File write error')
       })
-      
+
       expect(() => exitHandler.writeExitSummary(true, 'test', 'message')).not.toThrow()
     })
   })
@@ -407,7 +405,7 @@ describe('ExitHandler', () => {
   describe('writeStartSummary', () => {
     it('should write start summary to file', () => {
       exitHandler.writeStartSummary()
-      
+
       expect(mockedFs.writeFileSync).toHaveBeenCalledWith(
         '/test/logs/start-summary.json',
         expect.stringContaining('"startTime"'),
@@ -419,7 +417,7 @@ describe('ExitHandler', () => {
       mockedFs.writeFileSync.mockImplementation(() => {
         throw new Error('File write error')
       })
-      
+
       expect(() => exitHandler.writeStartSummary()).not.toThrow()
     })
   })
@@ -429,82 +427,81 @@ describe('ExitHandler', () => {
 
     beforeEach(() => {
       mockProcess = {
-        on: jest.fn()
+        on: jest.fn(),
       }
       Object.defineProperty(global, 'process', {
         value: mockProcess,
-        writable: true
+        writable: true,
       })
     })
 
     it('should add SIGINT listener by default', () => {
       exitHandler.addSigListeners()
-      
+
       expect(mockProcess.on).toHaveBeenCalledWith('SIGINT', expect.any(Function))
       expect(mockProcess.on).toHaveBeenCalledWith('message', expect.any(Function))
     })
 
     it('should add SIGTERM listener by default', () => {
       exitHandler.addSigListeners()
-      
+
       expect(mockProcess.on).toHaveBeenCalledWith('SIGTERM', expect.any(Function))
     })
 
     it('should not add SIGINT listener when disabled', () => {
       exitHandler.addSigListeners(false, true)
-      
+
       expect(mockProcess.on).not.toHaveBeenCalledWith('SIGINT', expect.any(Function))
       expect(mockProcess.on).not.toHaveBeenCalledWith('message', expect.any(Function))
     })
 
     it('should not add SIGTERM listener when disabled', () => {
       exitHandler.addSigListeners(true, false)
-      
+
       expect(mockProcess.on).not.toHaveBeenCalledWith('SIGTERM', expect.any(Function))
     })
   })
 
   describe('event handlers', () => {
     it('should handle active event', () => {
-      const onceCall = (mockSelf.emitter.once as jest.Mock).mock.calls.find(call => call[0] === 'active')
+      const onceCall = (mockSelf.emitter.once as jest.Mock).mock.calls.find((call) => call[0] === 'active')
       const handler = onceCall[1]
-      
+
       mockContext.p2p.getLatestCycles.mockReturnValue([{ start: 12345 }] as any)
-      
+
       handler()
-      
+
       expect(exitHandler.activeStartTime).toBe(12345000)
     })
 
     it('should handle cycle_q1_start event when active', () => {
-      const onCall = (mockSelf.emitter.on as jest.Mock).mock.calls.find(call => call[0] === 'cycle_q1_start')
+      const onCall = (mockSelf.emitter.on as jest.Mock).mock.calls.find((call) => call[0] === 'cycle_q1_start')
       const handler = onCall[1]
-      
+
       mockSelf.isActive = true
       mockedNodeList.getAgeIndex.mockReturnValue({ idx: 3, total: 8 })
       mockContext.p2p.getLatestCycles.mockReturnValue([{ start: 54321 }] as any)
-      
+
       handler()
-      
+
       expect(exitHandler.lastRotationIndex).toEqual({ idx: 3, total: 8 })
       expect(exitHandler.lastActiveTime).toBe(54321000)
-      expect(mockedFs.writeFileSync).toHaveBeenCalledWith(
-        '/test/logs/node-progress.json',
-        expect.any(String),
-        { encoding: 'utf8', flag: 'w' }
-      )
+      expect(mockedFs.writeFileSync).toHaveBeenCalledWith('/test/logs/node-progress.json', expect.any(String), {
+        encoding: 'utf8',
+        flag: 'w',
+      })
     })
 
     it('should not update rotation index when idx is negative', () => {
-      const onCall = (mockSelf.emitter.on as jest.Mock).mock.calls.find(call => call[0] === 'cycle_q1_start')
+      const onCall = (mockSelf.emitter.on as jest.Mock).mock.calls.find((call) => call[0] === 'cycle_q1_start')
       const handler = onCall[1]
-      
+
       mockSelf.isActive = true
       mockedNodeList.getAgeIndex.mockReturnValue({ idx: -1, total: 8 })
       exitHandler.lastRotationIndex = { idx: 5, total: 10 }
-      
+
       handler()
-      
+
       expect(exitHandler.lastRotationIndex).toEqual({ idx: 5, total: 10 })
     })
   })

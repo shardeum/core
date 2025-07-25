@@ -8,8 +8,8 @@ jest.mock('sqlite3', () => {
     verbose: jest.fn(() => ({
       Database: mockDatabase,
       OPEN_READWRITE: 2,
-      OPEN_CREATE: 4
-    }))
+      OPEN_CREATE: 4,
+    })),
   }
 })
 
@@ -17,11 +17,11 @@ jest.mock('@shardeum-foundation/lib-crypto-utils', () => ({
   init: jest.fn(),
   hash: jest.fn(),
   sign: jest.fn(),
-  verify: jest.fn()
+  verify: jest.fn(),
 }))
 
 jest.mock('../../../../src/shardus/index', () => ({
-  setDefaultConfigs: jest.fn()
+  setDefaultConfigs: jest.fn(),
 }))
 jest.mock('../../../../src/logger/csvPerfEvents', () => ({}))
 jest.mock('../../../../src/http')
@@ -44,23 +44,23 @@ jest.mock('../../../../src/p2p/Context', () => ({
       writeSyncProtocolV2: false,
       hackForceCycleSyncComplete: false,
       useAjvCycleRecordValidation: false,
-      useNetworkModes: false
+      useNetworkModes: false,
     },
     debug: {
       enableCycleRecordDebugTool: false,
-      localEnableCycleRecordDebugTool: false
-    }
+      localEnableCycleRecordDebugTool: false,
+    },
   },
   crypto: {
     hash: jest.fn((data) => 'hash'),
   },
   logger: {
-    getLogger: mockGetLogger
+    getLogger: mockGetLogger,
   },
   network: {
-    _registerExternal: mockRegisterExternal
+    _registerExternal: mockRegisterExternal,
   },
-  setDefaultConfigs: jest.fn()
+  setDefaultConfigs: jest.fn(),
 }))
 
 jest.mock('../../../../src/p2p/CycleChain')
@@ -86,7 +86,10 @@ import { logFlags } from '../../../../src/logger'
 
 describe('Sync Module', () => {
   // Helper function to create mock cycle
-  const createMockCycle = (counter: number, config?: Partial<P2P.CycleCreatorTypes.CycleRecord>): P2P.CycleCreatorTypes.CycleRecord => ({
+  const createMockCycle = (
+    counter: number,
+    config?: Partial<P2P.CycleCreatorTypes.CycleRecord>
+  ): P2P.CycleCreatorTypes.CycleRecord => ({
     counter,
     previous: counter > 1 ? `prev-hash-${counter - 1}` : '',
     start: 1000 + counter * 60,
@@ -135,7 +138,7 @@ describe('Sync Module', () => {
     txadd: [],
     txremove: [],
     txlisthash: `txlist-hash-${counter}`,
-    ...config
+    ...config,
   })
 
   const logFlagsMock = logFlags as any
@@ -152,7 +155,7 @@ describe('Sync Module', () => {
     mockLoggerInstance.debug.mockClear()
     mockLoggerInstance.warn.mockClear()
     mockLoggerInstance.error.mockClear()
-    
+
     // Reset log flags
     logFlagsMock.p2pSyncDebug = false
     logFlagsMock.p2pNonFatal = false
@@ -163,16 +166,16 @@ describe('Sync Module', () => {
   describe('init', () => {
     it('should initialize the module and register routes', () => {
       // Just verify init ran successfully by checking a simple function works
-      const result = Sync.activeNodeCount({ 
+      const result = Sync.activeNodeCount({
         active: 5,
         activated: [],
         apoptosized: [],
         removed: [],
         appRemoved: [],
-        lost: []
+        lost: [],
       } as any)
       expect(result).toBe(5)
-      
+
       // The fact that the module is working means init was successful
     })
   })
@@ -185,7 +188,7 @@ describe('Sync Module', () => {
         apoptosized: ['node3'],
         removed: ['node4'],
         appRemoved: ['node5'],
-        lost: ['node6']
+        lost: ['node6'],
       })
 
       const count = Sync.activeNodeCount(cycle)
@@ -199,7 +202,7 @@ describe('Sync Module', () => {
         apoptosized: [],
         removed: [],
         appRemoved: [],
-        lost: []
+        lost: [],
       })
 
       const count = Sync.activeNodeCount(cycle)
@@ -213,7 +216,7 @@ describe('Sync Module', () => {
         apoptosized: [],
         removed: [],
         appRemoved: [],
-        lost: []
+        lost: [],
       })
 
       const count = Sync.activeNodeCount(cycle)
@@ -227,7 +230,7 @@ describe('Sync Module', () => {
         apoptosized: ['n1', 'n2'],
         removed: ['n3', 'n4'],
         appRemoved: ['n5'],
-        lost: ['n6']
+        lost: ['n6'],
       })
 
       const count = Sync.activeNodeCount(cycle)
@@ -243,7 +246,7 @@ describe('Sync Module', () => {
         active: 10,
         apoptosized: ['node1'],
         removed: ['node2'],
-        appRemoved: ['node3']
+        appRemoved: ['node3'],
       })
 
       const count = Sync.totalNodeCount(cycle)
@@ -257,7 +260,7 @@ describe('Sync Module', () => {
         active: 15,
         apoptosized: [],
         removed: [],
-        appRemoved: []
+        appRemoved: [],
       })
 
       const count = Sync.totalNodeCount(cycle)
@@ -271,7 +274,7 @@ describe('Sync Module', () => {
         active: 0,
         apoptosized: [],
         removed: [],
-        appRemoved: []
+        appRemoved: [],
       })
 
       const count = Sync.totalNodeCount(cycle)
@@ -285,7 +288,7 @@ describe('Sync Module', () => {
         active: 200,
         apoptosized: Array(10).fill('node'),
         removed: Array(5).fill('node'),
-        appRemoved: Array(5).fill('node')
+        appRemoved: Array(5).fill('node'),
       })
 
       const count = Sync.totalNodeCount(cycle)
@@ -341,7 +344,7 @@ describe('Sync Module', () => {
         apoptosized: ['node1'],
         removed: ['node2'],
         appRemoved: ['node3'],
-        lost: ['node4', 'node5']
+        lost: ['node4', 'node5'],
       })
 
       logFlagsMock.error = true
@@ -357,7 +360,7 @@ describe('Sync Module', () => {
 
     it('should not log when error flag is false', () => {
       const cycle = createMockCycle(1)
-      
+
       logFlagsMock.error = false
       Sync.showNodeCount(cycle)
 
@@ -372,18 +375,18 @@ describe('Sync Module', () => {
         apoptosized: ['n1', 'n2'],
         removed: ['n3'],
         appRemoved: ['n4'],
-        lost: ['n5']
+        lost: ['n5'],
       })
 
       logFlagsMock.error = true
       Sync.showNodeCount(cycle)
 
       const callArg = mockLoggerInstance.warn.mock.calls[0][0]
-      expect(callArg).toContain('3 +')  // syncing
-      expect(callArg).toContain('1 +')  // joinedConsensors
-      expect(callArg).toContain('7 +')  // active
-      expect(callArg).toContain('2 -')  // apoptosized
-      expect(callArg).toContain('1 -')  // removed/appRemoved/lost
+      expect(callArg).toContain('3 +') // syncing
+      expect(callArg).toContain('1 +') // joinedConsensors
+      expect(callArg).toContain('7 +') // active
+      expect(callArg).toContain('2 -') // apoptosized
+      expect(callArg).toContain('1 -') // removed/appRemoved/lost
     })
   })
 })

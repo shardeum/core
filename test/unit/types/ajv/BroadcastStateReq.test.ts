@@ -31,7 +31,7 @@ describe('BroadcastStateReq', () => {
 
       expect(mockAddSchema).toHaveBeenCalledTimes(1)
       const [schemaName, schema] = mockAddSchema.mock.calls[0] as [AJVSchemaEnum, any]
-      
+
       expect(schemaName).toBe(AJVSchemaEnum.BroadcastStateReq)
       expect(schema).toBeDefined()
       expect(schema.type).toBe('object')
@@ -115,7 +115,7 @@ describe('BroadcastStateReq', () => {
       const firstCall = mockAddSchema.mock.calls[0]
       const secondCall = mockAddSchema.mock.calls[1]
       const thirdCall = mockAddSchema.mock.calls[2]
-      
+
       expect(firstCall).toEqual(secondCall)
       expect(secondCall).toEqual(thirdCall)
     })
@@ -126,7 +126,7 @@ describe('BroadcastStateReq', () => {
       initBroadcastStateReq()
 
       const [, schema] = mockAddSchema.mock.calls[0] as [AJVSchemaEnum, any]
-      
+
       // Verify the schema would accept this structure
       expect(schema.properties.txid.type).toBe('string')
       expect(schema.properties.stateList.type).toBe('array')
@@ -138,7 +138,7 @@ describe('BroadcastStateReq', () => {
       initBroadcastStateReq()
 
       const [, schema] = mockAddSchema.mock.calls[0] as [AJVSchemaEnum, any]
-      
+
       const testCases = [
         { txid: '', stateList: [] },
         { txid: 'abc123', stateList: [] },
@@ -156,7 +156,7 @@ describe('BroadcastStateReq', () => {
       initBroadcastStateReq()
 
       const [, schema] = mockAddSchema.mock.calls[0] as [AJVSchemaEnum, any]
-      
+
       expect(schema.properties.stateList.items).toBe(schemaWrappedDataResponse)
       // Verify that the referenced schema has expected structure
       expect(schemaWrappedDataResponse.type).toBe('object')
@@ -179,10 +179,10 @@ describe('BroadcastStateReq', () => {
       initBroadcastStateReq()
 
       const [, schema] = mockAddSchema.mock.calls[0] as [AJVSchemaEnum, any]
-      
+
       // Verify stateList items reference the imported schema
       expect(schema.properties.stateList.items).toBe(schemaWrappedDataResponse)
-      
+
       // Verify the imported schema structure
       expect(schemaWrappedDataResponse).toEqual({
         type: 'object',

@@ -8,8 +8,8 @@ describe('ProblematicNodeCache - Inactive Node Filtering', () => {
       problematicNodeConsecutiveRefuteThreshold: 3,
       problematicNodeRefutePercentageThreshold: 0.1,
       problematicNodeHistoryLength: 100,
-      maxProblematicNodeRemovalsPerCycle: 10
-    }
+      maxProblematicNodeRemovalsPerCycle: 10,
+    },
   }
 
   beforeEach(() => {
@@ -19,7 +19,7 @@ describe('ProblematicNodeCache - Inactive Node Filtering', () => {
   it('should only return problematic nodes that are in the active nodes set', () => {
     // Build cache with refute history for multiple nodes
     const cycles: P2P.CycleCreatorTypes.CycleRecord[] = []
-    
+
     for (let i = 1; i <= 100; i++) {
       const cycle = {
         counter: i,
@@ -40,7 +40,7 @@ describe('ProblematicNodeCache - Inactive Node Filtering', () => {
         cycle.refuted.push('active-node-1') // 3 consecutive refutes
         cycle.refuted.push('removed-node-1') // Also 3 consecutive refutes but removed
       }
-      
+
       if (i >= 80 && i <= 90) {
         cycle.refuted.push('active-node-2') // 11% refute rate
         cycle.refuted.push('removed-node-2') // Also 11% refute rate but removed
@@ -72,7 +72,7 @@ describe('ProblematicNodeCache - Inactive Node Filtering', () => {
     // Should only contain active nodes
     expect(problematicNodes).toContain('active-node-1')
     expect(problematicNodes).toContain('active-node-2')
-    
+
     // Should NOT contain removed nodes even though they are problematic
     expect(problematicNodes).not.toContain('removed-node-1')
     expect(problematicNodes).not.toContain('removed-node-2')
@@ -87,7 +87,7 @@ describe('ProblematicNodeCache - Inactive Node Filtering', () => {
   it('should handle pruneInactiveNodes to remove inactive nodes from cache', () => {
     // Build cache with refute history
     const cycles: P2P.CycleCreatorTypes.CycleRecord[] = []
-    
+
     for (let i = 98; i <= 100; i++) {
       cycles.push({
         counter: i,
@@ -116,7 +116,7 @@ describe('ProblematicNodeCache - Inactive Node Filtering', () => {
 
     // Active node should remain
     expect(cache.refuteHistory.has('active-node')).toBe(true)
-    
+
     // Inactive node should be removed
     expect(cache.refuteHistory.has('inactive-node')).toBe(false)
   })
@@ -124,7 +124,7 @@ describe('ProblematicNodeCache - Inactive Node Filtering', () => {
   it('should return empty array when no active nodes are problematic', () => {
     // Build cache with only non-problematic refute patterns
     const cycles: P2P.CycleCreatorTypes.CycleRecord[] = []
-    
+
     for (let i = 1; i <= 100; i++) {
       const cycle = {
         counter: i,
@@ -144,7 +144,7 @@ describe('ProblematicNodeCache - Inactive Node Filtering', () => {
       if (i % 20 === 0) {
         cycle.refuted.push('node-1') // Only 5% refute rate
       }
-      
+
       if (i === 50 || i === 70) {
         cycle.refuted.push('node-2') // Non-consecutive refutes
       }

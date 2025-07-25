@@ -373,7 +373,7 @@ describe('debugMiddleware', () => {
       req.query = {
         sig: 'valid-signature',
         sig_counter: validCounter.toString(),
-        nodePubkeys: 'abcd',  // Only first 4 chars are checked
+        nodePubkeys: 'abcd', // Only first 4 chars are checked
       }
       req.originalUrl = `/debug/endpoint?sig=valid-signature&sig_counter=${validCounter}&nodePubkeys=abcd&param=value`
 
@@ -381,15 +381,15 @@ describe('debugMiddleware', () => {
       const ownerPublicKey = 'owner1PublicKey'
       const mockPublicKeys = { [ownerPublicKey]: DevSecurityLevel.High }
       mockGetDevPublicKeys.mockReturnValue(mockPublicKeys)
-      mockGetPublicKey.mockReturnValue('abcd1234')  // Return full public key
+      mockGetPublicKey.mockReturnValue('abcd1234') // Return full public key
       mockHash.mockReturnValue('hash-value')
       mockSafeStringify.mockReturnValue('{"stringified":"payload"}')
-      
+
       // Setup verify to check for the correct owner key
       mockVerify.mockImplementation((obj, owner) => {
         return owner === ownerPublicKey
       })
-      
+
       mockEnsureKeySecurity.mockReturnValue(false)
 
       // Act

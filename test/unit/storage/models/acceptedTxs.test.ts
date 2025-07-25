@@ -51,9 +51,9 @@ describe('acceptedTxs', () => {
     const schema = acceptedTx[1] as any
     const expectedFields = ['txId', 'timestamp', 'data', 'keys']
     const actualFields = Object.keys(schema)
-    
+
     expect(actualFields).toHaveLength(expectedFields.length)
-    expectedFields.forEach(field => {
+    expectedFields.forEach((field) => {
       expect(actualFields).toContain(field)
     })
   })

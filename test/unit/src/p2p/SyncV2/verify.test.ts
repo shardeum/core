@@ -1,4 +1,9 @@
-import { verifyValidatorList, verifyArchiverList, verifyCycleRecord, verifyTxList } from '../../../../../src/p2p/SyncV2/verify'
+import {
+  verifyValidatorList,
+  verifyArchiverList,
+  verifyCycleRecord,
+  verifyTxList,
+} from '../../../../../src/p2p/SyncV2/verify'
 import { P2P, hexstring } from '@shardeum-foundation/lib-types'
 import { crypto } from '../../../../../src/p2p/Context'
 import { makeCycleMarker } from '../../../../../src/p2p/CycleCreator'
@@ -100,7 +105,6 @@ describe('SyncV2 verify', () => {
 
       expect(console.log).toHaveBeenCalledWith('hashing validator list:', Utils.safeStringify(mockValidatorList))
       expect(console.log).toHaveBeenCalledWith('got debug_hash')
-
       ;(logFlags as any).p2pSyncDebug = false
     })
   })

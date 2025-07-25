@@ -1,4 +1,9 @@
-import { serializeCompareCertReq, deserializeCompareCertReq, CompareCertReqSerializable, cCompareCertReqVersion } from '../../../src/types/CompareCertReq'
+import {
+  serializeCompareCertReq,
+  deserializeCompareCertReq,
+  CompareCertReqSerializable,
+  cCompareCertReqVersion,
+} from '../../../src/types/CompareCertReq'
 import { VectorBufferStream } from '../../../src/utils/serialization/VectorBufferStream'
 import { TypeIdentifierEnum } from '../../../src/types/enum/TypeIdentifierEnum'
 import { Utils } from '@shardeum-foundation/lib-types'
@@ -18,17 +23,14 @@ describe('CompareCertReq', () => {
       writeUInt8: jest.fn(),
       writeString: jest.fn(),
       readUInt8: jest.fn(),
-      readString: jest.fn()
+      readString: jest.fn(),
     } as unknown as VectorBufferStream
   })
 
   describe('serializeCompareCertReq', () => {
     const mockData: CompareCertReqSerializable = {
-      certs: [
-        { marker: 'cert1', score: 100 } as any,
-        { marker: 'cert2', score: 200 } as any
-      ],
-      record: { counter: 1, previous: 'prev123' } as any
+      certs: [{ marker: 'cert1', score: 100 } as any, { marker: 'cert2', score: 200 } as any],
+      record: { counter: 1, previous: 'prev123' } as any,
     }
 
     it('should serialize without root flag', () => {
@@ -50,7 +52,7 @@ describe('CompareCertReq', () => {
     it('should serialize empty data correctly', () => {
       const emptyData: CompareCertReqSerializable = {
         certs: [],
-        record: {} as any
+        record: {} as any,
       }
 
       serializeCompareCertReq(mockStream, emptyData)
@@ -62,17 +64,17 @@ describe('CompareCertReq', () => {
     it('should handle complex nested data', () => {
       const complexData: CompareCertReqSerializable = {
         certs: [
-          { 
-            marker: 'cert1', 
+          {
+            marker: 'cert1',
             score: 100,
-            nested: { deep: { value: 'test' } }
-          } as any
+            nested: { deep: { value: 'test' } },
+          } as any,
         ],
-        record: { 
-          counter: 1, 
+        record: {
+          counter: 1,
           data: { key: 'value' },
-          array: [1, 2, 3]
-        } as any
+          array: [1, 2, 3],
+        } as any,
       }
 
       serializeCompareCertReq(mockStream, complexData)
@@ -86,17 +88,15 @@ describe('CompareCertReq', () => {
       // Verify the order of calls
       const calls = (mockStream.writeUInt8 as jest.Mock).mock.invocationCallOrder[0]
       const stringCalls = (mockStream.writeString as jest.Mock).mock.invocationCallOrder[0]
-      
+
       expect(calls).toBeLessThan(stringCalls)
     })
   })
 
   describe('deserializeCompareCertReq', () => {
     const mockData: CompareCertReqSerializable = {
-      certs: [
-        { marker: 'cert1', score: 100 } as any
-      ],
-      record: { counter: 1 } as any
+      certs: [{ marker: 'cert1', score: 100 } as any],
+      record: { counter: 1 } as any,
     }
 
     beforeEach(() => {
@@ -104,7 +104,7 @@ describe('CompareCertReq', () => {
     })
 
     it('should deserialize valid data correctly', () => {
-      (mockStream.readUInt8 as jest.Mock).mockReturnValueOnce(cCompareCertReqVersion)
+      ;(mockStream.readUInt8 as jest.Mock).mockReturnValueOnce(cCompareCertReqVersion)
       ;(mockStream.readString as jest.Mock).mockReturnValueOnce(JSON.stringify(mockData))
 
       const result = deserializeCompareCertReq(mockStream)
@@ -116,7 +116,7 @@ describe('CompareCertReq', () => {
     })
 
     it('should throw error for unsupported version', () => {
-      (mockStream.readUInt8 as jest.Mock).mockReturnValueOnce(cCompareCertReqVersion + 1)
+      ;(mockStream.readUInt8 as jest.Mock).mockReturnValueOnce(cCompareCertReqVersion + 1)
 
       expect(() => deserializeCompareCertReq(mockStream)).toThrow(
         `Unsupported CompareCertReqSerializable version ${cCompareCertReqVersion + 1}`
@@ -124,7 +124,7 @@ describe('CompareCertReq', () => {
     })
 
     it('should throw error for validation failure', () => {
-      (mockStream.readUInt8 as jest.Mock).mockReturnValueOnce(cCompareCertReqVersion)
+      ;(mockStream.readUInt8 as jest.Mock).mockReturnValueOnce(cCompareCertReqVersion)
       ;(mockStream.readString as jest.Mock).mockReturnValueOnce(JSON.stringify(mockData))
       mockVerifyPayload.mockReturnValueOnce(['Validation error 1', 'Validation error 2'])
 
@@ -134,11 +134,11 @@ describe('CompareCertReq', () => {
     it('should handle empty arrays correctly', () => {
       const emptyData: CompareCertReqSerializable = {
         certs: [],
-        record: {} as any
-      };
+        record: {} as any,
+      }
 
-      (mockStream.readUInt8 as jest.Mock).mockReturnValueOnce(cCompareCertReqVersion);
-      (mockStream.readString as jest.Mock).mockReturnValueOnce(JSON.stringify(emptyData))
+      ;(mockStream.readUInt8 as jest.Mock).mockReturnValueOnce(cCompareCertReqVersion)
+      ;(mockStream.readString as jest.Mock).mockReturnValueOnce(JSON.stringify(emptyData))
 
       const result = deserializeCompareCertReq(mockStream)
 
@@ -147,10 +147,10 @@ describe('CompareCertReq', () => {
     })
 
     it('should parse JSON correctly', () => {
-      const jsonString = JSON.stringify(mockData);
-      
-      (mockStream.readUInt8 as jest.Mock).mockReturnValueOnce(cCompareCertReqVersion);
-      (mockStream.readString as jest.Mock).mockReturnValueOnce(jsonString)
+      const jsonString = JSON.stringify(mockData)
+
+      ;(mockStream.readUInt8 as jest.Mock).mockReturnValueOnce(cCompareCertReqVersion)
+      ;(mockStream.readString as jest.Mock).mockReturnValueOnce(jsonString)
 
       const result = deserializeCompareCertReq(mockStream)
 
@@ -161,7 +161,7 @@ describe('CompareCertReq', () => {
     })
 
     it('should validate payload after parsing', () => {
-      (mockStream.readUInt8 as jest.Mock).mockReturnValueOnce(cCompareCertReqVersion)
+      ;(mockStream.readUInt8 as jest.Mock).mockReturnValueOnce(cCompareCertReqVersion)
       ;(mockStream.readString as jest.Mock).mockReturnValueOnce(JSON.stringify(mockData))
 
       deserializeCompareCertReq(mockStream)

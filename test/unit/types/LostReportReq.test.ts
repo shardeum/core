@@ -14,13 +14,13 @@ describe('LostReportReq', () => {
     requestId: 'req123',
     sign: {
       owner: 'owner123',
-      sig: 'signature456'
-    }
+      sig: 'signature456',
+    },
   }
 
   const mockLostReportReqWithKillOther: LostReportReq = {
     ...mockLostReportReq,
-    killother: true
+    killother: true,
   }
 
   beforeEach(() => {
@@ -63,7 +63,7 @@ describe('LostReportReq', () => {
     it('should deserialize LostReportReq without killother', () => {
       const stream = new VectorBufferStream(0)
       serializeLostReportReq(stream, mockLostReportReq)
-      
+
       const readStream = VectorBufferStream.fromBuffer(stream.getBuffer())
 
       const result = deserializeLostReportReq(readStream)
@@ -75,7 +75,7 @@ describe('LostReportReq', () => {
     it('should deserialize LostReportReq with killother true', () => {
       const stream = new VectorBufferStream(0)
       serializeLostReportReq(stream, mockLostReportReqWithKillOther)
-      
+
       const readStream = VectorBufferStream.fromBuffer(stream.getBuffer())
 
       const result = deserializeLostReportReq(readStream)
@@ -87,7 +87,7 @@ describe('LostReportReq', () => {
       const reqWithKillOtherFalse = { ...mockLostReportReq, killother: false }
       const stream = new VectorBufferStream(0)
       serializeLostReportReq(stream, reqWithKillOtherFalse)
-      
+
       const readStream = VectorBufferStream.fromBuffer(stream.getBuffer())
 
       const result = deserializeLostReportReq(readStream)
@@ -110,7 +110,7 @@ describe('LostReportReq', () => {
 
       const stream = new VectorBufferStream(0)
       serializeLostReportReq(stream, mockLostReportReq)
-      
+
       const readStream = VectorBufferStream.fromBuffer(stream.getBuffer())
 
       expect(() => deserializeLostReportReq(readStream)).toThrow('AJV: validation error -> validation error')
@@ -120,7 +120,7 @@ describe('LostReportReq', () => {
       const reqWithLargeTimestamp = { ...mockLostReportReq, timestamp: Number.MAX_SAFE_INTEGER }
       const stream = new VectorBufferStream(0)
       serializeLostReportReq(stream, reqWithLargeTimestamp)
-      
+
       const readStream = VectorBufferStream.fromBuffer(stream.getBuffer())
 
       const result = deserializeLostReportReq(readStream)
@@ -135,11 +135,11 @@ describe('LostReportReq', () => {
         checker: '',
         reporter: '',
         requestId: '',
-        sign: { owner: '', sig: '' }
+        sign: { owner: '', sig: '' },
       }
       const stream = new VectorBufferStream(0)
       serializeLostReportReq(stream, reqWithEmptyStrings)
-      
+
       const readStream = VectorBufferStream.fromBuffer(stream.getBuffer())
 
       const result = deserializeLostReportReq(readStream)

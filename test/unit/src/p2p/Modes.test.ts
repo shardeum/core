@@ -66,7 +66,7 @@ const { nestedCountersInstance } = require('../../../../src/utils/nestedCounters
 describe('Modes', () => {
   beforeEach(() => {
     jest.clearAllMocks()
-    
+
     // Reset defaults
     Context.config.p2p.initShutdown = false
     Context.config.p2p.forcedMode = ''
@@ -162,14 +162,14 @@ describe('Modes', () => {
     it('should handle transition from safetyMode to recovery when entered processing', () => {
       const CycleCreator = require('../../../../src/p2p/CycleCreator')
       CycleCreator.hasAlreadyEnteredProcessing = true
-      
+
       prev = { safetyMode: true, mode: undefined }
       NodeList.activeByIdOrder.length = 3 // Less than minNodes (5), should go to recovery
 
       Modes.updateRecord({} as any, record, prev)
 
       expect(record.mode).toBe('recovery')
-      
+
       // Reset for other tests
       CycleCreator.hasAlreadyEnteredProcessing = false
     })

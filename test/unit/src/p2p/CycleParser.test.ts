@@ -40,16 +40,18 @@ describe('CycleParser', () => {
       } as P2P.CycleCreatorTypes.CycleRecord
 
       const mockChange1: P2P.CycleParserTypes.Change = {
-        added: [{ 
-          id: 'node1', 
-          publicKey: 'node1-key',
-          externalIp: '127.0.0.1',
-          externalPort: 9001,
-          internalIp: '127.0.0.1',
-          internalPort: 10001,
-          cycleJoined: 'test-marker',
-          counterRefreshed: 1
-        } as P2P.JoinTypes.JoinedConsensor],
+        added: [
+          {
+            id: 'node1',
+            publicKey: 'node1-key',
+            externalIp: '127.0.0.1',
+            externalPort: 9001,
+            internalIp: '127.0.0.1',
+            internalPort: 10001,
+            cycleJoined: 'test-marker',
+            counterRefreshed: 1,
+          } as P2P.JoinTypes.JoinedConsensor,
+        ],
         removed: ['node2'],
         updated: [],
       }
@@ -61,16 +63,18 @@ describe('CycleParser', () => {
       }
 
       const mockMergedChange: P2P.CycleParserTypes.Change = {
-        added: [{ 
-          id: 'node1', 
-          publicKey: 'node1-key',
-          externalIp: '127.0.0.1',
-          externalPort: 9001,
-          internalIp: '127.0.0.1',
-          internalPort: 10001,
-          cycleJoined: 'test-marker',
-          counterRefreshed: 1
-        } as P2P.JoinTypes.JoinedConsensor],
+        added: [
+          {
+            id: 'node1',
+            publicKey: 'node1-key',
+            externalIp: '127.0.0.1',
+            externalPort: 9001,
+            internalIp: '127.0.0.1',
+            internalPort: 10001,
+            cycleJoined: 'test-marker',
+            counterRefreshed: 1,
+          } as P2P.JoinTypes.JoinedConsensor,
+        ],
         removed: ['node2', 'node3'],
         updated: [{ id: 'node4', status: 'active' } as P2P.NodeListTypes.Update],
       }
@@ -149,7 +153,11 @@ describe('CycleParser', () => {
         random: 0.5,
       } as P2P.CycleCreatorTypes.CycleRecord
 
-      const mockSubmodule = { parseRecord: jest.fn().mockImplementation(() => { throw new Error('Parse error') }) }
+      const mockSubmodule = {
+        parseRecord: jest.fn().mockImplementation(() => {
+          throw new Error('Parse error')
+        }),
+      }
       mockCycleCreator.submodules = [mockSubmodule] as any
 
       expect(() => CycleParser.parse(mockRecord)).toThrow('Parse error')
@@ -285,7 +293,7 @@ describe('CycleParser', () => {
           activeTimestamp: 123456,
           activeCycle: 1,
           syncingTimestamp: 123456,
-          readyTimestamp: 123456
+          readyTimestamp: 123456,
         } as P2P.JoinTypes.JoinedConsensor
 
         const change: P2P.CycleParserTypes.Change = {
@@ -320,7 +328,7 @@ describe('CycleParser', () => {
           activeTimestamp: 123456,
           activeCycle: 1,
           syncingTimestamp: 123456,
-          readyTimestamp: 123456
+          readyTimestamp: 123456,
         } as P2P.JoinTypes.JoinedConsensor
 
         const change1: P2P.CycleParserTypes.Change = {
@@ -359,7 +367,7 @@ describe('CycleParser', () => {
           activeTimestamp: 123456,
           activeCycle: 1,
           syncingTimestamp: 123456,
-          readyTimestamp: 123456
+          readyTimestamp: 123456,
         } as P2P.JoinTypes.JoinedConsensor
 
         const change1: P2P.CycleParserTypes.Change = {
@@ -398,7 +406,7 @@ describe('CycleParser', () => {
           activeTimestamp: 123456,
           activeCycle: 1,
           syncingTimestamp: 123456,
-          readyTimestamp: 123456
+          readyTimestamp: 123456,
         } as P2P.JoinTypes.JoinedConsensor
 
         const update: P2P.NodeListTypes.Update = {
@@ -443,7 +451,7 @@ describe('CycleParser', () => {
           activeTimestamp: 123456,
           activeCycle: 1,
           syncingTimestamp: 123456,
-          readyTimestamp: 123456
+          readyTimestamp: 123456,
         } as P2P.JoinTypes.JoinedConsensor
 
         const joinedConsensor2 = {
@@ -460,7 +468,7 @@ describe('CycleParser', () => {
           activeTimestamp: 123456,
           activeCycle: 1,
           syncingTimestamp: 123456,
-          readyTimestamp: 123456
+          readyTimestamp: 123456,
         } as P2P.JoinTypes.JoinedConsensor
 
         const update1: P2P.NodeListTypes.Update = {

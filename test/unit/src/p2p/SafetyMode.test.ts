@@ -5,16 +5,16 @@ jest.mock('../../../../src/snapshot', () => ({
   safetyModeVals: {
     safetyMode: true,
     safetyNum: 10,
-    networkStateHash: 'test-hash'
+    networkStateHash: 'test-hash',
   },
   getStateHashes: jest.fn(),
   getReceiptHashes: jest.fn(),
-  getSummaryHashes: jest.fn()
+  getSummaryHashes: jest.fn(),
 }))
 
 jest.mock('../../../../src/p2p/Comms', () => ({
   registerInternal: jest.fn(),
-  registerGossipHandler: jest.fn()
+  registerGossipHandler: jest.fn(),
 }))
 
 jest.mock('../../../../src/p2p/Context', () => ({
@@ -23,13 +23,13 @@ jest.mock('../../../../src/p2p/Context', () => ({
       info: jest.fn(),
       warn: jest.fn(),
       error: jest.fn(),
-      debug: jest.fn()
-    }))
-  }
+      debug: jest.fn(),
+    })),
+  },
 }))
 
 jest.mock('../../../../src/p2p/Self', () => ({
-  isFirst: false
+  isFirst: false,
 }))
 
 const mockSnapshot = require('../../../../src/snapshot')
@@ -90,22 +90,22 @@ describe('SafetyMode', () => {
         networkDataHash: [],
         networkReceiptHash: [],
         networkSummaryHash: [],
-        active: 0
+        active: 0,
       } as P2P.CycleCreatorTypes.CycleRecord
 
       mockPrev = {
         safetyMode: true,
         safetyNum: 10,
         networkStateHash: 'prev-hash',
-        active: 5
+        active: 5,
       } as P2P.CycleCreatorTypes.CycleRecord
     })
 
     it('should use snapshot values for first node', () => {
       mockSelf.isFirst = true
-      
+
       SafetyMode.updateRecord(mockTxs, mockRecord, mockPrev)
-      
+
       expect(mockRecord.safetyMode).toBe(true)
       expect(mockRecord.safetyNum).toBe(10)
       expect(mockRecord.networkStateHash).toBe('test-hash')
@@ -113,9 +113,9 @@ describe('SafetyMode', () => {
 
     it('should copy values from previous record for non-first node', () => {
       mockSelf.isFirst = false
-      
+
       SafetyMode.updateRecord(mockTxs, mockRecord, mockPrev)
-      
+
       expect(mockRecord.safetyMode).toBe(true)
       expect(mockRecord.safetyNum).toBe(10)
       expect(mockRecord.networkStateHash).toBe('prev-hash')
@@ -123,7 +123,7 @@ describe('SafetyMode', () => {
 
     it('should handle null previous record', () => {
       mockSelf.isFirst = false
-      
+
       expect(() => SafetyMode.updateRecord(mockTxs, mockRecord, null)).not.toThrow()
     })
 
@@ -132,9 +132,9 @@ describe('SafetyMode', () => {
       mockPrev.active = 10
       mockPrev.safetyNum = 10
       mockSelf.isFirst = false
-      
+
       SafetyMode.updateRecord(mockTxs, mockRecord, mockPrev)
-      
+
       expect(mockRecord.safetyMode).toBe(false)
     })
 
@@ -143,9 +143,9 @@ describe('SafetyMode', () => {
       mockPrev.active = 5
       mockPrev.safetyNum = 10
       mockSelf.isFirst = false
-      
+
       SafetyMode.updateRecord(mockTxs, mockRecord, mockPrev)
-      
+
       expect(mockRecord.safetyMode).toBe(true)
     })
 
@@ -154,78 +154,78 @@ describe('SafetyMode', () => {
       mockPrev.active = 15
       mockPrev.safetyNum = 10
       mockSelf.isFirst = false
-      
+
       SafetyMode.updateRecord(mockTxs, mockRecord, mockPrev)
-      
+
       expect(mockRecord.safetyMode).toBe(false)
     })
 
     it('should set empty network data hash when no state hashes', () => {
       mockSnapshot.getStateHashes.mockReturnValue([])
-      
+
       SafetyMode.updateRecord(mockTxs, mockRecord, mockPrev)
-      
+
       expect(mockRecord.networkDataHash).toEqual([])
     })
 
     it('should set network data hash when state hashes exist', () => {
       const mockStateHashes = [
         { counter: 1, networkHash: 'hash1' },
-        { counter: 2, networkHash: 'hash2' }
+        { counter: 2, networkHash: 'hash2' },
       ]
       mockSnapshot.getStateHashes.mockReturnValue(mockStateHashes)
-      
+
       SafetyMode.updateRecord(mockTxs, mockRecord, mockPrev)
-      
+
       expect(mockRecord.networkDataHash).toEqual([
         { cycle: 1, hash: 'hash1' },
-        { cycle: 2, hash: 'hash2' }
+        { cycle: 2, hash: 'hash2' },
       ])
     })
 
     it('should set empty network receipt hash when no receipt hashes', () => {
       mockSnapshot.getReceiptHashes.mockReturnValue([])
-      
+
       SafetyMode.updateRecord(mockTxs, mockRecord, mockPrev)
-      
+
       expect(mockRecord.networkReceiptHash).toEqual([])
     })
 
     it('should set network receipt hash when receipt hashes exist', () => {
       const mockReceiptHashes = [
         { counter: 1, networkReceiptHash: 'receipt1' },
-        { counter: 2, networkReceiptHash: 'receipt2' }
+        { counter: 2, networkReceiptHash: 'receipt2' },
       ]
       mockSnapshot.getReceiptHashes.mockReturnValue(mockReceiptHashes)
-      
+
       SafetyMode.updateRecord(mockTxs, mockRecord, mockPrev)
-      
+
       expect(mockRecord.networkReceiptHash).toEqual([
         { cycle: 1, hash: 'receipt1' },
-        { cycle: 2, hash: 'receipt2' }
+        { cycle: 2, hash: 'receipt2' },
       ])
     })
 
     it('should set empty network summary hash when no summary hashes', () => {
       mockSnapshot.getSummaryHashes.mockReturnValue([])
-      
+
       SafetyMode.updateRecord(mockTxs, mockRecord, mockPrev)
-      
+
       expect(mockRecord.networkSummaryHash).toEqual([])
     })
 
     it('should set network summary hash when summary hashes exist', () => {
       const mockSummaryHashes = [
         { counter: 1, networkSummaryHash: 'summary1' },
-        { counter: 2, networkSummaryHash: 'summary2' }
+        { counter: 2, networkSummaryHash: 'summary2' },
       ]
       mockSnapshot.getSummaryHashes.mockReturnValue(mockSummaryHashes)
-      
+
       SafetyMode.updateRecord(mockTxs, mockRecord, mockPrev)
-      
+
       expect(mockRecord.networkSummaryHash).toEqual([
         { cycle: 1, hash: 'summary1' },
-        { cycle: 2, hash: 'summary2' }
+        { cycle: 2, hash: 'summary2' },
       ])
     })
 
@@ -233,9 +233,9 @@ describe('SafetyMode', () => {
       mockSnapshot.getStateHashes.mockReturnValue(null)
       mockSnapshot.getReceiptHashes.mockReturnValue(null)
       mockSnapshot.getSummaryHashes.mockReturnValue(null)
-      
+
       SafetyMode.updateRecord(mockTxs, mockRecord, mockPrev)
-      
+
       expect(mockRecord.networkDataHash).toEqual([])
       expect(mockRecord.networkReceiptHash).toEqual([])
       expect(mockRecord.networkSummaryHash).toEqual([])
@@ -259,21 +259,21 @@ describe('SafetyMode', () => {
     it('should return empty change object', () => {
       const mockRecord = {} as P2P.CycleCreatorTypes.CycleRecord
       const result = SafetyMode.parseRecord(mockRecord)
-      
+
       expect(result).toEqual({
         added: [],
         removed: [],
-        updated: []
+        updated: [],
       })
     })
 
     it('should handle null record', () => {
       const result = SafetyMode.parseRecord(null as any)
-      
+
       expect(result).toEqual({
         added: [],
         removed: [],
-        updated: []
+        updated: [],
       })
     })
   })
@@ -303,39 +303,39 @@ describe('SafetyMode', () => {
     it('should handle complete workflow', () => {
       SafetyMode.init()
       SafetyMode.reset()
-      
+
       const txs = SafetyMode.getTxs()
       const filteredTxs = SafetyMode.dropInvalidTxs(txs)
-      
+
       const record = {
         safetyMode: false,
         safetyNum: 0,
         networkStateHash: '',
         networkDataHash: [],
         networkReceiptHash: [],
-        networkSummaryHash: []
+        networkSummaryHash: [],
       } as P2P.CycleCreatorTypes.CycleRecord
-      
+
       const prev = {
         safetyMode: true,
         safetyNum: 10,
         networkStateHash: 'prev-hash',
-        active: 5
+        active: 5,
       } as P2P.CycleCreatorTypes.CycleRecord
-      
+
       SafetyMode.updateRecord(filteredTxs, record, prev)
-      
+
       const validationResult = SafetyMode.validateRecordTypes(record as any)
       const parseResult = SafetyMode.parseRecord(record)
-      
+
       SafetyMode.queueRequest({ test: 'request' })
       SafetyMode.sendRequests()
-      
+
       expect(validationResult).toBe('')
       expect(parseResult).toEqual({
         added: [],
         removed: [],
-        updated: []
+        updated: [],
       })
     })
   })
@@ -344,18 +344,18 @@ describe('SafetyMode', () => {
     it('should handle zero safety number', () => {
       const record = { safetyMode: true, active: 0 } as P2P.CycleCreatorTypes.CycleRecord
       const prev = { safetyMode: true, safetyNum: 0, active: 0 } as P2P.CycleCreatorTypes.CycleRecord
-      
+
       SafetyMode.updateRecord({} as any, record, prev)
-      
+
       expect(record.safetyMode).toBe(false)
     })
 
     it('should handle negative active count', () => {
       const record = { safetyMode: true } as P2P.CycleCreatorTypes.CycleRecord
       const prev = { safetyMode: true, safetyNum: 10, active: -5 } as P2P.CycleCreatorTypes.CycleRecord
-      
+
       SafetyMode.updateRecord({} as any, record, prev)
-      
+
       expect(record.safetyMode).toBe(true)
     })
   })

@@ -1,4 +1,7 @@
-import { schemaGlobalAccountReportReq, initGlobalAccountReportReq } from '../../../../src/types/ajv/GlobalAccountReportReq'
+import {
+  schemaGlobalAccountReportReq,
+  initGlobalAccountReportReq,
+} from '../../../../src/types/ajv/GlobalAccountReportReq'
 import { addSchema } from '../../../../src/utils/serialization/SchemaHelpers'
 import { AJVSchemaEnum } from '../../../../src/types/enum/AJVSchemaEnum'
 
@@ -34,10 +37,7 @@ describe('GlobalAccountReportReq', () => {
       initGlobalAccountReportReq()
 
       expect(mockAddSchema).toHaveBeenCalledTimes(1)
-      expect(mockAddSchema).toHaveBeenCalledWith(
-        AJVSchemaEnum.GlobalAccountReportReq,
-        schemaGlobalAccountReportReq
-      )
+      expect(mockAddSchema).toHaveBeenCalledWith(AJVSchemaEnum.GlobalAccountReportReq, schemaGlobalAccountReportReq)
     })
 
     it('should not throw any errors during initialization', () => {
@@ -50,10 +50,7 @@ describe('GlobalAccountReportReq', () => {
       initGlobalAccountReportReq()
 
       expect(mockAddSchema).toHaveBeenCalledTimes(3)
-      expect(mockAddSchema).toHaveBeenCalledWith(
-        AJVSchemaEnum.GlobalAccountReportReq,
-        schemaGlobalAccountReportReq
-      )
+      expect(mockAddSchema).toHaveBeenCalledWith(AJVSchemaEnum.GlobalAccountReportReq, schemaGlobalAccountReportReq)
     })
   })
 

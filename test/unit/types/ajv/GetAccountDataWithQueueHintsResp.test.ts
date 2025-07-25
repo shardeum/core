@@ -1,4 +1,7 @@
-import { initGetAccountDataWithQueueHintsResp, schemaGetAccountDataWithQueueHintsResp } from '../../../../src/types/ajv/GetAccountDataWithQueueHintsResp'
+import {
+  initGetAccountDataWithQueueHintsResp,
+  schemaGetAccountDataWithQueueHintsResp,
+} from '../../../../src/types/ajv/GetAccountDataWithQueueHintsResp'
 import { addSchema } from '../../../../src/utils/serialization/SchemaHelpers'
 import { AJVSchemaEnum } from '../../../../src/types/enum/AJVSchemaEnum'
 import { schemaWrappedDataFromQueueSerializable } from '../../../../src/types/ajv/WrappedDataFromQueueSerializable'
@@ -26,7 +29,9 @@ describe('GetAccountDataWithQueueHintsResp', () => {
     })
 
     it('should use schemaWrappedDataFromQueueSerializable for array items', () => {
-      expect(schemaGetAccountDataWithQueueHintsResp.properties.accountData.items).toBe(schemaWrappedDataFromQueueSerializable)
+      expect(schemaGetAccountDataWithQueueHintsResp.properties.accountData.items).toBe(
+        schemaWrappedDataFromQueueSerializable
+      )
     })
 
     it('should have exactly 1 property', () => {

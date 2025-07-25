@@ -1,8 +1,8 @@
-import { 
-  serializeRequestReceiptForTxReq, 
-  deserializeRequestReceiptForTxReq, 
+import {
+  serializeRequestReceiptForTxReq,
+  deserializeRequestReceiptForTxReq,
   RequestReceiptForTxReqSerialized,
-  cRequestReceiptForTxReqVersion 
+  cRequestReceiptForTxReqVersion,
 } from '../../../src/types/RequestReceiptForTxReq'
 import { VectorBufferStream } from '../../../src/utils/serialization/VectorBufferStream'
 import { TypeIdentifierEnum } from '../../../src/types/enum/TypeIdentifierEnum'
@@ -22,14 +22,14 @@ describe('RequestReceiptForTxReq', () => {
       writeUInt8: jest.fn(),
       writeString: jest.fn(),
       readUInt8: jest.fn(),
-      readString: jest.fn()
+      readString: jest.fn(),
     } as unknown as VectorBufferStream
   })
 
   describe('serializeRequestReceiptForTxReq', () => {
     const mockData: RequestReceiptForTxReqSerialized = {
       txid: 'tx123',
-      timestamp: 1234567890
+      timestamp: 1234567890,
     }
 
     it('should serialize without root flag', () => {
@@ -53,7 +53,7 @@ describe('RequestReceiptForTxReq', () => {
     it('should convert timestamp to string', () => {
       const dataWithLargeTimestamp: RequestReceiptForTxReqSerialized = {
         txid: 'tx456',
-        timestamp: 9999999999999
+        timestamp: 9999999999999,
       }
 
       serializeRequestReceiptForTxReq(mockStream, dataWithLargeTimestamp)
@@ -65,7 +65,7 @@ describe('RequestReceiptForTxReq', () => {
     it('should handle empty txid', () => {
       const dataWithEmptyTxid: RequestReceiptForTxReqSerialized = {
         txid: '',
-        timestamp: 1234567890
+        timestamp: 1234567890,
       }
 
       serializeRequestReceiptForTxReq(mockStream, dataWithEmptyTxid)
@@ -89,31 +89,27 @@ describe('RequestReceiptForTxReq', () => {
     })
 
     it('should deserialize valid data correctly', () => {
-      (mockStream.readUInt8 as jest.Mock).mockReturnValueOnce(cRequestReceiptForTxReqVersion);
-      (mockStream.readString as jest.Mock)
-        .mockReturnValueOnce('tx123')
-        .mockReturnValueOnce('1234567890')
+      ;(mockStream.readUInt8 as jest.Mock).mockReturnValueOnce(cRequestReceiptForTxReqVersion)
+      ;(mockStream.readString as jest.Mock).mockReturnValueOnce('tx123').mockReturnValueOnce('1234567890')
 
       const result = deserializeRequestReceiptForTxReq(mockStream)
 
       expect(result).toEqual({
         txid: 'tx123',
-        timestamp: 1234567890
+        timestamp: 1234567890,
       })
       expect(mockVerifyPayload).toHaveBeenCalledWith(AJVSchemaEnum.RequestReceiptForTxReq, result)
     })
 
     it('should throw error for version mismatch', () => {
-      (mockStream.readUInt8 as jest.Mock).mockReturnValueOnce(cRequestReceiptForTxReqVersion + 1)
+      ;(mockStream.readUInt8 as jest.Mock).mockReturnValueOnce(cRequestReceiptForTxReqVersion + 1)
 
       expect(() => deserializeRequestReceiptForTxReq(mockStream)).toThrow('RequestReceiptForTxReq version mismatch')
     })
 
     it('should convert timestamp string to number', () => {
-      (mockStream.readUInt8 as jest.Mock).mockReturnValueOnce(cRequestReceiptForTxReqVersion);
-      (mockStream.readString as jest.Mock)
-        .mockReturnValueOnce('tx789')
-        .mockReturnValueOnce('9876543210')
+      ;(mockStream.readUInt8 as jest.Mock).mockReturnValueOnce(cRequestReceiptForTxReqVersion)
+      ;(mockStream.readString as jest.Mock).mockReturnValueOnce('tx789').mockReturnValueOnce('9876543210')
 
       const result = deserializeRequestReceiptForTxReq(mockStream)
 
@@ -122,40 +118,36 @@ describe('RequestReceiptForTxReq', () => {
     })
 
     it('should throw error for validation failure', () => {
-      (mockStream.readUInt8 as jest.Mock).mockReturnValueOnce(cRequestReceiptForTxReqVersion);
-      (mockStream.readString as jest.Mock)
-        .mockReturnValueOnce('tx123')
-        .mockReturnValueOnce('1234567890')
+      ;(mockStream.readUInt8 as jest.Mock).mockReturnValueOnce(cRequestReceiptForTxReqVersion)
+      ;(mockStream.readString as jest.Mock).mockReturnValueOnce('tx123').mockReturnValueOnce('1234567890')
       mockVerifyPayload.mockReturnValueOnce(['Invalid txid', 'Invalid timestamp'])
 
-      expect(() => deserializeRequestReceiptForTxReq(mockStream)).toThrow('AJV: validation error -> Invalid txid, Invalid timestamp')
+      expect(() => deserializeRequestReceiptForTxReq(mockStream)).toThrow(
+        'AJV: validation error -> Invalid txid, Invalid timestamp'
+      )
     })
 
     it('should handle empty txid', () => {
-      (mockStream.readUInt8 as jest.Mock).mockReturnValueOnce(cRequestReceiptForTxReqVersion);
-      (mockStream.readString as jest.Mock)
-        .mockReturnValueOnce('')
-        .mockReturnValueOnce('1234567890')
+      ;(mockStream.readUInt8 as jest.Mock).mockReturnValueOnce(cRequestReceiptForTxReqVersion)
+      ;(mockStream.readString as jest.Mock).mockReturnValueOnce('').mockReturnValueOnce('1234567890')
 
       const result = deserializeRequestReceiptForTxReq(mockStream)
 
       expect(result).toEqual({
         txid: '',
-        timestamp: 1234567890
+        timestamp: 1234567890,
       })
     })
 
     it('should handle zero timestamp', () => {
-      (mockStream.readUInt8 as jest.Mock).mockReturnValueOnce(cRequestReceiptForTxReqVersion);
-      (mockStream.readString as jest.Mock)
-        .mockReturnValueOnce('tx123')
-        .mockReturnValueOnce('0')
+      ;(mockStream.readUInt8 as jest.Mock).mockReturnValueOnce(cRequestReceiptForTxReqVersion)
+      ;(mockStream.readString as jest.Mock).mockReturnValueOnce('tx123').mockReturnValueOnce('0')
 
       const result = deserializeRequestReceiptForTxReq(mockStream)
 
       expect(result).toEqual({
         txid: 'tx123',
-        timestamp: 0
+        timestamp: 0,
       })
     })
   })

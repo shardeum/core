@@ -113,7 +113,11 @@ import { verifyPayload } from '../../../../../src/types/ajv/Helpers'
 import { logFlags } from '../../../../../src/logger'
 
 // Type imports for mocking
-import { JoinRequest, SignedUnjoinRequest, StartedSyncingRequest } from '@shardeum-foundation/lib-types/build/src/p2p/JoinTypes'
+import {
+  JoinRequest,
+  SignedUnjoinRequest,
+  StartedSyncingRequest,
+} from '@shardeum-foundation/lib-types/build/src/p2p/JoinTypes'
 import { Utils } from '@shardeum-foundation/lib-types'
 import { testFailChance } from '../../../../../src/utils'
 
@@ -210,11 +214,15 @@ describe('p2p/Join/routes', () => {
     mockedAcceptance.isAlreadyCheckingAcceptance = jest.fn().mockReturnValue(false) as any
     mockedAcceptance.confirmAcceptance = jest.fn() as any
 
-    mockedSyncFinished.addFinishedSyncing = jest.fn().mockReturnValue({ success: true, reason: '', fatal: false }) as any
+    mockedSyncFinished.addFinishedSyncing = jest
+      .fn()
+      .mockReturnValue({ success: true, reason: '', fatal: false }) as any
     mockedUnjoin.processNewUnjoinRequest = jest.fn().mockReturnValue(createOkResult(undefined)) as any
     mockedUnjoin.removeUnjoinRequest = jest.fn() as any
     mockedSyncStarted.addSyncStarted = jest.fn().mockReturnValue({ success: true, reason: '', fatal: false }) as any
-    mockedStandbyRefresh.addStandbyRefresh = jest.fn().mockReturnValue({ success: true, reason: '', fatal: false }) as any
+    mockedStandbyRefresh.addStandbyRefresh = jest
+      .fn()
+      .mockReturnValue({ success: true, reason: '', fatal: false }) as any
 
     mockedIsBogonIP.mockReturnValue(false)
     mockedIsPortReachable.mockResolvedValue(true)
@@ -236,7 +244,7 @@ describe('p2p/Join/routes', () => {
 
   describe('external routes', () => {
     describe('cycleMarkerRoute', () => {
-      const route = routes.external.find(r => r.name === 'cyclemarker')
+      const route = routes.external.find((r) => r.name === 'cyclemarker')
 
       it('should return cycle marker when cycle chain exists', () => {
         route?.handler(req, res as Response, (() => {}) as any)
@@ -254,7 +262,7 @@ describe('p2p/Join/routes', () => {
     })
 
     describe('joinRoute', () => {
-      const route = routes.external.find(r => r.name === 'join')
+      const route = routes.external.find((r) => r.name === 'join')
       let validJoinRequest: JoinRequest
 
       beforeEach(() => {
@@ -454,10 +462,12 @@ describe('p2p/Join/routes', () => {
         it('should successfully process valid join request', async () => {
           await route?.handler(req, res as Response, (() => {}) as any)
 
-          expect(mockedJoin.queueJoinRequest).toHaveBeenCalledWith(expect.objectContaining({
-            ...validJoinRequest,
-            selectionNum: '12345',
-          }))
+          expect(mockedJoin.queueJoinRequest).toHaveBeenCalledWith(
+            expect.objectContaining({
+              ...validJoinRequest,
+              selectionNum: '12345',
+            })
+          )
           expect(res.status).toHaveBeenCalledWith(200)
           expect(res.json).toHaveBeenCalledWith({
             success: true,
@@ -476,14 +486,7 @@ describe('p2p/Join/routes', () => {
 
           await route?.handler(req, res as Response, (() => {}) as any)
 
-          expect(mockedComms.sendGossip).toHaveBeenCalledWith(
-            'gossip-join',
-            validJoinRequest,
-            '',
-            null,
-            [],
-            true
-          )
+          expect(mockedComms.sendGossip).toHaveBeenCalledWith('gossip-join', validJoinRequest, '', null, [], true)
           expect(res.json).toHaveBeenCalledWith({ success: true, reason: '', fatal: false })
         })
 
@@ -514,7 +517,7 @@ describe('p2p/Join/routes', () => {
     })
 
     describe('unjoinRoute', () => {
-      const route = routes.external.find(r => r.name === 'unjoin')
+      const route = routes.external.find((r) => r.name === 'unjoin')
 
       it('should process valid unjoin request', () => {
         const unjoinRequest = { publicKey: 'test-key' }
@@ -555,7 +558,7 @@ describe('p2p/Join/routes', () => {
     })
 
     describe('standbyRefreshRoute', () => {
-      const route = routes.external.find(r => r.name === 'standby-refresh')
+      const route = routes.external.find((r) => r.name === 'standby-refresh')
 
       it('should process valid standby refresh request', async () => {
         req.body = { publicKey: 'test-key' }
@@ -609,7 +612,7 @@ describe('p2p/Join/routes', () => {
     })
 
     describe('joinedV2Route', () => {
-      const route = routes.external.find(r => r.name === 'joinedV2/:publicKey')
+      const route = routes.external.find((r) => r.name === 'joinedV2/:publicKey')
 
       it('should return node id and standby status', () => {
         const node = { id: 'node-123' } as any
@@ -641,7 +644,7 @@ describe('p2p/Join/routes', () => {
     })
 
     describe('joinedRoute', () => {
-      const route = routes.external.find(r => r.name === 'joined/:publicKey')
+      const route = routes.external.find((r) => r.name === 'joined/:publicKey')
 
       it('should return full node info', () => {
         const node = { id: 'node-123', publicKey: 'test-key' } as any
@@ -663,7 +666,7 @@ describe('p2p/Join/routes', () => {
     })
 
     describe('acceptedRoute', () => {
-      const route = routes.external.find(r => r.name === 'accepted')
+      const route = routes.external.find((r) => r.name === 'accepted')
 
       it('should emit accepted event', async () => {
         const emitSpy = jest.spyOn(eventEmitter, 'emit')
@@ -772,7 +775,11 @@ describe('p2p/Join/routes', () => {
       })
 
       it('should reject signature errors', () => {
-        mockedJoin.verifyJoinRequestSignature.mockReturnValue({ success: false, reason: 'Invalid signature', fatal: true })
+        mockedJoin.verifyJoinRequestSignature.mockReturnValue({
+          success: false,
+          reason: 'Invalid signature',
+          fatal: true,
+        })
 
         handler(validPayload, 'sender-id', 'tracker-123', 100)
 
@@ -803,9 +810,7 @@ describe('p2p/Join/routes', () => {
       })
 
       it('should reject processing errors', () => {
-        mockedUnjoin.processNewUnjoinRequest.mockReturnValue(
-          createErrResult(new Error('Failed'))
-        )
+        mockedUnjoin.processNewUnjoinRequest.mockReturnValue(createErrResult(new Error('Failed')))
         const payload = { publicKey: 'test-key', sign: {} }
 
         handler(payload as any, 'sender-id', 'tracker-123', 100)

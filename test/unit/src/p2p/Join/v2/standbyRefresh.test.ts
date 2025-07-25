@@ -58,8 +58,12 @@ import { isOnStandbyList } from '../../../../../../src/p2p/Join/v2/index'
 import * as CycleChain from '../../../../../../src/p2p/CycleChain'
 import { crypto } from '../../../../../../src/p2p/Context'
 
-const mockGetRandomAvailableArchiver = getRandomAvailableArchiver as jest.MockedFunction<typeof getRandomAvailableArchiver>
-const mockGetActiveNodesFromArchiver = getActiveNodesFromArchiver as jest.MockedFunction<typeof getActiveNodesFromArchiver>
+const mockGetRandomAvailableArchiver = getRandomAvailableArchiver as jest.MockedFunction<
+  typeof getRandomAvailableArchiver
+>
+const mockGetActiveNodesFromArchiver = getActiveNodesFromArchiver as jest.MockedFunction<
+  typeof getActiveNodesFromArchiver
+>
 const mockGetRandom = utils.getRandom as jest.MockedFunction<typeof utils.getRandom>
 const mockSleep = utils.sleep as jest.MockedFunction<typeof utils.sleep>
 const mockHttpPost = http.post as jest.MockedFunction<typeof http.post>
@@ -74,7 +78,7 @@ describe('standbyRefresh', () => {
 
   beforeEach(() => {
     jest.clearAllMocks()
-    
+
     mockArchiver = {
       publicKey: 'archiver-key',
       ip: '127.0.0.1',
@@ -113,10 +117,7 @@ describe('standbyRefresh', () => {
       const result = await submitStandbyRefresh('test-public-key')
 
       expect(result.isOk()).toBe(true)
-      expect(mockHttpPost).toHaveBeenCalledWith(
-        '127.0.0.1:9001/standby-refresh',
-        { publicKey: 'test-public-key' }
-      )
+      expect(mockHttpPost).toHaveBeenCalledWith('127.0.0.1:9001/standby-refresh', { publicKey: 'test-public-key' })
     })
 
     it('should retry on failed HTTP request and succeed on second attempt', async () => {
@@ -125,9 +126,7 @@ describe('standbyRefresh', () => {
       mockGetRandom
         .mockReturnValueOnce([mockActiveNodes.nodeList[0]])
         .mockReturnValueOnce([mockActiveNodes.nodeList[1]])
-      mockHttpPost
-        .mockRejectedValueOnce(new Error('Network error'))
-        .mockResolvedValueOnce({})
+      mockHttpPost.mockRejectedValueOnce(new Error('Network error')).mockResolvedValueOnce({})
 
       const result = await submitStandbyRefresh('test-public-key')
 
@@ -184,9 +183,7 @@ describe('standbyRefresh', () => {
         .mockReturnValueOnce([mockActiveNodes.nodeList[0]])
         .mockReturnValueOnce([mockActiveNodes.nodeList[0]])
         .mockReturnValueOnce([mockActiveNodes.nodeList[1]])
-      mockHttpPost
-        .mockRejectedValueOnce(new Error('Network error'))
-        .mockResolvedValueOnce({})
+      mockHttpPost.mockRejectedValueOnce(new Error('Network error')).mockResolvedValueOnce({})
 
       const result = await submitStandbyRefresh('test-public-key')
 
@@ -198,13 +195,13 @@ describe('standbyRefresh', () => {
   describe('addStandbyRefresh', () => {
     beforeEach(() => {
       mockIsOnStandbyList.mockReturnValue(true)
-      mockGetNewest.mockReturnValue({ 
+      mockGetNewest.mockReturnValue({
         counter: 123,
         networkId: 'test-network',
         previous: 'prev-hash',
         start: 1000,
         duration: 30,
-        networkConfigHash: 'config-hash'
+        networkConfigHash: 'config-hash',
       } as any)
       mockCryptoVerify.mockReturnValue(true)
     })
@@ -232,13 +229,13 @@ describe('standbyRefresh', () => {
     })
 
     it('should reject request with wrong cycle number', () => {
-      mockGetNewest.mockReturnValue({ 
+      mockGetNewest.mockReturnValue({
         counter: 124,
         networkId: 'test-network',
         previous: 'prev-hash',
         start: 1000,
         duration: 30,
-        networkConfigHash: 'config-hash'
+        networkConfigHash: 'config-hash',
       } as any)
 
       const result = addStandbyRefresh(mockStandbyRefreshRequest)
@@ -263,7 +260,7 @@ describe('standbyRefresh', () => {
 
     it('should reject request with invalid signature', () => {
       mockCryptoVerify.mockReturnValue(false)
-      
+
       // Create a fresh request to avoid conflict with already added request
       const freshRequest = {
         ...mockStandbyRefreshRequest,
@@ -285,7 +282,7 @@ describe('standbyRefresh', () => {
     it('should return empty array when no requests', () => {
       // Clear any existing requests first
       drainNewStandbyRefreshRequests()
-      
+
       const result = drainNewStandbyRefreshRequests()
 
       expect(result).toEqual([])
@@ -293,13 +290,13 @@ describe('standbyRefresh', () => {
 
     it('should return all requests and clear the list', () => {
       mockIsOnStandbyList.mockReturnValue(true)
-      mockGetNewest.mockReturnValue({ 
+      mockGetNewest.mockReturnValue({
         counter: 123,
         networkId: 'test-network',
         previous: 'prev-hash',
         start: 1000,
         duration: 30,
-        networkConfigHash: 'config-hash'
+        networkConfigHash: 'config-hash',
       } as any)
       mockCryptoVerify.mockReturnValue(true)
 
@@ -321,13 +318,13 @@ describe('standbyRefresh', () => {
 
     it('should handle single request', () => {
       mockIsOnStandbyList.mockReturnValue(true)
-      mockGetNewest.mockReturnValue({ 
+      mockGetNewest.mockReturnValue({
         counter: 123,
         networkId: 'test-network',
         previous: 'prev-hash',
         start: 1000,
         duration: 30,
-        networkConfigHash: 'config-hash'
+        networkConfigHash: 'config-hash',
       } as any)
       mockCryptoVerify.mockReturnValue(true)
 

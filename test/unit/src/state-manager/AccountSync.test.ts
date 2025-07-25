@@ -2,28 +2,28 @@ import AccountSync from '../../../../src/state-manager/AccountSync'
 import * as utils from '../../../../src/utils'
 import { logFlags } from '../../../../src/logger'
 
-// Mock p2p/Context 
+// Mock p2p/Context
 jest.mock('../../../../src/p2p/Context', () => ({
   config: {
     stateManager: {
       fifoUnlockFix: false,
       fifoUnlockFix2: false,
       accountBucketSize: 200,
-      maxDataSyncRestarts: 5
+      maxDataSyncRestarts: 5,
     },
     p2p: {
       useBinarySerializedEndpoints: true,
-      getGloablAccountReportBinary: true
-    }
+      getGloablAccountReportBinary: true,
+    },
   },
   P2PModuleContext: jest.fn(),
   setDefaultConfigs: jest.fn(),
   network: {
-    registerExternalGet: jest.fn()
+    registerExternalGet: jest.fn(),
   },
   reporter: {
-    reportSyncStatement: jest.fn()
-  }
+    reportSyncStatement: jest.fn(),
+  },
 }))
 
 // Mock logger with logFlags
@@ -33,54 +33,54 @@ jest.mock('../../../../src/logger', () => ({
     getLogger: jest.fn(() => ({
       debug: jest.fn(),
       error: jest.fn(),
-      info: jest.fn()
+      info: jest.fn(),
     })),
     playbackLogNote: jest.fn(),
-    playbackLogState: jest.fn()
+    playbackLogState: jest.fn(),
   })),
   logFlags: {
     debug: false,
     error: false,
     console: false,
     playback: false,
-    verbose: false
-  }
+    verbose: false,
+  },
 }))
 
 jest.mock('../../../../src/network', () => ({
-  shardusGetTime: jest.fn(() => Date.now())
+  shardusGetTime: jest.fn(() => Date.now()),
 }))
 
 jest.mock('../../../../src/p2p/Self', () => ({
   p2pJoinTime: 1000,
   p2pSyncStart: 2000,
   p2pSyncEnd: 3000,
-  id: 'test-node-id'
+  id: 'test-node-id',
 }))
 
 jest.mock('../../../../src/utils/nestedCounters', () => ({
   nestedCountersInstance: {
     countEvent: jest.fn(),
-    countRareEvent: jest.fn()
-  }
+    countRareEvent: jest.fn(),
+  },
 }))
 
 jest.mock('../../../../src/p2p/Modes', () => ({
-  networkMode: 'forming'
+  networkMode: 'forming',
 }))
 
 jest.mock('../../../../src/snapshot', () => ({
   safetyModeVals: {
-    safetyMode: false
-  }
+    safetyMode: false,
+  },
 }))
 
 jest.mock('../../../../src/p2p/Archivers', () => ({
-  getArchiversList: jest.fn(() => [])
+  getArchiversList: jest.fn(() => []),
 }))
 
 jest.mock('../../../../src/p2p/Utils', () => ({
-  robustQuery: jest.fn()
+  robustQuery: jest.fn(),
 }))
 
 jest.mock('../../../../src/utils', () => ({
@@ -89,7 +89,7 @@ jest.mock('../../../../src/utils', () => ({
   stringifyReduceLimit: jest.fn((obj: any) => JSON.stringify(obj)),
   makeShortHash: jest.fn((id: string) => id.slice(0, 8)),
   isValidShardusAddress: jest.fn(() => true),
-  errorToStringFull: jest.fn((e: any) => e.toString())
+  errorToStringFull: jest.fn((e: any) => e.toString()),
 }))
 
 jest.mock('../../../../src/state-manager/shardFunctions', () => ({
@@ -97,13 +97,13 @@ jest.mock('../../../../src/state-manager/shardFunctions', () => ({
   default: {
     partitionToAddressRange2: jest.fn(() => ({
       low: '0000',
-      high: 'ffff'
+      high: 'ffff',
     })),
     getNextAdjacentAddresses: jest.fn(() => ({
       address1: '0001',
-      address2: '0002'
-    }))
-  }
+      address2: '0002',
+    })),
+  },
 }))
 
 jest.mock('../../../../src/state-manager/NodeSyncTracker', () => ({
@@ -113,9 +113,9 @@ jest.mock('../../../../src/state-manager/NodeSyncTracker', () => ({
       initByRange: jest.fn(),
       initGlobal: jest.fn(),
       syncStateDataForRange2: jest.fn(),
-      syncStateDataGlobals: jest.fn()
+      syncStateDataGlobals: jest.fn(),
     }
-  })
+  }),
 }))
 
 jest.mock('../../../../src/state-manager/ArchiverSyncTracker', () => ({
@@ -125,9 +125,9 @@ jest.mock('../../../../src/state-manager/ArchiverSyncTracker', () => ({
       initByRange: jest.fn(),
       initGlobal: jest.fn(),
       syncStateDataForRange2: jest.fn(),
-      syncStateDataGlobals: jest.fn()
+      syncStateDataGlobals: jest.fn(),
     }
-  })
+  }),
 }))
 
 // Minimal mocks for types
@@ -135,64 +135,64 @@ jest.mock('../../../../src/types/enum/InternalRouteEnum', () => ({
   InternalRouteEnum: {
     binary_get_account_data: 'binary_get_account_data',
     binary_get_account_data_by_list: 'binary_get_account_data_by_list',
-    binary_get_globalaccountreport: 'binary_get_globalaccountreport'
-  }
+    binary_get_globalaccountreport: 'binary_get_globalaccountreport',
+  },
 }))
 
 jest.mock('../../../../src/types/ajv/Helpers', () => ({
-  verifyPayload: jest.fn(() => null)
+  verifyPayload: jest.fn(() => null),
 }))
 
 jest.mock('../../../../src/types/GetAccountDataReq', () => ({
   deserializeGetAccountDataReq: jest.fn(),
-  verifyGetAccountDataReq: jest.fn(() => true)
+  verifyGetAccountDataReq: jest.fn(() => true),
 }))
 
 jest.mock('../../../../src/types/GetAccountDataResp', () => ({
-  serializeGetAccountDataResp: jest.fn()
+  serializeGetAccountDataResp: jest.fn(),
 }))
 
 jest.mock('../../../../src/types/GetAccountDataByListReq', () => ({
-  deserializeGetAccountDataByListReq: jest.fn()
+  deserializeGetAccountDataByListReq: jest.fn(),
 }))
 
 jest.mock('../../../../src/types/GetAccountDataByListResp', () => ({
-  serializeGetAccountDataByListResp: jest.fn()
+  serializeGetAccountDataByListResp: jest.fn(),
 }))
 
 jest.mock('../../../../src/types/GlobalAccountReportReq', () => ({
-  serializeGlobalAccountReportReq: jest.fn()
+  serializeGlobalAccountReportReq: jest.fn(),
 }))
 
 jest.mock('../../../../src/types/GlobalAccountReportResp', () => ({
-  deserializeGlobalAccountReportResp: jest.fn()
+  deserializeGlobalAccountReportResp: jest.fn(),
 }))
 
 jest.mock('../../../../src/types/ResponseError', () => ({
   BadRequest: jest.fn((msg) => ({ error: msg })),
   InternalError: jest.fn((msg) => ({ error: msg })),
-  serializeResponseError: jest.fn()
+  serializeResponseError: jest.fn(),
 }))
 
 jest.mock('../../../../src/types/Helpers', () => ({
-  getStreamWithTypeCheck: jest.fn()
+  getStreamWithTypeCheck: jest.fn(),
 }))
 
 jest.mock('../../../../src/types/enum/TypeIdentifierEnum', () => ({
   TypeIdentifierEnum: {
     cGetAccountDataReq: 1,
-    cGetAccountDataByListReq: 2
-  }
+    cGetAccountDataByListReq: 2,
+  },
 }))
 
 jest.mock('../../../../src/http', () => ({
-  post: jest.fn()
+  post: jest.fn(),
 }))
 
 // Mock state-manager to avoid circular dependency issues
 jest.mock('../../../../src/state-manager', () => ({
   __esModule: true,
-  default: jest.fn()
+  default: jest.fn(),
 }))
 
 describe('AccountSync', () => {
@@ -208,7 +208,7 @@ describe('AccountSync', () => {
 
   beforeEach(() => {
     jest.clearAllMocks()
-    
+
     // Create mock instances
     mockStateManager = {
       fifoLocks: {},
@@ -220,7 +220,7 @@ describe('AccountSync', () => {
         wrappedAccounts: [],
         wrappedAccounts2: [],
         lastUpdateNeeded: false,
-        highestTs: 0
+        highestTs: 0,
       }),
       isNodeValidForInternalMessage: jest.fn().mockReturnValue(true),
       currentCycleShardData: {
@@ -232,17 +232,17 @@ describe('AccountSync', () => {
           storedPartitions: {
             rangeIsSplit: false,
             partitionStart: 0,
-            partitionEnd: 10
-          }
+            partitionEnd: 10,
+          },
         },
         shardGlobals: {
-          numPartitions: 10
+          numPartitions: 10,
         },
-        parititionShardDataMap: new Map()
+        parititionShardDataMap: new Map(),
       },
       accountGlobals: {
         hasknownGlobals: false,
-        getGlobalListEarly: jest.fn()
+        getGlobalListEarly: jest.fn(),
       },
       statemanager_fatal: jest.fn(),
       getCurrentCycleShardData: jest.fn(),
@@ -251,32 +251,32 @@ describe('AccountSync', () => {
         getQueueEntry: jest.fn(),
         updateTxState: jest.fn(),
         updateHomeInformation: jest.fn(),
-        queueEntryGetTransactionGroup: jest.fn()
-      }
+        queueEntryGetTransactionGroup: jest.fn(),
+      },
     }
 
     mockProfiler = {
       scopedProfileSectionStart: jest.fn(),
-      scopedProfileSectionEnd: jest.fn()
+      scopedProfileSectionEnd: jest.fn(),
     }
 
     mockApp = {
       deleteLocalAccountData: jest.fn().mockResolvedValue(undefined),
-      getAccountDataByList: jest.fn().mockResolvedValue([])
+      getAccountDataByList: jest.fn().mockResolvedValue([]),
     }
 
     mockLogger = {
       getLogger: jest.fn(() => ({
         debug: jest.fn(),
         error: jest.fn(),
-        info: jest.fn()
+        info: jest.fn(),
       })),
       playbackLogNote: jest.fn(),
-      playbackLogState: jest.fn()
+      playbackLogState: jest.fn(),
     }
 
     mockStorage = {
-      clearAppRelatedState: jest.fn().mockResolvedValue(undefined)
+      clearAppRelatedState: jest.fn().mockResolvedValue(undefined),
     }
 
     mockP2P = {
@@ -285,12 +285,12 @@ describe('AccountSync', () => {
       askBinary: jest.fn(),
       ask: jest.fn(),
       state: {
-        getActiveNodes: jest.fn(() => [])
-      }
+        getActiveNodes: jest.fn(() => []),
+      },
     }
 
     mockCrypto = {
-      sign: jest.fn()
+      sign: jest.fn(),
     }
 
     mockConfig = {
@@ -298,12 +298,12 @@ describe('AccountSync', () => {
         fifoUnlockFix: false,
         fifoUnlockFix2: false,
         accountBucketSize: 200,
-        maxDataSyncRestarts: 5
+        maxDataSyncRestarts: 5,
       },
       p2p: {
         useBinarySerializedEndpoints: true,
-        getGloablAccountReportBinary: true
-      }
+        getGloablAccountReportBinary: true,
+      },
     }
 
     // Create AccountSync instance
@@ -357,7 +357,7 @@ describe('AccountSync', () => {
         numSyncedState: 0,
         numAccounts: 0,
         numGlobalAccounts: 0,
-        internalFlag: false
+        internalFlag: false,
       })
     })
 
@@ -401,13 +401,10 @@ describe('AccountSync', () => {
   describe('clearSyncTrackers', () => {
     it('should clear all sync trackers', () => {
       // Add some mock sync trackers
-      accountSync.syncTrackers = [
-        { id: 1 } as any,
-        { id: 2 } as any
-      ]
-      
+      accountSync.syncTrackers = [{ id: 1 } as any, { id: 2 } as any]
+
       accountSync.clearSyncTrackers()
-      
+
       expect(accountSync.syncTrackers).toEqual([])
     })
   })
@@ -415,12 +412,9 @@ describe('AccountSync', () => {
   describe('setupHandlers', () => {
     it('should register internal binary handlers', () => {
       accountSync.setupHandlers()
-      
+
       expect(mockP2P.registerInternalBinary).toHaveBeenCalledTimes(2)
-      expect(mockP2P.registerInternalBinary).toHaveBeenCalledWith(
-        'binary_get_account_data',
-        expect.any(Function)
-      )
+      expect(mockP2P.registerInternalBinary).toHaveBeenCalledWith('binary_get_account_data', expect.any(Function))
       expect(mockP2P.registerInternalBinary).toHaveBeenCalledWith(
         'binary_get_account_data_by_list',
         expect.any(Function)
@@ -429,14 +423,14 @@ describe('AccountSync', () => {
 
     it('should register external GET endpoints', () => {
       const Context = require('../../../../src/p2p/Context')
-      
+
       // Reinitialize the mock in case it was cleared
       Context.network = {
-        registerExternalGet: jest.fn()
+        registerExternalGet: jest.fn(),
       }
-      
+
       accountSync.setupHandlers()
-      
+
       expect(Context.network.registerExternalGet).toHaveBeenCalledWith(
         'sync-globals',
         expect.any(Function),
@@ -463,7 +457,7 @@ describe('AccountSync', () => {
   describe('skipSync', () => {
     it('should set correct flags when skipping sync', () => {
       accountSync.skipSync()
-      
+
       expect(accountSync.dataSyncMainPhaseComplete).toBe(true)
       expect(accountSync.syncStatement.syncComplete).toBe(true)
       expect(accountSync.readyforTXs).toBe(true)
@@ -473,9 +467,9 @@ describe('AccountSync', () => {
   describe('setGlobalSyncFinished', () => {
     it('should set globalAccountsSynced to true', () => {
       expect(accountSync.globalAccountsSynced).toBe(false)
-      
+
       accountSync.setGlobalSyncFinished()
-      
+
       expect(accountSync.globalAccountsSynced).toBe(true)
     })
   })
@@ -485,12 +479,12 @@ describe('AccountSync', () => {
       const mockTime = 10000
       const networkModule = require('../../../../src/network')
       networkModule.shardusGetTime.mockReturnValue(mockTime)
-      
+
       // Add some mock sync trackers
       accountSync.syncTrackers = [{ id: 1 } as any]
-      
+
       accountSync.syncStatmentIsComplete()
-      
+
       expect(accountSync.syncStatement.totalSyncTime).toBe((mockTime - 2000) / 1000) // p2pSyncStart is 2000
       expect(accountSync.readyforTXs).toBe(true)
       expect(accountSync.syncTrackers).toEqual([])
@@ -502,13 +496,13 @@ describe('AccountSync', () => {
       const mockTime = 10000
       const networkModule = require('../../../../src/network')
       networkModule.shardusGetTime.mockReturnValue(mockTime)
-      
+
       accountSync.syncStatmentIsComplete()
-      
+
       expect(Context.reporter.reportSyncStatement).toHaveBeenCalledWith(
         'test-node-id',
         expect.objectContaining({
-          totalSyncTime: (mockTime - 2000) / 1000
+          totalSyncTime: (mockTime - 2000) / 1000,
         })
       )
     })
@@ -519,9 +513,9 @@ describe('AccountSync', () => {
       // Add some mock sync trackers
       accountSync.syncTrackers = [{ id: 1 } as any]
       mockStateManager.fifoLocks = { test: 'lock' }
-      
+
       accountSync.failAndDontRestartSync()
-      
+
       expect(mockStateManager.fifoLocks).toEqual({})
       expect(accountSync.syncTrackers).toEqual([])
     })
@@ -535,14 +529,14 @@ describe('AccountSync', () => {
         initByRange: jest.fn(),
         initGlobal: jest.fn(),
         syncStateDataForRange2: jest.fn(),
-        syncStateDataGlobals: jest.fn()
+        syncStateDataGlobals: jest.fn(),
       }))
-      
+
       const mockRange = { startAddr: 0, endAddr: 1000, low: '0000', high: 'ffff' }
       const cycle = 5
-      
+
       const tracker = accountSync.createSyncTrackerByRange(mockRange, cycle, true, false)
-      
+
       expect(NodeSyncTracker).toHaveBeenCalled()
       expect(tracker.initByRange).toHaveBeenCalledWith(
         accountSync,
@@ -564,14 +558,14 @@ describe('AccountSync', () => {
         initByRange: jest.fn(),
         initGlobal: jest.fn(),
         syncStateDataForRange2: jest.fn(),
-        syncStateDataGlobals: jest.fn()
+        syncStateDataGlobals: jest.fn(),
       }))
-      
+
       const mockRange = { startAddr: 0, endAddr: 1000, low: '0000', high: 'ffff' }
       const cycle = 5
-      
+
       const tracker = accountSync.createSyncTrackerByRange(mockRange, cycle, true, true)
-      
+
       expect(ArchiverSyncTracker).toHaveBeenCalled()
       expect(tracker.initByRange).toHaveBeenCalled()
       expect(accountSync.syncTrackers).toContain(tracker)
@@ -583,15 +577,15 @@ describe('AccountSync', () => {
         initByRange: jest.fn(),
         initGlobal: jest.fn(),
         syncStateDataForRange2: jest.fn(),
-        syncStateDataGlobals: jest.fn()
+        syncStateDataGlobals: jest.fn(),
       }))
-      
+
       const mockRange = { startAddr: 0, endAddr: 1000, low: '0000', high: 'ffff' }
       const cycle = 5
       accountSync.initalSyncRemaining = 0
-      
+
       accountSync.createSyncTrackerByRange(mockRange, cycle, false, false)
-      
+
       expect(accountSync.initalSyncRemaining).toBe(0)
     })
   })
@@ -603,21 +597,15 @@ describe('AccountSync', () => {
         initByRange: jest.fn(),
         initGlobal: jest.fn(),
         syncStateDataForRange2: jest.fn(),
-        syncStateDataGlobals: jest.fn()
+        syncStateDataGlobals: jest.fn(),
       }))
-      
+
       const cycle = 5
-      
+
       const tracker = accountSync.createSyncTrackerByForGlobals(cycle, true, false)
-      
+
       expect(NodeSyncTracker).toHaveBeenCalled()
-      expect(tracker.initGlobal).toHaveBeenCalledWith(
-        accountSync,
-        mockP2P,
-        1,
-        cycle,
-        true
-      )
+      expect(tracker.initGlobal).toHaveBeenCalledWith(accountSync, mockP2P, 1, cycle, true)
       expect(accountSync.syncTrackers).toContain(tracker)
       expect(accountSync.syncTrackerIndex).toBe(2)
       expect(accountSync.initalSyncRemaining).toBe(1)
@@ -629,33 +617,33 @@ describe('AccountSync', () => {
       const mockTracker = {
         isGlobalSyncTracker: false,
         range: { low: '0000', high: '5000' },
-        globalAddressMap: {}
+        globalAddressMap: {},
       }
       accountSync.syncTrackers = [mockTracker as any]
-      
+
       const result = accountSync.getSyncTracker('2500')
-      
+
       expect(result).toBe(mockTracker)
     })
 
     it('should return global sync tracker for global address', () => {
       const mockTracker = {
         isGlobalSyncTracker: true,
-        globalAddressMap: { 'global123': true },
-        range: { low: '', high: '' }
+        globalAddressMap: { global123: true },
+        range: { low: '', high: '' },
       }
       accountSync.syncTrackers = [mockTracker as any]
-      
+
       const result = accountSync.getSyncTracker('global123')
-      
+
       expect(result).toBe(mockTracker)
     })
 
     it('should return null when no tracker found', () => {
       accountSync.syncTrackers = []
-      
+
       const result = accountSync.getSyncTracker('test-address')
-      
+
       expect(result).toBeNull()
     })
   })
@@ -667,21 +655,15 @@ describe('AccountSync', () => {
         initByRange: jest.fn(),
         initGlobal: jest.fn(),
         syncStateDataForRange2: jest.fn(),
-        syncStateDataGlobals: jest.fn()
+        syncStateDataGlobals: jest.fn(),
       }))
-      
+
       mockStateManager.currentCycleShardData.cycleNumber = 10
-      
+
       accountSync.reSyncGlobals()
-      
+
       expect(accountSync.syncTrackers).toHaveLength(1)
-      expect(accountSync.syncTrackers[0].initGlobal).toHaveBeenCalledWith(
-        accountSync,
-        mockP2P,
-        1,
-        10,
-        false
-      )
+      expect(accountSync.syncTrackers[0].initGlobal).toHaveBeenCalledWith(accountSync, mockP2P, 1, 10, false)
     })
   })
 })

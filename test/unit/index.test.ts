@@ -4,11 +4,11 @@ jest.mock('deepmerge', () => jest.fn())
 
 jest.mock('../../src/shardus', () => ({
   __esModule: true,
-  default: jest.fn(() => ({ constructor: jest.fn() }))
+  default: jest.fn(() => ({ constructor: jest.fn() })),
 }))
 
 jest.mock('../../src/utils', () => ({
-  compareObjectShape: jest.fn()
+  compareObjectShape: jest.fn(),
 }))
 
 const mockMerge = require('deepmerge') as jest.Mock
@@ -73,7 +73,7 @@ describe('index', () => {
   describe('shardusFactory', () => {
     const mockConfig = {
       server: { port: 9001 },
-      p2p: { cycleDuration: 30 }
+      p2p: { cycleDuration: 30 },
     }
 
     it('should create Shardus instance with default config when no config provided', () => {
@@ -87,10 +87,7 @@ describe('index', () => {
         {},
         { arrayMerge: expect.any(Function) }
       )
-      expect(require('../../src/utils').compareObjectShape).toHaveBeenCalledWith(
-        expect.any(Object),
-        mockMergedConfig
-      )
+      expect(require('../../src/utils').compareObjectShape).toHaveBeenCalledWith(expect.any(Object), mockMergedConfig)
       expect(mockShardusConstructor).toHaveBeenCalledWith(mockMergedConfig)
       expect(result).toEqual(expect.any(Object))
     })
@@ -113,11 +110,11 @@ describe('index', () => {
     it('should throw error when config validation fails', () => {
       const mockError = {
         defectiveChain: ['server', 'port'],
-        message: 'Invalid config'
+        message: 'Invalid config',
       }
       ;(require('../../src/utils').compareObjectShape as jest.Mock).mockReturnValue({
         isValid: false,
-        error: mockError
+        error: mockError,
       })
 
       const consoleSpy = jest.spyOn(console, 'log').mockImplementation()
@@ -152,11 +149,11 @@ describe('index', () => {
     it('should handle complex defective chain in error', () => {
       const mockError = {
         defectiveChain: ['p2p', 'network', 'timeout'],
-        message: 'Deep config error'
+        message: 'Deep config error',
       }
       ;(require('../../src/utils').compareObjectShape as jest.Mock).mockReturnValue({
         isValid: false,
-        error: mockError
+        error: mockError,
       })
 
       const consoleSpy = jest.spyOn(console, 'log').mockImplementation()
@@ -171,18 +168,16 @@ describe('index', () => {
     it('should handle empty defectiveChain', () => {
       const mockError = {
         defectiveChain: [],
-        message: 'Root level error'
+        message: 'Root level error',
       }
       ;(require('../../src/utils').compareObjectShape as jest.Mock).mockReturnValue({
         isValid: false,
-        error: mockError
+        error: mockError,
       })
 
       const consoleSpy = jest.spyOn(console, 'log').mockImplementation()
 
-      expect(() => index.shardusFactory()).toThrow(
-        'Unacceptable config object shape, defective settings detected: '
-      )
+      expect(() => index.shardusFactory()).toThrow('Unacceptable config object shape, defective settings detected: ')
 
       consoleSpy.mockRestore()
     })

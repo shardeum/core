@@ -93,7 +93,12 @@ describe('unjoin', () => {
     ;(getActiveNodesFromArchiver as jest.Mock).mockResolvedValue(ok({ nodeList: [mockActiveNode] }))
     ;(getPublicNodeInfo as jest.Mock).mockReturnValue({ status: P2P.P2PTypes.NodeStatus.STANDBY })
     ;(CycleChain.getNewest as jest.Mock).mockReturnValue({ counter: 100 })
-    ;(getStandbyNodesInfoMap as jest.Mock).mockReturnValue(new Map([['testPublicKey', {}], ['anotherKey', {}]]))
+    ;(getStandbyNodesInfoMap as jest.Mock).mockReturnValue(
+      new Map([
+        ['testPublicKey', {}],
+        ['anotherKey', {}],
+      ])
+    )
     ;(deleteStandbyNodeFromMap as jest.Mock).mockReturnValue(true)
     ;(NodeList.byPubKey as Map<string, any>).clear()
   })
@@ -149,10 +154,7 @@ describe('unjoin', () => {
         publicKey: mockPublicKey,
         cycleNumber: mockCycleRecord.counter,
       })
-      expect(http.post).toHaveBeenCalledWith(
-        `${mockActiveNode.ip}:${mockActiveNode.port}/unjoin`,
-        expect.any(Object)
-      )
+      expect(http.post).toHaveBeenCalledWith(`${mockActiveNode.ip}:${mockActiveNode.port}/unjoin`, expect.any(Object))
     })
 
     it('should get newest cycle record from random active node', async () => {
@@ -213,7 +215,9 @@ describe('unjoin', () => {
       const result = unjoin.validateUnjoinRequest(requestWithWrongCycle as any)
 
       expect(result.isErr()).toBe(true)
-      expect(result._unsafeUnwrapErr().message).toContain('cycle number in SignedUnjoinRequest request is not close enough')
+      expect(result._unsafeUnwrapErr().message).toContain(
+        'cycle number in SignedUnjoinRequest request is not close enough'
+      )
     })
 
     it('should accept cycle number within 1 of current cycle', () => {
@@ -290,7 +294,7 @@ describe('unjoin', () => {
       // Add some requests
       const result1 = unjoin.processNewUnjoinRequest(mockSignedUnjoinRequest as any)
       expect(result1.isOk()).toBe(true)
-      
+
       const anotherRequest = { ...mockSignedUnjoinRequest, publicKey: 'anotherKey' }
       const result2 = unjoin.processNewUnjoinRequest(anotherRequest as any)
       expect(result2.isOk()).toBe(true)
@@ -308,7 +312,7 @@ describe('unjoin', () => {
 
     it('should maintain immutability - modifying returned array should not affect internal state', () => {
       unjoin.processNewUnjoinRequest(mockSignedUnjoinRequest as any)
-      
+
       const drained = unjoin.drainNewUnjoinRequests()
       drained.push({ publicKey: 'newKey' } as any)
 
@@ -337,7 +341,9 @@ describe('unjoin', () => {
 
       unjoin.deleteStandbyNode('testPublicKey')
 
-      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('--failed to remove standby node testPublicKey count: 0'))
+      expect(consoleSpy).toHaveBeenCalledWith(
+        expect.stringContaining('--failed to remove standby node testPublicKey count: 0')
+      )
       consoleSpy.mockRestore()
     })
 
@@ -351,15 +357,17 @@ describe('unjoin', () => {
   describe('removeUnjoinRequest', () => {
     it('should remove unjoin request with matching public key', () => {
       // Set up standby nodes for both requests
-      ;(getStandbyNodesInfoMap as jest.Mock).mockReturnValue(new Map([
-        ['testPublicKey', {}],
-        ['anotherKey', {}]
-      ]))
-      
+      ;(getStandbyNodesInfoMap as jest.Mock).mockReturnValue(
+        new Map([
+          ['testPublicKey', {}],
+          ['anotherKey', {}],
+        ])
+      )
+
       // Add multiple requests
       const result1 = unjoin.processNewUnjoinRequest(mockSignedUnjoinRequest as any)
       expect(result1.isOk()).toBe(true)
-      
+
       const anotherRequest = { ...mockSignedUnjoinRequest, publicKey: 'anotherKey' }
       const result2 = unjoin.processNewUnjoinRequest(anotherRequest as any)
       expect(result2.isOk()).toBe(true)
@@ -388,7 +396,7 @@ describe('unjoin', () => {
     })
 
     it('should remove all requests with matching public key', () => {
-      // This tests the forEach implementation - though in practice, 
+      // This tests the forEach implementation - though in practice,
       // duplicates shouldn't exist due to Set semantics
       unjoin.processNewUnjoinRequest(mockSignedUnjoinRequest as any)
 

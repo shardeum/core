@@ -21,22 +21,21 @@ describe('isPortReachable', () => {
         connectCallback = cb
       }),
       end: jest.fn(),
-      destroy: jest.fn()
-    };
-
-    (net.Socket as jest.MockedClass<typeof net.Socket>).mockImplementation(() => mockSocket)
+      destroy: jest.fn(),
+    }
+    ;(net.Socket as jest.MockedClass<typeof net.Socket>).mockImplementation(() => mockSocket)
   })
 
   describe('successful connection', () => {
     it('should return true when port is reachable', async () => {
       // Start the promise
       const promise = isPortReachable({ host: 'localhost', port: 8080 })
-      
+
       // Simulate successful connection
       connectCallback!()
-      
+
       const result = await promise
-      
+
       expect(result).toBe(true)
       expect(mockSocket.connect).toHaveBeenCalledWith(8080, 'localhost', expect.any(Function))
       expect(mockSocket.end).toHaveBeenCalled()
@@ -63,12 +62,12 @@ describe('isPortReachable', () => {
   describe('connection failures', () => {
     it('should return false on socket error', async () => {
       const promise = isPortReachable({ host: 'localhost', port: 8080 })
-      
+
       // Simulate error
       errorHandler!()
-      
+
       const result = await promise
-      
+
       expect(result).toBe(false)
       expect(mockSocket.destroy).toHaveBeenCalled()
       expect(mockSocket.end).not.toHaveBeenCalled()
@@ -76,12 +75,12 @@ describe('isPortReachable', () => {
 
     it('should return false on timeout', async () => {
       const promise = isPortReachable({ host: 'localhost', port: 8080, timeout: 500 })
-      
+
       // Simulate timeout
       timeoutHandler!()
-      
+
       const result = await promise
-      
+
       expect(result).toBe(false)
       expect(mockSocket.destroy).toHaveBeenCalled()
       expect(mockSocket.end).not.toHaveBeenCalled()
@@ -89,12 +88,12 @@ describe('isPortReachable', () => {
 
     it('should handle multiple error events gracefully', async () => {
       const promise = isPortReachable({ host: 'localhost', port: 8080 })
-      
+
       // Simulate error
       errorHandler!()
-      
+
       const result = await promise
-      
+
       expect(result).toBe(false)
       expect(mockSocket.destroy).toHaveBeenCalled()
     })
@@ -106,16 +105,16 @@ describe('isPortReachable', () => {
         { host: '127.0.0.1', port: 80 },
         { host: 'example.com', port: 443 },
         { host: 'localhost', port: 3000 },
-        { host: '::1', port: 8080 } // IPv6
+        { host: '::1', port: 8080 }, // IPv6
       ]
 
       for (const testCase of testCases) {
         mockSocket.connect.mockClear()
-        
+
         const promise = isPortReachable(testCase)
         connectCallback!()
         await promise
-        
+
         expect(mockSocket.connect).toHaveBeenCalledWith(testCase.port, testCase.host, expect.any(Function))
       }
     })
@@ -125,11 +124,11 @@ describe('isPortReachable', () => {
 
       for (const port of testPorts) {
         mockSocket.connect.mockClear()
-        
+
         const promise = isPortReachable({ host: 'localhost', port })
         connectCallback!()
         await promise
-        
+
         expect(mockSocket.connect).toHaveBeenCalledWith(port, 'localhost', expect.any(Function))
       }
     })

@@ -1,4 +1,7 @@
-import { initWrappedDataFromQueueSerializable, schemaWrappedDataFromQueueSerializable } from '../../../../src/types/ajv/WrappedDataFromQueueSerializable'
+import {
+  initWrappedDataFromQueueSerializable,
+  schemaWrappedDataFromQueueSerializable,
+} from '../../../../src/types/ajv/WrappedDataFromQueueSerializable'
 import { addSchema } from '../../../../src/utils/serialization/SchemaHelpers'
 import { AJVSchemaEnum } from '../../../../src/types/enum/AJVSchemaEnum'
 import { schemaWrappedData } from '../../../../src/types/ajv/WrappedData'
@@ -31,10 +34,7 @@ describe('WrappedDataFromQueueSerializable', () => {
     })
 
     it('should include all required fields from schemaWrappedData plus seenInQueue', () => {
-      expect(schemaWrappedDataFromQueueSerializable.required).toEqual([
-        ...schemaWrappedData.required,
-        'seenInQueue',
-      ])
+      expect(schemaWrappedDataFromQueueSerializable.required).toEqual([...schemaWrappedData.required, 'seenInQueue'])
     })
 
     it('should have the correct required fields', () => {

@@ -16,7 +16,7 @@ describe('GetAppliedVoteReq', () => {
       expect(schemaGetAppliedVoteReq).toBeDefined()
       expect(schemaGetAppliedVoteReq.type).toBe('object')
       expect(schemaGetAppliedVoteReq.properties).toEqual({
-        txId: { type: 'string' }
+        txId: { type: 'string' },
       })
       expect(schemaGetAppliedVoteReq.required).toEqual(['txId'])
     })
@@ -48,10 +48,7 @@ describe('GetAppliedVoteReq', () => {
       initGetAppliedVoteReq()
 
       expect(mockAddSchema).toHaveBeenCalledTimes(1)
-      expect(mockAddSchema).toHaveBeenCalledWith(
-        AJVSchemaEnum.GetAppliedVoteReq,
-        schemaGetAppliedVoteReq
-      )
+      expect(mockAddSchema).toHaveBeenCalledWith(AJVSchemaEnum.GetAppliedVoteReq, schemaGetAppliedVoteReq)
     })
 
     it('should not throw any errors during initialization', () => {
@@ -64,10 +61,7 @@ describe('GetAppliedVoteReq', () => {
       initGetAppliedVoteReq()
 
       expect(mockAddSchema).toHaveBeenCalledTimes(3)
-      expect(mockAddSchema).toHaveBeenCalledWith(
-        AJVSchemaEnum.GetAppliedVoteReq,
-        schemaGetAppliedVoteReq
-      )
+      expect(mockAddSchema).toHaveBeenCalledWith(AJVSchemaEnum.GetAppliedVoteReq, schemaGetAppliedVoteReq)
     })
   })
 
@@ -91,10 +85,10 @@ describe('GetAppliedVoteReq', () => {
         { txId: 'a' },
         { txId: '0x123456' },
         { txId: 'transaction-id-123' },
-        { txId: 'very-long-transaction-id-with-many-characters' }
+        { txId: 'very-long-transaction-id-with-many-characters' },
       ]
       // All string values should be acceptable according to schema
-      examples.forEach(example => {
+      examples.forEach((example) => {
         expect(schemaGetAppliedVoteReq.properties.txId.type).toBe('string')
       })
     })
@@ -106,7 +100,7 @@ describe('GetAppliedVoteReq', () => {
         { txId: null },
         { txId: undefined },
         { txId: {} },
-        { txId: [] }
+        { txId: [] },
       ]
       // Schema specifies txId must be string
       expect(schemaGetAppliedVoteReq.properties.txId.type).toBe('string')

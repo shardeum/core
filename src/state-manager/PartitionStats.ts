@@ -872,11 +872,11 @@ class PartitionStats {
           )
           continue
         }
-        
+
         if (statsObj.cycle > newestCycle) {
           newestCycle = statsObj.cycle
         }
-        
+
         statsBlobs.push(statsObj)
         // this isn't quite working right without scanning the whole playback log
         statsObj.owner = line.file.owner // line.raw.slice(0, index)
@@ -1019,22 +1019,22 @@ class PartitionStats {
           if (logFlags.error) this.mainLogger.error(`Fail to parse statsObj: ${statsStr}`, err)
           continue
         }
-        
+
         if (!statsObj || typeof statsObj.cycle !== 'number') {
           continue
         }
-        
+
         if (newestCycle > 0 && statsObj.cycle != newestCycle) {
           stream.write(
             `wrong cycle for node: ${line.file.owner} reportCycle:${newestCycle} thisNode:${statsObj.cycle} \n`
           )
           continue
         }
-        
+
         if (statsObj.cycle > newestCycle) {
           newestCycle = statsObj.cycle
         }
-        
+
         statsBlobs.push(statsObj)
         // this isn't quite working right without scanning the whole playback log
         statsObj.owner = line.file.owner // line.raw.slice(0, index)

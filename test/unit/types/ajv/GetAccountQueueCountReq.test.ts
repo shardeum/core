@@ -18,10 +18,7 @@ describe('GetAccountQueueCountReq', () => {
       initGetAccountQueueCountReq()
 
       expect(mockAddSchema).toHaveBeenCalledTimes(1)
-      expect(mockAddSchema).toHaveBeenCalledWith(
-        AJVSchemaEnum.GetAccountQueueCountReq,
-        expect.any(Object)
-      )
+      expect(mockAddSchema).toHaveBeenCalledWith(AJVSchemaEnum.GetAccountQueueCountReq, expect.any(Object))
     })
 
     it('should call addSchema with correct schema structure', () => {
@@ -52,7 +49,7 @@ describe('GetAccountQueueCountReq', () => {
       const mockAddSchema = addSchema as jest.MockedFunction<typeof addSchema>
       initGetAccountQueueCountReq()
       const schema = mockAddSchema.mock.calls[0][1] as any
-      
+
       expect(schema.type).toBe('object')
     })
 
@@ -60,7 +57,7 @@ describe('GetAccountQueueCountReq', () => {
       const mockAddSchema = addSchema as jest.MockedFunction<typeof addSchema>
       initGetAccountQueueCountReq()
       const schema = mockAddSchema.mock.calls[0][1] as any
-      
+
       expect(schema.properties.accountIds).toBeDefined()
     })
 
@@ -68,7 +65,7 @@ describe('GetAccountQueueCountReq', () => {
       const mockAddSchema = addSchema as jest.MockedFunction<typeof addSchema>
       initGetAccountQueueCountReq()
       const schema = mockAddSchema.mock.calls[0][1] as any
-      
+
       expect(schema.properties.accountIds.type).toBe('array')
       expect(schema.properties.accountIds.items).toEqual({ type: 'string' })
     })
@@ -77,7 +74,7 @@ describe('GetAccountQueueCountReq', () => {
       const mockAddSchema = addSchema as jest.MockedFunction<typeof addSchema>
       initGetAccountQueueCountReq()
       const schema = mockAddSchema.mock.calls[0][1] as any
-      
+
       expect(Object.keys(schema.properties)).toHaveLength(1)
     })
 
@@ -85,7 +82,7 @@ describe('GetAccountQueueCountReq', () => {
       const mockAddSchema = addSchema as jest.MockedFunction<typeof addSchema>
       initGetAccountQueueCountReq()
       const schema = mockAddSchema.mock.calls[0][1] as any
-      
+
       expect(schema.required).toEqual(['accountIds'])
     })
 
@@ -93,7 +90,7 @@ describe('GetAccountQueueCountReq', () => {
       const mockAddSchema = addSchema as jest.MockedFunction<typeof addSchema>
       initGetAccountQueueCountReq()
       const schema = mockAddSchema.mock.calls[0][1] as any
-      
+
       expect(schema.required).toHaveLength(1)
     })
 
@@ -101,7 +98,7 @@ describe('GetAccountQueueCountReq', () => {
       const mockAddSchema = addSchema as jest.MockedFunction<typeof addSchema>
       initGetAccountQueueCountReq()
       const schema = mockAddSchema.mock.calls[0][1] as any
-      
+
       expect('additionalProperties' in schema).toBe(false)
     })
   })

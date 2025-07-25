@@ -9,7 +9,7 @@ import {
   newCollector,
   processMessagesInGossipQueue,
   clean,
-  cleanOld
+  cleanOld,
 } from '../../../../src/snapshot/partition-gossip'
 import { CycleShardData } from '../../../../src/state-manager/state-manager-types'
 import { ShardInfo } from '@shardeum-foundation/lib-types/build/src/state-manager/shardFunctionTypes'
@@ -27,29 +27,29 @@ jest.mock('../../../../src/logger', () => ({
     mainLog_info: jest.fn(),
     mainLog_warn: jest.fn(),
     mainLog_error: jest.fn(),
-    combine: jest.fn()
+    combine: jest.fn(),
   },
   logFlags: {
     console: false,
-    verbose: false
-  }
+    verbose: false,
+  },
 }))
 jest.mock('../../../../src/utils/profiler', () => ({
   profilerInstance: {
     scopedProfileSectionStart: jest.fn(),
-    scopedProfileSectionEnd: jest.fn()
-  }
+    scopedProfileSectionEnd: jest.fn(),
+  },
 }))
 jest.mock('../../../../src/p2p/Context', () => ({
   config: {
     p2p: {
-      useNTPOffsets: false
-    }
+      useNTPOffsets: false,
+    },
   },
-  setDefaultConfigs: jest.fn()
+  setDefaultConfigs: jest.fn(),
 }))
 jest.mock('../../../../src/network', () => ({
-  shardusGetTime: jest.fn(() => Date.now())
+  shardusGetTime: jest.fn(() => Date.now()),
 }))
 
 // Prevent automatic execution of module code that depends on config
@@ -61,7 +61,7 @@ jest.mock('../../../../src/logger/csvPerfEvents', () => ({}))
 jest.mock('../../../../src/p2p/CycleAutoScale', () => ({}))
 jest.mock('../../../../src/p2p/CycleCreator', () => ({
   currentCycle: 0,
-  currentQuarter: 0
+  currentQuarter: 0,
 }))
 
 const mockComm = Comm as jest.Mocked<typeof Comm>
@@ -74,7 +74,7 @@ const createMockNode = (id: string) => ({ id })
 describe('partition-gossip', () => {
   beforeEach(() => {
     jest.clearAllMocks()
-    
+
     // Reset module state
     forwardedGossips.clear()
   })
@@ -85,17 +85,20 @@ describe('partition-gossip', () => {
 
     beforeEach(() => {
       const mockShardInfo = {
-        coveredBy: { 
-          'node1': createMockNode('node1'), 
-          'node2': createMockNode('node2'), 
-          'node3': createMockNode('node3') 
-        }
+        coveredBy: {
+          node1: createMockNode('node1'),
+          node2: createMockNode('node2'),
+          node3: createMockNode('node3'),
+        },
       } as unknown as ShardInfo
-      
+
       mockShard = {
         cycleNumber: 1,
         shardGlobals: { numPartitions: 2 },
-        parititionShardDataMap: new Map([[1, mockShardInfo], [2, mockShardInfo]])
+        parititionShardDataMap: new Map([
+          [1, mockShardInfo],
+          [2, mockShardInfo],
+        ]),
       } as CycleShardData
 
       collector = new Collector(mockShard)
@@ -123,9 +126,9 @@ describe('partition-gossip', () => {
           data: {
             partitionHash: { '1': 'hash1', '2': 'hash2' },
             receiptMapHash: { '1': 'receipt1', '2': 'receipt2' },
-            summaryHash: { '1': 'summary1', '2': 'summary2' }
+            summaryHash: { '1': 'summary1', '2': 'summary2' },
           },
-          sender: 'node1'
+          sender: 'node1',
         }
       })
 
@@ -161,30 +164,30 @@ describe('partition-gossip', () => {
         const testCollector = newCollector(mockShard)
         testCollector.shard.cycleNumber = 1
         forwardedGossips.set('node1', true)
-        
+
         testCollector.process([mockMessage])
 
         expect(mockComm.sendGossip).not.toHaveBeenCalled()
       })
 
       it('should skip processing when no partition shard data map', () => {
-        // Create a collector with no partition shard data map 
+        // Create a collector with no partition shard data map
         const testShard = {
           cycleNumber: 1,
           shardGlobals: { numPartitions: 2 },
-          parititionShardDataMap: undefined
+          parititionShardDataMap: undefined,
         } as CycleShardData
-        
+
         // Create the collector which will set global parititionShardDataMap to undefined
         const testCollector = newCollector(testShard)
-        
+
         // Mock console.log to avoid output during test
         const consoleSpy = jest.spyOn(console, 'log').mockImplementation()
-        
+
         testCollector.process([mockMessage])
 
         expect(testCollector.dataHashCounter.size).toBe(0)
-        
+
         consoleSpy.mockRestore()
       })
 
@@ -193,18 +196,18 @@ describe('partition-gossip', () => {
         const testShard = {
           cycleNumber: 1,
           shardGlobals: { numPartitions: 2 },
-          parititionShardDataMap: new Map()
+          parititionShardDataMap: new Map(),
         } as CycleShardData
-        
+
         const mockShardInfo = {
-          coveredBy: { 
-            'node2': createMockNode('node2'), 
-            'node3': createMockNode('node3') 
-          }
+          coveredBy: {
+            node2: createMockNode('node2'),
+            node3: createMockNode('node3'),
+          },
         }
-        
+
         testShard.parititionShardDataMap.set(1, mockShardInfo as unknown as ShardInfo)
-        
+
         // Create new collector with this specific test data
         const testCollector = newCollector(testShard)
         testCollector.process([mockMessage])
@@ -216,7 +219,7 @@ describe('partition-gossip', () => {
         const testCollector = newCollector(mockShard)
         const message2: Message = {
           ...mockMessage,
-          sender: 'node2'
+          sender: 'node2',
         }
 
         testCollector.process([mockMessage, message2])
@@ -227,23 +230,29 @@ describe('partition-gossip', () => {
 
       it('should emit gotAllHashes when all partitions are ready', () => {
         // Mock ready partitions and required counts
-        const readyPartitionsMap = new Map([[1, true], [2, true]])
-        const gossipCounterByPartitionMap = new Map([[1, 2], [2, 2]])
-        
+        const readyPartitionsMap = new Map([
+          [1, true],
+          [2, true],
+        ])
+        const gossipCounterByPartitionMap = new Map([
+          [1, 2],
+          [2, 2],
+        ])
+
         // Create messages from enough nodes to meet consensus
         const messages: Message[] = [
           { ...mockMessage, sender: 'node1' },
           { ...mockMessage, sender: 'node2' },
-          { ...mockMessage, sender: 'node3' }
+          { ...mockMessage, sender: 'node3' },
         ]
 
         const emitSpy = jest.spyOn(collector, 'emit')
-        
+
         // Process multiple times to build up counters
         collector.process(messages)
 
         // This may not trigger emit in this simple test due to complex ready logic
-        // The emit would happen when readyPartitions.size >= numPartitions 
+        // The emit would happen when readyPartitions.size >= numPartitions
         // and dataHashCounter.size === numPartitions + 1
       })
 
@@ -256,11 +265,11 @@ describe('partition-gossip', () => {
         const invalidMessage: Message = {
           cycle: 1,
           data: {
-            partitionHash: { 'invalid': 'hash1' },
+            partitionHash: { invalid: 'hash1' },
             receiptMapHash: {},
-            summaryHash: {}
+            summaryHash: {},
           },
-          sender: 'node1'
+          sender: 'node1',
         }
 
         expect(() => collector.process([invalidMessage])).not.toThrow()
@@ -271,21 +280,18 @@ describe('partition-gossip', () => {
   describe('initGossip', () => {
     it('should register gossip handler', () => {
       initGossip()
-      
-      expect(mockComm.registerGossipHandler).toHaveBeenCalledWith(
-        'snapshot_gossip',
-        expect.any(Function)
-      )
+
+      expect(mockComm.registerGossipHandler).toHaveBeenCalledWith('snapshot_gossip', expect.any(Function))
     })
 
     it('should handle profiler scoping in gossip handler', () => {
       initGossip()
-      
+
       const handler = mockComm.registerGossipHandler.mock.calls[0][1]
       const mockMessage: Message = {
         cycle: 1,
         data: { partitionHash: {}, receiptMapHash: {}, summaryHash: {} },
-        sender: 'node1'
+        sender: 'node1',
       }
 
       handler(mockMessage)
@@ -301,22 +307,22 @@ describe('partition-gossip', () => {
     beforeEach(() => {
       mockShard = {
         cycleNumber: 1,
-        parititionShardDataMap: new Map()
+        parititionShardDataMap: new Map(),
       } as CycleShardData
     })
 
     it('should create and return a new Collector instance', () => {
       const collector = newCollector(mockShard)
-      
+
       expect(collector).toBeInstanceOf(Collector)
       expect(collector.shard).toBe(mockShard)
     })
 
     it('should reset global state when creating new collector', () => {
       forwardedGossips.set('test', true)
-      
+
       const collector = newCollector(mockShard)
-      
+
       expect(forwardedGossips.size).toBe(0)
     })
   })
@@ -327,18 +333,18 @@ describe('partition-gossip', () => {
     beforeEach(() => {
       mockShard = {
         cycleNumber: 1,
-        parititionShardDataMap: new Map()
+        parititionShardDataMap: new Map(),
       } as CycleShardData
     })
 
     it('should process queued messages for the given cycle', () => {
       const testCollector = newCollector(mockShard)
       const processSpy = jest.spyOn(testCollector, 'process')
-      
+
       // This function accesses internal queue state and only calls process if there are messages
       // Since we don't have any messages queued, it should not call process
       expect(() => processMessagesInGossipQueue(mockShard, testCollector)).not.toThrow()
-      
+
       // With no messages in queue, process should not be called
       expect(processSpy).not.toHaveBeenCalled()
     })
@@ -388,9 +394,9 @@ describe('partition-gossip', () => {
         data: {
           partitionHash: { '1': 'hash1' },
           receiptMapHash: { '1': 'receipt1' },
-          summaryHash: { '1': 'summary1' }
+          summaryHash: { '1': 'summary1' },
         },
-        sender: 'node1'
+        sender: 'node1',
       }
 
       expect(message.cycle).toBe(1)
@@ -419,9 +425,9 @@ describe('partition-gossip', () => {
       mockShard = {
         cycleNumber: 1,
         shardGlobals: { numPartitions: 2 },
-        parititionShardDataMap: new Map()
+        parititionShardDataMap: new Map(),
       } as CycleShardData
-      
+
       collector = new Collector(mockShard)
     })
 
@@ -432,9 +438,9 @@ describe('partition-gossip', () => {
         data: {
           partitionHash: {},
           receiptMapHash: {},
-          summaryHash: {}
+          summaryHash: {},
         },
-        sender: 'node1'
+        sender: 'node1',
       } as any
 
       expect(() => testCollector.process([malformedMessage])).not.toThrow()
@@ -446,9 +452,9 @@ describe('partition-gossip', () => {
         data: {
           partitionHash: {},
           receiptMapHash: {},
-          summaryHash: {}
+          summaryHash: {},
         },
-        sender: undefined
+        sender: undefined,
       } as any
 
       expect(() => collector.process([messageWithUndefinedSender])).not.toThrow()
@@ -460,9 +466,9 @@ describe('partition-gossip', () => {
         data: {
           partitionHash: {},
           receiptMapHash: {},
-          summaryHash: {}
+          summaryHash: {},
         },
-        sender: 'node1'
+        sender: 'node1',
       }
 
       expect(() => collector.process([messageWithLargeCycle])).not.toThrow()
@@ -475,17 +481,20 @@ describe('partition-gossip', () => {
 
     beforeEach(() => {
       const mockShardInfo = {
-        coveredBy: { 
-          'node1': createMockNode('node1'), 
-          'node2': createMockNode('node2'), 
-          'node3': createMockNode('node3') 
-        }
+        coveredBy: {
+          node1: createMockNode('node1'),
+          node2: createMockNode('node2'),
+          node3: createMockNode('node3'),
+        },
       } as unknown as ShardInfo
-      
+
       mockShard = {
         cycleNumber: 1,
         shardGlobals: { numPartitions: 2 },
-        parititionShardDataMap: new Map([[1, mockShardInfo], [2, mockShardInfo]])
+        parititionShardDataMap: new Map([
+          [1, mockShardInfo],
+          [2, mockShardInfo],
+        ]),
       } as CycleShardData
 
       collector = new Collector(mockShard)
@@ -503,10 +512,10 @@ describe('partition-gossip', () => {
           data: {
             partitionHash: { '1': 'hash1' },
             receiptMapHash: { '1': 'receipt1' },
-            summaryHash: { '1': 'summary1' }
+            summaryHash: { '1': 'summary1' },
           },
-          sender: 'node1'
-        }
+          sender: 'node1',
+        },
       ]
 
       expect(() => newCol.process(messages)).not.toThrow()
@@ -522,19 +531,19 @@ describe('partition-gossip', () => {
           data: {
             partitionHash: { '1': 'hash1', '2': 'hash2' },
             receiptMapHash: { '1': 'receipt1', '2': 'receipt2' },
-            summaryHash: { '1': 'summary1', '2': 'summary2' }
+            summaryHash: { '1': 'summary1', '2': 'summary2' },
           },
-          sender: 'node1'
+          sender: 'node1',
         },
         {
           cycle: 1,
           data: {
             partitionHash: { '1': 'hash1', '2': 'hash2' },
             receiptMapHash: { '1': 'receipt1', '2': 'receipt2' },
-            summaryHash: { '1': 'summary1', '2': 'summary2' }
+            summaryHash: { '1': 'summary1', '2': 'summary2' },
           },
-          sender: 'node2'
-        }
+          sender: 'node2',
+        },
       ]
 
       collector.process(messages)
@@ -542,7 +551,7 @@ describe('partition-gossip', () => {
       // Verify hash counters were updated
       expect(collector.dataHashCounter.has(1)).toBe(true)
       expect(collector.dataHashCounter.has(2)).toBe(true)
-      
+
       const partition1Counter = collector.dataHashCounter.get(1)
       expect(partition1Counter?.get('hash1')).toBe(2)
     })

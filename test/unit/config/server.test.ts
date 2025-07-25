@@ -27,7 +27,7 @@ describe('SERVER_CONFIG', () => {
       stateManager: expect.any(Object),
       sharding: expect.any(Object),
       mode: expect.any(String),
-      features: expect.any(Object)
+      features: expect.any(Object),
     })
   })
 
@@ -95,7 +95,7 @@ describe('SERVER_CONFIG', () => {
     it('should have valid ipServers array', () => {
       expect(Array.isArray(SERVER_CONFIG.p2p.ipServers)).toBe(true)
       expect(SERVER_CONFIG.p2p.ipServers.length).toBeGreaterThan(0)
-      SERVER_CONFIG.p2p.ipServers.forEach(server => {
+      SERVER_CONFIG.p2p.ipServers.forEach((server) => {
         expect(typeof server).toBe('string')
       })
     })
@@ -103,14 +103,14 @@ describe('SERVER_CONFIG', () => {
     it('should have valid timeServers array', () => {
       expect(Array.isArray(SERVER_CONFIG.p2p.timeServers)).toBe(true)
       expect(SERVER_CONFIG.p2p.timeServers.length).toBeGreaterThan(0)
-      SERVER_CONFIG.p2p.timeServers.forEach(server => {
+      SERVER_CONFIG.p2p.timeServers.forEach((server) => {
         expect(typeof server).toBe('string')
       })
     })
 
     it('should have valid existingArchivers array', () => {
       expect(Array.isArray(SERVER_CONFIG.p2p.existingArchivers)).toBe(true)
-      SERVER_CONFIG.p2p.existingArchivers.forEach(archiver => {
+      SERVER_CONFIG.p2p.existingArchivers.forEach((archiver) => {
         expect(archiver).toHaveProperty('ip')
         expect(archiver).toHaveProperty('port')
         expect(archiver).toHaveProperty('publicKey')
@@ -127,7 +127,7 @@ describe('SERVER_CONFIG', () => {
       expect(typeof SERVER_CONFIG.p2p.difficulty).toBe('number')
       expect(typeof SERVER_CONFIG.p2p.minNodes).toBe('number')
       expect(typeof SERVER_CONFIG.p2p.maxNodes).toBe('number')
-      
+
       expect(SERVER_CONFIG.p2p.syncLimit).toBeGreaterThan(0)
       expect(SERVER_CONFIG.p2p.cycleDuration).toBeGreaterThan(0)
       expect(SERVER_CONFIG.p2p.maxRejoinTime).toBeGreaterThan(0)
@@ -246,7 +246,7 @@ describe('SERVER_CONFIG', () => {
       expect(typeof SERVER_CONFIG.loadDetection.desiredTxTime).toBe('number')
       expect(typeof SERVER_CONFIG.loadDetection.highThreshold).toBe('number')
       expect(typeof SERVER_CONFIG.loadDetection.lowThreshold).toBe('number')
-      
+
       expect(SERVER_CONFIG.loadDetection.queueLimit).toBeGreaterThan(0)
       expect(SERVER_CONFIG.loadDetection.executeQueueLimit).toBeGreaterThan(0)
       expect(SERVER_CONFIG.loadDetection.desiredTxTime).toBeGreaterThan(0)
@@ -265,7 +265,7 @@ describe('SERVER_CONFIG', () => {
     it('should have valid loadLimit configuration', () => {
       expect(SERVER_CONFIG.rateLimiting.loadLimit).toBeDefined()
       expect(typeof SERVER_CONFIG.rateLimiting.loadLimit).toBe('object')
-      
+
       const loadLimit = SERVER_CONFIG.rateLimiting.loadLimit
       expect(typeof loadLimit.internal).toBe('number')
       expect(typeof loadLimit.external).toBe('number')
@@ -286,7 +286,7 @@ describe('SERVER_CONFIG', () => {
       expect(typeof SERVER_CONFIG.stateManager.stateTableBucketSize).toBe('number')
       expect(typeof SERVER_CONFIG.stateManager.accountBucketSize).toBe('number')
       expect(typeof SERVER_CONFIG.stateManager.patcherAccountsPerRequest).toBe('number')
-      
+
       expect(SERVER_CONFIG.stateManager.maxNonceQueueSize).toBeGreaterThan(0)
       expect(SERVER_CONFIG.stateManager.stateTableBucketSize).toBeGreaterThan(0)
       expect(SERVER_CONFIG.stateManager.accountBucketSize).toBeGreaterThan(0)
@@ -311,7 +311,7 @@ describe('SERVER_CONFIG', () => {
       expect(typeof SERVER_CONFIG.sharding.nodesPerConsensusGroup).toBe('number')
       expect(typeof SERVER_CONFIG.sharding.nodesPerEdge).toBe('number')
       expect(typeof SERVER_CONFIG.sharding.executeInOneShard).toBe('boolean')
-      
+
       expect(SERVER_CONFIG.sharding.nodesPerConsensusGroup).toBeGreaterThan(0)
       expect(SERVER_CONFIG.sharding.nodesPerEdge).toBeGreaterThan(0)
     })
@@ -336,8 +336,8 @@ describe('SERVER_CONFIG', () => {
       expect(typeof SERVER_CONFIG.features.tickets).toBe('object')
       expect(typeof SERVER_CONFIG.features.tickets.updateTicketListTimeInMs).toBe('number')
       expect(Array.isArray(SERVER_CONFIG.features.tickets.ticketTypes)).toBe(true)
-      
-      SERVER_CONFIG.features.tickets.ticketTypes.forEach(ticket => {
+
+      SERVER_CONFIG.features.tickets.ticketTypes.forEach((ticket) => {
         expect(ticket).toHaveProperty('type')
         expect(ticket).toHaveProperty('enabled')
         expect(typeof ticket.type).toBe('string')
@@ -349,7 +349,7 @@ describe('SERVER_CONFIG', () => {
   it('should have all required top-level properties', () => {
     const requiredProperties = [
       'heartbeatInterval',
-      'baseDir', 
+      'baseDir',
       'transactionExpireTime',
       'globalAccount',
       'nonceMode',
@@ -365,10 +365,10 @@ describe('SERVER_CONFIG', () => {
       'stateManager',
       'sharding',
       'mode',
-      'features'
+      'features',
     ]
 
-    requiredProperties.forEach(prop => {
+    requiredProperties.forEach((prop) => {
       expect(SERVER_CONFIG).toHaveProperty(prop)
     })
   })
@@ -377,7 +377,7 @@ describe('SERVER_CONFIG', () => {
     const expectedProperties = [
       'heartbeatInterval',
       'baseDir',
-      'transactionExpireTime', 
+      'transactionExpireTime',
       'globalAccount',
       'nonceMode',
       'crypto',
@@ -392,7 +392,7 @@ describe('SERVER_CONFIG', () => {
       'stateManager',
       'sharding',
       'mode',
-      'features'
+      'features',
     ]
 
     const actualProperties = Object.keys(SERVER_CONFIG)

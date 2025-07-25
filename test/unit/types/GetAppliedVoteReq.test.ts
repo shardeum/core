@@ -1,7 +1,7 @@
 import {
   GetAppliedVoteReq,
   serializeGetAppliedVoteReq,
-  deserializeGetAppliedVoteReq
+  deserializeGetAppliedVoteReq,
 } from '../../../src/types/GetAppliedVoteReq'
 import { VectorBufferStream } from '../../../src/utils/serialization/VectorBufferStream'
 import { TypeIdentifierEnum } from '../../../src/types/enum/TypeIdentifierEnum'
@@ -10,7 +10,7 @@ import { AJVSchemaEnum } from '../../../src/types/enum/AJVSchemaEnum'
 
 // Mock the verifyPayload function
 jest.mock('../../../src/types/ajv/Helpers', () => ({
-  verifyPayload: jest.fn()
+  verifyPayload: jest.fn(),
 }))
 
 describe('GetAppliedVoteReq', () => {
@@ -23,7 +23,7 @@ describe('GetAppliedVoteReq', () => {
       writeUInt8: jest.fn(),
       writeString: jest.fn(),
       readUInt8: jest.fn(),
-      readString: jest.fn()
+      readString: jest.fn(),
     } as unknown as VectorBufferStream
 
     verifyPayloadMock = Helpers.verifyPayload as any
@@ -33,7 +33,7 @@ describe('GetAppliedVoteReq', () => {
   describe('serializeGetAppliedVoteReq', () => {
     it('should serialize without root flag', () => {
       const req: GetAppliedVoteReq = {
-        txId: 'transaction-id-123'
+        txId: 'transaction-id-123',
       }
 
       serializeGetAppliedVoteReq(mockStream, req, false)
@@ -45,7 +45,7 @@ describe('GetAppliedVoteReq', () => {
 
     it('should serialize with root flag', () => {
       const req: GetAppliedVoteReq = {
-        txId: 'transaction-id-456'
+        txId: 'transaction-id-456',
       }
 
       serializeGetAppliedVoteReq(mockStream, req, true)
@@ -57,7 +57,7 @@ describe('GetAppliedVoteReq', () => {
 
     it('should handle empty txId', () => {
       const req: GetAppliedVoteReq = {
-        txId: ''
+        txId: '',
       }
 
       serializeGetAppliedVoteReq(mockStream, req)
@@ -68,7 +68,7 @@ describe('GetAppliedVoteReq', () => {
 
     it('should handle special characters in txId', () => {
       const req: GetAppliedVoteReq = {
-        txId: 'tx-!@#$%^&*()_+-=[]{}|;:",.<>?'
+        txId: 'tx-!@#$%^&*()_+-=[]{}|;:",.<>?',
       }
 
       serializeGetAppliedVoteReq(mockStream, req)
@@ -79,7 +79,7 @@ describe('GetAppliedVoteReq', () => {
     it('should handle long txId', () => {
       const longTxId = 'a'.repeat(1000)
       const req: GetAppliedVoteReq = {
-        txId: longTxId
+        txId: longTxId,
       }
 
       serializeGetAppliedVoteReq(mockStream, req)
@@ -99,22 +99,17 @@ describe('GetAppliedVoteReq', () => {
       const result = deserializeGetAppliedVoteReq(mockStream)
 
       expect(result).toEqual({
-        txId: expectedTxId
+        txId: expectedTxId,
       })
       expect(mockStream.readUInt8).toHaveBeenCalledTimes(1)
       expect(mockStream.readString).toHaveBeenCalledTimes(1)
-      expect(verifyPayloadMock).toHaveBeenCalledWith(
-        AJVSchemaEnum.GetAppliedVoteReq,
-        { txId: expectedTxId }
-      )
+      expect(verifyPayloadMock).toHaveBeenCalledWith(AJVSchemaEnum.GetAppliedVoteReq, { txId: expectedTxId })
     })
 
     it('should throw error for version mismatch', () => {
       ;(mockStream.readUInt8 as jest.Mock).mockReturnValueOnce(2) // version > cGetAppliedVoteReqVersion
 
-      expect(() => deserializeGetAppliedVoteReq(mockStream)).toThrow(
-        'GetAppliedVoteReq version mismatch'
-      )
+      expect(() => deserializeGetAppliedVoteReq(mockStream)).toThrow('GetAppliedVoteReq version mismatch')
       expect(verifyPayloadMock).not.toHaveBeenCalled()
     })
 
@@ -136,7 +131,7 @@ describe('GetAppliedVoteReq', () => {
       const result = deserializeGetAppliedVoteReq(mockStream)
 
       expect(result).toEqual({
-        txId: ''
+        txId: '',
       })
     })
 
@@ -150,7 +145,7 @@ describe('GetAppliedVoteReq', () => {
       const result = deserializeGetAppliedVoteReq(mockStream)
 
       expect(result).toEqual({
-        txId: specialTxId
+        txId: specialTxId,
       })
     })
 
@@ -162,7 +157,7 @@ describe('GetAppliedVoteReq', () => {
       const result = deserializeGetAppliedVoteReq(mockStream)
 
       expect(result).toEqual({
-        txId: 'tx-123'
+        txId: 'tx-123',
       })
     })
 
@@ -175,10 +170,7 @@ describe('GetAppliedVoteReq', () => {
 
       deserializeGetAppliedVoteReq(mockStream)
 
-      expect(verifyPayloadMock).toHaveBeenCalledWith(
-        AJVSchemaEnum.GetAppliedVoteReq,
-        { txId }
-      )
+      expect(verifyPayloadMock).toHaveBeenCalledWith(AJVSchemaEnum.GetAppliedVoteReq, { txId })
     })
   })
 })

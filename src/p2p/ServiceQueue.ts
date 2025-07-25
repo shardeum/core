@@ -94,18 +94,20 @@ const addTxGossipRoute: P2P.P2PTypes.GossipHandler<P2P.ServiceQueueTypes.SignedA
         addTxCopy.txData = txDataWithoutSign
         txAdd.push(addTxCopy)
 
-        fireAndForget(() => Comms.sendGossip(
-          'gossip-addtx',
-          payload,
-          tracker,
-          Self.id,
-          nodeListFromStates([
-            P2P.P2PTypes.NodeStatus.ACTIVE,
-            P2P.P2PTypes.NodeStatus.READY,
-            P2P.P2PTypes.NodeStatus.SYNCING,
-          ]),
-          false
-        )) // use Self.id so we don't gossip to ourself
+        fireAndForget(() =>
+          Comms.sendGossip(
+            'gossip-addtx',
+            payload,
+            tracker,
+            Self.id,
+            nodeListFromStates([
+              P2P.P2PTypes.NodeStatus.ACTIVE,
+              P2P.P2PTypes.NodeStatus.READY,
+              P2P.P2PTypes.NodeStatus.SYNCING,
+            ]),
+            false
+          )
+        ) // use Self.id so we don't gossip to ourself
       }
     }
   } finally {
@@ -166,18 +168,20 @@ const removeTxGossipRoute: P2P.P2PTypes.GossipHandler<P2P.ServiceQueueTypes.Sign
       if (!txRemove.some((entry) => entry.txHash === payload.txHash)) {
         txRemove.push(unsignedRemoveNetworkTx)
 
-        fireAndForget(() => Comms.sendGossip(
-          'gossip-removetx',
-          payload,
-          tracker,
-          Self.id,
-          nodeListFromStates([
-            P2P.P2PTypes.NodeStatus.ACTIVE,
-            P2P.P2PTypes.NodeStatus.READY,
-            P2P.P2PTypes.NodeStatus.SYNCING,
-          ]),
-          false
-        )) // use Self.id so we don't gossip to ourself
+        fireAndForget(() =>
+          Comms.sendGossip(
+            'gossip-removetx',
+            payload,
+            tracker,
+            Self.id,
+            nodeListFromStates([
+              P2P.P2PTypes.NodeStatus.ACTIVE,
+              P2P.P2PTypes.NodeStatus.READY,
+              P2P.P2PTypes.NodeStatus.SYNCING,
+            ]),
+            false
+          )
+        ) // use Self.id so we don't gossip to ourself
       }
     }
   } finally {
@@ -222,18 +226,20 @@ const debugDropNGTGossipRoute: P2P.P2PTypes.GossipHandler<any> = async (payload,
 
   txRemove.push(unsignedRemoveNetworkTx)
 
-  fireAndForget(() => Comms.sendGossip(
-    'debug-drop-ngt',
-    payload,
-    tracker,
-    Self.id,
-    nodeListFromStates([
-      P2P.P2PTypes.NodeStatus.ACTIVE,
-      P2P.P2PTypes.NodeStatus.READY,
-      P2P.P2PTypes.NodeStatus.SYNCING,
-    ]),
-    false
-  )) // use Self.id so we don't gossip to ourself
+  fireAndForget(() =>
+    Comms.sendGossip(
+      'debug-drop-ngt',
+      payload,
+      tracker,
+      Self.id,
+      nodeListFromStates([
+        P2P.P2PTypes.NodeStatus.ACTIVE,
+        P2P.P2PTypes.NodeStatus.READY,
+        P2P.P2PTypes.NodeStatus.SYNCING,
+      ]),
+      false
+    )
+  ) // use Self.id so we don't gossip to ourself
 }
 
 const routes = {
@@ -467,18 +473,20 @@ export function sendRequests(): void {
     }
 
     /* prettier-ignore */ if (config.debug.verboseNestedCounters) nestedCountersInstance.countEvent(`gossip-addtx`, `gossip send - ${add.hash}`)
-    fireAndForget(() => Comms.sendGossip(
-      'gossip-addtx',
-      add,
-      '',
-      Self.id,
-      nodeListFromStates([
-        P2P.P2PTypes.NodeStatus.ACTIVE,
-        P2P.P2PTypes.NodeStatus.READY,
-        P2P.P2PTypes.NodeStatus.SYNCING,
-      ]),
-      true
-    ))
+    fireAndForget(() =>
+      Comms.sendGossip(
+        'gossip-addtx',
+        add,
+        '',
+        Self.id,
+        nodeListFromStates([
+          P2P.P2PTypes.NodeStatus.ACTIVE,
+          P2P.P2PTypes.NodeStatus.READY,
+          P2P.P2PTypes.NodeStatus.SYNCING,
+        ]),
+        true
+      )
+    )
   }
 
   for (const remove of removeProposals) {
@@ -492,18 +500,20 @@ export function sendRequests(): void {
       }
 
       /* prettier-ignore */ if (config.debug.verboseNestedCounters) nestedCountersInstance.countEvent(`gossip-removetx`, `gossip send - ${remove.txHash}`)
-      fireAndForget(() => Comms.sendGossip(
-        'gossip-removetx',
-        remove,
-        '',
-        Self.id,
-        nodeListFromStates([
-          P2P.P2PTypes.NodeStatus.ACTIVE,
-          P2P.P2PTypes.NodeStatus.READY,
-          P2P.P2PTypes.NodeStatus.SYNCING,
-        ]),
-        true
-      ))
+      fireAndForget(() =>
+        Comms.sendGossip(
+          'gossip-removetx',
+          remove,
+          '',
+          Self.id,
+          nodeListFromStates([
+            P2P.P2PTypes.NodeStatus.ACTIVE,
+            P2P.P2PTypes.NodeStatus.READY,
+            P2P.P2PTypes.NodeStatus.SYNCING,
+          ]),
+          true
+        )
+      )
     }
   }
   addProposals.length = 0
@@ -518,18 +528,20 @@ export function sendRequests(): void {
 
     delete dropNGTInfo.cycle
 
-    fireAndForget(() => Comms.sendGossip(
-      'debug-drop-ngt',
-      dropNGTInfo,
-      '',
-      Self.id,
-      nodeListFromStates([
-        P2P.P2PTypes.NodeStatus.ACTIVE,
-        P2P.P2PTypes.NodeStatus.READY,
-        P2P.P2PTypes.NodeStatus.SYNCING,
-      ]),
-      true
-    ))
+    fireAndForget(() =>
+      Comms.sendGossip(
+        'debug-drop-ngt',
+        dropNGTInfo,
+        '',
+        Self.id,
+        nodeListFromStates([
+          P2P.P2PTypes.NodeStatus.ACTIVE,
+          P2P.P2PTypes.NodeStatus.READY,
+          P2P.P2PTypes.NodeStatus.SYNCING,
+        ]),
+        true
+      )
+    )
   }
   debugDropNGTs.length = 0
 }

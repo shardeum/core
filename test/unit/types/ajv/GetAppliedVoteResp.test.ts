@@ -46,10 +46,7 @@ describe('GetAppliedVoteResp', () => {
       initGetAppliedVoteResp()
 
       expect(mockAddSchema).toHaveBeenCalledTimes(1)
-      expect(mockAddSchema).toHaveBeenCalledWith(
-        AJVSchemaEnum.GetAppliedVoteResp,
-        schemaGetAppliedVoteResp
-      )
+      expect(mockAddSchema).toHaveBeenCalledWith(AJVSchemaEnum.GetAppliedVoteResp, schemaGetAppliedVoteResp)
     })
 
     it('should not throw any errors during initialization', () => {
@@ -62,17 +59,14 @@ describe('GetAppliedVoteResp', () => {
       initGetAppliedVoteResp()
 
       expect(mockAddSchema).toHaveBeenCalledTimes(3)
-      expect(mockAddSchema).toHaveBeenCalledWith(
-        AJVSchemaEnum.GetAppliedVoteResp,
-        schemaGetAppliedVoteResp
-      )
+      expect(mockAddSchema).toHaveBeenCalledWith(AJVSchemaEnum.GetAppliedVoteResp, schemaGetAppliedVoteResp)
     })
   })
 
   describe('addSchemaDependencies', () => {
     it('should not add any dependencies (function is empty)', () => {
       initGetAppliedVoteResp()
-      
+
       // Verify only one call to addSchema (no dependencies added)
       expect(mockAddSchema).toHaveBeenCalledTimes(1)
     })
@@ -124,7 +118,7 @@ describe('GetAppliedVoteResp', () => {
 
     it('should reference the correct nested schema for appliedVote', () => {
       expect(schemaGetAppliedVoteResp.properties.appliedVote).toBe(schemaAppliedVote)
-      
+
       // Verify the nested schema has expected structure
       expect(schemaAppliedVote).toBeDefined()
       expect(schemaAppliedVote.type).toBe('object')
@@ -141,12 +135,12 @@ describe('GetAppliedVoteResp', () => {
 
     it('should have immutable schema structure', () => {
       const originalSchema = { ...schemaGetAppliedVoteResp }
-      
+
       // Attempt to modify (should not affect the actual schema if it's properly defined)
       const testModification = () => {
         schemaGetAppliedVoteResp.type = 'array'
       }
-      
+
       // Schema object can be modified in JS, but this test verifies the structure
       expect(schemaGetAppliedVoteResp.type).toBe('object')
       expect(schemaGetAppliedVoteResp).toEqual(originalSchema)

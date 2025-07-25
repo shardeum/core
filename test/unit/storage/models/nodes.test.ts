@@ -106,14 +106,23 @@ describe('nodes', () => {
   it('should only have the expected fields', () => {
     const schema = nodes[1] as any
     const expectedFields = [
-      'id', 'publicKey', 'curvePublicKey', 'cycleJoined',
-      'internalIp', 'externalIp', 'internalPort', 'externalPort',
-      'joinRequestTimestamp', 'activeTimestamp', 'address', 'status'
+      'id',
+      'publicKey',
+      'curvePublicKey',
+      'cycleJoined',
+      'internalIp',
+      'externalIp',
+      'internalPort',
+      'externalPort',
+      'joinRequestTimestamp',
+      'activeTimestamp',
+      'address',
+      'status',
     ]
     const actualFields = Object.keys(schema)
-    
+
     expect(actualFields).toHaveLength(expectedFields.length)
-    expectedFields.forEach(field => {
+    expectedFields.forEach((field) => {
       expect(actualFields).toContain(field)
     })
   })
@@ -121,41 +130,51 @@ describe('nodes', () => {
   it('should have primaryKey only on id field', () => {
     const schema = nodes[1] as any
     expect(schema.id.primaryKey).toBe(true)
-    
+
     // Check all other fields don't have primaryKey
-    const nonIdFields = ['publicKey', 'curvePublicKey', 'cycleJoined',
-      'internalIp', 'externalIp', 'internalPort', 'externalPort',
-      'joinRequestTimestamp', 'activeTimestamp', 'address', 'status']
-    
-    nonIdFields.forEach(field => {
+    const nonIdFields = [
+      'publicKey',
+      'curvePublicKey',
+      'cycleJoined',
+      'internalIp',
+      'externalIp',
+      'internalPort',
+      'externalPort',
+      'joinRequestTimestamp',
+      'activeTimestamp',
+      'address',
+      'status',
+    ]
+
+    nonIdFields.forEach((field) => {
       expect(schema[field].primaryKey).toBeUndefined()
     })
   })
 
   it('should use correct data types for different fields', () => {
     const schema = nodes[1] as any
-    
+
     // TEXT fields
     const textFields = ['id', 'publicKey', 'curvePublicKey', 'cycleJoined']
-    textFields.forEach(field => {
+    textFields.forEach((field) => {
       expect(schema[field].type).toBe(SQLDataTypes.TEXT)
     })
-    
+
     // STRING fields
     const stringFields = ['internalIp', 'externalIp', 'address', 'status']
-    stringFields.forEach(field => {
+    stringFields.forEach((field) => {
       expect(schema[field].type).toBe(SQLDataTypes.STRING)
     })
-    
+
     // SMALLINT fields
     const smallintFields = ['internalPort', 'externalPort']
-    smallintFields.forEach(field => {
+    smallintFields.forEach((field) => {
       expect(schema[field].type).toBe(SQLDataTypes.SMALLINT)
     })
-    
+
     // BIGINT fields
     const bigintFields = ['joinRequestTimestamp', 'activeTimestamp']
-    bigintFields.forEach(field => {
+    bigintFields.forEach((field) => {
       expect(schema[field].type).toBe(SQLDataTypes.BIGINT)
     })
   })

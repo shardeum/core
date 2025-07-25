@@ -186,19 +186,19 @@ export function calculateToAccept(): number {
     lastLoggedCycle = cycle
     info(
       'scale dump:' +
-      Utils.safeStringify({
-        cycle,
-        scaleFactor: CycleCreator.scaleFactor,
-        needed,
-        desired,
-        active,
-        syncing,
-        canSync,
-        syncMax,
-        maxJoin,
-        expired,
-        scaleFactorSyncBoost: CycleCreator.scaleFactorSyncBoost,
-      })
+        Utils.safeStringify({
+          cycle,
+          scaleFactor: CycleCreator.scaleFactor,
+          needed,
+          desired,
+          active,
+          syncing,
+          canSync,
+          syncMax,
+          maxJoin,
+          expired,
+          scaleFactorSyncBoost: CycleCreator.scaleFactorSyncBoost,
+        })
     )
   }
   return needed
@@ -670,18 +670,20 @@ export function sendRequests(): void {
     if (addSyncStarted(syncStartedTx).success === true) {
       nestedCountersInstance.countEvent('p2p', `join:sendRequests: sending sync-started gossip to network`)
       /* prettier-ignore */ if (logFlags.p2pNonFatal) console.log(`join:sendRequests: sending sync-started gossip to network`)
-      fireAndForget(() => Comms.sendGossip(
-        'gossip-sync-started',
-        syncStartedTx,
-        '',
-        null,
-        nodeListFromStates([
-          P2P.P2PTypes.NodeStatus.ACTIVE,
-          P2P.P2PTypes.NodeStatus.READY,
-          P2P.P2PTypes.NodeStatus.SYNCING,
-        ]),
-        true
-      ))
+      fireAndForget(() =>
+        Comms.sendGossip(
+          'gossip-sync-started',
+          syncStartedTx,
+          '',
+          null,
+          nodeListFromStates([
+            P2P.P2PTypes.NodeStatus.ACTIVE,
+            P2P.P2PTypes.NodeStatus.READY,
+            P2P.P2PTypes.NodeStatus.SYNCING,
+          ]),
+          true
+        )
+      )
     } else {
       nestedCountersInstance.countEvent('p2p', `join:sendRequests: failed to add our own sync-started message`)
       /* prettier-ignore */ if (logFlags.p2pNonFatal) console.log(`join:sendRequests: failed to add our own sync-started message`)
@@ -698,18 +700,20 @@ export function sendRequests(): void {
     if (addFinishedSyncing(syncFinishedTx).success === true) {
       nestedCountersInstance.countEvent('p2p', `join:sendRequests: sending sync-finished gossip to network`)
       /* prettier-ignore */ if (logFlags.p2pNonFatal) console.log(`join:sendRequests: sending sync-finished gossip to network`)
-      fireAndForget(() => Comms.sendGossip(
-        'gossip-sync-finished',
-        syncFinishedTx,
-        '',
-        null,
-        nodeListFromStates([
-          P2P.P2PTypes.NodeStatus.ACTIVE,
-          P2P.P2PTypes.NodeStatus.READY,
-          P2P.P2PTypes.NodeStatus.SYNCING,
-        ]),
-        true
-      ))
+      fireAndForget(() =>
+        Comms.sendGossip(
+          'gossip-sync-finished',
+          syncFinishedTx,
+          '',
+          null,
+          nodeListFromStates([
+            P2P.P2PTypes.NodeStatus.ACTIVE,
+            P2P.P2PTypes.NodeStatus.READY,
+            P2P.P2PTypes.NodeStatus.SYNCING,
+          ]),
+          true
+        )
+      )
     } else {
       nestedCountersInstance.countEvent('p2p', `join:sendRequests: failed to add our own sync-finished message`)
       /* prettier-ignore */ if (logFlags.p2pNonFatal) console.log(`join:sendRequests: failed to add our own sync-finished message`)
@@ -812,18 +816,20 @@ export function sendRequests(): void {
 
       nestedCountersInstance.countEvent('p2p', `join:sendRequests: sending unjoin gossip to network`)
       /* prettier-ignore */ if (logFlags.p2pNonFatal) console.log(`join:sendRequests: sending unjoin gossip to network`)
-      fireAndForget(() => Comms.sendGossip(
-        'gossip-unjoin',
-        unjoinRequest,
-        '',
-        null,
-        nodeListFromStates([
-          P2P.P2PTypes.NodeStatus.ACTIVE,
-          P2P.P2PTypes.NodeStatus.READY,
-          P2P.P2PTypes.NodeStatus.SYNCING,
-        ]),
-        true
-      ))
+      fireAndForget(() =>
+        Comms.sendGossip(
+          'gossip-unjoin',
+          unjoinRequest,
+          '',
+          null,
+          nodeListFromStates([
+            P2P.P2PTypes.NodeStatus.ACTIVE,
+            P2P.P2PTypes.NodeStatus.READY,
+            P2P.P2PTypes.NodeStatus.SYNCING,
+          ]),
+          true
+        )
+      )
     }
   }
 

@@ -145,15 +145,15 @@ describe('Logger', () => {
 
   beforeEach(() => {
     jest.clearAllMocks()
-    
+
     // Set up mock implementations
     mockIsString.mockImplementation((val) => typeof val === 'string')
     mockIsObject.mockImplementation((val) => typeof val === 'object' && val !== null)
-    mockMakeShortHash.mockImplementation((hash) => hash ? hash.substring(0, 8) : '')
+    mockMakeShortHash.mockImplementation((hash) => (hash ? hash.substring(0, 8) : ''))
     mockStringifyReduceLimit.mockImplementation((obj) => JSON.stringify(obj))
     mockDeepCopy.mockImplementation((obj) => JSON.parse(JSON.stringify(obj)))
     mockSafeStringify.mockImplementation((obj) => JSON.stringify(obj))
-    
+
     // Reset logFlags to default values
     Object.assign(logFlags, {
       debug: true,
@@ -254,7 +254,6 @@ describe('Logger', () => {
         level: { levelStr: 'INFO' },
       },
     }
-
     ;(log4js.getLogger as jest.Mock).mockImplementation((name: string) => {
       return mockLoggers[name] || mockLoggers.main
     })
@@ -268,7 +267,7 @@ describe('Logger', () => {
       expect(() => {
         logger = new Logger('/base/dir', mockConfig, 'info')
       }).not.toThrow()
-      
+
       expect(logger.baseDir).toBe('/base/dir')
       expect(logger.config).toBe(mockConfig)
       expect(logger.logDir).toBe('/base/dir/logs')
@@ -288,35 +287,35 @@ describe('Logger', () => {
 
     it('should create log directory if it does not exist', () => {
       ;(fs.existsSync as jest.Mock).mockReturnValue(false)
-      
+
       logger = new Logger('/base/dir', mockConfig, 'info')
-      
+
       expect(fs.mkdirSync).toHaveBeenCalledWith('/base/dir/logs')
     })
 
     it('should set fatal flags when dynamicLogMode is fatal', () => {
       const consoleSpy = jest.spyOn(console, 'log').mockImplementation()
-      
+
       logger = new Logger('/base/dir', mockConfig, 'fatal')
-      
+
       expect(logFlags.fatal).toBe(true)
       expect(logFlags.error).toBe(false)
       expect(logFlags.debug).toBe(false)
       expect(consoleSpy).toHaveBeenCalledWith('startInFatalsLogMode=true!')
-      
+
       consoleSpy.mockRestore()
     })
 
     it('should set error flags when dynamicLogMode is error', () => {
       const consoleSpy = jest.spyOn(console, 'log').mockImplementation()
-      
+
       logger = new Logger('/base/dir', mockConfig, 'error')
-      
+
       expect(logFlags.fatal).toBe(true)
       expect(logFlags.error).toBe(true)
       expect(logFlags.debug).toBe(false)
       expect(consoleSpy).toHaveBeenCalledWith('startInErrorLogMode=true!')
-      
+
       consoleSpy.mockRestore()
     })
   })
@@ -373,9 +372,9 @@ describe('Logger', () => {
 
     it('should update playback owner with IP info', () => {
       const ipInfo = { externalPort: 8080 }
-      
+
       logger.setPlaybackIPInfo(ipInfo)
-      
+
       expect(logger._playbackIPInfo).toBe(ipInfo)
       expect(logger._playbackOwner).toContain(':8080')
       expect(logger.playbackLogNote).toHaveBeenCalledWith(
@@ -395,9 +394,9 @@ describe('Logger', () => {
 
     it('should update playback owner with node ID', () => {
       const nodeID = '1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef'
-      
+
       logger.setPlaybackID(nodeID)
-      
+
       expect(logger._playbackNodeID).toBe(nodeID)
       expect(logger._playbackOwner).toContain(':8080')
       expect(logger.playbackLogNote).toHaveBeenCalledWith(
@@ -475,9 +474,9 @@ describe('Logger', () => {
     it('should log playback trace when enabled', () => {
       // Set up the playback owner properly
       logger._playbackOwner = 'test-host:8080'
-      
+
       logger.playbackLog('from', 'to', 'type', 'endpoint', 'id', 'desc')
-      
+
       expect(mockLoggers.playback.trace).toHaveBeenCalled()
       const callArg = mockLoggers.playback.trace.mock.calls[0][0]
       expect(callArg).toContain('from')
@@ -488,9 +487,9 @@ describe('Logger', () => {
 
     it('should not log when playback flag is false', () => {
       logFlags.playback = false
-      
+
       logger.playbackLog('from', 'to', 'type', 'endpoint', 'id', 'desc')
-      
+
       expect(mockLoggers.playback.trace).not.toHaveBeenCalled()
     })
   })
@@ -503,7 +502,7 @@ describe('Logger', () => {
 
     it('should call playbackLog with StateChange type', () => {
       logger.playbackLogState('newState', 'id', 'desc')
-      
+
       expect(logger.playbackLog).toHaveBeenCalledWith('', '', 'StateChange', 'newState', 'id', 'desc')
     })
   })
@@ -516,7 +515,7 @@ describe('Logger', () => {
 
     it('should call playbackLog with Note type', () => {
       logger.playbackLogNote('category', 'id', 'desc')
-      
+
       expect(logger.playbackLog).toHaveBeenCalledWith('', '', 'Note', 'category', 'id', 'desc')
     })
   })
@@ -528,7 +527,7 @@ describe('Logger', () => {
 
     it('should set only fatal and important_as_fatal to true', () => {
       logger.setFatalFlags()
-      
+
       expect(logFlags.fatal).toBe(true)
       expect(logFlags.important_as_fatal).toBe(true)
       expect(logFlags.error).toBe(false)
@@ -544,7 +543,7 @@ describe('Logger', () => {
 
     it('should set all flags to false', () => {
       logger.setDisableAllFlags()
-      
+
       Object.values(logFlags).forEach((value) => {
         expect(value).toBe(false)
       })
@@ -558,7 +557,7 @@ describe('Logger', () => {
 
     it('should set error-related flags to true', () => {
       logger.setErrorFlags()
-      
+
       expect(logFlags.fatal).toBe(true)
       expect(logFlags.error).toBe(true)
       expect(logFlags.important_as_fatal).toBe(true)
@@ -578,7 +577,7 @@ describe('Logger', () => {
     it('should restore flags from backup', () => {
       logger.setDisableAllFlags()
       logger.setDefaultFlags()
-      
+
       expect(logFlags.important_as_fatal).toBe(true)
       expect(logFlags.important_as_error).toBe(true)
     })
@@ -594,7 +593,7 @@ describe('Logger', () => {
       logFlags.verbose = true
       logger.setFlagByName('verbose', false)
       expect(logFlags.verbose).toBe(false)
-      
+
       // Start with debug as false
       logFlags.debug = false
       logger.setFlagByName('debug', true)
@@ -609,7 +608,7 @@ describe('Logger', () => {
 
     it('should log message with key to main logger', () => {
       logger.mainLog('info', 'KEY', 'message')
-      
+
       expect(mockLoggers.main.info).toHaveBeenCalledWith('KEY message')
     })
   })
@@ -622,7 +621,7 @@ describe('Logger', () => {
 
     it('should call mainLog with debug level and DBG_ prefix', () => {
       logger.mainLog_debug('KEY', 'message')
-      
+
       expect(logger.mainLog).toHaveBeenCalledWith('debug', 'DBG_KEY', 'message')
     })
   })
@@ -683,9 +682,9 @@ describe('Logger', () => {
       mockLoggers.main.level.levelStr = 'TRACE'
       mockLoggers.net.level.levelStr = 'TRACE'
       mockLoggers.p2p.level.levelStr = 'FATAL'
-      
+
       logger.setupLogControlValues()
-      
+
       expect(logFlags.verbose).toBe(true)
       expect(logFlags.debug).toBe(true)
       expect(logFlags.net_trace).toBe(true)
@@ -694,9 +693,9 @@ describe('Logger', () => {
 
     it('should set appropriate flags for DEBUG level', () => {
       mockLoggers.main.level.levelStr = 'DEBUG'
-      
+
       logger.setupLogControlValues()
-      
+
       expect(logFlags.verbose).toBe(false)
       expect(logFlags.debug).toBe(true)
       expect(logFlags.info).toBe(true)
@@ -704,9 +703,9 @@ describe('Logger', () => {
 
     it('should set appropriate flags for INFO level', () => {
       mockLoggers.main.level.levelStr = 'INFO'
-      
+
       logger.setupLogControlValues()
-      
+
       expect(logFlags.verbose).toBe(false)
       expect(logFlags.debug).toBe(false)
       expect(logFlags.info).toBe(true)
@@ -714,9 +713,9 @@ describe('Logger', () => {
 
     it('should set appropriate flags for ERROR level', () => {
       mockLoggers.main.level.levelStr = 'ERROR'
-      
+
       logger.setupLogControlValues()
-      
+
       expect(logFlags.verbose).toBe(false)
       expect(logFlags.debug).toBe(false)
       expect(logFlags.info).toBe(true)
@@ -731,11 +730,11 @@ describe('Logger', () => {
 
     beforeEach(() => {
       logger = new Logger('/base/dir', mockConfig, 'info')
-      
+
       mockReq = {
         query: {},
       }
-      
+
       mockRes = {
         write: jest.fn(),
         end: jest.fn(),
@@ -743,7 +742,7 @@ describe('Logger', () => {
         json: jest.fn(),
         setHeader: jest.fn(),
       }
-      
+
       mockContext = {
         network: {
           registerExternalGet: jest.fn(),
@@ -753,13 +752,11 @@ describe('Logger', () => {
 
     it('should register log-fatal endpoint', () => {
       logger.registerEndpoints(mockContext)
-      
-      const handler = mockContext.network.registerExternalGet.mock.calls.find(
-        (call) => call[0] === 'log-fatal'
-      )[2]
-      
+
+      const handler = mockContext.network.registerExternalGet.mock.calls.find((call) => call[0] === 'log-fatal')[2]
+
       handler(mockReq, mockRes)
-      
+
       expect(logFlags.fatal).toBe(true)
       expect(logFlags.error).toBe(false)
       expect(mockRes.write).toHaveBeenCalled()
@@ -768,13 +765,11 @@ describe('Logger', () => {
 
     it('should register log-disable endpoint', () => {
       logger.registerEndpoints(mockContext)
-      
-      const handler = mockContext.network.registerExternalGet.mock.calls.find(
-        (call) => call[0] === 'log-disable'
-      )[2]
-      
+
+      const handler = mockContext.network.registerExternalGet.mock.calls.find((call) => call[0] === 'log-disable')[2]
+
       handler(mockReq, mockRes)
-      
+
       Object.values(logFlags).forEach((value) => {
         expect(value).toBe(false)
       })
@@ -782,55 +777,47 @@ describe('Logger', () => {
 
     it('should register log-error endpoint', () => {
       logger.registerEndpoints(mockContext)
-      
-      const handler = mockContext.network.registerExternalGet.mock.calls.find(
-        (call) => call[0] === 'log-error'
-      )[2]
-      
+
+      const handler = mockContext.network.registerExternalGet.mock.calls.find((call) => call[0] === 'log-error')[2]
+
       handler(mockReq, mockRes)
-      
+
       expect(logFlags.fatal).toBe(true)
       expect(logFlags.error).toBe(true)
     })
 
     it('should register log-default endpoint', () => {
       logger.registerEndpoints(mockContext)
-      
-      const handler = mockContext.network.registerExternalGet.mock.calls.find(
-        (call) => call[0] === 'log-default'
-      )[2]
-      
+
+      const handler = mockContext.network.registerExternalGet.mock.calls.find((call) => call[0] === 'log-default')[2]
+
       // Ensure backupLogFlags exists before calling handler
       logger.backupLogFlags = { ...logFlags }
-      
+
       handler(mockReq, mockRes)
-      
+
       expect(logFlags.important_as_fatal).toBe(true)
       expect(logFlags.important_as_error).toBe(true)
     })
 
     it('should register log-flag endpoint', () => {
       logger.registerEndpoints(mockContext)
-      
-      const handler = mockContext.network.registerExternalGet.mock.calls.find(
-        (call) => call[0] === 'log-flag'
-      )[2]
-      
+
+      const handler = mockContext.network.registerExternalGet.mock.calls.find((call) => call[0] === 'log-flag')[2]
+
       mockReq.query = { name: 'verbose', value: 'false' }
       handler(mockReq, mockRes)
-      
+
       expect(logFlags.verbose).toBe('false' as any) // The code passes string directly without conversion
     })
 
     it('should register log-getflags endpoint', () => {
       logger.registerEndpoints(mockContext)
-      
-      const handler = mockContext.network.registerExternalGet.mock.calls.find(
-        (call) => call[0] === 'log-getflags'
-      )[2]
-      
+
+      const handler = mockContext.network.registerExternalGet.mock.calls.find((call) => call[0] === 'log-getflags')[2]
+
       handler(mockReq, mockRes)
-      
+
       expect(mockRes.write).toHaveBeenCalled()
       expect(mockRes.end).toHaveBeenCalled()
     })
@@ -843,7 +830,7 @@ describe('Logger', () => {
 
     it('should add filenames to file appenders', () => {
       logger._addFileNamesToAppenders()
-      
+
       expect((logger.log4Conf.appenders.main as any).filename).toBe('/base/dir/logs/main.log')
       expect((logger.log4Conf.appenders.app as any).filename).toBe('/base/dir/logs/app.log')
       expect((logger.log4Conf.appenders.out as any).filename).toBeUndefined()

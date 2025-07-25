@@ -1,9 +1,4 @@
-import {
-  SignSerializable,
-  serializeSign,
-  deserializeSign,
-  cSignVersion
-} from '../../../src/types/Sign'
+import { SignSerializable, serializeSign, deserializeSign, cSignVersion } from '../../../src/types/Sign'
 import { VectorBufferStream } from '../../../src/utils/serialization/VectorBufferStream'
 import { TypeIdentifierEnum } from '../../../src/types/enum/TypeIdentifierEnum'
 
@@ -16,7 +11,7 @@ describe('Sign', () => {
       writeUInt8: jest.fn(),
       writeString: jest.fn(),
       readUInt8: jest.fn(),
-      readString: jest.fn()
+      readString: jest.fn(),
     } as unknown as VectorBufferStream
   })
 
@@ -30,7 +25,7 @@ describe('Sign', () => {
     it('should serialize without root flag', () => {
       const sign: SignSerializable = {
         owner: 'owner-public-key-123',
-        sig: 'signature-hash-456'
+        sig: 'signature-hash-456',
       }
 
       serializeSign(mockStream, sign, false)
@@ -45,7 +40,7 @@ describe('Sign', () => {
     it('should serialize with root flag', () => {
       const sign: SignSerializable = {
         owner: 'owner-key',
-        sig: 'sig-hash'
+        sig: 'sig-hash',
       }
 
       serializeSign(mockStream, sign, true)
@@ -59,7 +54,7 @@ describe('Sign', () => {
     it('should handle empty strings', () => {
       const sign: SignSerializable = {
         owner: '',
-        sig: ''
+        sig: '',
       }
 
       serializeSign(mockStream, sign)
@@ -73,7 +68,7 @@ describe('Sign', () => {
       const longSig = 'b'.repeat(2000)
       const sign: SignSerializable = {
         owner: longOwner,
-        sig: longSig
+        sig: longSig,
       }
 
       serializeSign(mockStream, sign)
@@ -85,7 +80,7 @@ describe('Sign', () => {
     it('should handle special characters', () => {
       const sign: SignSerializable = {
         owner: 'owner-!@#$%^&*()_+-=[]{}|;:",.<>?',
-        sig: 'sig-with-unicode-世界-🌍'
+        sig: 'sig-with-unicode-世界-🌍',
       }
 
       serializeSign(mockStream, sign)
@@ -97,7 +92,7 @@ describe('Sign', () => {
     it('should maintain correct order of writes', () => {
       const sign: SignSerializable = {
         owner: 'test-owner',
-        sig: 'test-sig'
+        sig: 'test-sig',
       }
 
       serializeSign(mockStream, sign)
@@ -114,15 +109,13 @@ describe('Sign', () => {
       const expectedSig = 'signature-hash-012'
 
       ;(mockStream.readUInt8 as jest.Mock).mockReturnValueOnce(cSignVersion)
-      ;(mockStream.readString as jest.Mock)
-        .mockReturnValueOnce(expectedOwner)
-        .mockReturnValueOnce(expectedSig)
+      ;(mockStream.readString as jest.Mock).mockReturnValueOnce(expectedOwner).mockReturnValueOnce(expectedSig)
 
       const result = deserializeSign(mockStream)
 
       expect(result).toEqual({
         owner: expectedOwner,
-        sig: expectedSig
+        sig: expectedSig,
       })
       expect(mockStream.readUInt8).toHaveBeenCalledTimes(1)
       expect(mockStream.readString).toHaveBeenCalledTimes(2)
@@ -136,15 +129,13 @@ describe('Sign', () => {
 
     it('should handle empty strings', () => {
       ;(mockStream.readUInt8 as jest.Mock).mockReturnValueOnce(cSignVersion)
-      ;(mockStream.readString as jest.Mock)
-        .mockReturnValueOnce('')
-        .mockReturnValueOnce('')
+      ;(mockStream.readString as jest.Mock).mockReturnValueOnce('').mockReturnValueOnce('')
 
       const result = deserializeSign(mockStream)
 
       expect(result).toEqual({
         owner: '',
-        sig: ''
+        sig: '',
       })
     })
 
@@ -153,15 +144,13 @@ describe('Sign', () => {
       const longSig = 'y'.repeat(10000)
 
       ;(mockStream.readUInt8 as jest.Mock).mockReturnValueOnce(cSignVersion)
-      ;(mockStream.readString as jest.Mock)
-        .mockReturnValueOnce(longOwner)
-        .mockReturnValueOnce(longSig)
+      ;(mockStream.readString as jest.Mock).mockReturnValueOnce(longOwner).mockReturnValueOnce(longSig)
 
       const result = deserializeSign(mockStream)
 
       expect(result).toEqual({
         owner: longOwner,
-        sig: longSig
+        sig: longSig,
       })
     })
 
@@ -170,37 +159,31 @@ describe('Sign', () => {
       const specialSig = 'sig-with-unicode-世界-🌍'
 
       ;(mockStream.readUInt8 as jest.Mock).mockReturnValueOnce(cSignVersion)
-      ;(mockStream.readString as jest.Mock)
-        .mockReturnValueOnce(specialOwner)
-        .mockReturnValueOnce(specialSig)
+      ;(mockStream.readString as jest.Mock).mockReturnValueOnce(specialOwner).mockReturnValueOnce(specialSig)
 
       const result = deserializeSign(mockStream)
 
       expect(result).toEqual({
         owner: specialOwner,
-        sig: specialSig
+        sig: specialSig,
       })
     })
 
     it('should accept version 0', () => {
       ;(mockStream.readUInt8 as jest.Mock).mockReturnValueOnce(0)
-      ;(mockStream.readString as jest.Mock)
-        .mockReturnValueOnce('owner')
-        .mockReturnValueOnce('sig')
+      ;(mockStream.readString as jest.Mock).mockReturnValueOnce('owner').mockReturnValueOnce('sig')
 
       const result = deserializeSign(mockStream)
 
       expect(result).toEqual({
         owner: 'owner',
-        sig: 'sig'
+        sig: 'sig',
       })
     })
 
     it('should maintain correct order of reads', () => {
       ;(mockStream.readUInt8 as jest.Mock).mockReturnValueOnce(cSignVersion)
-      ;(mockStream.readString as jest.Mock)
-        .mockReturnValueOnce('first-read')
-        .mockReturnValueOnce('second-read')
+      ;(mockStream.readString as jest.Mock).mockReturnValueOnce('first-read').mockReturnValueOnce('second-read')
 
       const result = deserializeSign(mockStream)
 

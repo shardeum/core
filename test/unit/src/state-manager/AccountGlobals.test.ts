@@ -10,27 +10,27 @@ import StateManager from '../../../../src/state-manager'
 // Mock the utils module to prevent actual sleep calls
 jest.mock('../../../../src/utils', () => ({
   sleep: jest.fn().mockResolvedValue(undefined),
-  stringifyReduce: jest.fn((obj) => JSON.stringify(obj))
+  stringifyReduce: jest.fn((obj) => JSON.stringify(obj)),
 }))
 
 jest.mock('../../../../src/utils/nestedCounters', () => ({
   nestedCountersInstance: {
-    countEvent: jest.fn()
-  }
+    countEvent: jest.fn(),
+  },
 }))
 
 // Mock network and other problematic modules
 jest.mock('../../../../src/network', () => ({
-  shardusGetTime: jest.fn(() => Date.now())
+  shardusGetTime: jest.fn(() => Date.now()),
 }))
 
 jest.mock('../../../../src/p2p/Context', () => ({
   config: {
     p2p: {
-      useNTPOffsets: false
-    }
+      useNTPOffsets: false,
+    },
   },
-  setDefaultConfigs: jest.fn()
+  setDefaultConfigs: jest.fn(),
 }))
 
 jest.mock('../../../../src/p2p/NodeList', () => ({}))
@@ -48,25 +48,25 @@ const mockStateManager = {
     getRobustGlobalReport: jest.fn().mockResolvedValue({
       accounts: [],
       ready: true,
-      combinedHash: 'test-hash'
-    })
+      combinedHash: 'test-hash',
+    }),
   },
   accountCache: {
-    getAccountHash: jest.fn().mockReturnValue({ h: 'default-hash', t: 123456 })
+    getAccountHash: jest.fn().mockReturnValue({ h: 'default-hash', t: 123456 }),
   },
   fifoLock: jest.fn().mockResolvedValue(1),
   fifoUnlock: jest.fn(),
   testAccountDataWrapped: jest.fn(),
-  statemanager_fatal: jest.fn()
+  statemanager_fatal: jest.fn(),
 } as any
 
 const mockProfiler = {
   scopedProfileSectionStart: jest.fn(),
-  scopedProfileSectionEnd: jest.fn()
+  scopedProfileSectionEnd: jest.fn(),
 } as any
 
 const mockApp = {
-  getAccountDataByList: jest.fn().mockResolvedValue([])
+  getAccountDataByList: jest.fn().mockResolvedValue([]),
 } as any
 
 const mockLoggerInstance = {
@@ -74,20 +74,20 @@ const mockLoggerInstance = {
   error: jest.fn(),
   info: jest.fn(),
   warn: jest.fn(),
-  fatal: jest.fn()
+  fatal: jest.fn(),
 }
 
 const mockLogger = {
-  getLogger: jest.fn()
+  getLogger: jest.fn(),
 } as any
 
 const mockStorage = {} as any
 const mockP2P = {
-  registerInternalBinary: jest.fn()
+  registerInternalBinary: jest.fn(),
 } as any
 
 const mockCrypto = {
-  hash: jest.fn().mockReturnValue('mock-hash')
+  hash: jest.fn().mockReturnValue('mock-hash'),
 } as any
 
 const mockConfig = {} as any
@@ -97,10 +97,10 @@ describe('AccountGlobals', () => {
 
   beforeEach(() => {
     jest.clearAllMocks()
-    
+
     // Set up the logger mock to return the mock logger instance
     mockLogger.getLogger.mockReturnValue(mockLoggerInstance)
-    
+
     // Create AccountGlobals instance
     accountGlobals = new AccountGlobals(
       mockStateManager,
@@ -146,7 +146,7 @@ describe('AccountGlobals', () => {
   describe('isGlobalAccount', () => {
     it('should return true for global accounts', () => {
       accountGlobals.setGlobalAccount('global-account-1')
-      
+
       expect(accountGlobals.isGlobalAccount('global-account-1')).toBe(true)
     })
 
@@ -162,18 +162,18 @@ describe('AccountGlobals', () => {
   describe('setGlobalAccount', () => {
     it('should add account to global set', () => {
       const accountId = 'test-global-account'
-      
+
       accountGlobals.setGlobalAccount(accountId)
-      
+
       expect(accountGlobals.globalAccountSet.has(accountId)).toBe(true)
     })
 
     it('should handle multiple accounts', () => {
       const accounts = ['account1', 'account2', 'account3']
-      
-      accounts.forEach(account => accountGlobals.setGlobalAccount(account))
-      
-      accounts.forEach(account => {
+
+      accounts.forEach((account) => accountGlobals.setGlobalAccount(account))
+
+      accounts.forEach((account) => {
         expect(accountGlobals.globalAccountSet.has(account)).toBe(true)
       })
       expect(accountGlobals.globalAccountSet.size).toBe(3)
@@ -181,11 +181,11 @@ describe('AccountGlobals', () => {
 
     it('should handle duplicate accounts', () => {
       const accountId = 'duplicate-account'
-      
+
       accountGlobals.setGlobalAccount(accountId)
       accountGlobals.setGlobalAccount(accountId)
       accountGlobals.setGlobalAccount(accountId)
-      
+
       expect(accountGlobals.globalAccountSet.has(accountId)).toBe(true)
       expect(accountGlobals.globalAccountSet.size).toBe(1)
     })
@@ -207,28 +207,27 @@ describe('AccountGlobals', () => {
     })
 
     it('should successfully get global list on first try', async () => {
-      (mockStateManager.accountSync.getRobustGlobalReport as jest.Mock).mockResolvedValue({
+      ;(mockStateManager.accountSync.getRobustGlobalReport as jest.Mock).mockResolvedValue({
         accounts: [
           { id: 'global1', hash: 'hash1', timestamp: 123 },
-          { id: 'global2', hash: 'hash2', timestamp: 456 }
+          { id: 'global2', hash: 'hash2', timestamp: 456 },
         ],
         ready: true,
-        combinedHash: 'combined-hash'
+        combinedHash: 'combined-hash',
       })
 
       await accountGlobals.getGlobalListEarly()
 
-      expect(mockStateManager.accountSync.getRobustGlobalReport).toHaveBeenCalledWith(
-        'getGlobalListEarly',
-        false
-      )
+      expect(mockStateManager.accountSync.getRobustGlobalReport).toHaveBeenCalledWith('getGlobalListEarly', false)
       expect(accountGlobals.hasknownGlobals).toBe(true)
       expect(accountGlobals.globalAccountSet.has('global1')).toBe(true)
       expect(accountGlobals.globalAccountSet.has('global2')).toBe(true)
     })
 
     it('should throw error after maximum retries', async () => {
-      (mockStateManager.accountSync.getRobustGlobalReport as jest.Mock).mockRejectedValue(new Error('Persistent error'))
+      ;(mockStateManager.accountSync.getRobustGlobalReport as jest.Mock).mockRejectedValue(
+        new Error('Persistent error')
+      )
 
       await expect(accountGlobals.getGlobalListEarly()).rejects.toThrow(
         'DATASYNC: getGlobalListEarly: failed to get global list after 10 retries'
@@ -275,20 +274,16 @@ describe('AccountGlobals', () => {
       }
 
       expect(accountGlobals.globalAccountSet.size).toBe(100)
-      
+
       for (let i = 0; i < 100; i++) {
         expect(accountGlobals.isGlobalAccount(`global-account-${i}`)).toBe(true)
       }
     })
 
     it('should handle special characters in account IDs', () => {
-      const specialAccounts = [
-        'account-with-dashes',
-        'account_with_underscores',
-        'account.with.dots'
-      ]
+      const specialAccounts = ['account-with-dashes', 'account_with_underscores', 'account.with.dots']
 
-      specialAccounts.forEach(account => {
+      specialAccounts.forEach((account) => {
         accountGlobals.setGlobalAccount(account)
         expect(accountGlobals.isGlobalAccount(account)).toBe(true)
       })

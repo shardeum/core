@@ -201,13 +201,13 @@ describe('SyncV2', () => {
       verifyCycleRecord.mockReturnValue(okAsync(undefined))
 
       mockShardus.earlyConfigFetchAndPatch.mockImplementation(() => Promise.resolve())
-      
+
       // Mock historical cycles query - return empty array for test
       robustQueryForRecentCycleMarkers.mockReturnValue(
         okAsync({
-          value: { 
+          value: {
             cycleMarkers: [],
-            oldestCounter: 1
+            oldestCounter: 1,
           },
           winningNodes: mockActiveNodes,
         })

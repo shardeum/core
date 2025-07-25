@@ -19,27 +19,24 @@ describe('GetTrieHashesResp', () => {
       initGetTrieHashesResp()
 
       expect(addSchemaSpy).toHaveBeenCalledTimes(1)
-      expect(addSchemaSpy).toHaveBeenCalledWith(
-        AJVSchemaEnum.GetTrieHashesResp,
-        {
-          type: 'object',
-          properties: {
-            nodeHashes: {
-              type: 'array',
-              items: {
-                type: 'object',
-                properties: {
-                  radix: { type: 'string' },
-                  hash: { type: 'string' },
-                },
-                required: ['radix', 'hash'],
+      expect(addSchemaSpy).toHaveBeenCalledWith(AJVSchemaEnum.GetTrieHashesResp, {
+        type: 'object',
+        properties: {
+          nodeHashes: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                radix: { type: 'string' },
+                hash: { type: 'string' },
               },
+              required: ['radix', 'hash'],
             },
-            nodeId: { type: 'string' },
           },
-          required: ['nodeHashes'],
-        }
-      )
+          nodeId: { type: 'string' },
+        },
+        required: ['nodeHashes'],
+      })
     })
 
     it('should not throw any errors', () => {
@@ -69,7 +66,7 @@ describe('GetTrieHashesResp', () => {
       initGetTrieHashesResp()
 
       const { properties } = capturedSchema
-      
+
       expect(properties.nodeHashes).toBeDefined()
       expect(properties.nodeId).toBeDefined()
     })

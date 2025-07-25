@@ -17,10 +17,10 @@ describe('random-test', () => {
     // This test verifies that the file exists and can be parsed by TypeScript
     const fs = require('fs')
     const path = require('path')
-    
+
     const filePath = path.join(__dirname, '../../../../src/random/random-test.ts')
     expect(fs.existsSync(filePath)).toBe(true)
-    
+
     const fileContent = fs.readFileSync(filePath, 'utf8')
     expect(fileContent).toContain('import Random from')
     expect(fileContent).toContain('Random()')
@@ -48,10 +48,10 @@ describe('random-test', () => {
   it('should demonstrate random functionality usage patterns', () => {
     const fs = require('fs')
     const path = require('path')
-    
+
     const filePath = path.join(__dirname, '../../../../src/random/random-test.ts')
     const fileContent = fs.readFileSync(filePath, 'utf8')
-    
+
     // Verify it demonstrates key Random module usage patterns
     expect(fileContent).toContain('random.rand()')
     expect(fileContent).toContain('random.randomInt(0, 1000)')
@@ -63,10 +63,10 @@ describe('random-test', () => {
   it('should contain proper console output statements', () => {
     const fs = require('fs')
     const path = require('path')
-    
+
     const filePath = path.join(__dirname, '../../../../src/random/random-test.ts')
     const fileContent = fs.readFileSync(filePath, 'utf8')
-    
+
     // Verify it contains informative console outputs
     expect(fileContent).toContain("Result of 'random.rand()'")
     expect(fileContent).toContain("Result of 'random.randomInt(0, 1000)'")
@@ -79,10 +79,10 @@ describe('random-test', () => {
   it('should demonstrate seeded random number generation', () => {
     const fs = require('fs')
     const path = require('path')
-    
+
     const filePath = path.join(__dirname, '../../../../src/random/random-test.ts')
     const fileContent = fs.readFileSync(filePath, 'utf8')
-    
+
     // Verify it properly demonstrates seeded randomization
     expect(fileContent).toContain('Random(seed1)')
     expect(fileContent).toContain('Random(seed2)')

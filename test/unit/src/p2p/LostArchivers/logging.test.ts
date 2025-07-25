@@ -156,7 +156,7 @@ describe('LostArchivers/logging', () => {
     it('should handle case when logger returns undefined', () => {
       ;(logger.getLogger as jest.Mock).mockReturnValue(undefined)
       initLogging()
-      
+
       // Since p2pLogger is undefined, these will throw when trying to call .info, .warn, .error
       expect(() => info('test')).toThrow()
       expect(() => warn('test')).toThrow()
@@ -166,10 +166,10 @@ describe('LostArchivers/logging', () => {
     it('should handle case when logger is null', () => {
       ;(logger.getLogger as jest.Mock).mockReturnValue(null)
       initLogging()
-      
+
       // Since p2pLogger is null, these will throw when trying to call .info, .warn, .error
       expect(() => info('test')).toThrow()
-      expect(() => warn('test')).toThrow() 
+      expect(() => warn('test')).toThrow()
       expect(() => error('test')).toThrow()
     })
   })

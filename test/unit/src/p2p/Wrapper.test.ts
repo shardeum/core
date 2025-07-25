@@ -26,20 +26,20 @@ jest.mock('../../../../src/utils', () => ({
   propComparator: jest.fn(),
   makeShortHash: jest.fn(),
   stringifyReduce: jest.fn(),
-  deepCopy: jest.fn()
+  deepCopy: jest.fn(),
 }))
 jest.mock('../../../../src/logger', () => ({
-  logFlags: { console: false }
+  logFlags: { console: false },
 }))
 
 jest.mock('../../../../src/p2p/Context', () => ({
   config: {
     p2p: {
       minNodesToAllowTxs: 3,
-      useNTPOffsets: false
-    }
+      useNTPOffsets: false,
+    },
   },
-  setDefaultConfigs: jest.fn()
+  setDefaultConfigs: jest.fn(),
 }))
 
 jest.mock('../../../../src/network', () => ({
@@ -47,9 +47,9 @@ jest.mock('../../../../src/network', () => ({
     externalIp: '127.0.0.1',
     externalPort: 9001,
     internalIp: '127.0.0.1',
-    internalPort: 9001
+    internalPort: 9001,
   },
-  shardusGetTime: jest.fn(() => Date.now())
+  shardusGetTime: jest.fn(() => Date.now()),
 }))
 
 describe('P2P Class', () => {
@@ -86,7 +86,6 @@ describe('P2P Class', () => {
       it('should return Self.isFirst', () => {
         ;(Self as any).isFirst = true
         expect(p2pInstance.isFirstSeed).toBe(true)
-        
         ;(Self as any).isFirst = false
         expect(p2pInstance.isFirstSeed).toBe(false)
       })
@@ -96,7 +95,6 @@ describe('P2P Class', () => {
       it('should return Self.isActive', () => {
         ;(Self as any).isActive = true
         expect(p2pInstance.isActive).toBe(true)
-        
         ;(Self as any).isActive = false
         expect(p2pInstance.isActive).toBe(false)
       })
@@ -133,7 +131,6 @@ describe('P2P Class', () => {
   })
 
   describe('allowTransactions', () => {
-
     it('should return true when active nodes >= minNodesToAllowTxs', () => {
       ;(NodeList as any).activeByIdOrder = { length: 5 }
       expect(p2pInstance.allowTransactions()).toBe(true)
@@ -178,7 +175,7 @@ describe('P2P Class', () => {
     it('should return all cycles when requested amount exceeds available', () => {
       const mockCycles = [{ id: 1 }, { id: 2 }, { id: 3 }]
       ;(CycleChain as any).cycles = mockCycles
-      
+
       const result = p2pInstance.getLatestCycles(5)
       expect(result).toBe(mockCycles)
     })
@@ -186,14 +183,14 @@ describe('P2P Class', () => {
     it('should return last N cycles when requested amount is less than available', () => {
       const mockCycles = [{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }, { id: 5 }]
       ;(CycleChain as any).cycles = mockCycles
-      
+
       const result = p2pInstance.getLatestCycles(3)
       expect(result).toEqual([{ id: 3 }, { id: 4 }, { id: 5 }])
     })
 
     it('should return empty array when no cycles available', () => {
       ;(CycleChain as any).cycles = []
-      
+
       const result = p2pInstance.getLatestCycles(2)
       expect(result).toEqual([])
     })
@@ -300,7 +297,7 @@ describe('State Class', () => {
       const consoleSpy = jest.spyOn(console, 'log').mockImplementation()
 
       const result = state.getNodeByPubKey('non-existent-key')
-      
+
       expect(result).toBeUndefined()
       expect(consoleSpy).toHaveBeenCalled()
       consoleSpy.mockRestore()
@@ -309,7 +306,7 @@ describe('State Class', () => {
 
   describe('getActiveNodes', () => {
     it('should return activeOthersByIdOrder when id provided', () => {
-      const mockActiveOthers = { 'id1': { id: 'id1' }, 'id2': { id: 'id2' } }
+      const mockActiveOthers = { id1: { id: 'id1' }, id2: { id: 'id2' } }
       ;(NodeList as any).activeOthersByIdOrder = mockActiveOthers
 
       const result = state.getActiveNodes('self-id')
@@ -317,7 +314,7 @@ describe('State Class', () => {
     })
 
     it('should return activeByIdOrder when no id provided', () => {
-      const mockActiveAll = { 'id1': { id: 'id1' }, 'id2': { id: 'id2' }, 'self': { id: 'self' } }
+      const mockActiveAll = { id1: { id: 'id1' }, id2: { id: 'id2' }, self: { id: 'self' } }
       ;(NodeList as any).activeByIdOrder = mockActiveAll
 
       const result = state.getActiveNodes()
@@ -330,21 +327,21 @@ describe('State Class', () => {
       const mockNodes = [
         { id: 'node1', status: 'syncing' },
         { id: 'node2', status: 'active' },
-        { id: 'node3', status: 'syncing' }
+        { id: 'node3', status: 'syncing' },
       ]
       ;(NodeList as any).othersByIdOrder = mockNodes
 
       const result = state.getOrderedSyncingNeighbors('any-node')
       expect(result).toEqual([
         { id: 'node1', status: 'syncing' },
-        { id: 'node3', status: 'syncing' }
+        { id: 'node3', status: 'syncing' },
       ])
     })
 
     it('should return empty array when no syncing nodes', () => {
       const mockNodes = [
         { id: 'node1', status: 'active' },
-        { id: 'node2', status: 'ready' }
+        { id: 'node2', status: 'ready' },
       ]
       ;(NodeList as any).othersByIdOrder = mockNodes
 
@@ -365,11 +362,7 @@ describe('State Class', () => {
 
   describe('getCycleByCounter', () => {
     it('should return cycle when found', () => {
-      const mockCycles = [
-        { counter: 98 },
-        { counter: 99 },
-        { counter: 100 }
-      ]
+      const mockCycles = [{ counter: 98 }, { counter: 99 }, { counter: 100 }]
       const mockComparator = jest.fn()
       ;(CycleChain as any).cycles = mockCycles
       ;(utils.binarySearch as jest.Mock).mockReturnValue(1)
@@ -396,7 +389,7 @@ describe('State Class', () => {
       const mockCycles = [
         { start: 1000, duration: 30 },
         { start: 1030, duration: 30 },
-        { start: 1060, duration: 30 }
+        { start: 1060, duration: 30 },
       ]
       ;(CycleChain as any).cycles = mockCycles
       ;(utils.binarySearch as jest.Mock).mockReturnValue(1)
@@ -441,7 +434,7 @@ describe('getSubsetOfNodeList', () => {
     it('should return nodes excluding self', () => {
       const nodes = { id1: { id: 'id1' }, self: { id: 'self' }, id2: { id: 'id2' } }
       ;(utils.deepCopy as jest.Mock).mockReturnValue({ id1: { id: 'id1' }, id2: { id: 'id2' } })
-      
+
       const result = getSubsetOfNodeList(nodes, 'self')
       expect(result).toEqual([{ id: 'id1' }, { id: 'id2' }])
     })

@@ -2,26 +2,26 @@
 jest.mock('@shardeum-foundation/lib-types', () => ({
   Utils: {
     safeJsonParse: jest.fn((str) => JSON.parse(str)),
-    safeStringify: jest.fn((obj) => JSON.stringify(obj))
-  }
+    safeStringify: jest.fn((obj) => JSON.stringify(obj)),
+  },
 }))
 
 jest.mock('../../../../src/logger', () => ({
   logFlags: {
     playback: false,
-    verbose: false
-  }
+    verbose: false,
+  },
 }))
 
 jest.mock('../../../../src/http/customHttpFunctions', () => ({
   customGot: jest.fn(() => ({
     get: jest.fn(),
-    post: jest.fn()
-  }))
+    post: jest.fn(),
+  })),
 }))
 
 jest.mock('../../../../src/utils', () => ({
-  stringifyReduceLimit: jest.fn((obj) => JSON.stringify(obj))
+  stringifyReduceLimit: jest.fn((obj) => JSON.stringify(obj)),
 }))
 
 jest.mock('url', () => ({
@@ -29,8 +29,8 @@ jest.mock('url', () => ({
     href: url,
     hostname: 'localhost',
     port: '3000',
-    pathname: '/test'
-  }))
+    pathname: '/test',
+  })),
 }))
 
 // Mock all problematic modules
@@ -38,7 +38,7 @@ jest.mock('../../../../src/index', () => ({}))
 jest.mock('../../../../src/shardus/index', () => ({}))
 jest.mock('../../../../src/p2p/Context', () => ({
   Context: { setDefaultConfigs: jest.fn() },
-  config: { p2p: { maxResponseSize: 1000000 } }
+  config: { p2p: { maxResponseSize: 1000000 } },
 }))
 
 describe('http index functions', () => {
@@ -49,7 +49,7 @@ describe('http index functions', () => {
         if (!url.match('https?://*')) return false
         return true
       }
-      
+
       expect(_containsProtocol('http://localhost')).toBe(true)
       expect(_containsProtocol('https://localhost')).toBe(true)
       expect(_containsProtocol('localhost')).toBe(false)
@@ -65,7 +65,7 @@ describe('http index functions', () => {
         if (!_containsProtocol(url)) normalized = 'http://' + url
         return normalized
       }
-      
+
       expect(_normalizeUrl('localhost:3000')).toBe('http://localhost:3000')
       expect(_normalizeUrl('http://localhost:3000')).toBe('http://localhost:3000')
     })
@@ -89,9 +89,9 @@ describe('http index functions', () => {
 
       const error = {
         code: 'ETIMEDOUT',
-        message: 'Request timeout'
+        message: 'Request timeout',
       }
-      
+
       const result = buildGotErrorDescription(error)
       expect(result).toBe('Got error: [Code: ETIMEDOUT] Request timeout')
     })
@@ -113,9 +113,9 @@ describe('http index functions', () => {
 
       const error = {
         response: { statusCode: 404 },
-        message: 'Not found'
+        message: 'Not found',
       }
-      
+
       const result = buildGotErrorDescription(error)
       expect(result).toBe('Got error: [Status Code: 404] Not found')
     })
@@ -125,7 +125,7 @@ describe('http index functions', () => {
     it('should export main functions', () => {
       // Just test that the module can be required without errors
       const httpModule = require('../../../../src/http/index')
-      
+
       expect(typeof httpModule.get).toBe('function')
       expect(typeof httpModule.post).toBe('function')
       expect(typeof httpModule.setLogger).toBe('function')

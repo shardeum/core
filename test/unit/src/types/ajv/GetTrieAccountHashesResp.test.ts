@@ -63,10 +63,7 @@ describe('GetTrieAccountHashesResp', () => {
       initGetTrieAccountHashesResp()
 
       expect(addSchema).toHaveBeenCalledTimes(1)
-      expect(addSchema).toHaveBeenCalledWith(
-        AJVSchemaEnum.GetTrieAccountHashesResp,
-        expect.any(Object)
-      )
+      expect(addSchema).toHaveBeenCalledWith(AJVSchemaEnum.GetTrieAccountHashesResp, expect.any(Object))
     })
 
     it('should register schema with correct enum value', () => {
@@ -149,7 +146,7 @@ describe('GetTrieAccountHashesResp', () => {
 
       const schema = (addSchema as jest.Mock).mock.calls[0][1]
       const accountIDAndHashSchema = schema.properties.nodeChildHashes.items.properties.childAccounts.items
-      
+
       expect(accountIDAndHashSchema).toEqual({
         type: 'object',
         properties: {
@@ -165,7 +162,7 @@ describe('GetTrieAccountHashesResp', () => {
 
       const schema = (addSchema as jest.Mock).mock.calls[0][1]
       const radixAndChildHashesSchema = schema.properties.nodeChildHashes.items
-      
+
       expect(radixAndChildHashesSchema.type).toBe('object')
       expect(radixAndChildHashesSchema.required).toEqual(['radix', 'childAccounts'])
       expect(radixAndChildHashesSchema.properties.radix).toEqual({ type: 'string' })
@@ -177,7 +174,7 @@ describe('GetTrieAccountHashesResp', () => {
 
       const schema = (addSchema as jest.Mock).mock.calls[0][1]
       const statsProps = schema.properties.stats.properties
-      
+
       expect(statsProps.matched).toEqual({ type: 'number' })
       expect(statsProps.visisted).toEqual({ type: 'number' })
       expect(statsProps.empty).toEqual({ type: 'number' })
@@ -197,7 +194,7 @@ describe('GetTrieAccountHashesResp', () => {
       initGetTrieAccountHashesResp()
 
       const schema = (addSchema as jest.Mock).mock.calls[0][1]
-      
+
       // Verify nested array structure: nodeChildHashes -> items -> childAccounts -> items
       expect(schema.properties.nodeChildHashes.type).toBe('array')
       expect(schema.properties.nodeChildHashes.items.properties.childAccounts.type).toBe('array')
@@ -208,12 +205,14 @@ describe('GetTrieAccountHashesResp', () => {
       initGetTrieAccountHashesResp()
 
       const schema = (addSchema as jest.Mock).mock.calls[0][1]
-      
+
       // All string fields should be type 'string'
       expect(schema.properties.nodeChildHashes.items.properties.radix.type).toBe('string')
-      expect(schema.properties.nodeChildHashes.items.properties.childAccounts.items.properties.accountID.type).toBe('string')
+      expect(schema.properties.nodeChildHashes.items.properties.childAccounts.items.properties.accountID.type).toBe(
+        'string'
+      )
       expect(schema.properties.nodeChildHashes.items.properties.childAccounts.items.properties.hash.type).toBe('string')
-      
+
       // All number fields should be type 'number'
       const statsProps = schema.properties.stats.properties
       Object.values(statsProps).forEach((prop: any) => {

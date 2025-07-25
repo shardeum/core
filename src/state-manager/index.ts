@@ -1402,8 +1402,9 @@ class StateManager {
           }
 
           if (queueEntry == null) {
-            response.note = `failed to find queue entry: ${utils.stringifyReduce(deserialized.txid)}  ${deserialized.timestamp
-              } dbg:${this.debugTXHistory[utils.stringifyReduce(deserialized.txid)]}`
+            response.note = `failed to find queue entry: ${utils.stringifyReduce(deserialized.txid)}  ${
+              deserialized.timestamp
+            } dbg:${this.debugTXHistory[utils.stringifyReduce(deserialized.txid)]}`
             respond(response, serializeRequestReceiptForTxResp)
             return
           }
@@ -1421,8 +1422,9 @@ class StateManager {
           if (response.receipt != null) {
             response.success = true
           } else {
-            response.note = `found queueEntry but no receipt: ${utils.stringifyReduce(deserialized.txid)} ${deserialized.txid
-              }  ${deserialized.timestamp}`
+            response.note = `found queueEntry but no receipt: ${utils.stringifyReduce(deserialized.txid)} ${
+              deserialized.txid
+            }  ${deserialized.timestamp}`
           }
           respond(response, serializeRequestReceiptForTxResp)
         } catch (e) {
@@ -1560,15 +1562,17 @@ class StateManager {
             queueEntry = this.transactionQueue.getQueueEntryArchived(txId, route)
           }
           if (queueEntry == null) {
-            response.note = `failed to find queue entry: ${utils.stringifyReduce(txId)} dbg:${this.debugTXHistory[utils.stringifyReduce(txId)]
-              }`
+            response.note = `failed to find queue entry: ${utils.stringifyReduce(txId)} dbg:${
+              this.debugTXHistory[utils.stringifyReduce(txId)]
+            }`
             /* prettier-ignore */ nestedCountersInstance.countEvent('stateManager', `${route} cant find queue entry`)
             return respond(response, serializeRequestStateForTxPostResp)
           }
 
           if (queueEntry.hasValidFinalData === false) {
-            response.note = `has queue entry but not final data: ${utils.stringifyReduce(txId)} dbg:${this.debugTXHistory[utils.stringifyReduce(txId)]
-              }`
+            response.note = `has queue entry but not final data: ${utils.stringifyReduce(txId)} dbg:${
+              this.debugTXHistory[utils.stringifyReduce(txId)]
+            }`
 
             if (logFlags.error && logFlags.verbose) this.mainLogger.error(response.note)
             /* prettier-ignore */ nestedCountersInstance.countEvent('stateManager', `${route} hasValidFinalData==false, tx state: ${queueEntry.state}`)
@@ -1763,8 +1767,9 @@ class StateManager {
           }
 
           if (queueEntry == null) {
-            response.note = `failed to find queue entry: ${utils.stringifyReduce(txid)} dbg:${this.debugTXHistory[utils.stringifyReduce(txid)]
-              }`
+            response.note = `failed to find queue entry: ${utils.stringifyReduce(txid)} dbg:${
+              this.debugTXHistory[utils.stringifyReduce(txid)]
+            }`
 
             if (logFlags.error) this.mainLogger.error(`${route} ${response.note}`)
             respond(response, serializeRequestTxAndStateResp)
@@ -1865,8 +1870,9 @@ class StateManager {
           }
 
           if (queueEntry == null) {
-            response.note = `failed to find queue entry: ${utils.stringifyReduce(txid)} dbg:${this.debugTXHistory[utils.stringifyReduce(txid)]
-              }`
+            response.note = `failed to find queue entry: ${utils.stringifyReduce(txid)} dbg:${
+              this.debugTXHistory[utils.stringifyReduce(txid)]
+            }`
 
             if (logFlags.error) this.mainLogger.error(`${route} ${response.note}`)
             respond(response, serializeRequestTxAndStateResp)
@@ -1895,8 +1901,9 @@ class StateManager {
             if (beforeState && beforeState.stateId === receipt2.proposal.beforeStateHashes[index]) {
               response.stateList.push(queueEntry.collectedData[accountId])
             } else {
-              response.note = `has bad beforeStateAccount: ${utils.stringifyReduce(txid)} dbg:${this.debugTXHistory[utils.stringifyReduce(txid)]
-                }`
+              response.note = `has bad beforeStateAccount: ${utils.stringifyReduce(txid)} dbg:${
+                this.debugTXHistory[utils.stringifyReduce(txid)]
+              }`
               if (logFlags.error) this.mainLogger.error(`${route} ${response.note}`)
               respond(response, serializeRequestTxAndStateResp)
               return

@@ -2,7 +2,7 @@ import {
   WrappedReq,
   serializeWrappedReq,
   deserializeWrappedReq,
-  cWrappedReqVersion
+  cWrappedReqVersion,
 } from '../../../src/types/WrappedReq'
 import { VectorBufferStream } from '../../../src/utils/serialization/VectorBufferStream'
 import { TypeIdentifierEnum } from '../../../src/types/enum/TypeIdentifierEnum'
@@ -16,7 +16,7 @@ describe('WrappedReq', () => {
       writeUInt8: jest.fn(),
       writeBuffer: jest.fn(),
       readUInt8: jest.fn(),
-      readBuffer: jest.fn()
+      readBuffer: jest.fn(),
     } as unknown as VectorBufferStream
   })
 
@@ -30,7 +30,7 @@ describe('WrappedReq', () => {
     it('should serialize without root flag', () => {
       const payload = Buffer.from('test payload data')
       const req: WrappedReq = {
-        payload
+        payload,
       }
 
       serializeWrappedReq(mockStream, req, false)
@@ -43,7 +43,7 @@ describe('WrappedReq', () => {
     it('should serialize with root flag', () => {
       const payload = Buffer.from('test payload data')
       const req: WrappedReq = {
-        payload
+        payload,
       }
 
       serializeWrappedReq(mockStream, req, true)
@@ -55,7 +55,7 @@ describe('WrappedReq', () => {
 
     it('should handle empty buffer', () => {
       const req: WrappedReq = {
-        payload: Buffer.alloc(0)
+        payload: Buffer.alloc(0),
       }
 
       serializeWrappedReq(mockStream, req)
@@ -67,7 +67,7 @@ describe('WrappedReq', () => {
     it('should handle large buffer', () => {
       const largePayload = Buffer.alloc(10000, 'x')
       const req: WrappedReq = {
-        payload: largePayload
+        payload: largePayload,
       }
 
       serializeWrappedReq(mockStream, req)
@@ -76,9 +76,9 @@ describe('WrappedReq', () => {
     })
 
     it('should handle binary data in buffer', () => {
-      const binaryData = Buffer.from([0x00, 0xFF, 0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF0])
+      const binaryData = Buffer.from([0x00, 0xff, 0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc, 0xde, 0xf0])
       const req: WrappedReq = {
-        payload: binaryData
+        payload: binaryData,
       }
 
       serializeWrappedReq(mockStream, req)
@@ -97,7 +97,7 @@ describe('WrappedReq', () => {
       const result = deserializeWrappedReq(mockStream)
 
       expect(result).toEqual({
-        payload: expectedPayload
+        payload: expectedPayload,
       })
       expect(mockStream.readUInt8).toHaveBeenCalledTimes(1)
       expect(mockStream.readBuffer).toHaveBeenCalledTimes(1)
@@ -118,7 +118,7 @@ describe('WrappedReq', () => {
       const result = deserializeWrappedReq(mockStream)
 
       expect(result).toEqual({
-        payload: emptyBuffer
+        payload: emptyBuffer,
       })
     })
 
@@ -131,12 +131,12 @@ describe('WrappedReq', () => {
       const result = deserializeWrappedReq(mockStream)
 
       expect(result).toEqual({
-        payload: largePayload
+        payload: largePayload,
       })
     })
 
     it('should handle binary data', () => {
-      const binaryData = Buffer.from([0x00, 0xFF, 0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF0])
+      const binaryData = Buffer.from([0x00, 0xff, 0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc, 0xde, 0xf0])
 
       ;(mockStream.readUInt8 as jest.Mock).mockReturnValueOnce(cWrappedReqVersion)
       ;(mockStream.readBuffer as jest.Mock).mockReturnValueOnce(binaryData)
@@ -144,7 +144,7 @@ describe('WrappedReq', () => {
       const result = deserializeWrappedReq(mockStream)
 
       expect(result).toEqual({
-        payload: binaryData
+        payload: binaryData,
       })
     })
 
@@ -157,7 +157,7 @@ describe('WrappedReq', () => {
       const result = deserializeWrappedReq(mockStream)
 
       expect(result).toEqual({
-        payload
+        payload,
       })
     })
   })

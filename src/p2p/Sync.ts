@@ -256,12 +256,14 @@ export async function sync(activeNodes: P2P.SyncTypes.ActiveNode[]) {
   if (config.p2p.enableProblematicNodeCacheBuilding) {
     ProblemNodeHandler.rebuildCacheFromCycleChain()
     info(`Rebuilt ProblematicNodeCache with ${CycleChain.cycles.length} cycles after sync`)
-    
+
     // Validate we have sufficient history for problematic node detection
     const availableHistory = CycleChain.cycles.length
     const requiredHistory = config.p2p.problematicNodeHistoryLength
     if (availableHistory < requiredHistory) {
-      warn(`Insufficient cycle history for problematic node detection. Have ${availableHistory}, need ${requiredHistory}`)
+      warn(
+        `Insufficient cycle history for problematic node detection. Have ${availableHistory}, need ${requiredHistory}`
+      )
     }
   }
 

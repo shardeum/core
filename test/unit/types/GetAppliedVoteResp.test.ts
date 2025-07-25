@@ -1,7 +1,7 @@
-import { 
-  serializeGetAppliedVoteResp, 
-  deserializeGetAppliedVoteResp, 
-  GetAppliedVoteResp 
+import {
+  serializeGetAppliedVoteResp,
+  deserializeGetAppliedVoteResp,
+  GetAppliedVoteResp,
 } from '../../../src/types/GetAppliedVoteResp'
 import { VectorBufferStream } from '../../../src/utils/serialization/VectorBufferStream'
 import { TypeIdentifierEnum } from '../../../src/types/enum/TypeIdentifierEnum'
@@ -14,8 +14,12 @@ jest.mock('../../../src/types/ajv/Helpers')
 
 describe('GetAppliedVoteResp', () => {
   let mockStream: VectorBufferStream
-  const mockSerializeAppliedVote = AppliedVote.serializeAppliedVote as jest.MockedFunction<typeof AppliedVote.serializeAppliedVote>
-  const mockDeserializeAppliedVote = AppliedVote.deserializeAppliedVote as jest.MockedFunction<typeof AppliedVote.deserializeAppliedVote>
+  const mockSerializeAppliedVote = AppliedVote.serializeAppliedVote as jest.MockedFunction<
+    typeof AppliedVote.serializeAppliedVote
+  >
+  const mockDeserializeAppliedVote = AppliedVote.deserializeAppliedVote as jest.MockedFunction<
+    typeof AppliedVote.deserializeAppliedVote
+  >
   const mockVerifyPayload = ajvHelpers.verifyPayload as jest.MockedFunction<typeof ajvHelpers.verifyPayload>
 
   beforeEach(() => {
@@ -25,7 +29,7 @@ describe('GetAppliedVoteResp', () => {
       writeUInt8: jest.fn(),
       writeString: jest.fn(),
       readUInt8: jest.fn(),
-      readString: jest.fn()
+      readString: jest.fn(),
     } as unknown as VectorBufferStream
   })
 
@@ -39,9 +43,9 @@ describe('GetAppliedVoteResp', () => {
         account_state_hash_after: ['hash1', 'hash2'],
         account_state_hash_before: ['hash3', 'hash4'],
         cant_apply: false,
-        node_id: 'node1'
+        node_id: 'node1',
       },
-      appliedVoteHash: 'vote_hash_123'
+      appliedVoteHash: 'vote_hash_123',
     }
 
     it('should serialize without root flag', () => {
@@ -70,7 +74,7 @@ describe('GetAppliedVoteResp', () => {
       const writeStringCalls = (mockStream.writeString as jest.Mock).mock.calls
       expect(writeStringCalls[0][0]).toBe('tx123') // txId first
       expect(writeStringCalls[1][0]).toBe('vote_hash_123') // appliedVoteHash last
-      
+
       // Applied vote serialization should happen between the two string writes
       const serializeOrder = mockSerializeAppliedVote.mock.invocationCallOrder[0]
       const lastWriteOrder = (mockStream.writeString as jest.Mock).mock.invocationCallOrder[1]
@@ -81,7 +85,7 @@ describe('GetAppliedVoteResp', () => {
       const dataWithEmptyStrings: GetAppliedVoteResp = {
         txId: '',
         appliedVote: mockData.appliedVote,
-        appliedVoteHash: ''
+        appliedVoteHash: '',
       }
 
       serializeGetAppliedVoteResp(mockStream, dataWithEmptyStrings)
@@ -106,7 +110,7 @@ describe('GetAppliedVoteResp', () => {
       account_state_hash_after: ['hash1'],
       account_state_hash_before: ['hash2'],
       cant_apply: false,
-      node_id: 'node1'
+      node_id: 'node1',
     }
 
     beforeEach(() => {
@@ -115,43 +119,39 @@ describe('GetAppliedVoteResp', () => {
     })
 
     it('should deserialize valid data correctly', () => {
-      (mockStream.readUInt8 as jest.Mock).mockReturnValueOnce(1);
-      (mockStream.readString as jest.Mock)
-        .mockReturnValueOnce('tx123')
-        .mockReturnValueOnce('vote_hash_123')
+      ;(mockStream.readUInt8 as jest.Mock).mockReturnValueOnce(1)
+      ;(mockStream.readString as jest.Mock).mockReturnValueOnce('tx123').mockReturnValueOnce('vote_hash_123')
 
       const result = deserializeGetAppliedVoteResp(mockStream)
 
       expect(result).toEqual({
         txId: 'tx123',
         appliedVote: mockAppliedVote,
-        appliedVoteHash: 'vote_hash_123'
+        appliedVoteHash: 'vote_hash_123',
       })
       expect(mockDeserializeAppliedVote).toHaveBeenCalledWith(mockStream)
       expect(mockVerifyPayload).toHaveBeenCalledWith(AJVSchemaEnum.GetAppliedVoteResp, result)
     })
 
     it('should throw error for unsupported version', () => {
-      (mockStream.readUInt8 as jest.Mock).mockReturnValueOnce(2)
+      ;(mockStream.readUInt8 as jest.Mock).mockReturnValueOnce(2)
 
       expect(() => deserializeGetAppliedVoteResp(mockStream)).toThrow('GetAppliedVoteResp version mismatch')
     })
 
     it('should throw error for validation failure', () => {
-      (mockStream.readUInt8 as jest.Mock).mockReturnValueOnce(1);
-      (mockStream.readString as jest.Mock)
-        .mockReturnValueOnce('tx123')
-        .mockReturnValueOnce('vote_hash_123')
+      ;(mockStream.readUInt8 as jest.Mock).mockReturnValueOnce(1)
+      ;(mockStream.readString as jest.Mock).mockReturnValueOnce('tx123').mockReturnValueOnce('vote_hash_123')
       mockVerifyPayload.mockReturnValueOnce(['Invalid field', 'Another error'])
 
-      expect(() => deserializeGetAppliedVoteResp(mockStream)).toThrow('AJV: validation error -> Invalid field, Another error')
+      expect(() => deserializeGetAppliedVoteResp(mockStream)).toThrow(
+        'AJV: validation error -> Invalid field, Another error'
+      )
     })
 
     it('should deserialize in correct order', () => {
-      (mockStream.readUInt8 as jest.Mock).mockReturnValueOnce(1);
-      (mockStream.readString as jest.Mock)
-        .mockReturnValueOnce('tx456')
-        .mockReturnValueOnce('hash456')
+      ;(mockStream.readUInt8 as jest.Mock).mockReturnValueOnce(1)
+      ;(mockStream.readString as jest.Mock).mockReturnValueOnce('tx456').mockReturnValueOnce('hash456')
 
       const result = deserializeGetAppliedVoteResp(mockStream)
 
@@ -161,10 +161,8 @@ describe('GetAppliedVoteResp', () => {
     })
 
     it('should handle empty strings', () => {
-      (mockStream.readUInt8 as jest.Mock).mockReturnValueOnce(1);
-      (mockStream.readString as jest.Mock)
-        .mockReturnValueOnce('')
-        .mockReturnValueOnce('')
+      ;(mockStream.readUInt8 as jest.Mock).mockReturnValueOnce(1)
+      ;(mockStream.readString as jest.Mock).mockReturnValueOnce('').mockReturnValueOnce('')
 
       const result = deserializeGetAppliedVoteResp(mockStream)
 
@@ -173,10 +171,8 @@ describe('GetAppliedVoteResp', () => {
     })
 
     it('should validate after full deserialization', () => {
-      (mockStream.readUInt8 as jest.Mock).mockReturnValueOnce(1);
-      (mockStream.readString as jest.Mock)
-        .mockReturnValueOnce('tx123')
-        .mockReturnValueOnce('vote_hash_123')
+      ;(mockStream.readUInt8 as jest.Mock).mockReturnValueOnce(1)
+      ;(mockStream.readString as jest.Mock).mockReturnValueOnce('tx123').mockReturnValueOnce('vote_hash_123')
 
       deserializeGetAppliedVoteResp(mockStream)
 
@@ -186,7 +182,7 @@ describe('GetAppliedVoteResp', () => {
         expect.objectContaining({
           txId: 'tx123',
           appliedVote: mockAppliedVote,
-          appliedVoteHash: 'vote_hash_123'
+          appliedVoteHash: 'vote_hash_123',
         })
       )
     })
@@ -197,7 +193,7 @@ describe('GetAppliedVoteResp', () => {
       const mockData: GetAppliedVoteResp = {
         txId: 'tx123',
         appliedVote: {} as any,
-        appliedVoteHash: 'hash123'
+        appliedVoteHash: 'hash123',
       }
 
       serializeGetAppliedVoteResp(mockStream, mockData)

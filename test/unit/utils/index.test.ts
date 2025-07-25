@@ -38,7 +38,7 @@ describe('utils/index.ts', () => {
   })
 
   it('should export functions from promises module', () => {
-    // Functions from promises module should be available  
+    // Functions from promises module should be available
     // Will check if function exists once we know specific exports
     expect(utils).toBeDefined()
   })
@@ -87,11 +87,11 @@ describe('utils/index.ts', () => {
   it('should not export internal implementation details', () => {
     // The index should only export public APIs
     const exportedKeys = Object.keys(utils)
-    
+
     // Check that common internal patterns are not exposed
-    exportedKeys.forEach(key => {
-      expect(key).not.toMatch(/^_/)  // No private members starting with _
-      expect(key).not.toMatch(/Internal$/)  // No internal suffixed members
+    exportedKeys.forEach((key) => {
+      expect(key).not.toMatch(/^_/) // No private members starting with _
+      expect(key).not.toMatch(/Internal$/) // No internal suffixed members
     })
   })
 })

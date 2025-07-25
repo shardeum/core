@@ -26,15 +26,16 @@ const createMockStateManager = (): any => ({
   },
 })
 
-const createMockArchiver = (ip: string, port: number): P2P.ArchiversTypes.JoinedArchiver => ({
-  ip,
-  port,
-  publicKey: `mock-public-key-${ip}-${port}`,
-  curvePk: `mock-curve-pk-${ip}-${port}`,
-  nodeId: `${ip}:${port}`,
-  cycleJoined: 1,
-  activeTimestamp: Date.now(),
-} as P2P.ArchiversTypes.JoinedArchiver)
+const createMockArchiver = (ip: string, port: number): P2P.ArchiversTypes.JoinedArchiver =>
+  ({
+    ip,
+    port,
+    publicKey: `mock-public-key-${ip}-${port}`,
+    curvePk: `mock-curve-pk-${ip}-${port}`,
+    nodeId: `${ip}:${port}`,
+    cycleJoined: 1,
+    activeTimestamp: Date.now(),
+  } as P2P.ArchiversTypes.JoinedArchiver)
 
 describe('ArchiverDataSourceHelper', () => {
   let archiverDataSourceHelper: ArchiverDataSourceHelper
@@ -178,10 +179,7 @@ describe('ArchiverDataSourceHelper', () => {
 
   describe('tryRestartList', () => {
     test('should restart list with small number of archivers', () => {
-      const archivers = [
-        createMockArchiver('127.0.0.1', 4000),
-        createMockArchiver('127.0.0.2', 4001),
-      ]
+      const archivers = [createMockArchiver('127.0.0.1', 4000), createMockArchiver('127.0.0.2', 4001)]
       archiverDataSourceHelper.initWithList(archivers)
       archiverDataSourceHelper.dataSourceArchiverIndex = 1
 
@@ -294,10 +292,7 @@ describe('ArchiverDataSourceHelper', () => {
 
   describe('integration scenarios', () => {
     test('should handle complete archiver rotation', () => {
-      const archivers = [
-        createMockArchiver('127.0.0.1', 4000),
-        createMockArchiver('127.0.0.2', 4001),
-      ]
+      const archivers = [createMockArchiver('127.0.0.1', 4000), createMockArchiver('127.0.0.2', 4001)]
       archiverDataSourceHelper.initWithList(archivers)
 
       expect(archiverDataSourceHelper.dataSourceArchiver.ip).toBe('127.0.0.1')
@@ -316,11 +311,7 @@ describe('ArchiverDataSourceHelper', () => {
     })
 
     test('should handle archiver failure and recovery', () => {
-      const archivers = [
-        createMockArchiver('127.0.0.1', 4000),
-        null as any,
-        createMockArchiver('127.0.0.3', 4002),
-      ]
+      const archivers = [createMockArchiver('127.0.0.1', 4000), null as any, createMockArchiver('127.0.0.3', 4002)]
       archiverDataSourceHelper.initWithList(archivers)
 
       const first = archiverDataSourceHelper.tryNextDataSourceArchiver('test-1')

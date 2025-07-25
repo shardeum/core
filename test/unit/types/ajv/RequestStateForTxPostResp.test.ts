@@ -20,25 +20,22 @@ describe('RequestStateForTxPostResp', () => {
       initRequestStateForTxPostResp()
 
       expect(addSchemaSpy).toHaveBeenCalledTimes(1)
-      expect(addSchemaSpy).toHaveBeenCalledWith(
-        AJVSchemaEnum.RequestStateForTxPostResp,
-        {
-          type: 'object',
-          properties: {
-            stateList: {
-              type: 'array',
-              items: schemaWrappedDataResponse,
-            },
-            beforeHashes: {
-              type: 'object',
-              additionalProperties: { type: 'string' },
-            },
-            note: { type: 'string' },
-            success: { type: 'boolean' },
+      expect(addSchemaSpy).toHaveBeenCalledWith(AJVSchemaEnum.RequestStateForTxPostResp, {
+        type: 'object',
+        properties: {
+          stateList: {
+            type: 'array',
+            items: schemaWrappedDataResponse,
           },
-          required: ['stateList', 'beforeHashes', 'note', 'success'],
-        }
-      )
+          beforeHashes: {
+            type: 'object',
+            additionalProperties: { type: 'string' },
+          },
+          note: { type: 'string' },
+          success: { type: 'boolean' },
+        },
+        required: ['stateList', 'beforeHashes', 'note', 'success'],
+      })
     })
 
     it('should not throw any errors', () => {
@@ -68,7 +65,7 @@ describe('RequestStateForTxPostResp', () => {
       initRequestStateForTxPostResp()
 
       const { properties } = capturedSchema
-      
+
       expect(properties.stateList).toBeDefined()
       expect(properties.beforeHashes).toBeDefined()
       expect(properties.note).toBeDefined()
@@ -131,12 +128,7 @@ describe('RequestStateForTxPostResp', () => {
 
       initRequestStateForTxPostResp()
 
-      expect(capturedSchema.required).toEqual([
-        'stateList',
-        'beforeHashes',
-        'note',
-        'success'
-      ])
+      expect(capturedSchema.required).toEqual(['stateList', 'beforeHashes', 'note', 'success'])
     })
 
     it('should reference schemaWrappedDataResponse correctly', () => {

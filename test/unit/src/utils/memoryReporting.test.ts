@@ -16,39 +16,39 @@ jest.mock('@shardeum-foundation/lib-crypto-utils', () => ({
   sign: jest.fn(),
   verify: jest.fn(),
   signObj: jest.fn(),
-  verifyObj: jest.fn()
+  verifyObj: jest.fn(),
 }))
 
 jest.mock('sqlite3', () => ({
   Database: jest.fn(),
   verbose: jest.fn(() => ({
-    Database: jest.fn()
-  }))
+    Database: jest.fn(),
+  })),
 }))
 
 // Mock P2P module first to avoid initialization issues
 jest.mock('@shardeum-foundation/lib-types/build/src/p2p/P2PTypes', () => ({
   P2PTypes: {
     NodeStatus: {
-      INITIALIZING: 'initializing'
-    }
-  }
+      INITIALIZING: 'initializing',
+    },
+  },
 }))
 
 jest.mock('../../../../src/p2p/Self', () => ({
-  state: 'initializing'
+  state: 'initializing',
 }))
 
 jest.mock('../../../../src/p2p/Context', () => ({
   network: {
-    registerExternalGet: jest.fn()
+    registerExternalGet: jest.fn(),
   },
-  setDefaultConfigs: jest.fn()
+  setDefaultConfigs: jest.fn(),
 }))
 
 jest.mock('../../../../src/utils', () => ({
   makeShortHash: jest.fn((id) => `short_${id}`),
-  stringifyReduce: jest.fn((obj) => JSON.stringify(obj))
+  stringifyReduce: jest.fn((obj) => JSON.stringify(obj)),
 }))
 
 jest.mock('../../../../src/crypto', () => jest.fn())
@@ -63,14 +63,14 @@ jest.mock('../../../../src/shardus', () => {
     StateManager: {
       StateManagerTypes: {},
       shardFunctionTypes: {},
-      StateMetaDataTypes: {}
-    }
+      StateMetaDataTypes: {},
+    },
   }
 })
 
 jest.mock('../../../../src/snapshot', () => ({
   disableSummarySnapshot: true,
-  default: jest.fn()
+  default: jest.fn(),
 }))
 
 jest.mock('../../../../src/logger', () => ({
@@ -80,18 +80,18 @@ jest.mock('../../../../src/logger', () => ({
     log: jest.fn(),
     warn: jest.fn(),
     debug: jest.fn(),
-    combine: jest.fn((...args) => args.join(' '))
+    combine: jest.fn((...args) => args.join(' ')),
   },
   logFlags: {
     error: true,
-    verbose: false
-  }
+    verbose: false,
+  },
 }))
 
 jest.mock('../../../../src/p2p/CycleCreator', () => ({
   scaleFactor: 1.5,
   currentCycle: null,
-  currentQuarter: 0
+  currentQuarter: 0,
 }))
 
 jest.mock('os')
@@ -99,25 +99,25 @@ jest.mock('child_process')
 
 jest.mock('../../../../src/utils/nestedCounters', () => ({
   nestedCountersInstance: {
-    countRareEvent: jest.fn()
-  }
+    countRareEvent: jest.fn(),
+  },
 }))
 
 jest.mock('../../../../src/p2p/NodeList', () => ({
   __esModule: true,
-  activeByIdOrder: []
+  activeByIdOrder: [],
 }))
 
 jest.mock('../../../../src/network', () => ({
   getLastNTPObject: jest.fn(() => ({ timestamp: 123456 })),
   getNetworkTimeOffset: jest.fn(() => 1000),
-  shardusGetTime: jest.fn(() => Date.now())
+  shardusGetTime: jest.fn(() => Date.now()),
 }))
 
 jest.mock('@shardeum-foundation/lib-types', () => ({
   Utils: {
-    safeStringify: jest.fn((obj) => JSON.stringify(obj))
-  }
+    safeStringify: jest.fn((obj) => JSON.stringify(obj)),
+  },
 }))
 
 // Import after mocking
@@ -142,11 +142,11 @@ describe('MemoryReporting', () => {
 
   beforeEach(() => {
     jest.clearAllMocks()
-    
+
     // Reset NodeList
     const nodeListMock = require('../../../../src/p2p/NodeList')
     nodeListMock.activeByIdOrder = []
-    
+
     // Mock os.cpus
     mockedOs.cpus.mockReturnValue([
       {
@@ -157,14 +157,14 @@ describe('MemoryReporting', () => {
           nice: 100,
           sys: 500,
           idle: 2000,
-          irq: 100
-        }
-      }
+          irq: 100,
+        },
+      },
     ] as any)
-    
+
     // Reset handlers map
     handlers = new Map<string, Function>()
-    
+
     // Mock network.registerExternalGet to capture handlers
     ;(Context.network.registerExternalGet as jest.Mock) = jest.fn((route, ...args) => {
       const handler = args.length === 2 ? args[1] : args[0]
@@ -175,13 +175,13 @@ describe('MemoryReporting', () => {
     mockShardus = {
       stateManager: {
         accountCache: {
-          getDebugStats: jest.fn(() => [100, 200])
+          getDebugStats: jest.fn(() => [100, 200]),
         },
         transactionQueue: {
           _transactionQueue: { length: 10 },
           pendingTransactionQueue: { length: 5 },
           archivedQueueEntries: { length: 3 },
-          getExecuteQueueLength: jest.fn(() => 7)
+          getExecuteQueueLength: jest.fn(() => 7),
         },
         accountSync: {
           syncTrackers: [
@@ -189,14 +189,14 @@ describe('MemoryReporting', () => {
               range: { low: 'abc', high: 'def' },
               isGlobalSyncTracker: true,
               syncStarted: true,
-              syncFinished: false
-            }
-          ]
+              syncFinished: false,
+            },
+          ],
         },
         accountPatcher: {
           failedLastTrieSync: false,
-          syncFailHistory: ['fail1', 'fail2']
-        }
+          syncFailHistory: ['fail1', 'fail2'],
+        },
       },
       statistics: {
         getAverage: jest.fn(() => 0.45),
@@ -204,24 +204,24 @@ describe('MemoryReporting', () => {
           allVals: [0.3, 0.4, 0.5],
           min: 0.3,
           max: 0.5,
-          avg: 0.4
-        }))
+          avg: 0.4,
+        })),
       },
       network: {
         sn: {
-          stats: jest.fn(() => ({ sent: 100, received: 200 }))
-        }
-      }
+          stats: jest.fn(() => ({ sent: 100, received: 200 })),
+        },
+      },
     }
 
     // Setup mock request and response
     mockReq = {
-      query: {}
+      query: {},
     }
 
     mockRes = {
       write: jest.fn(),
-      end: jest.fn()
+      end: jest.fn(),
     }
 
     // Create instance
@@ -259,7 +259,7 @@ describe('MemoryReporting', () => {
           heapTotal: 80000000,
           heapUsed: 60000000,
           external: 10000000,
-          arrayBuffers: 5000000
+          arrayBuffers: 5000000,
         }
         jest.spyOn(process, 'memoryUsage').mockReturnValue(mockMemoryUsage)
 
@@ -283,7 +283,7 @@ describe('MemoryReporting', () => {
           heapTotal: 40000000,
           heapUsed: 30000000,
           external: 5000000,
-          arrayBuffers: 2500000
+          arrayBuffers: 2500000,
         }
         jest.spyOn(process, 'memoryUsage').mockReturnValue(mockMemoryUsage)
 
@@ -326,13 +326,13 @@ describe('MemoryReporting', () => {
               if (event === 'data') {
                 callback(Buffer.from('top output'))
               }
-            })
+            }),
           },
           stderr: {
-            on: jest.fn()
+            on: jest.fn(),
           },
           on: jest.fn(),
-          kill: jest.fn()
+          kill: jest.fn(),
         }
 
         mockedSpawn.mockReturnValue(mockChildProcess as any)
@@ -349,17 +349,17 @@ describe('MemoryReporting', () => {
       it('should handle top command error', () => {
         const mockChildProcess = {
           stdout: {
-            on: jest.fn()
+            on: jest.fn(),
           },
           stderr: {
             on: jest.fn((event, callback) => {
               if (event === 'data') {
                 callback('error message')
               }
-            })
+            }),
           },
           on: jest.fn(),
-          kill: jest.fn()
+          kill: jest.fn(),
         }
 
         mockedSpawn.mockReturnValue(mockChildProcess as any)
@@ -381,13 +381,13 @@ describe('MemoryReporting', () => {
               if (event === 'data') {
                 callback(Buffer.from('df output'))
               }
-            })
+            }),
           },
           stderr: {
-            on: jest.fn()
+            on: jest.fn(),
           },
           on: jest.fn(),
-          kill: jest.fn()
+          kill: jest.fn(),
         }
 
         mockedSpawn.mockReturnValue(mockChildProcess as any)
@@ -445,7 +445,7 @@ describe('MemoryReporting', () => {
 
         expect(mockRes.write).toHaveBeenCalled()
         expect(mockRes.end).toHaveBeenCalled()
-        
+
         // Since the timeReport includes Date.now (function reference) which becomes
         // undefined in JSON, and the mocked functions return expected values,
         // we just verify the handler was called and response was sent
@@ -457,13 +457,13 @@ describe('MemoryReporting', () => {
   describe('addToReport', () => {
     it('should add item to report', () => {
       memoryReporting.addToReport('category1', 'subcat1', 'key1', 100)
-      
+
       expect(memoryReporting.report).toHaveLength(1)
       expect(memoryReporting.report[0]).toEqual({
         category: 'category1',
         subcat: 'subcat1',
         itemKey: 'key1',
-        count: 100
+        count: 100,
       })
     })
   })
@@ -471,12 +471,12 @@ describe('MemoryReporting', () => {
   describe('reportToStream', () => {
     it('should write report items to stream', () => {
       const mockStream = {
-        write: jest.fn()
+        write: jest.fn(),
       }
 
       const report = [
         { category: 'cat1', subcat: 'sub1', itemKey: 'key1', count: 10 },
-        { category: 'cat2', subcat: 'sub2', itemKey: 'key2', count: 999 }
+        { category: 'cat2', subcat: 'sub2', itemKey: 'key2', count: 999 },
       ]
 
       memoryReporting.reportToStream(report, mockStream)
@@ -493,10 +493,10 @@ describe('MemoryReporting', () => {
         heapTotal: 80000000,
         heapUsed: 60000000,
         external: 10000000,
-        arrayBuffers: 5000000
+        arrayBuffers: 5000000,
       }
       jest.spyOn(process, 'memoryUsage').mockReturnValue(mockMemoryUsage)
-      
+
       const nodeListMock = require('../../../../src/p2p/NodeList')
       nodeListMock.activeByIdOrder = [{ id: 'node1' }, { id: 'node2' }]
 
@@ -520,9 +520,9 @@ describe('MemoryReporting', () => {
             nice: 100,
             sys: 500,
             idle: 2000,
-            irq: 100
-          }
-        }
+            irq: 100,
+          },
+        },
       ] as any)
 
       const result = memoryReporting.getCPUTimes()
@@ -545,9 +545,9 @@ describe('MemoryReporting', () => {
             nice: 100,
             sys: 500,
             idle: 2000,
-            irq: 100
-          }
-        }
+            irq: 100,
+          },
+        },
       ] as any)
 
       // Initialize lastCPUTimes
@@ -559,13 +559,13 @@ describe('MemoryReporting', () => {
           model: 'Intel',
           speed: 2400,
           times: {
-            user: 1100,  // +100
-            nice: 110,   // +10
-            sys: 550,    // +50
-            idle: 2200,  // +200
-            irq: 110     // +10
-          }
-        }
+            user: 1100, // +100
+            nice: 110, // +10
+            sys: 550, // +50
+            idle: 2200, // +200
+            irq: 110, // +10
+          },
+        },
       ] as any)
 
       const result = memoryReporting.cpuPercent()
@@ -595,21 +595,21 @@ describe('MemoryReporting', () => {
         category: 'P2P',
         subcat: 'Nodelist',
         itemKey: 'numActiveNodes',
-        count: 2
+        count: 2,
       })
 
       expect(memoryReporting.report).toContainEqual({
         category: 'StateManager',
         subcat: 'AccountsCache',
         itemKey: 'workingAccounts',
-        count: 100
+        count: 100,
       })
 
       expect(memoryReporting.report).toContainEqual({
         category: 'StateManager',
         subcat: 'TXQueue',
         itemKey: 'queueCount',
-        count: 10
+        count: 10,
       })
     })
   })
@@ -617,7 +617,7 @@ describe('MemoryReporting', () => {
   describe('systemProcessReport', () => {
     it('should gather system process statistics', () => {
       jest.spyOn(memoryReporting, 'cpuPercent').mockReturnValue(0.456789)
-      
+
       // Mock process.resourceUsage
       const originalResourceUsage = process.resourceUsage
       process.resourceUsage = jest.fn().mockReturnValue({
@@ -636,11 +636,11 @@ describe('MemoryReporting', () => {
         ipcReceived: 200,
         signalsCount: 5,
         voluntaryContextSwitches: 1000,
-        involuntaryContextSwitches: 500
+        involuntaryContextSwitches: 500,
       })
 
       memoryReporting.systemProcessReport()
-      
+
       // Restore original
       process.resourceUsage = originalResourceUsage
 
@@ -648,14 +648,14 @@ describe('MemoryReporting', () => {
         category: 'Process',
         subcat: 'CPU',
         itemKey: 'cpuPercent',
-        count: 45.679
+        count: 45.679,
       })
 
       expect(memoryReporting.report).toContainEqual({
         category: 'Process',
         subcat: 'CPU',
         itemKey: 'cpuAVGPercent',
-        count: 45
+        count: 45,
       })
     })
   })
@@ -663,15 +663,15 @@ describe('MemoryReporting', () => {
   describe('getShardusNetReport', () => {
     it('should return network stats', () => {
       const result = memoryReporting.getShardusNetReport()
-      
+
       expect(result).toEqual({ sent: 100, received: 200 })
     })
 
     it('should return null if shardus not initialized', () => {
       memoryReporting.shardus = null
-      
+
       const result = memoryReporting.getShardusNetReport()
-      
+
       expect(result).toBeNull()
     })
   })
@@ -686,7 +686,7 @@ describe('MemoryReporting', () => {
         category: 'NetStats',
         subcat: 'stats',
         itemKey: 'stats',
-        count: 1
+        count: 1,
       })
     })
   })

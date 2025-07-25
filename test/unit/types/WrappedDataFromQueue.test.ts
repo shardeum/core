@@ -3,7 +3,7 @@ import {
   serializeWrappedDataFromQueue,
   deserializeWrappedDataFromQueue,
   cWrappedDataFromQueueVersion,
-  cWrappedDataFromQueueBinaryVersion
+  cWrappedDataFromQueueBinaryVersion,
 } from '../../../src/types/WrappedDataFromQueue'
 import { VectorBufferStream } from '../../../src/utils/serialization/VectorBufferStream'
 import { TypeIdentifierEnum } from '../../../src/types/enum/TypeIdentifierEnum'
@@ -12,7 +12,7 @@ import * as WrappedDataModule from '../../../src/types/WrappedData'
 // Mock WrappedData module
 jest.mock('../../../src/types/WrappedData', () => ({
   serializeWrappedData: jest.fn(),
-  deserializeWrappedData: jest.fn()
+  deserializeWrappedData: jest.fn(),
 }))
 
 describe('WrappedDataFromQueue', () => {
@@ -24,12 +24,12 @@ describe('WrappedDataFromQueue', () => {
     mockStream = {
       writeUInt16: jest.fn(),
       writeUInt8: jest.fn(),
-      readUInt8: jest.fn()
+      readUInt8: jest.fn(),
     } as unknown as VectorBufferStream
 
     serializeWrappedDataMock = WrappedDataModule.serializeWrappedData as any
     deserializeWrappedDataMock = WrappedDataModule.deserializeWrappedData as any
-    
+
     serializeWrappedDataMock.mockClear()
     deserializeWrappedDataMock.mockClear()
   })
@@ -48,7 +48,7 @@ describe('WrappedDataFromQueue', () => {
         stateId: 'state-456',
         data: { value: 'test' },
         timestamp: 1234567890,
-        seenInQueue: true
+        seenInQueue: true,
       }
 
       serializeWrappedDataFromQueue(mockStream, obj, false)
@@ -65,7 +65,7 @@ describe('WrappedDataFromQueue', () => {
         stateId: 'state-012',
         data: { value: 'test2' },
         timestamp: 9876543210,
-        seenInQueue: false
+        seenInQueue: false,
       }
 
       serializeWrappedDataFromQueue(mockStream, obj, true)
@@ -83,7 +83,7 @@ describe('WrappedDataFromQueue', () => {
         data: { value: 'sync-test' },
         timestamp: 1111111111,
         syncData: { extra: 'sync-info' },
-        seenInQueue: true
+        seenInQueue: true,
       }
 
       serializeWrappedDataFromQueue(mockStream, obj)
@@ -98,7 +98,7 @@ describe('WrappedDataFromQueue', () => {
         stateId: 'state1',
         data: {},
         timestamp: 1,
-        seenInQueue: true
+        seenInQueue: true,
       }
 
       const objFalse: WrappedDataFromQueueSerializable = {
@@ -106,7 +106,7 @@ describe('WrappedDataFromQueue', () => {
         stateId: 'state2',
         data: {},
         timestamp: 2,
-        seenInQueue: false
+        seenInQueue: false,
       }
 
       serializeWrappedDataFromQueue(mockStream, objTrue)
@@ -125,20 +125,20 @@ describe('WrappedDataFromQueue', () => {
         accountId: 'account-123',
         stateId: 'state-456',
         data: { value: 'test' },
-        timestamp: 1234567890
+        timestamp: 1234567890,
       }
 
       ;(mockStream.readUInt8 as jest.Mock)
         .mockReturnValueOnce(cWrappedDataFromQueueBinaryVersion)
         .mockReturnValueOnce(1) // seenInQueue = true
-      
+
       deserializeWrappedDataMock.mockReturnValueOnce(expectedWrappedData)
 
       const result = deserializeWrappedDataFromQueue(mockStream)
 
       expect(result).toEqual({
         ...expectedWrappedData,
-        seenInQueue: true
+        seenInQueue: true,
       })
       expect(mockStream.readUInt8).toHaveBeenCalledTimes(2)
       expect(deserializeWrappedDataMock).toHaveBeenCalledWith(mockStream)
@@ -150,29 +150,27 @@ describe('WrappedDataFromQueue', () => {
         stateId: 'state-012',
         data: { value: 'test2' },
         timestamp: 9876543210,
-        syncData: { extra: 'data' }
+        syncData: { extra: 'data' },
       }
 
       ;(mockStream.readUInt8 as jest.Mock)
         .mockReturnValueOnce(cWrappedDataFromQueueBinaryVersion)
         .mockReturnValueOnce(0) // seenInQueue = false
-      
+
       deserializeWrappedDataMock.mockReturnValueOnce(expectedWrappedData)
 
       const result = deserializeWrappedDataFromQueue(mockStream)
 
       expect(result).toEqual({
         ...expectedWrappedData,
-        seenInQueue: false
+        seenInQueue: false,
       })
     })
 
     it('should throw error for version mismatch', () => {
       ;(mockStream.readUInt8 as jest.Mock).mockReturnValueOnce(cWrappedDataFromQueueBinaryVersion + 1)
 
-      expect(() => deserializeWrappedDataFromQueue(mockStream)).toThrow(
-        'WrappedDataFromQueue version mismatch'
-      )
+      expect(() => deserializeWrappedDataFromQueue(mockStream)).toThrow('WrappedDataFromQueue version mismatch')
       expect(deserializeWrappedDataMock).not.toHaveBeenCalled()
     })
 
@@ -181,20 +179,20 @@ describe('WrappedDataFromQueue', () => {
         accountId: 'account-v0',
         stateId: 'state-v0',
         data: {},
-        timestamp: 0
+        timestamp: 0,
       }
 
       ;(mockStream.readUInt8 as jest.Mock)
         .mockReturnValueOnce(0) // version 0
         .mockReturnValueOnce(1) // seenInQueue = true
-      
+
       deserializeWrappedDataMock.mockReturnValueOnce(expectedWrappedData)
 
       const result = deserializeWrappedDataFromQueue(mockStream)
 
       expect(result).toEqual({
         ...expectedWrappedData,
-        seenInQueue: true
+        seenInQueue: true,
       })
     })
 
@@ -203,7 +201,7 @@ describe('WrappedDataFromQueue', () => {
         accountId: 'test',
         stateId: 'test',
         data: {},
-        timestamp: 1
+        timestamp: 1,
       }
 
       // Test value 1 -> true
@@ -211,7 +209,7 @@ describe('WrappedDataFromQueue', () => {
         .mockReturnValueOnce(1) // version
         .mockReturnValueOnce(1) // seenInQueue
       deserializeWrappedDataMock.mockReturnValueOnce(baseData)
-      
+
       let result = deserializeWrappedDataFromQueue(mockStream)
       expect(result.seenInQueue).toBe(true)
 
@@ -223,7 +221,7 @@ describe('WrappedDataFromQueue', () => {
         .mockReturnValueOnce(1) // version
         .mockReturnValueOnce(0) // seenInQueue
       deserializeWrappedDataMock.mockReturnValueOnce(baseData)
-      
+
       result = deserializeWrappedDataFromQueue(mockStream)
       expect(result.seenInQueue).toBe(false)
 
@@ -235,7 +233,7 @@ describe('WrappedDataFromQueue', () => {
         .mockReturnValueOnce(1) // version
         .mockReturnValueOnce(42) // seenInQueue (non-1 value)
       deserializeWrappedDataMock.mockReturnValueOnce(baseData)
-      
+
       result = deserializeWrappedDataFromQueue(mockStream)
       expect(result.seenInQueue).toBe(false)
     })

@@ -1,14 +1,14 @@
 // Mock modules before imports
 jest.mock('../../../src/p2p/Apoptosis', () => ({
-  addCycleFieldQuery: 'ALTER TABLE cycles ADD COLUMN IF NOT EXISTS archiversAtShutdown JSON'
+  addCycleFieldQuery: 'ALTER TABLE cycles ADD COLUMN IF NOT EXISTS archiversAtShutdown JSON',
 }))
 jest.mock('../../../src/p2p/Context', () => ({
   config: {
     stateManager: {
-      useAccountCopiesTable: true
-    }
+      useAccountCopiesTable: true,
+    },
   },
-  setDefaultConfigs: jest.fn()
+  setDefaultConfigs: jest.fn(),
 }))
 jest.mock('../../../src/storage/sqlite3storage')
 jest.mock('../../../src/logger', () => ({
@@ -17,24 +17,24 @@ jest.mock('../../../src/logger', () => ({
       info: jest.fn(),
       error: jest.fn(),
       debug: jest.fn(),
-      fatal: jest.fn()
-    })
+      fatal: jest.fn(),
+    }),
   })),
   logFlags: {
     important_as_fatal: false,
     p2pNonFatal: false,
     console: false,
-    error: false
-  }
+    error: false,
+  },
 }))
 jest.mock('../../../src/utils/profiler')
 jest.mock('../../../src/utils/nestedCounters', () => ({
   nestedCountersInstance: {
-    countEvent: jest.fn()
-  }
+    countEvent: jest.fn(),
+  },
 }))
 jest.mock('../../../src/network', () => ({
-  shardusGetTime: jest.fn().mockReturnValue(1234567890)
+  shardusGetTime: jest.fn().mockReturnValue(1234567890),
 }))
 jest.mock('@shardeum-foundation/lib-types', () => ({
   Utils: {
@@ -45,11 +45,11 @@ jest.mock('@shardeum-foundation/lib-types', () => ({
       } catch {
         return null
       }
-    })
-  }
+    }),
+  },
 }))
 jest.mock('../../../src/snapshot', () => ({
-  oldDataPath: null
+  oldDataPath: null,
 }))
 jest.mock('../../../src/state-manager')
 jest.mock('../../../src/storage/models', () => [
@@ -64,7 +64,7 @@ jest.mock('../../../src/storage/models', () => [
   ['summary', {}],
   ['network', {}],
   ['networkReceipt', {}],
-  ['networkSummary', {}]
+  ['networkSummary', {}],
 ])
 
 import Storage from '../../../src/storage/index'
@@ -96,14 +96,14 @@ describe('Storage', () => {
         info: jest.fn(),
         error: jest.fn(),
         debug: jest.fn(),
-        fatal: jest.fn()
-      })
+        fatal: jest.fn(),
+      }),
     }
 
     // Setup mock profiler
     mockProfiler = {
       profileSectionStart: jest.fn(),
-      profileSectionEnd: jest.fn()
+      profileSectionEnd: jest.fn(),
     }
 
     // Setup mock sqlite storage
@@ -132,8 +132,8 @@ describe('Storage', () => {
         summary: 'summary',
         network: 'network',
         networkReceipt: 'networkReceipt',
-        networkSummary: 'networkSummary'
-      }
+        networkSummary: 'networkSummary',
+      },
     }
 
     // Mock the Sqlite3Storage constructor
@@ -144,8 +144,8 @@ describe('Storage', () => {
     mockServerConfig = {
       debug: {
         recordAcceptedTx: true,
-        recordAccountStates: true
-      }
+        recordAccountStates: true,
+      },
     } as ShardusTypes.StrictServerConfiguration
 
     // Create storage instance
@@ -190,7 +190,7 @@ describe('Storage', () => {
         'summary',
         'network',
         'networkReceipt',
-        'networkSummary'
+        'networkSummary',
       ]
 
       expect(mockSqliteStorage.runCreate).toHaveBeenCalledTimes(expectedTables.length)
@@ -262,7 +262,7 @@ describe('Storage', () => {
       it('should update cycle successfully', async () => {
         const record = { counter: 1 }
         const newRecord = { counter: 1, marker: 'updated' }
-        
+
         await storage.updateCycle(record, newRecord)
 
         expect(mockSqliteStorage._update).toHaveBeenCalledWith('cycles', newRecord, record, undefined)
@@ -345,20 +345,15 @@ describe('Storage', () => {
 
     describe('listCycles', () => {
       it('should return list of cycles', async () => {
-        const mockCycles = [
-          { dataValues: { counter: 1 } },
-          { dataValues: { counter: 2 } }
-        ]
+        const mockCycles = [{ dataValues: { counter: 1 } }, { dataValues: { counter: 2 } }]
         mockSqliteStorage._read.mockResolvedValueOnce(mockCycles)
 
         const result = await storage.listCycles()
 
         expect(result).toEqual([{ counter: 1 }, { counter: 2 }])
-        expect(mockSqliteStorage._read).toHaveBeenCalledWith(
-          'cycles',
-          null,
-          { attributes: { exclude: ['createdAt', 'updatedAt'] } }
-        )
+        expect(mockSqliteStorage._read).toHaveBeenCalledWith('cycles', null, {
+          attributes: { exclude: ['createdAt', 'updatedAt'] },
+        })
       })
     })
 
@@ -397,14 +392,10 @@ describe('Storage', () => {
         const result = await storage.getNodes(node)
 
         expect(result).toEqual(mockNodes)
-        expect(mockSqliteStorage._read).toHaveBeenCalledWith(
-          'nodes',
-          node,
-          {
-            attributes: { exclude: ['createdAt', 'updatedAt'] },
-            raw: true
-          }
-        )
+        expect(mockSqliteStorage._read).toHaveBeenCalledWith('nodes', node, {
+          attributes: { exclude: ['createdAt', 'updatedAt'] },
+          raw: true,
+        })
       })
     })
 
@@ -424,11 +415,7 @@ describe('Storage', () => {
         const node = { id: 'node1' }
         await storage.deleteNodes(node)
 
-        expect(mockSqliteStorage._delete).toHaveBeenCalledWith(
-          'nodes',
-          { id: { [Op.in]: ['node1'] } },
-          undefined
-        )
+        expect(mockSqliteStorage._delete).toHaveBeenCalledWith('nodes', { id: { [Op.in]: ['node1'] } }, undefined)
       })
 
       it('should delete multiple nodes', async () => {
@@ -446,15 +433,11 @@ describe('Storage', () => {
         // Mock logFlags.error to be true
         const logFlags = require('../../../src/logger').logFlags
         logFlags.error = true
-        
+
         const nodes = [{ id: 'node1' }, { noId: 'test' }]
         await storage.deleteNodes(nodes)
 
-        expect(mockSqliteStorage._delete).toHaveBeenCalledWith(
-          'nodes',
-          { id: { [Op.in]: ['node1'] } },
-          undefined
-        )
+        expect(mockSqliteStorage._delete).toHaveBeenCalledWith('nodes', { id: { [Op.in]: ['node1'] } }, undefined)
         expect(storage.mainLogger.error).toHaveBeenCalled()
       })
     })
@@ -507,11 +490,11 @@ describe('Storage', () => {
       it('should return property value when found', async () => {
         const testValue = { test: 'value' }
         const jsonValue = JSON.stringify(testValue)
-        
+
         // Reset and setup the Utils mock
         ;(Utils.safeJsonParse as jest.Mock).mockClear()
         ;(Utils.safeJsonParse as jest.Mock).mockReturnValueOnce(testValue)
-        
+
         // Mock the _read to return a property with a JSON string value
         mockSqliteStorage._read.mockResolvedValueOnce([{ value: jsonValue }])
 
@@ -541,10 +524,7 @@ describe('Storage', () => {
 
     describe('listProperties', () => {
       it('should return list of property keys', async () => {
-        mockSqliteStorage._read.mockResolvedValueOnce([
-          { key: 'key1' },
-          { key: 'key2' }
-        ])
+        mockSqliteStorage._read.mockResolvedValueOnce([{ key: 'key1' }, { key: 'key2' }])
 
         const result = await storage.listProperties()
 
@@ -588,11 +568,7 @@ describe('Storage', () => {
         const transactions = [{ txId: 'tx1', timestamp: 123 }]
         await storage.addAcceptedTransactions(transactions)
 
-        expect(mockSqliteStorage._create).toHaveBeenCalledWith(
-          'acceptedTxs',
-          transactions,
-          { createOrReplace: true }
-        )
+        expect(mockSqliteStorage._create).toHaveBeenCalledWith('acceptedTxs', transactions, { createOrReplace: true })
       })
 
       it('should not add transactions when recordAcceptedTx is false', async () => {
@@ -624,7 +600,7 @@ describe('Storage', () => {
             limit: 10,
             order: [['timestamp', 'ASC']],
             attributes: { exclude: ['createdAt', 'updatedAt', 'id'] },
-            raw: true
+            raw: true,
           }
         )
       })
@@ -644,7 +620,7 @@ describe('Storage', () => {
           {
             order: [['timestamp', 'ASC']],
             attributes: { exclude: ['createdAt', 'updatedAt', 'id'] },
-            raw: true
+            raw: true,
           }
         )
       })
@@ -659,7 +635,7 @@ describe('Storage', () => {
           { timestamp: { [Op.between]: [100, 200] } },
           {
             attributes: { exclude: ['createdAt', 'updatedAt', 'id'] },
-            raw: true
+            raw: true,
           }
         )
       })
@@ -670,7 +646,7 @@ describe('Storage', () => {
     beforeEach(async () => {
       await storage.init()
       storage.stateManager = {
-        initApoptosisAndQuitSyncing: jest.fn()
+        initApoptosisAndQuitSyncing: jest.fn(),
       } as any
     })
 
@@ -679,11 +655,9 @@ describe('Storage', () => {
         const accountStates = [{ accountId: 'acc1', txId: 'tx1' }]
         await storage.addAccountStates(accountStates)
 
-        expect(mockSqliteStorage._create).toHaveBeenCalledWith(
-          'accountStates',
-          accountStates,
-          { createOrReplace: true }
-        )
+        expect(mockSqliteStorage._create).toHaveBeenCalledWith('accountStates', accountStates, {
+          createOrReplace: true,
+        })
       })
 
       it('should not add account states when recordAccountStates is false', async () => {
@@ -697,7 +671,7 @@ describe('Storage', () => {
       it('should initiate apoptosis on database failure', async () => {
         mockSqliteStorage._create.mockRejectedValueOnce(new Error('DB Error'))
         const accountStates = [{ accountId: 'acc1' }]
-        
+
         // Should not throw, but initiate apoptosis
         await storage.addAccountStates(accountStates)
 
@@ -722,13 +696,16 @@ describe('Storage', () => {
           'accountStates',
           {
             accountId: { [Op.between]: ['acc1', 'acc9'] },
-            txTimestamp: { [Op.between]: [100, 200] }
+            txTimestamp: { [Op.between]: [100, 200] },
           },
           {
             limit: 10,
-            order: [['txTimestamp', 'ASC'], ['accountId', 'ASC']],
+            order: [
+              ['txTimestamp', 'ASC'],
+              ['accountId', 'ASC'],
+            ],
             attributes: { exclude: ['createdAt', 'updatedAt', 'id'] },
-            raw: true
+            raw: true,
           }
         )
       })
@@ -746,12 +723,12 @@ describe('Storage', () => {
           'accountStates',
           {
             txTimestamp: { [Op.between]: [100, 200] },
-            accountId: { [Op.in]: ['acc1', 'acc2'] }
+            accountId: { [Op.in]: ['acc1', 'acc2'] },
           },
           {
             order: [['address', 'ASC']],
             attributes: { exclude: ['createdAt', 'updatedAt', 'id'] },
-            raw: true
+            raw: true,
           }
         )
       })
@@ -785,7 +762,7 @@ describe('Storage', () => {
           { accountId: 'acc1', txTimestamp: 123 },
           {
             attributes: { exclude: ['createdAt', 'updatedAt', 'id'] },
-            raw: true
+            raw: true,
           }
         )
       })
@@ -799,11 +776,11 @@ describe('Storage', () => {
           'accountStates',
           {
             txTimestamp: { [Op.between]: [100, 200] },
-            accountId: { [Op.in]: ['acc1', 'acc2'] }
+            accountId: { [Op.in]: ['acc1', 'acc2'] },
           },
           {
             attributes: { exclude: ['createdAt', 'updatedAt', 'id'] },
-            raw: true
+            raw: true,
           }
         )
       })
@@ -831,11 +808,7 @@ describe('Storage', () => {
         const partition = { partitionId: 'p1', cycleNumber: 1, hash: 'hash1' }
         await storage.addPartitionHash(partition)
 
-        expect(mockSqliteStorage._create).toHaveBeenCalledWith(
-          'partitions',
-          partition,
-          { createOrReplace: true }
-        )
+        expect(mockSqliteStorage._create).toHaveBeenCalledWith('partitions', partition, { createOrReplace: true })
       })
     })
 
@@ -844,11 +817,7 @@ describe('Storage', () => {
         const receiptMap = { partitionId: 'p1', cycleNumber: 1, hash: 'hash1' }
         await storage.addReceiptMapHash(receiptMap)
 
-        expect(mockSqliteStorage._create).toHaveBeenCalledWith(
-          'receipt',
-          receiptMap,
-          { createOrReplace: true }
-        )
+        expect(mockSqliteStorage._create).toHaveBeenCalledWith('receipt', receiptMap, { createOrReplace: true })
       })
     })
 
@@ -857,11 +826,7 @@ describe('Storage', () => {
         const summaryHash = { partitionId: 'p1', cycleNumber: 1, hash: 'hash1' }
         await storage.addSummaryHash(summaryHash)
 
-        expect(mockSqliteStorage._create).toHaveBeenCalledWith(
-          'summary',
-          summaryHash,
-          { createOrReplace: true }
-        )
+        expect(mockSqliteStorage._create).toHaveBeenCalledWith('summary', summaryHash, { createOrReplace: true })
       })
     })
 
@@ -870,11 +835,7 @@ describe('Storage', () => {
         const networkState = { cycleNumber: 1, hash: 'hash1' }
         await storage.addNetworkState(networkState)
 
-        expect(mockSqliteStorage._create).toHaveBeenCalledWith(
-          'network',
-          networkState,
-          { createOrReplace: true }
-        )
+        expect(mockSqliteStorage._create).toHaveBeenCalledWith('network', networkState, { createOrReplace: true })
       })
     })
 
@@ -883,11 +844,9 @@ describe('Storage', () => {
         const networkReceipt = { cycleNumber: 1, hash: 'hash1' }
         await storage.addNetworkReceipt(networkReceipt)
 
-        expect(mockSqliteStorage._create).toHaveBeenCalledWith(
-          'networkReceipt',
-          networkReceipt,
-          { createOrReplace: true }
-        )
+        expect(mockSqliteStorage._create).toHaveBeenCalledWith('networkReceipt', networkReceipt, {
+          createOrReplace: true,
+        })
       })
     })
 
@@ -896,11 +855,9 @@ describe('Storage', () => {
         const networkSummary = { cycleNumber: 1, hash: 'hash1' }
         await storage.addNetworkSummary(networkSummary)
 
-        expect(mockSqliteStorage._create).toHaveBeenCalledWith(
-          'networkSummary',
-          networkSummary,
-          { createOrReplace: true }
-        )
+        expect(mockSqliteStorage._create).toHaveBeenCalledWith('networkSummary', networkSummary, {
+          createOrReplace: true,
+        })
       })
     })
 
@@ -912,16 +869,12 @@ describe('Storage', () => {
         const result = await storage.getLastOldNetworkHash()
 
         expect(result).toEqual(mockHash)
-        expect(mockSqliteStorage._readOld).toHaveBeenCalledWith(
-          'network',
-          null,
-          {
-            limit: 1,
-            order: [['cycleNumber', 'DESC']],
-            attributes: { exclude: ['createdAt', 'updatedAt', 'id'] },
-            raw: true
-          }
-        )
+        expect(mockSqliteStorage._readOld).toHaveBeenCalledWith('network', null, {
+          limit: 1,
+          order: [['cycleNumber', 'DESC']],
+          attributes: { exclude: ['createdAt', 'updatedAt', 'id'] },
+          raw: true,
+        })
       })
     })
 
@@ -969,11 +922,7 @@ describe('Storage', () => {
         const accountCopy = { accountId: 'acc1', cycleNumber: 1 }
         await storage.createOrReplaceAccountCopy(accountCopy)
 
-        expect(mockSqliteStorage._create).toHaveBeenCalledWith(
-          'accountsCopy',
-          accountCopy,
-          { createOrReplace: true }
-        )
+        expect(mockSqliteStorage._create).toHaveBeenCalledWith('accountsCopy', accountCopy, { createOrReplace: true })
       })
     })
 
@@ -1009,11 +958,11 @@ describe('Storage', () => {
           'accountsCopy',
           {
             cycleNumber: { [Op.gte]: 5 },
-            accountId: { [Op.in]: ['acc1', 'acc2'] }
+            accountId: { [Op.in]: ['acc1', 'acc2'] },
           },
           {
             attributes: { exclude: ['createdAt', 'updatedAt'] },
-            raw: true
+            raw: true,
           }
         )
       })
@@ -1057,10 +1006,7 @@ describe('Storage', () => {
         const result = await storage.getGlobalAccountCopies(5)
 
         expect(result).toEqual(mockCopies)
-        expect(mockSqliteStorage._rawQuery).toHaveBeenCalledWith(
-          expect.stringContaining('and a.isGlobal=true'),
-          []
-        )
+        expect(mockSqliteStorage._rawQuery).toHaveBeenCalledWith(expect.stringContaining('and a.isGlobal=true'), [])
       })
     })
 

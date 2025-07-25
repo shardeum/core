@@ -151,22 +151,23 @@ class Debug {
     this.network.registerExternalGet('debug_problematicNodeCacheExport', isDebugModeMiddleware, (_, res) => {
       try {
         const cacheData = ProblemNodeHandler.exportProblematicNodeCache()
-        
+
         if (!cacheData) {
-          res.json({ 
-            success: false, 
-            error: 'Problematic node cache is not enabled or not available. Ensure enableProblematicNodeCacheBuilding is true.' 
+          res.json({
+            success: false,
+            error:
+              'Problematic node cache is not enabled or not available. Ensure enableProblematicNodeCacheBuilding is true.',
           })
           return
         }
 
-        res.json({ 
-          success: true, 
+        res.json({
+          success: true,
           data: {
             compressed: true,
             cache: cacheData,
-            timestamp: Date.now()
-          }
+            timestamp: Date.now(),
+          },
         })
       } catch (e) {
         res.json({ success: false, error: e.message })
@@ -177,32 +178,39 @@ class Debug {
         // Check if we have a current cycle
         const currentCycleRecord = CycleChain.newest
         if (!currentCycleRecord) {
-          res.json({ 
-            success: false, 
-            error: 'No current cycle available' 
+          res.json({
+            success: false,
+            error: 'No current cycle available',
           })
           return
         }
 
         // Get problematic nodes using the standard method
         const problematicNodeIds = ProblemNodeHandler.getProblematicNodes(currentCycleRecord)
-        
-        // Get detailed info for each problematic node
-        const problematicNodesInfo = problematicNodeIds.map(nodeId => {
-          const node = NodeList.nodes.get(nodeId)
-          if (!node) return null
-          
-          return {
-            id: nodeId.substring(0, 8),
-            fullId: nodeId,
-            refuteCycles: node.refuteCycles || [],
-            consecutiveRefutes: ProblemNodeHandler.getConsecutiveRefutes(node.refuteCycles || [], currentCycleRecord.counter),
-            refutePercentage: (ProblemNodeHandler.getRefutePercentage(node.refuteCycles || [], currentCycleRecord.counter) * 100).toFixed(1)
-          }
-        }).filter(n => n !== null)
 
-        res.json({ 
-          success: true, 
+        // Get detailed info for each problematic node
+        const problematicNodesInfo = problematicNodeIds
+          .map((nodeId) => {
+            const node = NodeList.nodes.get(nodeId)
+            if (!node) return null
+
+            return {
+              id: nodeId.substring(0, 8),
+              fullId: nodeId,
+              refuteCycles: node.refuteCycles || [],
+              consecutiveRefutes: ProblemNodeHandler.getConsecutiveRefutes(
+                node.refuteCycles || [],
+                currentCycleRecord.counter
+              ),
+              refutePercentage: (
+                ProblemNodeHandler.getRefutePercentage(node.refuteCycles || [], currentCycleRecord.counter) * 100
+              ).toFixed(1),
+            }
+          })
+          .filter((n) => n !== null)
+
+        res.json({
+          success: true,
           data: {
             currentCycle: currentCycleRecord.counter,
             totalActiveNodes: NodeList.activeByIdOrder.length,
@@ -212,9 +220,9 @@ class Debug {
             thresholds: {
               consecutiveRefutes: config.p2p.problematicNodeConsecutiveRefuteThreshold,
               refutePercentage: config.p2p.problematicNodeRefutePercentageThreshold,
-              historyLength: config.p2p.problematicNodeHistoryLength
-            }
-          }
+              historyLength: config.p2p.problematicNodeHistoryLength,
+            },
+          },
         })
       } catch (e) {
         res.json({ success: false, error: e.message })
@@ -257,23 +265,23 @@ class Debug {
             Context.config.debug.slowResponseChance = 0
             Context.config.debug.slowResponseDelay = 0
           }
-          
+
           // Also reset network delay if it was set
           if (this.network.setDebugNetworkDelay) {
             this.network.setDebugNetworkDelay(0)
           }
 
           nestedCountersInstance.countEvent('debug', 'simulateProblematic reset')
-          res.json({ 
-            success: true, 
+          res.json({
+            success: true,
             message: 'Problematic simulation settings reset',
             settings: {
               missConsensus: 0,
               networkDelay: 0,
               dropMessages: 0,
               slowResponse: 0,
-              slowDelayMs: 0
-            }
+              slowDelayMs: 0,
+            },
           })
         } else {
           // Apply new settings
@@ -293,9 +301,12 @@ class Debug {
             this.network.setDebugNetworkDelay(networkDelay)
           }
 
-          nestedCountersInstance.countEvent('debug', `simulateProblematic configured: miss=${missConsensus}, delay=${networkDelay}, drop=${dropMessages}, slow=${slowResponse}/${slowDelayMs}ms`)
-          
-          res.json({ 
+          nestedCountersInstance.countEvent(
+            'debug',
+            `simulateProblematic configured: miss=${missConsensus}, delay=${networkDelay}, drop=${dropMessages}, slow=${slowResponse}/${slowDelayMs}ms`
+          )
+
+          res.json({
             success: true,
             message: 'Problematic simulation settings applied',
             settings: {
@@ -303,8 +314,8 @@ class Debug {
               networkDelay,
               dropMessages,
               slowResponse,
-              slowDelayMs
-            }
+              slowDelayMs,
+            },
           })
         }
       } catch (e) {

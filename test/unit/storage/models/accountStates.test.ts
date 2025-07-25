@@ -59,9 +59,9 @@ describe('accountStates', () => {
     const schema = accountStates[1] as any
     const expectedFields = ['accountId', 'txId', 'txTimestamp', 'stateBefore', 'stateAfter']
     const actualFields = Object.keys(schema)
-    
+
     expect(actualFields).toHaveLength(expectedFields.length)
-    expectedFields.forEach(field => {
+    expectedFields.forEach((field) => {
       expect(actualFields).toContain(field)
     })
   })

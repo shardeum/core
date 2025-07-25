@@ -57,10 +57,7 @@ describe('GetCachedAppDataResp', () => {
       initGetCachedAppDataResp()
 
       expect(addSchemaSpy).toHaveBeenCalledTimes(1)
-      expect(addSchemaSpy).toHaveBeenCalledWith(
-        AJVSchemaEnum.GetCachedAppDataResp,
-        schemaGetCachedAppDataResp
-      )
+      expect(addSchemaSpy).toHaveBeenCalledWith(AJVSchemaEnum.GetCachedAppDataResp, schemaGetCachedAppDataResp)
     })
 
     it('should not throw any errors', () => {

@@ -3,7 +3,7 @@ import { Op } from '../../../../src/storage/utils/sqlOpertors'
 
 /**
  * Test suite for SQL operators
- * 
+ *
  * This test suite covers:
  * 1. Op object validation
  * 2. Symbol uniqueness and identity
@@ -30,8 +30,8 @@ describe('SQL Operators', () => {
      */
     it('should contain all expected operators', () => {
       const expectedOperators = ['gte', 'lte', 'in', 'between']
-      
-      expectedOperators.forEach(operator => {
+
+      expectedOperators.forEach((operator) => {
         expect(Op).toHaveProperty(operator)
         expect(Op[operator as keyof typeof Op]).toBeDefined()
       })
@@ -51,7 +51,7 @@ describe('SQL Operators', () => {
      * Symbols are used to ensure uniqueness of operators
      */
     it('should have Symbol values for all operators', () => {
-      Object.values(Op).forEach(value => {
+      Object.values(Op).forEach((value) => {
         expect(typeof value).toBe('symbol')
       })
     })
@@ -74,9 +74,9 @@ describe('SQL Operators', () => {
     it('should have unique Symbols for each operator', () => {
       const symbols = Object.values(Op)
       const uniqueSymbols = new Set(symbols)
-      
+
       expect(uniqueSymbols.size).toBe(symbols.length)
-      
+
       // Additional test: no two symbols should be equal
       expect(Op.gte).not.toBe(Op.lte)
       expect(Op.gte).not.toBe(Op.in)
@@ -93,16 +93,16 @@ describe('SQL Operators', () => {
     it('should be immutable', () => {
       // Test that the object is frozen
       expect(Object.isFrozen(Op)).toBe(false) // Note: The actual object is not frozen
-      
+
       // Test that we cannot add new properties
       const originalLength = Object.keys(Op).length
       // @ts-expect-error - Testing runtime behavior
       Op.newOperator = Symbol('newOperator')
-      
+
       // If the object was truly immutable, this would still be the original length
       // Since it's not frozen, we can add properties
       expect(Object.keys(Op).length).toBe(originalLength + 1)
-      
+
       // Clean up
       // @ts-expect-error - Cleaning up test modification
       delete Op.newOperator
@@ -116,14 +116,14 @@ describe('SQL Operators', () => {
       const query = {
         age: {
           [Op.gte]: 18,
-          [Op.lte]: 65
+          [Op.lte]: 65,
         },
         status: {
-          [Op.in]: ['active', 'pending']
+          [Op.in]: ['active', 'pending'],
         },
         price: {
-          [Op.between]: [10, 100]
-        }
+          [Op.between]: [10, 100],
+        },
       }
 
       expect(query.age[Op.gte]).toBe(18)
@@ -164,7 +164,7 @@ describe('SQL Operators', () => {
      */
     it('should maintain type safety when used', () => {
       type OpType = typeof Op[keyof typeof Op]
-      
+
       function isValidOperator(value: unknown): value is OpType {
         return Object.values(Op).includes(value as symbol)
       }
@@ -207,7 +207,7 @@ describe('SQL Operators', () => {
     it('should handle JSON serialization correctly', () => {
       const query = {
         [Op.gte]: 10,
-        normalKey: 'value'
+        normalKey: 'value',
       }
 
       const jsonString = JSON.stringify(query)
@@ -226,7 +226,7 @@ describe('SQL Operators', () => {
       const query = {
         [Op.gte]: 10,
         [Op.lte]: 20,
-        normalKey: 'value'
+        normalKey: 'value',
       }
 
       const symbols = Object.getOwnPropertySymbols(query)
@@ -244,20 +244,20 @@ describe('SQL Operators', () => {
         user: {
           age: {
             [Op.gte]: 18,
-            [Op.lte]: 99
+            [Op.lte]: 99,
           },
           role: {
-            [Op.in]: ['admin', 'moderator', 'user']
-          }
+            [Op.in]: ['admin', 'moderator', 'user'],
+          },
         },
         product: {
           price: {
-            [Op.between]: [10.99, 99.99]
+            [Op.between]: [10.99, 99.99],
           },
           quantity: {
-            [Op.gte]: 1
-          }
-        }
+            [Op.gte]: 1,
+          },
+        },
       }
 
       // Verify the structure

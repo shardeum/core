@@ -58,10 +58,7 @@ describe('CachedAppData', () => {
       initCachedAppData()
 
       expect(mockAddSchema).toHaveBeenCalledTimes(1)
-      expect(mockAddSchema).toHaveBeenCalledWith(
-        AJVSchemaEnum.CachedAppData,
-        schemaCachedAppData
-      )
+      expect(mockAddSchema).toHaveBeenCalledWith(AJVSchemaEnum.CachedAppData, schemaCachedAppData)
     })
 
     it('should not throw any errors during initialization', () => {
@@ -90,7 +87,7 @@ describe('CachedAppData', () => {
 
     it('should have all properties marked as required', () => {
       const propertyNames = Object.keys(schemaCachedAppData.properties)
-      propertyNames.forEach(prop => {
+      propertyNames.forEach((prop) => {
         expect(schemaCachedAppData.required).toContain(prop)
       })
     })

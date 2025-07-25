@@ -19,27 +19,24 @@ describe('SyncTrieHashesReq', () => {
       initSyncTrieHashesReq()
 
       expect(addSchemaSpy).toHaveBeenCalledTimes(1)
-      expect(addSchemaSpy).toHaveBeenCalledWith(
-        AJVSchemaEnum.SyncTrieHashesReq,
-        {
-          type: 'object',
-          properties: {
-            cycle: { type: 'number' },
-            nodeHashes: {
-              type: 'array',
-              items: {
-                type: 'object',
-                properties: {
-                  radix: { type: 'string' },
-                  hash: { type: 'string' },
-                },
-                required: ['radix', 'hash'],
+      expect(addSchemaSpy).toHaveBeenCalledWith(AJVSchemaEnum.SyncTrieHashesReq, {
+        type: 'object',
+        properties: {
+          cycle: { type: 'number' },
+          nodeHashes: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                radix: { type: 'string' },
+                hash: { type: 'string' },
               },
+              required: ['radix', 'hash'],
             },
           },
-          required: ['cycle', 'nodeHashes'],
-        }
-      )
+        },
+        required: ['cycle', 'nodeHashes'],
+      })
     })
 
     it('should not throw any errors', () => {
@@ -69,7 +66,7 @@ describe('SyncTrieHashesReq', () => {
       initSyncTrieHashesReq()
 
       const { properties } = capturedSchema
-      
+
       expect(properties.cycle).toEqual({ type: 'number' })
       expect(properties.nodeHashes).toBeDefined()
     })
@@ -122,7 +119,7 @@ describe('SyncTrieHashesReq', () => {
       initSyncTrieHashesReq()
 
       const { properties, required } = capturedSchema
-      
+
       // Check all required fields have corresponding properties
       required.forEach((field: string) => {
         expect(properties).toHaveProperty(field)

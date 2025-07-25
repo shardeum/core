@@ -85,7 +85,7 @@ describe('receipt model', () => {
       cycleNumber: { type: SQLDataTypes.STRING, allowNull: false, unique: 'compositeIndex' },
       hash: { type: SQLDataTypes.STRING, allowNull: false },
     }
-    
+
     expect(receipt[1]).toEqual(expectedSchema)
   })
 })

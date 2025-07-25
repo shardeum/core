@@ -1,8 +1,8 @@
-import { 
-  serializeWrappedData, 
-  deserializeWrappedData, 
+import {
+  serializeWrappedData,
+  deserializeWrappedData,
   WrappedData,
-  cWrappedDataVersion 
+  cWrappedDataVersion,
 } from '../../../src/types/WrappedData'
 import { VectorBufferStream } from '../../../src/utils/serialization/VectorBufferStream'
 import { TypeIdentifierEnum } from '../../../src/types/enum/TypeIdentifierEnum'
@@ -14,9 +14,9 @@ jest.mock('../../../src/p2p/Context', () => ({
   stateManager: {
     app: {
       binarySerializeObject: jest.fn(),
-      binaryDeserializeObject: jest.fn()
-    }
-  }
+      binaryDeserializeObject: jest.fn(),
+    },
+  },
 }))
 
 const { stateManager } = require('../../../src/p2p/Context')
@@ -35,7 +35,7 @@ describe('WrappedData', () => {
       readUInt8: jest.fn(),
       readString: jest.fn(),
       readBuffer: jest.fn(),
-      readBigUInt64: jest.fn()
+      readBigUInt64: jest.fn(),
     } as unknown as VectorBufferStream
   })
 
@@ -44,7 +44,7 @@ describe('WrappedData', () => {
       accountId: 'acc123',
       stateId: 'state456',
       data: { someField: 'someValue' },
-      timestamp: 1234567890
+      timestamp: 1234567890,
     }
 
     it('should serialize without root flag and without syncData', () => {
@@ -76,10 +76,10 @@ describe('WrappedData', () => {
     it('should serialize with syncData', () => {
       const mockSerializedData = Buffer.from('serialized data')
       stateManager.app.binarySerializeObject.mockReturnValue(mockSerializedData)
-      
+
       const dataWithSync: WrappedData = {
         ...mockData,
-        syncData: { syncField: 'syncValue', nested: { value: 123 } }
+        syncData: { syncField: 'syncValue', nested: { value: 123 } },
       }
 
       serializeWrappedData(mockStream, dataWithSync)
@@ -91,12 +91,12 @@ describe('WrappedData', () => {
     it('should handle empty string fields', () => {
       const mockSerializedData = Buffer.from('serialized data')
       stateManager.app.binarySerializeObject.mockReturnValue(mockSerializedData)
-      
+
       const dataWithEmptyStrings: WrappedData = {
         accountId: '',
         stateId: '',
         data: {},
-        timestamp: 0
+        timestamp: 0,
       }
 
       serializeWrappedData(mockStream, dataWithEmptyStrings)
@@ -117,7 +117,7 @@ describe('WrappedData', () => {
       expect(mockStream.writeString).toHaveBeenCalledTimes(2) // accountId and stateId
       expect(mockStream.writeBuffer).toHaveBeenCalledTimes(1)
       expect(mockStream.writeBigUInt64).toHaveBeenCalledTimes(1)
-      
+
       // Check the actual values to ensure correct order
       expect(mockStream.writeString).toHaveBeenNthCalledWith(1, 'acc123')
       expect(mockStream.writeString).toHaveBeenNthCalledWith(2, 'state456')
@@ -132,16 +132,12 @@ describe('WrappedData', () => {
     })
 
     it('should deserialize valid data without syncData', () => {
-      const mockBuffer = Buffer.from('buffer data');
+      const mockBuffer = Buffer.from('buffer data')
 
-      (mockStream.readUInt8 as jest.Mock)
-        .mockReturnValueOnce(cWrappedDataVersion)
-        .mockReturnValueOnce(0); // No syncData
-      (mockStream.readString as jest.Mock)
-        .mockReturnValueOnce('acc123')
-        .mockReturnValueOnce('state456');
-      (mockStream.readBuffer as jest.Mock).mockReturnValueOnce(mockBuffer);
-      (mockStream.readBigUInt64 as jest.Mock).mockReturnValueOnce(BigInt(1234567890))
+      ;(mockStream.readUInt8 as jest.Mock).mockReturnValueOnce(cWrappedDataVersion).mockReturnValueOnce(0) // No syncData
+      ;(mockStream.readString as jest.Mock).mockReturnValueOnce('acc123').mockReturnValueOnce('state456')
+      ;(mockStream.readBuffer as jest.Mock).mockReturnValueOnce(mockBuffer)
+      ;(mockStream.readBigUInt64 as jest.Mock).mockReturnValueOnce(BigInt(1234567890))
 
       const result = deserializeWrappedData(mockStream)
 
@@ -150,24 +146,22 @@ describe('WrappedData', () => {
         stateId: 'state456',
         data: { deserializedField: 'value' },
         timestamp: 1234567890,
-        syncData: undefined
+        syncData: undefined,
       })
       expect(stateManager.app.binaryDeserializeObject).toHaveBeenCalledWith(AppObjEnum.AppData, mockBuffer)
     })
 
     it('should deserialize valid data with syncData', () => {
       const mockBuffer = Buffer.from('buffer data')
-      const syncData = { syncField: 'syncValue' };
+      const syncData = { syncField: 'syncValue' }
 
-      (mockStream.readUInt8 as jest.Mock)
-        .mockReturnValueOnce(cWrappedDataVersion)
-        .mockReturnValueOnce(1); // Has syncData
-      (mockStream.readString as jest.Mock)
+      ;(mockStream.readUInt8 as jest.Mock).mockReturnValueOnce(cWrappedDataVersion).mockReturnValueOnce(1) // Has syncData
+      ;(mockStream.readString as jest.Mock)
         .mockReturnValueOnce('acc123')
         .mockReturnValueOnce('state456')
-        .mockReturnValueOnce(JSON.stringify(syncData));
-      (mockStream.readBuffer as jest.Mock).mockReturnValueOnce(mockBuffer);
-      (mockStream.readBigUInt64 as jest.Mock).mockReturnValueOnce(BigInt(1234567890))
+        .mockReturnValueOnce(JSON.stringify(syncData))
+      ;(mockStream.readBuffer as jest.Mock).mockReturnValueOnce(mockBuffer)
+      ;(mockStream.readBigUInt64 as jest.Mock).mockReturnValueOnce(BigInt(1234567890))
 
       const result = deserializeWrappedData(mockStream)
 
@@ -176,27 +170,23 @@ describe('WrappedData', () => {
         stateId: 'state456',
         data: { deserializedField: 'value' },
         timestamp: 1234567890,
-        syncData: syncData
+        syncData: syncData,
       })
     })
 
     it('should throw error for unsupported version', () => {
-      (mockStream.readUInt8 as jest.Mock).mockReturnValueOnce(cWrappedDataVersion + 1)
+      ;(mockStream.readUInt8 as jest.Mock).mockReturnValueOnce(cWrappedDataVersion + 1)
 
       expect(() => deserializeWrappedData(mockStream)).toThrow('WrappedData version mismatch')
     })
 
     it('should convert BigInt timestamp to number', () => {
-      const mockBuffer = Buffer.from('buffer data');
+      const mockBuffer = Buffer.from('buffer data')
 
-      (mockStream.readUInt8 as jest.Mock)
-        .mockReturnValueOnce(cWrappedDataVersion)
-        .mockReturnValueOnce(0);
-      (mockStream.readString as jest.Mock)
-        .mockReturnValueOnce('acc123')
-        .mockReturnValueOnce('state456');
-      (mockStream.readBuffer as jest.Mock).mockReturnValueOnce(mockBuffer);
-      (mockStream.readBigUInt64 as jest.Mock).mockReturnValueOnce(BigInt(9999999999999))
+      ;(mockStream.readUInt8 as jest.Mock).mockReturnValueOnce(cWrappedDataVersion).mockReturnValueOnce(0)
+      ;(mockStream.readString as jest.Mock).mockReturnValueOnce('acc123').mockReturnValueOnce('state456')
+      ;(mockStream.readBuffer as jest.Mock).mockReturnValueOnce(mockBuffer)
+      ;(mockStream.readBigUInt64 as jest.Mock).mockReturnValueOnce(BigInt(9999999999999))
 
       const result = deserializeWrappedData(mockStream)
 
@@ -205,16 +195,12 @@ describe('WrappedData', () => {
     })
 
     it('should handle empty strings', () => {
-      const mockBuffer = Buffer.from('buffer data');
+      const mockBuffer = Buffer.from('buffer data')
 
-      (mockStream.readUInt8 as jest.Mock)
-        .mockReturnValueOnce(cWrappedDataVersion)
-        .mockReturnValueOnce(0);
-      (mockStream.readString as jest.Mock)
-        .mockReturnValueOnce('')
-        .mockReturnValueOnce('');
-      (mockStream.readBuffer as jest.Mock).mockReturnValueOnce(mockBuffer);
-      (mockStream.readBigUInt64 as jest.Mock).mockReturnValueOnce(BigInt(0))
+      ;(mockStream.readUInt8 as jest.Mock).mockReturnValueOnce(cWrappedDataVersion).mockReturnValueOnce(0)
+      ;(mockStream.readString as jest.Mock).mockReturnValueOnce('').mockReturnValueOnce('')
+      ;(mockStream.readBuffer as jest.Mock).mockReturnValueOnce(mockBuffer)
+      ;(mockStream.readBigUInt64 as jest.Mock).mockReturnValueOnce(BigInt(0))
 
       const result = deserializeWrappedData(mockStream)
 
@@ -228,18 +214,16 @@ describe('WrappedData', () => {
       const complexSyncData = {
         nested: { deep: { value: 'test' } },
         array: [1, 2, 3],
-        nullValue: null
-      };
+        nullValue: null,
+      }
 
-      (mockStream.readUInt8 as jest.Mock)
-        .mockReturnValueOnce(cWrappedDataVersion)
-        .mockReturnValueOnce(1);
-      (mockStream.readString as jest.Mock)
+      ;(mockStream.readUInt8 as jest.Mock).mockReturnValueOnce(cWrappedDataVersion).mockReturnValueOnce(1)
+      ;(mockStream.readString as jest.Mock)
         .mockReturnValueOnce('acc123')
         .mockReturnValueOnce('state456')
-        .mockReturnValueOnce(JSON.stringify(complexSyncData));
-      (mockStream.readBuffer as jest.Mock).mockReturnValueOnce(mockBuffer);
-      (mockStream.readBigUInt64 as jest.Mock).mockReturnValueOnce(BigInt(1234567890))
+        .mockReturnValueOnce(JSON.stringify(complexSyncData))
+      ;(mockStream.readBuffer as jest.Mock).mockReturnValueOnce(mockBuffer)
+      ;(mockStream.readBigUInt64 as jest.Mock).mockReturnValueOnce(BigInt(1234567890))
 
       const result = deserializeWrappedData(mockStream)
 

@@ -632,9 +632,7 @@ describe('ProblematicNodeCache', () => {
 
     test('should handle concurrent metric calculations', () => {
       // Simulate concurrent calculations
-      const promises = Array.from({ length: 10 }, () =>
-        Promise.resolve(cache.calculateNodeMetrics('node1', 100))
-      )
+      const promises = Array.from({ length: 10 }, () => Promise.resolve(cache.calculateNodeMetrics('node1', 100)))
 
       return Promise.all(promises).then((results) => {
         // All should return the same metrics object
@@ -650,7 +648,7 @@ describe('ProblematicNodeCache', () => {
     beforeEach(() => {
       // Create a more straightforward test data structure
       const cyclesMap = new Map<number, string[]>()
-      
+
       // node1: Always problematic (11% refute rate) - refuted in cycles 90-100
       for (let i = 90; i <= 100; i++) {
         if (!cyclesMap.has(i)) cyclesMap.set(i, [])
@@ -673,7 +671,7 @@ describe('ProblematicNodeCache', () => {
       // Convert map to sorted array of cycles
       const cycles: Partial<P2P.CycleCreatorTypes.CycleRecord>[] = []
       const sortedCycles = Array.from(cyclesMap.keys()).sort((a, b) => a - b)
-      
+
       for (const counter of sortedCycles) {
         cycles.push({ counter, refuted: cyclesMap.get(counter) })
       }
@@ -697,13 +695,13 @@ describe('ProblematicNodeCache', () => {
       // Temporarily increase the limit to test multiple nodes
       const originalLimit = config.p2p.maxProblematicNodeRemovalsPerCycle
       config.p2p.maxProblematicNodeRemovalsPerCycle = 2
-      
+
       const activeNodes = new Set(['node1', 'node2', 'node3'])
       const result = cache.getProblematicNodes(100, activeNodes)
       expect(result).toContain('node1')
       expect(result).toContain('node2')
       expect(result).not.toContain('node3')
-      
+
       // Restore original limit
       config.p2p.maxProblematicNodeRemovalsPerCycle = originalLimit
     })
@@ -758,7 +756,7 @@ describe('ProblematicNodeCache', () => {
       // Test that meeting either threshold is sufficient
       config.p2p.problematicNodeConsecutiveRefuteThreshold = 20 // Very high
       const newCache = new ProblematicNodeCache(config)
-      
+
       const cycles: Partial<P2P.CycleCreatorTypes.CycleRecord>[] = []
       // Create 11% refute rate without consecutive
       for (let i = 1; i <= 100; i++) {
@@ -780,7 +778,7 @@ describe('ProblematicNodeCache', () => {
       config.p2p.problematicNodeRefutePercentageThreshold = 0
       let zeroCache = new ProblematicNodeCache(config)
       zeroCache.buildFromCycles([{ counter: 1, refuted: ['node1'] }] as P2P.CycleCreatorTypes.CycleRecord[])
-      
+
       let result = zeroCache.getProblematicNodes(1, new Set(['node1']))
       expect(result).toContain('node1') // Any refute should trigger
 
@@ -788,13 +786,13 @@ describe('ProblematicNodeCache', () => {
       config.p2p.problematicNodeRefutePercentageThreshold = 1.0
       config.p2p.problematicNodeConsecutiveRefuteThreshold = 999 // Disable consecutive check
       let fullCache = new ProblematicNodeCache(config)
-      
+
       const cycles: Partial<P2P.CycleCreatorTypes.CycleRecord>[] = []
       for (let i = 1; i <= 100; i++) {
         cycles.push({ counter: i, refuted: i < 100 ? ['node1'] : [] }) // 99% refute rate
       }
       fullCache.buildFromCycles(cycles as P2P.CycleCreatorTypes.CycleRecord[])
-      
+
       result = fullCache.getProblematicNodes(100, new Set(['node1']))
       expect(result).toEqual([]) // Should not be problematic at 99%
     })
@@ -845,7 +843,6 @@ describe('ProblematicNodeCache', () => {
       })
     })
 
-
     test('should handle missing cache file', () => {
       // Test loading from non-existent cache
       expect(() => ProblematicNodeCache.fromJSON(null as any, config)).toThrow()
@@ -857,7 +854,7 @@ describe('ProblematicNodeCache', () => {
       // For now, we just test the serialization is consistent
       const json1 = testCache.toJSON()
       const json2 = testCache.toJSON()
-      
+
       expect(json1).toBe(json2)
     })
 
@@ -868,39 +865,37 @@ describe('ProblematicNodeCache', () => {
         const refuted = Array.from({ length: 50 }, (_, j) => `node${j}`)
         cycles.push({ counter: i, refuted })
       }
-      
+
       const largeCache = new ProblematicNodeCache(config)
       largeCache.buildFromCycles(cycles as P2P.CycleCreatorTypes.CycleRecord[])
-      
+
       const json = largeCache.toJSON()
       const compressed = largeCache.toCompressedJSON()
-      
+
       expect(compressed.length).toBeLessThan(json.length)
     })
 
     test('should handle concurrent read/write operations', async () => {
       // Simulate concurrent operations
       const operations = []
-      
+
       // Multiple reads
       for (let i = 0; i < 5; i++) {
         operations.push(Promise.resolve(testCache.toJSON()))
       }
-      
+
       // Concurrent write
       operations.push(
-        Promise.resolve(
-          testCache.addCycle({ counter: 4, refuted: ['node4'] } as P2P.CycleCreatorTypes.CycleRecord)
-        )
+        Promise.resolve(testCache.addCycle({ counter: 4, refuted: ['node4'] } as P2P.CycleCreatorTypes.CycleRecord))
       )
-      
+
       // More reads
       for (let i = 0; i < 5; i++) {
         operations.push(Promise.resolve(testCache.toJSON()))
       }
-      
+
       const results = await Promise.all(operations)
-      
+
       // Verify all operations completed without error
       expect(results.length).toBe(11)
     })
@@ -939,7 +934,7 @@ describe('ProblematicNodeCache', () => {
       // Build cache with many nodes
       const cycles: Partial<P2P.CycleCreatorTypes.CycleRecord>[] = []
       for (let i = 1; i <= 100; i++) {
-        const refuted = Array.from({ length: 10 }, (_, j) => `node${j + (i * 10)}`)
+        const refuted = Array.from({ length: 10 }, (_, j) => `node${j + i * 10}`)
         cycles.push({ counter: i, refuted })
       }
       cache.buildFromCycles(cycles as P2P.CycleCreatorTypes.CycleRecord[])
@@ -1053,7 +1048,7 @@ describe('ProblematicNodeCache', () => {
 
       // node2: 3 consecutive refutes
       for (let i = 98; i <= 100; i++) {
-        const existing = cycles.find(c => c.counter === i)
+        const existing = cycles.find((c) => c.counter === i)
         if (existing) {
           existing.refuted.push('node2')
         } else {
@@ -1075,11 +1070,11 @@ describe('ProblematicNodeCache', () => {
       // This would use actual cycle data in a real test
       // For now, simulate realistic data
       const cycles: Partial<P2P.CycleCreatorTypes.CycleRecord>[] = []
-      
+
       // Simulate 1000 cycles with realistic refute patterns
       for (let i = 1; i <= 1000; i++) {
         const refuted: string[] = []
-        
+
         // 5% chance of refutes per cycle
         if (Math.random() < 0.05) {
           // 1-3 nodes refuted per cycle
@@ -1088,7 +1083,7 @@ describe('ProblematicNodeCache', () => {
             refuted.push(`node${Math.floor(Math.random() * 1000)}`)
           }
         }
-        
+
         cycles.push({ counter: i, refuted })
       }
 
@@ -1120,7 +1115,7 @@ describe('ProblematicNodeCache', () => {
     test('should integrate with SyncV2 correctly', () => {
       // Simulate syncing historical cycles
       const syncedCycles: Partial<P2P.CycleCreatorTypes.CycleRecord>[] = []
-      
+
       // Simulate 200 historical cycles
       for (let i = 1; i <= 200; i++) {
         syncedCycles.push({
@@ -1133,10 +1128,10 @@ describe('ProblematicNodeCache', () => {
 
       // Verify cache built correctly
       expect(cache.lastProcessedCycle).toBe(200)
-      
+
       // Verify pruning happened (should only keep last 100)
       cache.refuteHistory.forEach((cycles) => {
-        expect(cycles.every(c => c > 100)).toBe(true)
+        expect(cycles.every((c) => c > 100)).toBe(true)
       })
     })
 
@@ -1166,7 +1161,7 @@ describe('ProblematicNodeCache', () => {
     test('should handle cache corruption recovery', () => {
       // Simulate corrupted cache scenario
       const errorCache = new ProblematicNodeCache(config)
-      
+
       // If cache load fails, should be able to rebuild from cycles
       const cycles: Partial<P2P.CycleCreatorTypes.CycleRecord>[] = []
       for (let i = 1; i <= 100; i++) {
@@ -1187,8 +1182,8 @@ describe('ProblematicNodeCache', () => {
         problematicNodeHistoryLength: 100,
         problematicNodeConsecutiveRefuteThreshold: 3,
         problematicNodeRefutePercentageThreshold: 0.5,
-        maxProblematicNodeRemovalsPerCycle: 1
-      }
+        maxProblematicNodeRemovalsPerCycle: 1,
+      },
     }
 
     beforeEach(() => {
@@ -1231,7 +1226,7 @@ describe('ProblematicNodeCache', () => {
         cache.buildFromCycles(cycles)
 
         const coverage = cache.getCycleCoverage()
-        
+
         expect(coverage.totalCycles).toBe(4)
         expect(coverage.cyclesWithRefutes).toBe(1) // Only cycle 2 has refutes
         expect(coverage.cycleRange).toEqual({ min: 1, max: 5 })
@@ -1263,7 +1258,7 @@ describe('ProblematicNodeCache', () => {
         }
 
         cache.buildFromCycles(cycles)
-        
+
         // With history length of 100, cycles 1-50 should be pruned
         expect(cache.processedCycles.size).toBe(100)
         expect(cache.isCycleProcessed(1)).toBe(false)
@@ -1293,7 +1288,7 @@ describe('ProblematicNodeCache', () => {
 
         // Import and verify
         const importedCache = ProblematicNodeCache.fromJSON(json, config)
-        
+
         expect(importedCache.processedCycles.size).toBe(4)
         expect(importedCache.getProcessedCycles()).toEqual([1, 2, 3, 4])
         expect(importedCache.cycleRange).toEqual({ min: 1, max: 4 })
@@ -1310,7 +1305,7 @@ describe('ProblematicNodeCache', () => {
 
         cache.buildFromCycles(cycles)
         const memoryUsage = cache.getMemoryUsage()
-        
+
         // Should include 100 cycles * 8 bytes = 800 bytes minimum
         expect(memoryUsage).toBeGreaterThanOrEqual(800)
       })

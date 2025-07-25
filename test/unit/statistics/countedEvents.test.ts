@@ -8,7 +8,7 @@ describe('countedEvents types', () => {
         eventName: 'connectionEstablished',
         eventCount: 5,
         eventTimestamps: [1234567890, 1234567891, 1234567892],
-        eventMessages: ['Connection from peer1', 'Connection from peer2']
+        eventMessages: ['Connection from peer1', 'Connection from peer2'],
       }
 
       expect(event.eventCategory).toBe('network')
@@ -24,7 +24,7 @@ describe('countedEvents types', () => {
         eventName: 'startup',
         eventCount: 0,
         eventTimestamps: [],
-        eventMessages: []
+        eventMessages: [],
       }
 
       expect(event.eventTimestamps).toEqual([])
@@ -38,25 +38,25 @@ describe('countedEvents types', () => {
           eventName: 'PEER_CONNECTED',
           eventCount: 1,
           eventTimestamps: [Date.now()],
-          eventMessages: ['Peer connected']
+          eventMessages: ['Peer connected'],
         },
         {
           eventCategory: 'system.monitor',
           eventName: 'memory.usage.high',
           eventCount: 3,
           eventTimestamps: [Date.now()],
-          eventMessages: ['High memory usage detected']
+          eventMessages: ['High memory usage detected'],
         },
         {
           eventCategory: '123',
           eventName: '456',
           eventCount: 0,
           eventTimestamps: [],
-          eventMessages: []
-        }
+          eventMessages: [],
+        },
       ]
 
-      events.forEach(event => {
+      events.forEach((event) => {
         expect(typeof event.eventCategory).toBe('string')
         expect(typeof event.eventName).toBe('string')
       })
@@ -66,7 +66,7 @@ describe('countedEvents types', () => {
   describe('CountedEventMap type', () => {
     it('should allow creating a valid CountedEventMap', () => {
       const eventMap: CountedEventMap = new Map()
-      
+
       expect(eventMap).toBeInstanceOf(Map)
       expect(eventMap.size).toBe(0)
     })
@@ -74,18 +74,18 @@ describe('countedEvents types', () => {
     it('should allow nested map structure', () => {
       const eventMap: CountedEventMap = new Map()
       const networkEvents = new Map<string, CountedEvent>()
-      
+
       const connectionEvent: CountedEvent = {
         eventCategory: 'network',
         eventName: 'connection',
         eventCount: 1,
         eventTimestamps: [Date.now()],
-        eventMessages: ['Connected']
+        eventMessages: ['Connected'],
       }
-      
+
       networkEvents.set('connection', connectionEvent)
       eventMap.set('network', networkEvents)
-      
+
       expect(eventMap.has('network')).toBe(true)
       expect(eventMap.get('network')).toBe(networkEvents)
       expect(eventMap.get('network')?.get('connection')).toBe(connectionEvent)
@@ -93,7 +93,7 @@ describe('countedEvents types', () => {
 
     it('should handle multiple categories and events', () => {
       const eventMap: CountedEventMap = new Map()
-      
+
       // Add network category
       const networkEvents = new Map<string, CountedEvent>()
       networkEvents.set('connect', {
@@ -101,16 +101,16 @@ describe('countedEvents types', () => {
         eventName: 'connect',
         eventCount: 10,
         eventTimestamps: [],
-        eventMessages: []
+        eventMessages: [],
       })
       networkEvents.set('disconnect', {
         eventCategory: 'network',
         eventName: 'disconnect',
         eventCount: 5,
         eventTimestamps: [],
-        eventMessages: []
+        eventMessages: [],
       })
-      
+
       // Add system category
       const systemEvents = new Map<string, CountedEvent>()
       systemEvents.set('startup', {
@@ -118,12 +118,12 @@ describe('countedEvents types', () => {
         eventName: 'startup',
         eventCount: 1,
         eventTimestamps: [Date.now()],
-        eventMessages: ['System started']
+        eventMessages: ['System started'],
       })
-      
+
       eventMap.set('network', networkEvents)
       eventMap.set('system', systemEvents)
-      
+
       expect(eventMap.size).toBe(2)
       expect(eventMap.get('network')?.size).toBe(2)
       expect(eventMap.get('system')?.size).toBe(1)
@@ -132,24 +132,24 @@ describe('countedEvents types', () => {
     it('should allow iteration over the map', () => {
       const eventMap: CountedEventMap = new Map()
       const categories = ['network', 'system', 'database']
-      
-      categories.forEach(category => {
+
+      categories.forEach((category) => {
         const events = new Map<string, CountedEvent>()
         events.set('test', {
           eventCategory: category,
           eventName: 'test',
           eventCount: 1,
           eventTimestamps: [],
-          eventMessages: []
+          eventMessages: [],
         })
         eventMap.set(category, events)
       })
-      
+
       const collectedCategories: string[] = []
       for (const [category] of eventMap) {
         collectedCategories.push(category)
       }
-      
+
       expect(collectedCategories).toEqual(categories)
     })
   })
@@ -162,7 +162,7 @@ describe('countedEvents types', () => {
           eventName: name,
           eventCount: 0,
           eventTimestamps: [],
-          eventMessages: []
+          eventMessages: [],
         }
       }
 
@@ -171,7 +171,7 @@ describe('countedEvents types', () => {
           ...event,
           eventCount: event.eventCount + 1,
           eventTimestamps: [...event.eventTimestamps, Date.now()],
-          eventMessages: message ? [...event.eventMessages, message] : event.eventMessages
+          eventMessages: message ? [...event.eventMessages, message] : event.eventMessages,
         }
       }
 
@@ -184,15 +184,11 @@ describe('countedEvents types', () => {
     })
 
     it('should work with map operations', () => {
-      function getOrCreateEvent(
-        map: CountedEventMap,
-        category: string,
-        name: string
-      ): CountedEvent {
+      function getOrCreateEvent(map: CountedEventMap, category: string, name: string): CountedEvent {
         if (!map.has(category)) {
           map.set(category, new Map())
         }
-        
+
         const categoryMap = map.get(category)!
         if (!categoryMap.has(name)) {
           categoryMap.set(name, {
@@ -200,10 +196,10 @@ describe('countedEvents types', () => {
             eventName: name,
             eventCount: 0,
             eventTimestamps: [],
-            eventMessages: []
+            eventMessages: [],
           })
         }
-        
+
         return categoryMap.get(name)!
       }
 

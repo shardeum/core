@@ -1,7 +1,5 @@
 // Simple focused test for RequestTxAndStateResp
-import {
-  cRequestTxAndStateRespVersion,
-} from '../../../../src/types/RequestTxAndStateResp'
+import { cRequestTxAndStateRespVersion } from '../../../../src/types/RequestTxAndStateResp'
 
 describe('RequestTxAndStateResp', () => {
   describe('constants', () => {
@@ -21,13 +19,13 @@ describe('RequestTxAndStateResp', () => {
             timestamp: 1234567890,
             accountCreated: true,
             isPartial: false,
-          }
+          },
         ],
         account_state_hash_before: {
-          'account1': 'hash_before_1',
+          account1: 'hash_before_1',
         },
         account_state_hash_after: {
-          'account1': 'hash_after_1',
+          account1: 'hash_after_1',
         },
         note: 'Test note',
         success: true,
@@ -69,7 +67,7 @@ describe('RequestTxAndStateResp', () => {
           },
         },
         originalData: {
-          'account1': {
+          account1: {
             accountId: 'account1',
             stateId: 'state1',
             data: { value: 100 },
@@ -122,15 +120,15 @@ describe('RequestTxAndStateResp', () => {
             timestamp: 1234567891,
             accountCreated: false,
             isPartial: true,
-          }
+          },
         ],
         account_state_hash_before: {
-          'account1': 'hash1_before',
-          'account2': 'hash2_before',
+          account1: 'hash1_before',
+          account2: 'hash2_before',
         },
         account_state_hash_after: {
-          'account1': 'hash1_after',
-          'account2': 'hash2_after',
+          account1: 'hash1_after',
+          account2: 'hash2_after',
         },
         note: 'Multiple states note',
         success: true,
@@ -147,7 +145,7 @@ describe('RequestTxAndStateResp', () => {
         { success: false, expected: false },
       ]
 
-      booleanTests.forEach(test => {
+      booleanTests.forEach((test) => {
         const testObj = {
           stateList: [],
           account_state_hash_before: {},
@@ -167,7 +165,7 @@ describe('RequestTxAndStateResp', () => {
         'Very long note: ' + 'a'.repeat(1000),
       ]
 
-      noteTests.forEach(note => {
+      noteTests.forEach((note) => {
         const testObj = {
           stateList: [],
           account_state_hash_before: {},
@@ -181,22 +179,24 @@ describe('RequestTxAndStateResp', () => {
 
     it('should handle nested object structures', () => {
       const nestedData = {
-        stateList: [{
-          accountId: 'nested-account',
-          stateId: 'nested-state',
-          data: {
-            level1: {
-              level2: {
-                level3: {
-                  deepValue: 'deep'
-                }
-              }
-            }
+        stateList: [
+          {
+            accountId: 'nested-account',
+            stateId: 'nested-state',
+            data: {
+              level1: {
+                level2: {
+                  level3: {
+                    deepValue: 'deep',
+                  },
+                },
+              },
+            },
+            timestamp: 1234567890,
+            accountCreated: true,
+            isPartial: false,
           },
-          timestamp: 1234567890,
-          accountCreated: true,
-          isPartial: false,
-        }],
+        ],
         account_state_hash_before: {},
         account_state_hash_after: {},
         note: 'Nested data test',

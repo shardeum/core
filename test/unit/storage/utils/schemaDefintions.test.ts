@@ -23,11 +23,11 @@ describe('schemaDefintions', () => {
     it('should map multiple types to same SQL type', () => {
       // Text types
       expect(SQLDataTypes.STRING).toBe(SQLDataTypes.TEXT)
-      
+
       // Integer types
       expect(SQLDataTypes.INTEGER).toBe(SQLDataTypes.SMALLINT)
       expect(SQLDataTypes.INTEGER).toBe(SQLDataTypes.BIGINT)
-      
+
       // Real types
       expect(SQLDataTypes.FLOAT).toBe(SQLDataTypes.DOUBLE)
     })
@@ -40,8 +40,8 @@ describe('schemaDefintions', () => {
     it('should contain all SQLite compatible types', () => {
       const sqliteTypes = ['TEXT', 'INTEGER', 'NUMERIC', 'REAL', 'JSON']
       const enumValues = Array.from(new Set(Object.values(SQLDataTypes)))
-      
-      sqliteTypes.forEach(type => {
+
+      sqliteTypes.forEach((type) => {
         expect(enumValues).toContain(type)
       })
     })
@@ -50,9 +50,9 @@ describe('schemaDefintions', () => {
   describe('ColumnDescription type', () => {
     it('should accept minimal column definition', () => {
       const column: ColumnDescription = {
-        type: SQLDataTypes.STRING
+        type: SQLDataTypes.STRING,
       }
-      
+
       expect(column.type).toBe('TEXT')
       expect(column.allowNull).toBeUndefined()
       expect(column.primaryKey).toBeUndefined()
@@ -64,9 +64,9 @@ describe('schemaDefintions', () => {
         type: SQLDataTypes.INTEGER,
         allowNull: false,
         primaryKey: true,
-        unique: true
+        unique: true,
       }
-      
+
       expect(column.type).toBe('INTEGER')
       expect(column.allowNull).toBe(false)
       expect(column.primaryKey).toBe(true)
@@ -78,23 +78,23 @@ describe('schemaDefintions', () => {
       // This test validates the runtime behavior, not the type safety
       const column = {
         type: SQLDataTypes.STRING,
-        unique: 'compositeIndex'
+        unique: 'compositeIndex',
       } as any
-      
+
       expect(column.unique).toBe('compositeIndex')
     })
 
     it('should accept boolean values for unique property', () => {
       const column: ColumnDescription = {
         type: SQLDataTypes.STRING,
-        unique: true
+        unique: true,
       }
-      
+
       expect(column.unique).toBe(true)
     })
 
     it('should work with all SQLDataTypes', () => {
-      Object.values(SQLDataTypes).forEach(dataType => {
+      Object.values(SQLDataTypes).forEach((dataType) => {
         const column: ColumnDescription = { type: dataType }
         expect(column.type).toBe(dataType)
       })
@@ -111,10 +111,10 @@ describe('schemaDefintions', () => {
           data: { type: SQLDataTypes.JSON, allowNull: false },
           count: { type: SQLDataTypes.INTEGER },
           isActive: { type: SQLDataTypes.BOOLEAN, allowNull: false },
-          timestamp: { type: SQLDataTypes.BIGINT, allowNull: false }
-        }
+          timestamp: { type: SQLDataTypes.BIGINT, allowNull: false },
+        },
       ]
-      
+
       expect(modelDef[0]).toBe('testTable')
       const schema = modelDef[1] as Record<string, any>
       expect(schema.id.type).toBe('TEXT')
@@ -127,9 +127,9 @@ describe('schemaDefintions', () => {
     it('should support composite indexes', () => {
       const modelWithComposite = {
         field1: { type: SQLDataTypes.STRING, unique: 'compositeIndex' },
-        field2: { type: SQLDataTypes.STRING, unique: 'compositeIndex' }
+        field2: { type: SQLDataTypes.STRING, unique: 'compositeIndex' },
       }
-      
+
       expect(modelWithComposite.field1.unique).toBe('compositeIndex')
       expect(modelWithComposite.field2.unique).toBe('compositeIndex')
     })

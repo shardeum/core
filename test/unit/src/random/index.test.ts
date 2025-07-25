@@ -5,10 +5,10 @@ const mockRandomBytes = jest.fn()
 jest.mock('../../../../src/random/index', () => {
   const mockGenerateSeed = jest.fn()
   const mockGenerateContext = jest.fn()
-  
+
   // Set generateSeed as a property of the function
   ;(mockGenerateContext as any).generateSeed = mockGenerateSeed
-  
+
   return {
     __esModule: true,
     default: mockGenerateContext,
@@ -24,15 +24,15 @@ const generateSeed = (randomModule as any).generateSeed as jest.MockedFunction<a
 describe('random/index', () => {
   beforeEach(() => {
     jest.clearAllMocks()
-    
+
     // Set up actual implementations for the mocked functions
     mockRandomBytes.mockReturnValue(Buffer.from([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]))
-    
+
     generateSeed.mockImplementation(() => {
       const bytes = mockRandomBytes(16)
       return bytes.toString('hex')
     })
-    
+
     generateContext.mockImplementation((seed?: string) => {
       // Implement parseSeed logic
       const parseSeed = (seed: string) => {
@@ -50,7 +50,7 @@ describe('random/index', () => {
         }
         return parsed
       }
-      
+
       // Implement sfc32 logic
       const sfc32 = (a: number, b: number, c: number, d: number) => {
         return () => {
@@ -68,20 +68,20 @@ describe('random/index', () => {
           return (t >>> 0) / 4294967296
         }
       }
-      
+
       if (!seed && seed !== '') {
         seed = generateSeed()
       }
-      
+
       const parsedSeed = parseSeed(seed)
       if (!parsedSeed) return false
-      
+
       const rand = sfc32(parsedSeed[0], parsedSeed[1], parsedSeed[2], parsedSeed[3])
-      
+
       const randomInt = (min: number, max: number) => {
         return Math.floor(rand() * (max - min + 1)) + min
       }
-      
+
       return { rand, randomInt }
     })
   })
@@ -101,7 +101,7 @@ describe('random/index', () => {
     it('should generate different seeds on multiple calls', () => {
       const mockBytes1 = Buffer.from([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16])
       const mockBytes2 = Buffer.from([16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1])
-      
+
       mockRandomBytes.mockReturnValueOnce(mockBytes1)
       mockRandomBytes.mockReturnValueOnce(mockBytes2)
 
@@ -147,7 +147,7 @@ describe('random/index', () => {
     })
 
     it('should return false for seed with wrong length', () => {
-      const shortSeed = '0102030405060708090a0b0c0d0e0f'  // 30 chars instead of 32
+      const shortSeed = '0102030405060708090a0b0c0d0e0f' // 30 chars instead of 32
 
       const context = generateContext(shortSeed)
 

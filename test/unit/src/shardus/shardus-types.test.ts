@@ -1,8 +1,8 @@
-import { 
-  Node, 
-  Cycle, 
-  Archiver, 
-  NodeWithRank, 
+import {
+  Node,
+  Cycle,
+  Archiver,
+  NodeWithRank,
   AppObjEnum,
   InjectTxResponse,
   TransactionKeys,
@@ -19,7 +19,7 @@ import {
   OpaqueTransaction,
   ReinjectedOpaqueTransaction,
   ShardusEvent,
-  ValidatorNodeDetails
+  ValidatorNodeDetails,
 } from '../../../../src/shardus/shardus-types'
 
 describe('shardus-types', () => {
@@ -53,9 +53,9 @@ describe('shardus-types', () => {
         externalIp: '192.168.1.1',
         externalPort: 9000,
         internalIp: '10.0.0.1',
-        internalPort: 9001
+        internalPort: 9001,
       }
-      
+
       expect(nodeWithRank).toBeDefined()
       expect(nodeWithRank.rank).toBe(BigInt(100))
       expect(nodeWithRank.id).toBe('test-node-id')
@@ -71,9 +71,9 @@ describe('shardus-types', () => {
         externalIp: '127.0.0.1',
         externalPort: 8080,
         internalIp: '127.0.0.1',
-        internalPort: 8081
+        internalPort: 8081,
       }
-      
+
       expect(nodeWithRank.rank).toBeGreaterThan(BigInt(Number.MAX_SAFE_INTEGER - 1))
     })
   })
@@ -88,18 +88,18 @@ describe('shardus-types', () => {
     it('should create a valid InjectTxResponse object', () => {
       const response: InjectTxResponse = {
         success: true,
-        reason: 'Transaction injected successfully'
+        reason: 'Transaction injected successfully',
       }
-      
+
       expect(response.success).toBe(true)
       expect(response.reason).toBe('Transaction injected successfully')
     })
 
     it('should allow optional reason field', () => {
       const response: InjectTxResponse = {
-        success: false
+        success: false,
       }
-      
+
       expect(response.reason).toBeUndefined()
     })
   })
@@ -111,9 +111,9 @@ describe('shardus-types', () => {
         targetKeys: ['key3', 'key4'],
         allKeys: ['key1', 'key2', 'key3', 'key4'],
         timestamp: 123456789,
-        debugInfo: 'test debug info'
+        debugInfo: 'test debug info',
       }
-      
+
       expect(keys.sourceKeys).toHaveLength(2)
       expect(keys.targetKeys).toHaveLength(2)
       expect(keys.allKeys).toHaveLength(4)
@@ -126,9 +126,9 @@ describe('shardus-types', () => {
         sourceKeys: [],
         targetKeys: [],
         allKeys: [],
-        timestamp: 123456789
+        timestamp: 123456789,
       }
-      
+
       expect(keys.debugInfo).toBeUndefined()
     })
   })
@@ -153,9 +153,9 @@ describe('shardus-types', () => {
     it('should create a valid Sign object', () => {
       const sign: Sign = {
         owner: 'test-owner',
-        sig: 'test-signature'
+        sig: 'test-signature',
       }
-      
+
       expect(sign.owner).toBe('test-owner')
       expect(sign.sig).toBe('test-signature')
     })
@@ -168,9 +168,9 @@ describe('shardus-types', () => {
         stateId: 'test-state-id',
         data: { value: 100 },
         timestamp: 123456789,
-        syncData: { synced: true }
+        syncData: { synced: true },
       }
-      
+
       expect(wrappedData.accountId).toBe('test-account-id')
       expect(wrappedData.stateId).toBe('test-state-id')
       expect(wrappedData.data).toEqual({ value: 100 })
@@ -183,9 +183,9 @@ describe('shardus-types', () => {
         accountId: 'test-account-id',
         stateId: 'test-state-id',
         data: {},
-        timestamp: 123456789
+        timestamp: 123456789,
       }
-      
+
       expect(wrappedData.syncData).toBeUndefined()
     })
   })
@@ -197,7 +197,7 @@ describe('shardus-types', () => {
       const tx: OpaqueTransaction = {}
       const tx2: OpaqueTransaction = { value: 123 }
       const tx3: OpaqueTransaction = { nested: { data: true } }
-      
+
       expect(tx).toBeDefined()
       expect(tx2).toBeDefined()
       expect(tx3).toBeDefined()
@@ -208,17 +208,17 @@ describe('shardus-types', () => {
   describe('ReinjectedOpaqueTransaction interface', () => {
     it('should require isReinjected property', () => {
       const tx: ReinjectedOpaqueTransaction = {
-        isReinjected: true
+        isReinjected: true,
       }
-      
+
       expect(tx.isReinjected).toBe(true)
     })
 
     it('should extend OpaqueTransaction', () => {
       const tx: ReinjectedOpaqueTransaction = {
-        isReinjected: false
+        isReinjected: false,
       }
-      
+
       // Verify it can be used as OpaqueTransaction
       const opaqueTx: OpaqueTransaction = tx
       expect(opaqueTx).toBeDefined()
@@ -230,9 +230,9 @@ describe('shardus-types', () => {
       const details: ValidatorNodeDetails = {
         ip: '192.168.1.1',
         port: 8080,
-        publicKey: 'test-public-key'
+        publicKey: 'test-public-key',
       }
-      
+
       expect(details.ip).toBe('192.168.1.1')
       expect(details.port).toBe(8080)
       expect(details.publicKey).toBe('test-public-key')
@@ -251,9 +251,9 @@ describe('shardus-types', () => {
         failed: false,
         failMessage: '',
         appReceiptData: null,
-        appReceiptDataHash: 'hash-123'
+        appReceiptDataHash: 'hash-123',
       }
-      
+
       expect(response.txId).toBe('tx-123')
       expect(response.failed).toBe(false)
     })
@@ -272,9 +272,9 @@ describe('shardus-types', () => {
         localCache: { cached: true },
         prevStateId: 'prev-state-123',
         prevDataCopy: { balance: 900 },
-        sign: { owner: 'owner', sig: 'signature' }
+        sign: { owner: 'owner', sig: 'signature' },
       }
-      
+
       expect(response.accountCreated).toBe(true)
       expect(response.isPartial).toBe(false)
     })
@@ -286,9 +286,9 @@ describe('shardus-types', () => {
         success: true,
         reason: 'Transaction processed',
         txnTimestamp: 123456789,
-        status: 200
+        status: 200,
       }
-      
+
       expect(result.success).toBe(true)
       expect(result.status).toBe(200)
     })
@@ -304,9 +304,9 @@ describe('shardus-types', () => {
         publicKey: 'pk-123',
         cycleNumber: 100,
         activeCycle: 101,
-        additionalData: { extra: 'info' }
+        additionalData: { extra: 'info' },
       }
-      
+
       expect(event.type).toBe('node-activated')
       expect(event.cycleNumber).toBe(100)
     })
@@ -321,7 +321,7 @@ describe('shardus-types', () => {
           sourceKeys: ['key1'],
           targetKeys: ['key2'],
           allKeys: ['key1', 'key2'],
-          timestamp: 123456789
+          timestamp: 123456789,
         },
         data: {
           tx: {},
@@ -329,8 +329,8 @@ describe('shardus-types', () => {
             txId: 'tx-123',
             cycleMarker: 'marker',
             cycleCounter: 100,
-            timestamp: 123456789
-          }
+            timestamp: 123456789,
+          },
         },
         appData: { app: 'data' },
         shardusMemoryPatterns: {
@@ -338,10 +338,10 @@ describe('shardus-types', () => {
           rw: ['pattern2'],
           wo: ['pattern3'],
           on: ['pattern4'],
-          ri: ['pattern5']
-        }
+          ri: ['pattern5'],
+        },
       }
-      
+
       expect(acceptedTx.txId).toBe('tx-123')
       expect(acceptedTx.shardusMemoryPatterns.ro).toContain('pattern1')
     })

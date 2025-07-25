@@ -42,7 +42,7 @@ describe('iterables', () => {
     test('should handle iterator protocol correctly', () => {
       const input = [1, 2, 3]
       const iter = reversed(input)[Symbol.iterator]()
-      
+
       expect(iter.next()).toEqual({ value: 3, done: false })
       expect(iter.next()).toEqual({ value: 2, done: false })
       expect(iter.next()).toEqual({ value: 1, done: false })
@@ -52,16 +52,19 @@ describe('iterables', () => {
     test('should work with for...of loop', () => {
       const input = ['a', 'b', 'c']
       const result: string[] = []
-      
+
       for (const item of reversed(input)) {
         result.push(item)
       }
-      
+
       expect(result).toEqual(['c', 'b', 'a'])
     })
 
     test('should handle Map values', () => {
-      const map = new Map([['key1', 'value1'], ['key2', 'value2']])
+      const map = new Map([
+        ['key1', 'value1'],
+        ['key2', 'value2'],
+      ])
       const result = Array.from(reversed(map.values()))
       expect(result).toEqual(['value2', 'value1'])
     })
@@ -102,11 +105,11 @@ describe('iterables', () => {
     test('should handle iterator protocol correctly', () => {
       const input = [1, 2]
       const iter = randomShifted(input)[Symbol.iterator]()
-      
+
       const first = iter.next()
       const second = iter.next()
       const third = iter.next()
-      
+
       expect([first.value, second.value].sort()).toEqual([1, 2])
       expect(third.done).toBe(true)
     })
@@ -114,11 +117,11 @@ describe('iterables', () => {
     test('should work with for...of loop', () => {
       const input = ['a', 'b', 'c']
       const result: string[] = []
-      
+
       for (const item of randomShifted(input)) {
         result.push(item)
       }
-      
+
       expect(result.sort()).toEqual(['a', 'b', 'c'])
     })
 
@@ -143,7 +146,7 @@ describe('iterables', () => {
         ['key2', 'value2'],
         ['key3', 'value3'],
       ])
-      
+
       const result = Array.from(shuffleMapIterator(map))
       expect(result.sort()).toEqual(['value1', 'value2', 'value3'])
     })
@@ -167,9 +170,9 @@ describe('iterables', () => {
       ])
       const originalSize = map.size
       const originalValues = Array.from(map.values()).sort()
-      
+
       Array.from(shuffleMapIterator(map))
-      
+
       expect(map.size).toBe(originalSize)
       expect(Array.from(map.values()).sort()).toEqual(originalValues)
     })
@@ -181,7 +184,7 @@ describe('iterables', () => {
         [3, { obj: 'value' }],
         [4, [1, 2, 3]],
       ])
-      
+
       const result = Array.from(shuffleMapIterator(map))
       expect(result.length).toBe(4)
       expect(result).toContain('string')
@@ -193,7 +196,7 @@ describe('iterables', () => {
     test('should be a generator function', () => {
       const map = new Map([['key1', 'value1']])
       const iterator = shuffleMapIterator(map)
-      
+
       expect(typeof iterator.next).toBe('function')
       expect(typeof iterator[Symbol.iterator]).toBe('function')
     })
@@ -204,12 +207,12 @@ describe('iterables', () => {
         ['b', 2],
         ['c', 3],
       ])
-      
+
       const result: number[] = []
       for (const value of shuffleMapIterator(map)) {
         result.push(value)
       }
-      
+
       expect(result.sort()).toEqual([1, 2, 3])
     })
 
@@ -219,7 +222,7 @@ describe('iterables', () => {
         ['key2', 'value2'],
         ['key3', null],
       ])
-      
+
       const result = Array.from(shuffleMapIterator(map))
       expect(result.length).toBe(3)
       expect(result).toContain(undefined)
@@ -235,12 +238,12 @@ describe('iterables', () => {
         ['key4', 4],
         ['key5', 5],
       ])
-      
+
       const results = []
       for (let i = 0; i < 5; i++) {
         results.push(Array.from(shuffleMapIterator(map)).join(''))
       }
-      
+
       const uniqueResults = new Set(results)
       expect(uniqueResults.size).toBeGreaterThan(1)
     })
@@ -252,7 +255,7 @@ describe('iterables', () => {
         [complexKey1, 'value1'],
         [complexKey2, 'value2'],
       ])
-      
+
       const result = Array.from(shuffleMapIterator(map))
       expect(result.sort()).toEqual(['value1', 'value2'])
     })
@@ -262,11 +265,11 @@ describe('iterables', () => {
       for (let i = 0; i < 1000; i++) {
         map.set(`key${i}`, `value${i}`)
       }
-      
+
       const start = Date.now()
       const result = Array.from(shuffleMapIterator(map))
       const end = Date.now()
-      
+
       expect(result.length).toBe(1000)
       expect(end - start).toBeLessThan(100)
     })

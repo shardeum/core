@@ -95,11 +95,9 @@ describe('Refresh', () => {
   describe('validateRecordTypes', () => {
     it('should return empty string for valid record', () => {
       validateTypes.mockReturnValue('')
-      
+
       const validRecord = {
-        refreshedArchivers: [
-          { publicKey: 'key1', ip: '127.0.0.1', port: 9001, curvePk: 'curve1' },
-        ],
+        refreshedArchivers: [{ publicKey: 'key1', ip: '127.0.0.1', port: 9001, curvePk: 'curve1' }],
         refreshedConsensors: [
           {
             activeTimestamp: 1234567890,
@@ -128,7 +126,7 @@ describe('Refresh', () => {
 
     it('should return error for invalid record structure', () => {
       validateTypes.mockReturnValue('missing field')
-      
+
       const invalidRecord = {
         refreshedArchivers: [],
         refreshedConsensors: [],
@@ -178,7 +176,7 @@ describe('Refresh', () => {
   describe('updateRecord', () => {
     it('should update record with empty arrays when using sync protocol v2', () => {
       Context.config.p2p.useSyncProtocolV2 = true
-      
+
       const record = {} as any
       const txs = {}
       const prev = {} as any

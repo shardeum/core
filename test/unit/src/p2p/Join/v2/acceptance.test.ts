@@ -49,10 +49,7 @@ describe('acceptance', () => {
   }
 
   const mockCycleRecord = {
-    joinedConsensors: [
-      { publicKey: 'ourMockPublicKey' },
-      { publicKey: 'otherPublicKey' },
-    ],
+    joinedConsensors: [{ publicKey: 'ourMockPublicKey' }, { publicKey: 'otherPublicKey' }],
   }
 
   beforeEach(() => {
@@ -82,7 +79,7 @@ describe('acceptance', () => {
       // Set up a confirmed acceptance state first
       ;(getActiveNodesFromArchiver as jest.Mock).mockResolvedValue(ok({ nodeList: [mockActiveNode] }))
       ;(crypto.verify as jest.Mock).mockReturnValue(true)
-      
+
       // Reset should set hasConfirmedAcceptance to false
       acceptance.reset()
       expect(acceptance.getHasConfirmedAcceptance()).toBe(false)
@@ -90,8 +87,7 @@ describe('acceptance', () => {
   })
 
   describe('isAlreadyCheckingAcceptance', () => {
-    it('should return false initially', () => {
-    })
+    it('should return false initially', () => {})
 
     it('should return true when confirmAcceptance is in progress', async () => {
       ;(getActiveNodesFromArchiver as jest.Mock).mockImplementation(() => {
@@ -115,7 +111,7 @@ describe('acceptance', () => {
       ;(crypto.verify as jest.Mock).mockReturnValue(true)
 
       const result = await acceptance.confirmAcceptance(mockSignedOffer as any)
-      
+
       expect(result.isOk()).toBe(true)
       expect(acceptance.getHasConfirmedAcceptance()).toBe(true)
     })
@@ -172,10 +168,7 @@ describe('acceptance', () => {
 
     it('should return false when node is not included in joinedConsensors', async () => {
       const cycleWithoutOurNode = {
-        joinedConsensors: [
-          { publicKey: 'otherPublicKey1' },
-          { publicKey: 'otherPublicKey2' },
-        ],
+        joinedConsensors: [{ publicKey: 'otherPublicKey1' }, { publicKey: 'otherPublicKey2' }],
       }
 
       ;(getActiveNodesFromArchiver as jest.Mock).mockResolvedValue(ok({ nodeList: [mockActiveNode] }))

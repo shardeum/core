@@ -96,7 +96,7 @@ describe('PoqoSendVoteReq', () => {
         },
       ]
 
-      testCases.forEach(testCase => {
+      testCases.forEach((testCase) => {
         serializePoqoSendVoteReq(stream, testCase)
         expect(mockSerializeSpreadAppliedVoteHashReq).toHaveBeenCalledWith(stream, testCase)
       })
@@ -162,7 +162,7 @@ describe('PoqoSendVoteReq', () => {
         },
       ]
 
-      differentResults.forEach(expectedResult => {
+      differentResults.forEach((expectedResult) => {
         mockDeserializeSpreadAppliedVoteHashReq.mockReturnValue(expectedResult)
         const result = deserializePoqoSendVoteReq(stream)
         expect(result).toEqual(expectedResult)

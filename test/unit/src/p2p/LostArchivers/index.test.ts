@@ -103,10 +103,7 @@ describe('LostArchivers', () => {
 
       LostArchivers.getTxs()
 
-      expect(insertSorted).toHaveBeenCalledWith(
-        expect.any(Array),
-        mockArchiverDownMsg
-      )
+      expect(insertSorted).toHaveBeenCalledWith(expect.any(Array), mockArchiverDownMsg)
     })
 
     it('should call insertSorted for valid up archiver entries', () => {
@@ -121,10 +118,7 @@ describe('LostArchivers', () => {
 
       LostArchivers.getTxs()
 
-      expect(insertSorted).toHaveBeenCalledWith(
-        expect.any(Array),
-        mockArchiverUpMsg
-      )
+      expect(insertSorted).toHaveBeenCalledWith(expect.any(Array), mockArchiverUpMsg)
     })
 
     it('should skip investigator entries that havent gossiped', () => {
@@ -149,10 +143,7 @@ describe('LostArchivers', () => {
         .mockReturnValueOnce('error') // Invalid
 
       const txs = {
-        lostArchivers: [
-          { investigateMsg: { target: 'archiver1' } },
-          { investigateMsg: { target: 'archiver2' } },
-        ],
+        lostArchivers: [{ investigateMsg: { target: 'archiver1' } }, { investigateMsg: { target: 'archiver2' } }],
         refutedArchivers: [],
       } as any
 
@@ -202,12 +193,8 @@ describe('LostArchivers', () => {
   describe('updateRecord', () => {
     it('should extract targets from valid txs', () => {
       const txs = {
-        lostArchivers: [
-          { investigateMsg: { target: 'archiver1' } },
-        ],
-        refutedArchivers: [
-          { downMsg: { investigateMsg: { target: 'archiver2' } } },
-        ],
+        lostArchivers: [{ investigateMsg: { target: 'archiver1' } }],
+        refutedArchivers: [{ downMsg: { investigateMsg: { target: 'archiver2' } } }],
       } as any
 
       const record = {} as any

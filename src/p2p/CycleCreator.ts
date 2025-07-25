@@ -314,7 +314,7 @@ function reset() {
   // Reset CycleCreator
   txs = collectCycleTxs()
   const oldMarker = marker
-    ; ({ record, marker, cert } = makeCycleData(txs, CycleChain.newest || undefined))
+  ;({ record, marker, cert } = makeCycleData(txs, CycleChain.newest || undefined))
   /* prettier-ignore */ if (logFlags.p2pSyncDebug) info(`updateMarker: reset C${currentCycle} Q${currentQuarter} counter: ${record.counter} oldMarker: ${oldMarker} marker: ${marker} prevMarker: ${prevMarkerCached}`)
 
   //todo some logging here.
@@ -435,8 +435,8 @@ async function cycleCreator() {
     /* prettier-ignore */ if (logFlags.verbose) info(`cc: acrhiver data sent ${callTag}`) //todo list time delta
 
     let expectedCycle = currentCycle + 1
-      // this is where we update the current cycle
-      ; ({ cycle: currentCycle, quarter: currentQuarter } = currentCycleQuarterByTime(prevRecord))
+    // this is where we update the current cycle
+    ;({ cycle: currentCycle, quarter: currentQuarter } = currentCycleQuarterByTime(prevRecord))
 
     if (expectedCycle !== currentCycle) {
       /* prettier-ignore */ if (logFlags.p2pNonFatal) warn(`cc: expectedCycle: ${expectedCycle} currentCycle: ${currentCycle} ${callTag}`)
@@ -588,7 +588,7 @@ async function runQ3() {
   // Get txs and create this cycle's record, marker, and cert
   txs = collectCycleTxs()
   const oldMarker = marker
-    ; ({ record, marker, cert } = makeCycleData(txs, CycleChain.newest))
+  ;({ record, marker, cert } = makeCycleData(txs, CycleChain.newest))
   /* prettier-ignore */ if (logFlags.p2pSyncDebug) info(`updateMarker: runQ3 C${currentCycle} Q${currentQuarter} counter: ${record.counter} oldMarker: ${oldMarker} marker: ${marker} prevMarker: ${prevMarkerCached}`)
   //prevMarker = oldMarker
 
@@ -1376,18 +1376,20 @@ async function gossipCycleCert(sender: P2P.NodeListTypes.Node['id'], tracker?: s
     record: bestRecord,
   }
   const signedCertGossip = crypto.sign(certGossip)
-  fireAndForget(() => Comms.sendGossip(
-    'gossip-cert',
-    signedCertGossip,
-    tracker,
-    sender,
-    Join.nodeListFromStates([
-      P2P.P2PTypes.NodeStatus.ACTIVE,
-      P2P.P2PTypes.NodeStatus.READY,
-      P2P.P2PTypes.NodeStatus.SYNCING,
-    ]),
-    true
-  ))
+  fireAndForget(() =>
+    Comms.sendGossip(
+      'gossip-cert',
+      signedCertGossip,
+      tracker,
+      sender,
+      Join.nodeListFromStates([
+        P2P.P2PTypes.NodeStatus.ACTIVE,
+        P2P.P2PTypes.NodeStatus.READY,
+        P2P.P2PTypes.NodeStatus.SYNCING,
+      ]),
+      true
+    )
+  )
 }
 
 function pruneCycleChain() {

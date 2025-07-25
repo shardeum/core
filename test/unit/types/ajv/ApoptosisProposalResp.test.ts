@@ -26,10 +26,7 @@ describe('ApoptosisProposalResp', () => {
       initApoptosisProposalResp()
 
       // Verify the schema passed to addSchema matches expected structure
-      expect(mockAddSchema).toHaveBeenCalledWith(
-        AJVSchemaEnum.ApoptosisProposalResp,
-        expectedSchema
-      )
+      expect(mockAddSchema).toHaveBeenCalledWith(AJVSchemaEnum.ApoptosisProposalResp, expectedSchema)
     })
 
     it('should require both s and r properties', () => {
@@ -87,7 +84,7 @@ describe('ApoptosisProposalResp', () => {
   describe('addSchemaDependencies', () => {
     it('should not add any dependencies (function is empty)', () => {
       initApoptosisProposalResp()
-      
+
       // Verify only one call to addSchema (no dependencies added)
       expect(mockAddSchema).toHaveBeenCalledTimes(1)
     })
@@ -98,7 +95,7 @@ describe('ApoptosisProposalResp', () => {
       initApoptosisProposalResp()
 
       const schemaArg = mockAddSchema.mock.calls[0][1] as any
-      
+
       // Valid object structure
       const validResponse = {
         s: 'success',
@@ -115,7 +112,7 @@ describe('ApoptosisProposalResp', () => {
       initApoptosisProposalResp()
 
       const schemaArg = mockAddSchema.mock.calls[0][1] as any
-      
+
       // Missing fields scenarios
       const missingS = { r: 200 }
       const missingR = { s: 'success' }
@@ -130,7 +127,7 @@ describe('ApoptosisProposalResp', () => {
       initApoptosisProposalResp()
 
       const schemaArg = mockAddSchema.mock.calls[0][1] as any
-      
+
       // Type validation scenarios
       const wrongTypes = {
         s: 123, // should be string

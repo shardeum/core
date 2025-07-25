@@ -50,7 +50,7 @@ describe('AppliedVote', () => {
     it('should serialize applied vote without optional sign', () => {
       const voteWithoutSign = { ...mockAppliedVote }
       delete voteWithoutSign.sign
-      
+
       const stream = new VectorBufferStream(0)
       serializeAppliedVote(stream, voteWithoutSign)
 
@@ -60,7 +60,7 @@ describe('AppliedVote', () => {
     it('should serialize applied vote without optional app_data_hash', () => {
       const voteWithoutAppDataHash = { ...mockAppliedVote }
       delete voteWithoutAppDataHash.app_data_hash
-      
+
       const stream = new VectorBufferStream(0)
       serializeAppliedVote(stream, voteWithoutAppDataHash)
 
@@ -74,7 +74,7 @@ describe('AppliedVote', () => {
         account_state_hash_after: [],
         account_state_hash_before: [],
       }
-      
+
       const stream = new VectorBufferStream(0)
       serializeAppliedVote(stream, voteWithEmptyArrays)
 
@@ -83,7 +83,7 @@ describe('AppliedVote', () => {
 
     it('should serialize transaction_result as false', () => {
       const voteWithFalseResult = { ...mockAppliedVote, transaction_result: false }
-      
+
       const stream = new VectorBufferStream(0)
       serializeAppliedVote(stream, voteWithFalseResult)
 
@@ -92,7 +92,7 @@ describe('AppliedVote', () => {
 
     it('should serialize cant_apply as true', () => {
       const voteWithCantApply = { ...mockAppliedVote, cant_apply: true }
-      
+
       const stream = new VectorBufferStream(0)
       serializeAppliedVote(stream, voteWithCantApply)
 
@@ -104,7 +104,7 @@ describe('AppliedVote', () => {
     it('should deserialize applied vote with all fields', () => {
       const stream = new VectorBufferStream(0)
       serializeAppliedVote(stream, mockAppliedVote)
-      
+
       stream.position = 0
       const deserialized = deserializeAppliedVote(stream)
 
@@ -125,7 +125,7 @@ describe('AppliedVote', () => {
 
       const stream = new VectorBufferStream(0)
       serializeAppliedVote(stream, voteWithoutSign)
-      
+
       stream.position = 0
       const deserialized = deserializeAppliedVote(stream)
 
@@ -139,7 +139,7 @@ describe('AppliedVote', () => {
 
       const stream = new VectorBufferStream(0)
       serializeAppliedVote(stream, voteWithoutAppDataHash)
-      
+
       stream.position = 0
       const deserialized = deserializeAppliedVote(stream)
 
@@ -157,7 +157,7 @@ describe('AppliedVote', () => {
 
       const stream = new VectorBufferStream(0)
       serializeAppliedVote(stream, voteWithEmptyArrays)
-      
+
       stream.position = 0
       const deserialized = deserializeAppliedVote(stream)
 
@@ -178,7 +178,7 @@ describe('AppliedVote', () => {
       stream.writeString('test-node-id')
       stream.writeUInt8(0) // No sign
       stream.writeUInt8(0) // No app_data_hash
-      
+
       stream.position = 0
       expect(() => deserializeAppliedVote(stream)).toThrow('AppliedVote version mismatch')
     })
@@ -188,7 +188,7 @@ describe('AppliedVote', () => {
 
       const stream = new VectorBufferStream(0)
       serializeAppliedVote(stream, voteWithFalseResult)
-      
+
       stream.position = 0
       const deserialized = deserializeAppliedVote(stream)
 
@@ -200,7 +200,7 @@ describe('AppliedVote', () => {
 
       const stream = new VectorBufferStream(0)
       serializeAppliedVote(stream, voteWithCantApply)
-      
+
       stream.position = 0
       const deserialized = deserializeAppliedVote(stream)
 
@@ -212,7 +212,7 @@ describe('AppliedVote', () => {
     it('should maintain data integrity through serialize/deserialize cycle', () => {
       const stream = new VectorBufferStream(0)
       serializeAppliedVote(stream, mockAppliedVote)
-      
+
       stream.position = 0
       const deserialized = deserializeAppliedVote(stream)
 
@@ -232,7 +232,7 @@ describe('AppliedVote', () => {
 
       const stream = new VectorBufferStream(0)
       serializeAppliedVote(stream, minimalVote)
-      
+
       stream.position = 0
       const deserialized = deserializeAppliedVote(stream)
 

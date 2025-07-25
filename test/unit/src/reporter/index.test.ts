@@ -54,19 +54,19 @@ describe('Reporter', () => {
       interval: 5,
       mode: 'debug',
       debug: {
-        disableTxCoverageReport: false
+        disableTxCoverageReport: false,
       },
-      logSocketReports: false
+      logSocketReports: false,
     }
 
     // Mock logger
     const mockMainLogger = {
       error: jest.fn(),
       debug: jest.fn(),
-      info: jest.fn()
+      info: jest.fn(),
     }
     mockLogger = {
-      getLogger: jest.fn().mockReturnValue(mockMainLogger)
+      getLogger: jest.fn().mockReturnValue(mockMainLogger),
     }
 
     // Mock statistics
@@ -74,7 +74,7 @@ describe('Reporter', () => {
       getPreviousElement: jest.fn().mockReturnValue(0),
       getMax: jest.fn().mockReturnValue(0),
       getAllCountedEvents: jest.fn().mockReturnValue({}),
-      resetCountedEvents: jest.fn()
+      resetCountedEvents: jest.fn(),
     }
 
     // Mock state manager
@@ -83,27 +83,27 @@ describe('Reporter', () => {
       dataRepairsStarted: 0,
       dataRepairsCompleted: 0,
       partitionObjects: {
-        getPartitionReport: jest.fn().mockReturnValue({})
+        getPartitionReport: jest.fn().mockReturnValue({}),
       },
       transactionQueue: {
         txCoverageMap: {},
         resetTxCoverageMap: jest.fn(),
-        getQueueLengthBuckets: jest.fn().mockReturnValue({})
+        getQueueLengthBuckets: jest.fn().mockReturnValue({}),
       },
       currentCycleShardData: {
         shardGlobals: {
-          numPartitions: 10
+          numPartitions: 10,
         },
         nodeShardData: {
           storedPartitions: {
-            partitionsCovered: 5
-          }
-        }
+            partitionsCovered: 5,
+          },
+        },
       },
       accountPatcher: {
         failedLastTrieSync: false,
-        lastInSyncResult: null
-      }
+        lastInSyncResult: null,
+      },
     }
 
     // Mock profiler
@@ -112,12 +112,12 @@ describe('Reporter', () => {
     // Mock load detection
     mockLoadDetection = {
       getCurrentLoad: jest.fn().mockReturnValue(0.5),
-      getCurrentNodeLoad: jest.fn().mockReturnValue(0.3)
+      getCurrentNodeLoad: jest.fn().mockReturnValue(0.3),
     }
 
     // Mock shardus app
     mockShardusApp = {
-      getNodeInfoAppData: jest.fn().mockReturnValue({ test: 'data' })
+      getNodeInfoAppData: jest.fn().mockReturnValue({ test: 'data' }),
     }
 
     // Set up module mocks
@@ -137,7 +137,7 @@ describe('Reporter', () => {
       previous: 'prev-cycle',
       networkId: 'test-network',
       lost: [],
-      refuted: []
+      refuted: [],
     }
     ;(CycleChain as any).getNewest = jest.fn().mockReturnValue(CycleChain.newest)
     ;(CycleAutoScale as any).getDesiredCount = jest.fn().mockReturnValue(100)
@@ -148,7 +148,7 @@ describe('Reporter', () => {
     ;(nestedCountersInstance as any).rareEventCounters = new Map()
     ;(memoryReportingInstance as any) = {
       getMemoryStringBasic: jest.fn().mockReturnValue('memory-report'),
-      getShardusNetReport: jest.fn().mockReturnValue('network-report')
+      getShardusNetReport: jest.fn().mockReturnValue('network-report'),
     }
     ;(getSocketReport as jest.Mock).mockResolvedValue({ error: false })
     ;(finishedSyncingCycle as any) = 5
@@ -178,7 +178,14 @@ describe('Reporter', () => {
 
     it('should initialize with no recipient when config.recipient is null', () => {
       const noRecipientConfig = { ...mockConfig, recipient: null }
-      const reporterNoRecipient = new Reporter(noRecipientConfig, mockLogger, mockStatistics, mockStateManager, mockProfiler, mockLoadDetection)
+      const reporterNoRecipient = new Reporter(
+        noRecipientConfig,
+        mockLogger,
+        mockStatistics,
+        mockStateManager,
+        mockProfiler,
+        mockLoadDetection
+      )
       expect(reporterNoRecipient.hasRecipient).toBe(false)
     })
   })
@@ -190,17 +197,17 @@ describe('Reporter', () => {
         txApplied: 200,
         txRejected: 50,
         txProcessed: 300,
-        txExpired: 10
+        txExpired: 10,
       }
-      
+
       reporter.resetStatisticsReport()
-      
+
       expect(reporter.statisticsReport).toEqual({
         txInjected: 0,
         txApplied: 0,
         txRejected: 0,
         txProcessed: 0,
-        txExpired: 0
+        txExpired: 0,
       })
     })
   })
@@ -213,7 +220,7 @@ describe('Reporter', () => {
           txApplied: 20,
           txRejected: 5,
           txExpired: 2,
-          txProcessed: 30
+          txProcessed: 30,
         }
         return values[key] || 0
       })
@@ -243,17 +250,14 @@ describe('Reporter', () => {
   describe('reportJoining', () => {
     it('should send joining report when recipient exists', async () => {
       const publicKey = 'test-public-key'
-      
+
       await reporter.reportJoining(publicKey)
 
-      expect(http.post).toHaveBeenCalledWith(
-        'http://test-recipient.com/joining',
-        {
-          publicKey,
-          nodeIpInfo: { ip: '127.0.0.1', port: 8080 },
-          appData: { test: 'data' }
-        }
-      )
+      expect(http.post).toHaveBeenCalledWith('http://test-recipient.com/joining', {
+        publicKey,
+        nodeIpInfo: { ip: '127.0.0.1', port: 8080 },
+        appData: { test: 'data' },
+      })
     })
 
     it('should not send report when no recipient', async () => {
@@ -283,15 +287,12 @@ describe('Reporter', () => {
 
       await reporter.reportJoined(nodeId, publicKey)
 
-      expect(http.post).toHaveBeenCalledWith(
-        'http://test-recipient.com/joined',
-        {
-          publicKey,
-          nodeId,
-          nodeIpInfo: { ip: '127.0.0.1', port: 8080 },
-          appData: { test: 'data' }
-        }
-      )
+      expect(http.post).toHaveBeenCalledWith('http://test-recipient.com/joined', {
+        publicKey,
+        nodeId,
+        nodeIpInfo: { ip: '127.0.0.1', port: 8080 },
+        appData: { test: 'data' },
+      })
     })
 
     it('should not send report when no recipient', async () => {
@@ -309,10 +310,7 @@ describe('Reporter', () => {
 
       await reporter.reportActive(nodeId)
 
-      expect(http.post).toHaveBeenCalledWith(
-        'http://test-recipient.com/active',
-        { nodeId }
-      )
+      expect(http.post).toHaveBeenCalledWith('http://test-recipient.com/active', { nodeId })
     })
 
     it('should not send report when no recipient', async () => {
@@ -331,10 +329,7 @@ describe('Reporter', () => {
 
       await reporter.reportSyncStatement(nodeId, syncStatement)
 
-      expect(http.post).toHaveBeenCalledWith(
-        'http://test-recipient.com/sync-statement',
-        { nodeId, syncStatement }
-      )
+      expect(http.post).toHaveBeenCalledWith('http://test-recipient.com/sync-statement', { nodeId, syncStatement })
     })
 
     it('should not send report when no recipient', async () => {
@@ -352,10 +347,7 @@ describe('Reporter', () => {
 
       await reporter.reportRemoved(nodeId)
 
-      expect(http.post).toHaveBeenCalledWith(
-        'http://test-recipient.com/removed',
-        { nodeId }
-      )
+      expect(http.post).toHaveBeenCalledWith('http://test-recipient.com/removed', { nodeId })
       expect(reporter.hasRecipient).toBe(false)
     })
 
@@ -374,13 +366,10 @@ describe('Reporter', () => {
 
       await reporter._sendReport(data)
 
-      expect(http.post).toHaveBeenCalledWith(
-        'http://test-recipient.com/heartbeat',
-        {
-          nodeId: 'test-node-id',
-          data
-        }
-      )
+      expect(http.post).toHaveBeenCalledWith('http://test-recipient.com/heartbeat', {
+        nodeId: 'test-node-id',
+        data,
+      })
     })
 
     it('should not send report when no recipient', async () => {
@@ -394,7 +383,9 @@ describe('Reporter', () => {
     it('should throw error when no node ID available', async () => {
       ;(Self as any).id = null
 
-      await expect(reporter._sendReport({ test: 'data' })).rejects.toThrow('No node ID available to the Reporter module.')
+      await expect(reporter._sendReport({ test: 'data' })).rejects.toThrow(
+        'No node ID available to the Reporter module.'
+      )
     })
 
     it('should handle errors gracefully', async () => {
@@ -503,13 +494,13 @@ describe('Reporter', () => {
         txApplied: 200,
         txRejected: 50,
         txProcessed: 300,
-        txExpired: 10
+        txExpired: 10,
       }
       mockStatistics.getPreviousElement.mockImplementation((key: string) => {
         const values = {
           queueLength: 5,
           executeQueueLength: 3,
-          txTimeInQueue: 1500
+          txTimeInQueue: 1500,
         }
         return values[key] || 0
       })
@@ -547,7 +538,7 @@ describe('Reporter', () => {
         maxTxTimeInQueue: 3,
         isLost: false,
         isRefuted: false,
-        stillNeedsInitialPatchPostActive: false
+        stillNeedsInitialPatchPostActive: false,
       })
     })
 
@@ -589,16 +580,14 @@ describe('Reporter', () => {
         txApplied: 0,
         txRejected: 0,
         txProcessed: 0,
-        txExpired: 0
+        txExpired: 0,
       })
       expect(mockStateManager.transactionQueue.resetTxCoverageMap).toHaveBeenCalled()
       expect(mockStatistics.resetCountedEvents).toHaveBeenCalled()
     })
 
     it('should include rare counters in report', async () => {
-      const rareCounters = new Map([
-        ['event1', { count: 5, subCounters: new Map([['sub1', 3]]) }]
-      ])
+      const rareCounters = new Map([['event1', { count: 5, subCounters: new Map([['sub1', 3]]) }]])
       ;(nestedCountersInstance as any).rareEventCounters = rareCounters
 
       await reporter.report()
@@ -608,9 +597,9 @@ describe('Reporter', () => {
         event1: {
           count: 5,
           subCounters: {
-            sub1: 3
-          }
-        }
+            sub1: 3,
+          },
+        },
       })
     })
   })
@@ -655,12 +644,12 @@ describe('Reporter', () => {
     it('should clear socket interval on error', async () => {
       reporter.config.logSocketReports = true
       ;(getSocketReport as jest.Mock).mockResolvedValue({ error: true })
-      
+
       reporter.startReporting()
 
       // Advance timers to trigger the interval
       jest.advanceTimersByTime(300000)
-      
+
       // Wait for all promises to resolve, including the async interval callback
       await Promise.resolve()
       await Promise.resolve()
@@ -673,7 +662,7 @@ describe('Reporter', () => {
   describe('stopReporting', () => {
     it('should clear all intervals and timers', () => {
       reporter.startReporting()
-      
+
       reporter.stopReporting()
 
       expect(reporter.reportingInterval).toBeNull()
@@ -685,7 +674,7 @@ describe('Reporter', () => {
   describe('restartReportInterval', () => {
     it('should clear existing timer and set new one', () => {
       reporter.reportTimer = setTimeout(() => {}, 1000)
-      
+
       reporter['restartReportInterval']()
 
       expect(clearTimeout).toHaveBeenCalled()
@@ -694,11 +683,11 @@ describe('Reporter', () => {
 
     it('should use dynamic interval based on network size', () => {
       ;(NodeList as any).activeByIdOrder = new Array(150)
-      
+
       reporter['restartReportInterval']()
-      
+
       jest.advanceTimersByTime(10000)
-      
+
       expect(http.post).toHaveBeenCalled()
     })
   })
@@ -710,7 +699,7 @@ describe('Reporter', () => {
       mockStatistics.getPreviousElement.mockImplementation((key: string) => {
         const values = {
           txInjected: 100,
-          txApplied: 80
+          txApplied: 80,
         }
         return values[key] || 0
       })
@@ -722,15 +711,9 @@ describe('Reporter', () => {
 
       reporter.consoleReport()
 
-      expect(consoleSpy).toHaveBeenCalledWith(
-        expect.stringContaining('Perf inteval 1000')
-      )
-      expect(consoleSpy).toHaveBeenCalledWith(
-        expect.stringContaining('100 Injected @0.1 per second')
-      )
-      expect(consoleSpy).toHaveBeenCalledWith(
-        expect.stringContaining('80 Applied @0.08 per second')
-      )
+      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Perf inteval 1000'))
+      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('100 Injected @0.1 per second'))
+      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('80 Applied @0.08 per second'))
       expect(reporter.lastTime).toBe(2000000)
       consoleSpy.mockRestore()
     })
@@ -752,12 +735,8 @@ describe('Reporter', () => {
 
       reporter.consoleReport()
 
-      expect(consoleSpy).toHaveBeenCalledWith(
-        expect.stringContaining('0 Injected @0 per second')
-      )
-      expect(consoleSpy).toHaveBeenCalledWith(
-        expect.stringContaining('0 Applied @0 per second')
-      )
+      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('0 Injected @0 per second'))
+      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('0 Applied @0 per second'))
       consoleSpy.mockRestore()
     })
 
@@ -768,12 +747,7 @@ describe('Reporter', () => {
 
       reporter.consoleReport()
 
-      expect(consoleSpy).toHaveBeenCalledWith(
-        'Current load',
-        'counter',
-        10,
-        0.5
-      )
+      expect(consoleSpy).toHaveBeenCalledWith('Current load', 'counter', 10, 0.5)
       consoleSpy.mockRestore()
     })
 
@@ -796,9 +770,7 @@ describe('Reporter', () => {
 
       reporter.consoleReport()
 
-      expect(consoleSpy).toHaveBeenCalledWith(
-        expect.stringContaining('Perf inteval 5')
-      )
+      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Perf inteval 5'))
       consoleSpy.mockRestore()
     })
   })
@@ -848,7 +820,6 @@ describe('Reporter', () => {
       ;(Self as any).id = null
 
       await expect(reporter._sendReport({ test: 'data' })).rejects.toThrow()
-      
       ;(Self as any).id = originalId
     })
 

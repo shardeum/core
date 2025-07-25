@@ -1,4 +1,8 @@
-import ShardFunctions, { addressToPartition, partitionInWrappingRange, findHomeNode } from '../../../../src/state-manager/shardFunctions'
+import ShardFunctions, {
+  addressToPartition,
+  partitionInWrappingRange,
+  findHomeNode,
+} from '../../../../src/state-manager/shardFunctions'
 import { StateManager, P2P } from '@shardeum-foundation/lib-types'
 import * as Shardus from '../../../../src/shardus/shardus-types'
 
@@ -13,7 +17,7 @@ describe('ShardFunctions', () => {
   describe('calculateShardGlobals', () => {
     it('should calculate shard globals with valid inputs', () => {
       const result = ShardFunctions.calculateShardGlobals(10, 5, 2)
-      
+
       expect(result.numActiveNodes).toBe(10)
       expect(result.nodesPerConsenusGroup).toBe(5)
       expect(result.numPartitions).toBe(10)
@@ -71,7 +75,7 @@ describe('ShardFunctions', () => {
     it('should calculate shard values for a valid address', () => {
       const address = '12345678' + '0'.repeat(56)
       const result = ShardFunctions.calculateShardValues(shardGlobals, address)
-      
+
       expect(result.address).toBe(address)
       expect(result.homeNodes).toEqual([])
       expect(result.addressPrefix).toBe(parseInt('12345678', 16))
@@ -86,10 +90,10 @@ describe('ShardFunctions', () => {
     it('should handle edge case addresses', () => {
       const addressMin = '00000000' + '0'.repeat(56)
       const addressMax = 'ffffffff' + 'f'.repeat(56)
-      
+
       const resultMin = ShardFunctions.calculateShardValues(shardGlobals, addressMin)
       const resultMax = ShardFunctions.calculateShardValues(shardGlobals, addressMax)
-      
+
       expect(resultMin.homePartition).toBe(0)
       expect(resultMax.homePartition).toBe(shardGlobals.numPartitions - 1)
     })
@@ -104,7 +108,7 @@ describe('ShardFunctions', () => {
 
     it('should calculate stored partitions for a home partition', () => {
       const result = ShardFunctions.calculateStoredPartitions2(shardGlobals, 5)
-      
+
       expect(result.homeRange).toBeDefined()
       expect(result.partitionsCovered).toBeGreaterThan(0)
       expect(result.partitionRangeVector).toBeDefined()
@@ -113,7 +117,7 @@ describe('ShardFunctions', () => {
     it('should handle wrapped ranges at boundaries', () => {
       const resultStart = ShardFunctions.calculateStoredPartitions2(shardGlobals, 0)
       const resultEnd = ShardFunctions.calculateStoredPartitions2(shardGlobals, shardGlobals.numPartitions - 1)
-      
+
       expect(resultStart.rangeIsSplit).toBe(true)
       expect(resultEnd.rangeIsSplit).toBe(true)
     })
@@ -121,7 +125,7 @@ describe('ShardFunctions', () => {
     it('should handle full range coverage in small networks', () => {
       const smallGlobals = ShardFunctions.calculateShardGlobals(3, 3, 1)
       const result = ShardFunctions.calculateStoredPartitions2(smallGlobals, 1)
-      
+
       expect(result.rangeIsSplit).toBe(false)
       expect(result.partitionStart).toBe(0)
       expect(result.partitionEnd).toBe(2)
@@ -137,7 +141,7 @@ describe('ShardFunctions', () => {
 
     it('should calculate consensus partitions correctly', () => {
       const result = ShardFunctions.calculateConsensusPartitions(shardGlobals, 5)
-      
+
       expect(result.homeRange).toBeDefined()
       expect(result.partitionsCovered).toBeGreaterThan(0)
       expect(result.partitionRangeVector).toBeDefined()
@@ -146,7 +150,7 @@ describe('ShardFunctions', () => {
     it('should have smaller range than stored partitions', () => {
       const consensusResult = ShardFunctions.calculateConsensusPartitions(shardGlobals, 5)
       const storedResult = ShardFunctions.calculateStoredPartitions2(shardGlobals, 5)
-      
+
       expect(consensusResult.partitionsCovered).toBeLessThanOrEqual(storedResult.partitionsCovered)
     })
   })
@@ -291,7 +295,7 @@ describe('ShardFunctions', () => {
     it('should convert address to partition data correctly', () => {
       const address = '12345678' + '0'.repeat(56)
       const result = ShardFunctions.addressToPartition(shardGlobals, address)
-      
+
       expect(result.homePartition).toBeGreaterThanOrEqual(0)
       expect(result.homePartition).toBeLessThan(shardGlobals.numPartitions)
       expect(result.addressNum).toBe(parseInt('12345678', 16))
@@ -300,10 +304,10 @@ describe('ShardFunctions', () => {
     it('should handle min and max addresses', () => {
       const minAddress = '00000000' + '0'.repeat(56)
       const maxAddress = 'ffffffff' + 'f'.repeat(56)
-      
+
       const minResult = ShardFunctions.addressToPartition(shardGlobals, minAddress)
       const maxResult = ShardFunctions.addressToPartition(shardGlobals, maxAddress)
-      
+
       expect(minResult.homePartition).toBe(0)
       expect(maxResult.homePartition).toBe(shardGlobals.numPartitions - 1)
     })
@@ -319,7 +323,7 @@ describe('ShardFunctions', () => {
     it('should convert partition to address range', () => {
       const partition = 5
       const range = ShardFunctions.partitionToAddressRange2(shardGlobals, partition)
-      
+
       expect(range.partition).toBe(partition)
       expect(range.startAddr).toBeGreaterThanOrEqual(0)
       expect(range.endAddr).toBeGreaterThan(range.startAddr)
@@ -330,7 +334,7 @@ describe('ShardFunctions', () => {
     it('should handle last partition correctly', () => {
       const lastPartition = shardGlobals.numPartitions - 1
       const range = ShardFunctions.partitionToAddressRange2(shardGlobals, lastPartition)
-      
+
       expect(range.endAddr).toBe(4294967295)
     })
 
@@ -338,7 +342,7 @@ describe('ShardFunctions', () => {
       const partition = 2
       const partitionMax = 5
       const range = ShardFunctions.partitionToAddressRange2(shardGlobals, partition, partitionMax)
-      
+
       expect(range.p_low).toBe(partition)
       expect(range.p_high).toBe(partitionMax)
     })
@@ -373,7 +377,7 @@ describe('ShardFunctions', () => {
       const lowAddress = '10000000' + '0'.repeat(56)
       const highAddress = '20000000' + '0'.repeat(56)
       const [centerAddr, centerAddrPlusOne] = ShardFunctions.findCenterAddressPair(lowAddress, highAddress)
-      
+
       expect(centerAddr.length).toBe(64)
       expect(centerAddrPlusOne.length).toBe(64)
       expect(centerAddr.slice(0, 8)).toBe('18000000')
@@ -384,7 +388,7 @@ describe('ShardFunctions', () => {
       const lowAddress = '00000000' + '0'.repeat(56)
       const highAddress = 'ffffffff' + 'f'.repeat(56)
       const [centerAddr, centerAddrPlusOne] = ShardFunctions.findCenterAddressPair(lowAddress, highAddress)
-      
+
       expect(centerAddr.slice(0, 8)).toBe('80000000')
       expect(centerAddrPlusOne.slice(0, 8)).toBe('80000001')
     })
@@ -394,7 +398,7 @@ describe('ShardFunctions', () => {
     it('should return adjacent addresses', () => {
       const address = '12345678' + 'f'.repeat(56)
       const result = ShardFunctions.getNextAdjacentAddresses(address)
-      
+
       expect(result.address1).toBe('12345678' + 'f'.repeat(56))
       expect(result.address2).toBe('12345679' + '0'.repeat(56))
     })
@@ -402,7 +406,7 @@ describe('ShardFunctions', () => {
     it('should handle wraparound at max address', () => {
       const address = 'ffffffff' + 'f'.repeat(56)
       const result = ShardFunctions.getNextAdjacentAddresses(address)
-      
+
       expect(result.address1).toBe('ffffffff' + 'f'.repeat(56))
       expect(result.address2).toBe('00000000' + '0'.repeat(56))
     })
@@ -444,7 +448,7 @@ describe('ShardFunctions', () => {
 
     it('should compute partition shard data map', () => {
       ShardFunctions.computePartitionShardDataMap(shardGlobals, partitionShardDataMap, 0, 10)
-      
+
       expect(partitionShardDataMap.size).toBe(10)
       for (let i = 0; i < 10; i++) {
         const shardInfo = partitionShardDataMap.get(i)
@@ -468,14 +472,14 @@ describe('ShardFunctions', () => {
     beforeEach(() => {
       shardGlobals = ShardFunctions.calculateShardGlobals(10, 5, 2)
       partitionShardDataMap = new Map()
-      
+
       // Create a mock node shard data
       nodeShardData = {
         node: { id: 'node1', status: 'active' } as Shardus.Node,
         homePartition: 5,
         ourNodeIndex: 5,
       } as NodeShardData
-      
+
       // Set up partition map
       for (let i = 0; i < 10; i++) {
         const shardInfo = {
@@ -486,7 +490,7 @@ describe('ShardFunctions', () => {
           homePartition: i,
           homeRange: {} as any,
           coveredBy: {},
-          storedBy: {}
+          storedBy: {},
         } as ShardInfo
         partitionShardDataMap.set(i, shardInfo)
       }
@@ -498,7 +502,7 @@ describe('ShardFunctions', () => {
       const addressNum = partitionSize * 5 + Math.floor(partitionSize / 2)
       const addressHex = ShardFunctions.leadZeros8(addressNum.toString(16))
       const address = addressHex + '0'.repeat(56)
-      
+
       const result = ShardFunctions.findHomeNode(shardGlobals, address, partitionShardDataMap)
       expect(result).toBe(nodeShardData)
     })
@@ -524,9 +528,9 @@ describe('ShardFunctions', () => {
         { id: 'node1', status: 'active' } as Shardus.Node,
         { id: 'node2', status: 'active' } as Shardus.Node,
       ]
-      
+
       nodes.sort(ShardFunctions.nodeSortAsc)
-      
+
       expect(nodes[0].id).toBe('node1')
       expect(nodes[1].id).toBe('node2')
       expect(nodes[2].id).toBe('node3')
@@ -535,7 +539,7 @@ describe('ShardFunctions', () => {
     it('should handle equal ids', () => {
       const node1 = { id: 'node1', status: 'active' } as Shardus.Node
       const node2 = { id: 'node1', status: 'active' } as Shardus.Node
-      
+
       expect(ShardFunctions.nodeSortAsc(node1, node2)).toBe(0)
     })
   })
@@ -545,12 +549,12 @@ describe('ShardFunctions', () => {
       const node1 = { id: 'node1', status: 'active' } as Shardus.Node
       const node2 = { id: 'node2', status: 'active' } as Shardus.Node
       const node3 = { id: 'node3', status: 'active' } as Shardus.Node
-      
+
       const listA = [node1, node2]
       const listB = [node2, node3]
-      
+
       const [results, extras] = ShardFunctions.mergeNodeLists(listA, listB)
-      
+
       expect(results.length).toBe(3)
       expect(extras.length).toBe(1)
       expect(extras[0].id).toBe('node3')
@@ -560,7 +564,7 @@ describe('ShardFunctions', () => {
       const [results1, extras1] = ShardFunctions.mergeNodeLists([], [])
       expect(results1.length).toBe(0)
       expect(extras1.length).toBe(0)
-      
+
       const listA = [{ id: 'node1', status: 'active' } as Shardus.Node]
       const [results2, extras2] = ShardFunctions.mergeNodeLists(listA, [])
       expect(results2.length).toBe(1)
@@ -573,16 +577,16 @@ describe('ShardFunctions', () => {
       const node1 = { id: 'node1', status: 'active' } as Shardus.Node
       const node2 = { id: 'node2', status: 'active' } as Shardus.Node
       const node3 = { id: 'node3', status: 'active' } as Shardus.Node
-      
+
       const listA = [node1, node2, node3]
       const listB = [node2]
-      
+
       const results = ShardFunctions.subtractNodeLists(listA, listB)
-      
+
       expect(results.length).toBe(2)
-      expect(results.find(n => n.id === 'node1')).toBeDefined()
-      expect(results.find(n => n.id === 'node3')).toBeDefined()
-      expect(results.find(n => n.id === 'node2')).toBeUndefined()
+      expect(results.find((n) => n.id === 'node1')).toBeDefined()
+      expect(results.find((n) => n.id === 'node3')).toBeDefined()
+      expect(results.find((n) => n.id === 'node2')).toBeUndefined()
     })
 
     it('should handle empty lists', () => {
@@ -652,16 +656,12 @@ describe('ShardFunctions', () => {
           { id: 'edge1', status: 'active' } as Shardus.Node,
           { id: 'edge2', status: 'active' } as Shardus.Node,
         ],
-        consensusNodeForOurNodeFull: [
-          { id: 'consensus1', status: 'active' } as Shardus.Node,
-        ],
-        nodeThatStoreOurParitionFull: [
-          { id: 'stored1', status: 'active' } as Shardus.Node,
-        ],
+        consensusNodeForOurNodeFull: [{ id: 'consensus1', status: 'active' } as Shardus.Node],
+        nodeThatStoreOurParitionFull: [{ id: 'stored1', status: 'active' } as Shardus.Node],
       } as NodeShardData
-      
+
       const result = ShardFunctions.getHomeNodeSummaryObject(nodeShardData)
-      
+
       expect(result.edge).toEqual(['edge1', 'edge2'])
       expect(result.consensus).toEqual(['consensus1'])
       expect(result.storedFull).toEqual(['stored1'])
@@ -671,9 +671,9 @@ describe('ShardFunctions', () => {
       const nodeShardData = {
         extendedData: false,
       } as NodeShardData
-      
+
       const result = ShardFunctions.getHomeNodeSummaryObject(nodeShardData)
-      
+
       expect(result.noExtendedData).toBe(true)
       expect(result.edge).toEqual([])
       expect(result.consensus).toEqual([])
@@ -688,15 +688,9 @@ describe('ShardFunctions', () => {
       nodeShardData = {
         extendedData: true,
         node: { id: 'home', status: 'active' } as Shardus.Node,
-        nodeThatStoreOurParitionFull: [
-          { id: 'stored1', status: 'active' } as Shardus.Node,
-        ],
-        edgeNodes: [
-          { id: 'edge1', status: 'active' } as Shardus.Node,
-        ],
-        consensusNodeForOurNodeFull: [
-          { id: 'consensus1', status: 'active' } as Shardus.Node,
-        ],
+        nodeThatStoreOurParitionFull: [{ id: 'stored1', status: 'active' } as Shardus.Node],
+        edgeNodes: [{ id: 'edge1', status: 'active' } as Shardus.Node],
+        consensusNodeForOurNodeFull: [{ id: 'consensus1', status: 'active' } as Shardus.Node],
       } as NodeShardData
     })
 
@@ -737,7 +731,7 @@ describe('ShardFunctions', () => {
     it('should get partition range from radix prefix', () => {
       const radix = '1234'
       const result = ShardFunctions.getPartitionRangeFromRadix(shardGlobals, radix)
-      
+
       expect(result.low).toBeGreaterThanOrEqual(0)
       expect(result.high).toBeGreaterThanOrEqual(result.low)
       expect(result.high).toBeLessThan(shardGlobals.numPartitions)
@@ -746,7 +740,7 @@ describe('ShardFunctions', () => {
     it('should handle empty radix', () => {
       const radix = ''
       const result = ShardFunctions.getPartitionRangeFromRadix(shardGlobals, radix)
-      
+
       expect(result.low).toBe(0)
       expect(result.high).toBe(shardGlobals.numPartitions - 1)
     })
@@ -766,7 +760,7 @@ describe('ShardFunctions', () => {
     it('should handle fromList smaller than toList', () => {
       const result = ShardFunctions.fastStableCorrespondingIndicies(5, 10, 2)
       expect(result.length).toBeGreaterThan(0)
-      expect(result.every(i => i >= 1 && i <= 10)).toBe(true)
+      expect(result.every((i) => i >= 1 && i <= 10)).toBe(true)
     })
 
     it('should handle edge cases', () => {
@@ -850,7 +844,7 @@ describe('ShardFunctions', () => {
       nodeShardDataMap = new Map()
       partitionShardDataMap = new Map()
       activeNodes = []
-      
+
       // Create active nodes
       for (let i = 0; i < 10; i++) {
         activeNodes.push({
@@ -860,7 +854,7 @@ describe('ShardFunctions', () => {
           port: 1234 + i,
         } as any as Shardus.Node)
       }
-      
+
       // Initialize partition map
       ShardFunctions.computePartitionShardDataMap(shardGlobals, partitionShardDataMap, 0, 10)
     })
@@ -875,7 +869,7 @@ describe('ShardFunctions', () => {
         false,
         true
       )
-      
+
       expect(nodeShardDataMap.size).toBe(10)
       for (const node of activeNodes) {
         const nodeData = nodeShardDataMap.get(node.id)
@@ -896,7 +890,7 @@ describe('ShardFunctions', () => {
         true,
         true
       )
-      
+
       const nodeData = nodeShardDataMap.get('node0')
       expect(nodeData.extendedData).toBe(true)
       expect(nodeData.consensusNodeForOurNode).toBeDefined()
@@ -915,7 +909,7 @@ describe('ShardFunctions', () => {
         false,
         false
       )
-      
+
       expect(nodeShardDataMap.size).toBe(1)
     })
   })
@@ -931,7 +925,7 @@ describe('ShardFunctions', () => {
       nodeShardDataMap = new Map()
       partitionShardDataMap = new Map()
       activeNodes = []
-      
+
       for (let i = 0; i < 10; i++) {
         activeNodes.push({
           id: `node${i}`,
@@ -940,7 +934,7 @@ describe('ShardFunctions', () => {
           port: 1234 + i,
         } as any as Shardus.Node)
       }
-      
+
       ShardFunctions.computePartitionShardDataMap(shardGlobals, partitionShardDataMap, 0, 10)
     })
 
@@ -955,7 +949,7 @@ describe('ShardFunctions', () => {
         false,
         5
       )
-      
+
       expect(result.node).toBe(node)
       expect(result.ourNodeIndex).toBe(5)
       expect(result.homePartition).toBe(5)
@@ -973,7 +967,7 @@ describe('ShardFunctions', () => {
         activeNodes,
         false
       )
-      
+
       expect(result.ourNodeIndex).toBe(3)
     })
 
@@ -982,7 +976,7 @@ describe('ShardFunctions', () => {
         id: 'newNode',
         status: 'syncing',
       } as Shardus.Node
-      
+
       const result = ShardFunctions.computeNodePartitionData(
         shardGlobals,
         newNode,
@@ -991,7 +985,7 @@ describe('ShardFunctions', () => {
         activeNodes,
         false
       )
-      
+
       expect(result.ourNodeIndex).toBeGreaterThanOrEqual(0)
     })
   })
@@ -1008,16 +1002,16 @@ describe('ShardFunctions', () => {
       nodeShardDataMap = new Map()
       partitionShardDataMap = new Map()
       activeNodes = []
-      
+
       for (let i = 0; i < 10; i++) {
         activeNodes.push({
           id: `node${i}`,
           status: 'active',
         } as Shardus.Node)
       }
-      
+
       ShardFunctions.computePartitionShardDataMap(shardGlobals, partitionShardDataMap, 0, 10)
-      
+
       // Populate nodeShardDataMap for all nodes first
       for (let i = 0; i < activeNodes.length; i++) {
         const data = ShardFunctions.computeNodePartitionData(
@@ -1026,24 +1020,30 @@ describe('ShardFunctions', () => {
           nodeShardDataMap,
           partitionShardDataMap,
           activeNodes,
-          false,  // Don't compute extended data yet
+          false, // Don't compute extended data yet
           i
         )
         nodeShardDataMap.set(activeNodes[i].id, data)
       }
-      
+
       // Now get the node shard data for node5 specifically
       nodeShardData = nodeShardDataMap.get(activeNodes[5].id)
       // Ensure we have storedPartitions and consensusPartitions
-      nodeShardData.storedPartitions = ShardFunctions.calculateStoredPartitions2(shardGlobals, nodeShardData.homePartition)
-      nodeShardData.consensusPartitions = ShardFunctions.calculateConsensusPartitions(shardGlobals, nodeShardData.homePartition)
+      nodeShardData.storedPartitions = ShardFunctions.calculateStoredPartitions2(
+        shardGlobals,
+        nodeShardData.homePartition
+      )
+      nodeShardData.consensusPartitions = ShardFunctions.calculateConsensusPartitions(
+        shardGlobals,
+        nodeShardData.homePartition
+      )
     })
 
     it('should compute extended node partition data', () => {
       // Ensure we have storedPartitions and consensusPartitions before calling
       expect(nodeShardData.storedPartitions).toBeDefined()
       expect(nodeShardData.consensusPartitions).toBeDefined()
-      
+
       ShardFunctions.computeExtendedNodePartitionData(
         shardGlobals,
         nodeShardDataMap,
@@ -1051,7 +1051,7 @@ describe('ShardFunctions', () => {
         nodeShardData,
         activeNodes
       )
-      
+
       expect(nodeShardData.extendedData).toBe(true)
       expect(nodeShardData.consensusNodeForOurNode).toBeDefined()
       expect(nodeShardData.consensusNodeForOurNodeFull).toBeDefined()
@@ -1065,7 +1065,7 @@ describe('ShardFunctions', () => {
     it('should skip if already has extended data', () => {
       nodeShardData.extendedData = true
       const spy = jest.spyOn(ShardFunctions, 'getNodesThatCoverHomePartition')
-      
+
       ShardFunctions.computeExtendedNodePartitionData(
         shardGlobals,
         nodeShardDataMap,
@@ -1073,7 +1073,7 @@ describe('ShardFunctions', () => {
         nodeShardData,
         activeNodes
       )
-      
+
       expect(spy).not.toHaveBeenCalled()
       spy.mockRestore()
     })
@@ -1084,7 +1084,7 @@ describe('ShardFunctions', () => {
         id: 'inactive',
         status: 'syncing',
       } as Shardus.Node
-      
+
       const inactiveNodeData = {
         node: inactiveNode,
         ourNodeIndex: -1,
@@ -1092,9 +1092,9 @@ describe('ShardFunctions', () => {
         extendedData: false,
         storedPartitions: ShardFunctions.calculateStoredPartitions2(shardGlobals, 0),
         consensusPartitions: ShardFunctions.calculateConsensusPartitions(shardGlobals, 0),
-        nodeThatStoreOurParition: []
+        nodeThatStoreOurParition: [],
       } as NodeShardData
-      
+
       ShardFunctions.computeExtendedNodePartitionData(
         shardGlobals,
         nodeShardDataMap,
@@ -1102,7 +1102,7 @@ describe('ShardFunctions', () => {
         inactiveNodeData,
         activeNodes
       )
-      
+
       expect(inactiveNodeData.consensusNodeForOurNode).toEqual([])
       expect(inactiveNodeData.consensusNodeForOurNodeFull).toEqual([])
       expect(inactiveNodeData.edgeNodes).toBeDefined()
@@ -1120,34 +1120,28 @@ describe('ShardFunctions', () => {
       shardGlobals = ShardFunctions.calculateShardGlobals(10, 5, 2)
       nodeShardDataMap = new Map()
       activeNodes = []
-      
+
       for (let i = 0; i < 10; i++) {
         const node = {
           id: `node${i}`,
           status: 'active',
         } as Shardus.Node
         activeNodes.push(node)
-        
+
         const nodeData = {
           node,
           homePartition: i,
-          storedPartitions: ShardFunctions.calculateStoredPartitions2(shardGlobals, i)
+          storedPartitions: ShardFunctions.calculateStoredPartitions2(shardGlobals, i),
         } as NodeShardData
         nodeShardDataMap.set(node.id, nodeData)
       }
     })
 
     it('should get nodes that cover a partition', () => {
-      const result = ShardFunctions.getNodesThatCoverPartitionRaw(
-        shardGlobals,
-        nodeShardDataMap,
-        5,
-        [],
-        activeNodes
-      )
-      
+      const result = ShardFunctions.getNodesThatCoverPartitionRaw(shardGlobals, nodeShardDataMap, 5, [], activeNodes)
+
       expect(result.length).toBeGreaterThan(0)
-      expect(result.every(n => n.status === 'active')).toBe(true)
+      expect(result.every((n) => n.status === 'active')).toBe(true)
     })
 
     it('should exclude specified nodes', () => {
@@ -1158,20 +1152,14 @@ describe('ShardFunctions', () => {
         ['node5'],
         activeNodes
       )
-      
-      expect(result.find(n => n.id === 'node5')).toBeUndefined()
+
+      expect(result.find((n) => n.id === 'node5')).toBeUndefined()
     })
 
     it('should handle missing node data', () => {
       nodeShardDataMap.clear()
-      const result = ShardFunctions.getNodesThatCoverPartitionRaw(
-        shardGlobals,
-        nodeShardDataMap,
-        5,
-        [],
-        activeNodes
-      )
-      
+      const result = ShardFunctions.getNodesThatCoverPartitionRaw(shardGlobals, nodeShardDataMap, 5, [], activeNodes)
+
       expect(result.length).toBe(0)
     })
   })
@@ -1186,22 +1174,22 @@ describe('ShardFunctions', () => {
       shardGlobals = ShardFunctions.calculateShardGlobals(10, 5, 2)
       nodeShardDataMap = new Map()
       activeNodes = []
-      
+
       for (let i = 0; i < 10; i++) {
         const node = {
           id: `node${i}`,
           status: 'active',
         } as Shardus.Node
         activeNodes.push(node)
-        
+
         const nodeData = {
           node,
           homePartition: i,
-          storedPartitions: ShardFunctions.calculateStoredPartitions2(shardGlobals, i)
+          storedPartitions: ShardFunctions.calculateStoredPartitions2(shardGlobals, i),
         } as NodeShardData
         nodeShardDataMap.set(node.id, nodeData)
       }
-      
+
       thisNode = nodeShardDataMap.get('node5')
     })
 
@@ -1212,9 +1200,9 @@ describe('ShardFunctions', () => {
         nodeShardDataMap,
         activeNodes
       )
-      
+
       expect(result.length).toBeGreaterThan(0)
-      expect(result.find(n => n.id === thisNode.node.id)).toBeUndefined()
+      expect(result.find((n) => n.id === thisNode.node.id)).toBeUndefined()
     })
 
     it('should handle full coverage wrap', () => {
@@ -1222,14 +1210,14 @@ describe('ShardFunctions', () => {
       const smallGlobals = ShardFunctions.calculateShardGlobals(3, 3, 1)
       const smallNodes = activeNodes.slice(0, 3)
       const smallNodeData = nodeShardDataMap.get('node1')
-      
+
       const result = ShardFunctions.getNodesThatCoverHomePartition(
         smallGlobals,
         smallNodeData,
         nodeShardDataMap,
         smallNodes
       )
-      
+
       expect(result.length).toBeLessThanOrEqual(2)
     })
   })
@@ -1251,31 +1239,31 @@ describe('ShardFunctions', () => {
 
     it('should get neighbor nodes in range', () => {
       const result = ShardFunctions.getNeigborNodesInRange(5, 2, [], activeNodes)
-      
+
       expect(result.length).toBe(5) // radius 2 = 2*2+1 = 5 nodes
-      expect(result.map(n => n.id)).toContain('node3')
-      expect(result.map(n => n.id)).toContain('node4')
-      expect(result.map(n => n.id)).toContain('node5')
-      expect(result.map(n => n.id)).toContain('node6')
-      expect(result.map(n => n.id)).toContain('node7')
+      expect(result.map((n) => n.id)).toContain('node3')
+      expect(result.map((n) => n.id)).toContain('node4')
+      expect(result.map((n) => n.id)).toContain('node5')
+      expect(result.map((n) => n.id)).toContain('node6')
+      expect(result.map((n) => n.id)).toContain('node7')
     })
 
     it('should exclude specified nodes', () => {
       const result = ShardFunctions.getNeigborNodesInRange(5, 2, ['node5'], activeNodes)
-      
+
       expect(result.length).toBe(4)
-      expect(result.find(n => n.id === 'node5')).toBeUndefined()
+      expect(result.find((n) => n.id === 'node5')).toBeUndefined()
     })
 
     it('should handle wrap around', () => {
       const result = ShardFunctions.getNeigborNodesInRange(0, 2, [], activeNodes)
-      
+
       expect(result.length).toBe(5)
-      expect(result.map(n => n.id)).toContain('node8')
-      expect(result.map(n => n.id)).toContain('node9')
-      expect(result.map(n => n.id)).toContain('node0')
-      expect(result.map(n => n.id)).toContain('node1')
-      expect(result.map(n => n.id)).toContain('node2')
+      expect(result.map((n) => n.id)).toContain('node8')
+      expect(result.map((n) => n.id)).toContain('node9')
+      expect(result.map((n) => n.id)).toContain('node0')
+      expect(result.map((n) => n.id)).toContain('node1')
+      expect(result.map((n) => n.id)).toContain('node2')
     })
 
     it('should handle radius larger than node count', () => {
@@ -1284,10 +1272,10 @@ describe('ShardFunctions', () => {
     })
 
     it('should only include active nodes', () => {
-      (activeNodes[3] as any).status = 'standby'
+      ;(activeNodes[3] as any).status = 'standby'
       const result = ShardFunctions.getNeigborNodesInRange(5, 2, [], activeNodes)
       expect(result.length).toBe(4)
-      expect(result.find(n => n.id === 'node3')).toBeUndefined()
+      expect(result.find((n) => n.id === 'node3')).toBeUndefined()
     })
   })
 
@@ -1308,9 +1296,9 @@ describe('ShardFunctions', () => {
 
     it('should get nodes by proximity', () => {
       const result = ShardFunctions.getNodesByProximity(shardGlobals, activeNodes, 5, 'exclude', 4)
-      
+
       expect(result.length).toBe(4)
-      expect(result.find(n => n.id === 'exclude')).toBeUndefined()
+      expect(result.find((n) => n.id === 'exclude')).toBeUndefined()
     })
 
     it('should handle centered scan', () => {
@@ -1324,16 +1312,16 @@ describe('ShardFunctions', () => {
     })
 
     it('should only return active nodes', () => {
-      (activeNodes[4] as any).status = 'syncing';
-      (activeNodes[6] as any).status = 'syncing';
+      ;(activeNodes[4] as any).status = 'syncing'
+      ;(activeNodes[6] as any).status = 'syncing'
       const result = ShardFunctions.getNodesByProximity(shardGlobals, activeNodes, 5, '', 4)
       // The function might return fewer nodes if it encounters inactive nodes within its iteration limit
       expect(result.length).toBeLessThanOrEqual(4)
       expect(result.length).toBeGreaterThan(0)
-      expect(result.every(n => n.status === 'active')).toBe(true)
+      expect(result.every((n) => n.status === 'active')).toBe(true)
       // Verify that node4 and node6 are not in the result
-      expect(result.find(n => n.id === 'node4')).toBeUndefined()
-      expect(result.find(n => n.id === 'node6')).toBeUndefined()
+      expect(result.find((n) => n.id === 'node4')).toBeUndefined()
+      expect(result.find((n) => n.id === 'node6')).toBeUndefined()
     })
   })
 
@@ -1350,21 +1338,21 @@ describe('ShardFunctions', () => {
       const storedPartitions = ShardFunctions.calculateStoredPartitions2(shardGlobals, 5)
       oldNodeData = { storedPartitions } as NodeShardData
       newNodeData = { storedPartitions } as NodeShardData
-      
+
       const changes = ShardFunctions.computeCoverageChanges(oldNodeData, newNodeData)
       expect(changes.length).toBe(0)
     })
 
     it('should detect expansion in non-split ranges', () => {
-      oldNodeData = { 
-        storedPartitions: ShardFunctions.calculateStoredPartitions2(shardGlobals, 5)
+      oldNodeData = {
+        storedPartitions: ShardFunctions.calculateStoredPartitions2(shardGlobals, 5),
       } as NodeShardData
-      
+
       const newGlobals = ShardFunctions.calculateShardGlobals(10, 7, 3)
-      newNodeData = { 
-        storedPartitions: ShardFunctions.calculateStoredPartitions2(newGlobals, 5)
+      newNodeData = {
+        storedPartitions: ShardFunctions.calculateStoredPartitions2(newGlobals, 5),
       } as NodeShardData
-      
+
       const changes = ShardFunctions.computeCoverageChanges(oldNodeData, newNodeData)
       // Should detect expanded coverage
       expect(changes.length).toBeGreaterThanOrEqual(0)
@@ -1372,40 +1360,40 @@ describe('ShardFunctions', () => {
 
     it('should handle split to non-split transition', () => {
       // Create split range
-      oldNodeData = { 
-        storedPartitions: ShardFunctions.calculateStoredPartitions2(shardGlobals, 0)
+      oldNodeData = {
+        storedPartitions: ShardFunctions.calculateStoredPartitions2(shardGlobals, 0),
       } as NodeShardData
-      
-      newNodeData = { 
-        storedPartitions: ShardFunctions.calculateStoredPartitions2(shardGlobals, 5)
+
+      newNodeData = {
+        storedPartitions: ShardFunctions.calculateStoredPartitions2(shardGlobals, 5),
       } as NodeShardData
-      
+
       const changes = ShardFunctions.computeCoverageChanges(oldNodeData, newNodeData)
       expect(Array.isArray(changes)).toBe(true)
     })
 
     it('should handle non-split to split transition', () => {
-      oldNodeData = { 
-        storedPartitions: ShardFunctions.calculateStoredPartitions2(shardGlobals, 5)
+      oldNodeData = {
+        storedPartitions: ShardFunctions.calculateStoredPartitions2(shardGlobals, 5),
       } as NodeShardData
-      
-      newNodeData = { 
-        storedPartitions: ShardFunctions.calculateStoredPartitions2(shardGlobals, 0)
+
+      newNodeData = {
+        storedPartitions: ShardFunctions.calculateStoredPartitions2(shardGlobals, 0),
       } as NodeShardData
-      
+
       const changes = ShardFunctions.computeCoverageChanges(oldNodeData, newNodeData)
       expect(Array.isArray(changes)).toBe(true)
     })
 
     it('should handle split to split transition', () => {
-      oldNodeData = { 
-        storedPartitions: ShardFunctions.calculateStoredPartitions2(shardGlobals, 0)
+      oldNodeData = {
+        storedPartitions: ShardFunctions.calculateStoredPartitions2(shardGlobals, 0),
       } as NodeShardData
-      
-      newNodeData = { 
-        storedPartitions: ShardFunctions.calculateStoredPartitions2(shardGlobals, 9)
+
+      newNodeData = {
+        storedPartitions: ShardFunctions.calculateStoredPartitions2(shardGlobals, 9),
       } as NodeShardData
-      
+
       const changes = ShardFunctions.computeCoverageChanges(oldNodeData, newNodeData)
       expect(Array.isArray(changes)).toBe(true)
     })
@@ -1416,12 +1404,12 @@ describe('ShardFunctions', () => {
         partitionRange: {
           startAddr: 100,
           endAddr: 50, // Invalid: end < start
-        }
+        },
       } as WrappablePartitionRange
-      
+
       oldNodeData = { storedPartitions: invalidPartitions } as NodeShardData
       newNodeData = { storedPartitions: invalidPartitions } as NodeShardData
-      
+
       expect(() => {
         ShardFunctions.computeCoverageChanges(oldNodeData, newNodeData)
       }).toThrow('invalid ranges')
@@ -1437,7 +1425,7 @@ describe('ShardFunctions', () => {
 
     it('should calculate partition range', () => {
       const result = ShardFunctions.calculateParitionRange(shardGlobals, 5, 2)
-      
+
       expect(result.homeRange).toBeDefined()
       expect(result.partitionStart).toBeDefined()
       expect(result.partitionEnd).toBeDefined()
@@ -1447,7 +1435,7 @@ describe('ShardFunctions', () => {
     it('should handle full coverage', () => {
       const smallGlobals = ShardFunctions.calculateShardGlobals(3, 3, 1)
       const result = ShardFunctions.calculateParitionRange(smallGlobals, 1, 2)
-      
+
       expect(result.rangeIsSplit).toBe(false)
       expect(result.partitionStart).toBe(0)
       expect(result.partitionEnd).toBe(2)
@@ -1464,13 +1452,13 @@ describe('ShardFunctions', () => {
         homeRange: {} as any,
         partitionStart: 3,
         partitionEnd: 7,
-        rangeIsSplit: false
+        rangeIsSplit: false,
       } as WrappablePartitionRange
     })
 
     it('should calculate internal partition range data', () => {
       ShardFunctions.calculatePartitionRangeInternal(shardGlobals, wrappableRange, 2)
-      
+
       expect(wrappableRange.partitionRangeVector).toBeDefined()
       expect(wrappableRange.partitionRange).toBeDefined()
       expect(wrappableRange.partitionsCovered).toBe(5)
@@ -1479,9 +1467,9 @@ describe('ShardFunctions', () => {
     it('should handle negative start partition', () => {
       wrappableRange.partitionStart = -2
       wrappableRange.partitionEnd = 2
-      
+
       ShardFunctions.calculatePartitionRangeInternal(shardGlobals, wrappableRange, 2)
-      
+
       expect(wrappableRange.rangeIsSplit).toBe(true)
       expect(wrappableRange.partitionStart1).toBe(0)
       expect(wrappableRange.partitionStart2).toBe(8)
@@ -1490,9 +1478,9 @@ describe('ShardFunctions', () => {
     it('should handle end partition overflow', () => {
       wrappableRange.partitionStart = 8
       wrappableRange.partitionEnd = 12
-      
+
       ShardFunctions.calculatePartitionRangeInternal(shardGlobals, wrappableRange, 2)
-      
+
       expect(wrappableRange.rangeIsSplit).toBe(true)
       expect(wrappableRange.partitionEnd1).toBe(2)
       expect(wrappableRange.partitionEnd2).toBe(9)
@@ -1502,9 +1490,9 @@ describe('ShardFunctions', () => {
       wrappableRange.partitionStart = 8
       wrappableRange.partitionEnd = 1
       wrappableRange.rangeIsSplit = true
-      
+
       ShardFunctions.calculatePartitionRangeInternal(shardGlobals, wrappableRange, 2)
-      
+
       expect(wrappableRange.rangeIsSplit).toBe(true)
       expect(wrappableRange.partitionRange).toBeDefined()
       expect(wrappableRange.partitionRange2).toBeDefined()
@@ -1523,7 +1511,7 @@ describe('ShardFunctions', () => {
       // Setting invalid partition1 values when rangeIsSplit is false should trigger the error
       wrappableRange.partitionStart1 = -1
       wrappableRange.partitionEnd1 = -1
-      
+
       expect(() => {
         ShardFunctions.calculatePartitionRangeInternal(shardGlobals, wrappableRange, 2)
       }).toThrow()
@@ -1540,7 +1528,7 @@ describe('ShardFunctions', () => {
       shardGlobals = ShardFunctions.calculateShardGlobals(10, 5, 2)
       nodeShardDataMap = new Map()
       activeNodes = []
-      
+
       for (let i = 0; i < 10; i++) {
         const node = {
           id: `node${i}`,
@@ -1548,25 +1536,25 @@ describe('ShardFunctions', () => {
         } as Shardus.Node
         activeNodes.push(node)
       }
-      
+
       thisNode = {
         node: activeNodes[5],
         homePartition: 5,
-        consensusPartitions: ShardFunctions.calculateConsensusPartitions(shardGlobals, 5)
+        consensusPartitions: ShardFunctions.calculateConsensusPartitions(shardGlobals, 5),
       } as NodeShardData
     })
 
     it('should get edge nodes', () => {
       const result = ShardFunctions.getEdgeNodes(shardGlobals, thisNode, nodeShardDataMap, activeNodes)
-      
+
       expect(Array.isArray(result)).toBe(true)
-      expect(result.find(n => n.id === thisNode.node.id)).toBeUndefined()
+      expect(result.find((n) => n.id === thisNode.node.id)).toBeUndefined()
     })
 
     it('should return empty array for small networks', () => {
       const smallNodes = activeNodes.slice(0, 3)
       const result = ShardFunctions.getEdgeNodes(shardGlobals, thisNode, nodeShardDataMap, smallNodes)
-      
+
       expect(result).toEqual([])
     })
   })
@@ -1581,31 +1569,31 @@ describe('ShardFunctions', () => {
       shardGlobals = ShardFunctions.calculateShardGlobals(10, 5, 2)
       nodeShardDataMap = new Map()
       activeNodes = []
-      
+
       for (let i = 0; i < 10; i++) {
         activeNodes.push({
           id: `node${i}`,
           status: 'active',
         } as Shardus.Node)
       }
-      
+
       thisNode = {
         node: activeNodes[5],
         homePartition: 5,
         storedPartitions: ShardFunctions.calculateStoredPartitions2(shardGlobals, 5),
-        consensusPartitions: ShardFunctions.calculateConsensusPartitions(shardGlobals, 5)
+        consensusPartitions: ShardFunctions.calculateConsensusPartitions(shardGlobals, 5),
       } as NodeShardData
     })
 
     it('should get combined node lists', () => {
       const result = ShardFunctions.getCombinedNodeLists(shardGlobals, thisNode, nodeShardDataMap, activeNodes)
-      
+
       expect(result.nodeThatStoreOurPartition).toBeDefined()
       expect(result.nodeThatStoreOurPartitionFull).toBeDefined()
       expect(result.consensusNodeForOurNode).toBeDefined()
       expect(result.consensusNodeForOurNodeFull).toBeDefined()
       expect(result.edgeNodes).toBeDefined()
-      
+
       // Full lists should include our node
       expect(result.consensusNodeForOurNodeFull.length).toBeGreaterThan(result.consensusNodeForOurNode.length)
       expect(result.nodeThatStoreOurPartitionFull.length).toBeGreaterThan(result.nodeThatStoreOurPartition.length)
@@ -1618,11 +1606,11 @@ describe('ShardFunctions', () => {
         node: smallNodes[1],
         homePartition: 1,
         storedPartitions: ShardFunctions.calculateStoredPartitions2(smallGlobals, 1),
-        consensusPartitions: ShardFunctions.calculateConsensusPartitions(smallGlobals, 1)
+        consensusPartitions: ShardFunctions.calculateConsensusPartitions(smallGlobals, 1),
       } as NodeShardData
-      
+
       const result = ShardFunctions.getCombinedNodeLists(smallGlobals, smallNode, nodeShardDataMap, smallNodes)
-      
+
       expect(result.edgeNodes.length).toBeGreaterThanOrEqual(0)
     })
   })

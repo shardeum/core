@@ -18,10 +18,7 @@ describe('GetTrieHashesReq', () => {
       initGetTrieHashesReq()
 
       expect(mockAddSchema).toHaveBeenCalledTimes(1)
-      expect(mockAddSchema).toHaveBeenCalledWith(
-        AJVSchemaEnum.GetTrieHashesReq,
-        expect.any(Object)
-      )
+      expect(mockAddSchema).toHaveBeenCalledWith(AJVSchemaEnum.GetTrieHashesReq, expect.any(Object))
     })
 
     it('should call addSchema with correct schema structure', () => {
@@ -52,7 +49,7 @@ describe('GetTrieHashesReq', () => {
       const mockAddSchema = addSchema as jest.MockedFunction<typeof addSchema>
       initGetTrieHashesReq()
       const schema = mockAddSchema.mock.calls[0][1] as any
-      
+
       expect(schema.type).toBe('object')
     })
 
@@ -60,7 +57,7 @@ describe('GetTrieHashesReq', () => {
       const mockAddSchema = addSchema as jest.MockedFunction<typeof addSchema>
       initGetTrieHashesReq()
       const schema = mockAddSchema.mock.calls[0][1] as any
-      
+
       expect(schema.properties.radixList).toBeDefined()
     })
 
@@ -68,7 +65,7 @@ describe('GetTrieHashesReq', () => {
       const mockAddSchema = addSchema as jest.MockedFunction<typeof addSchema>
       initGetTrieHashesReq()
       const schema = mockAddSchema.mock.calls[0][1] as any
-      
+
       expect(schema.properties.radixList.type).toBe('array')
       expect(schema.properties.radixList.items).toEqual({ type: 'string' })
     })
@@ -77,7 +74,7 @@ describe('GetTrieHashesReq', () => {
       const mockAddSchema = addSchema as jest.MockedFunction<typeof addSchema>
       initGetTrieHashesReq()
       const schema = mockAddSchema.mock.calls[0][1] as any
-      
+
       expect(Object.keys(schema.properties)).toHaveLength(1)
     })
 
@@ -85,7 +82,7 @@ describe('GetTrieHashesReq', () => {
       const mockAddSchema = addSchema as jest.MockedFunction<typeof addSchema>
       initGetTrieHashesReq()
       const schema = mockAddSchema.mock.calls[0][1] as any
-      
+
       expect(schema.required).toEqual(['radixList'])
     })
 
@@ -93,7 +90,7 @@ describe('GetTrieHashesReq', () => {
       const mockAddSchema = addSchema as jest.MockedFunction<typeof addSchema>
       initGetTrieHashesReq()
       const schema = mockAddSchema.mock.calls[0][1] as any
-      
+
       expect(schema.required).toHaveLength(1)
     })
 
@@ -101,7 +98,7 @@ describe('GetTrieHashesReq', () => {
       const mockAddSchema = addSchema as jest.MockedFunction<typeof addSchema>
       initGetTrieHashesReq()
       const schema = mockAddSchema.mock.calls[0][1] as any
-      
+
       expect('additionalProperties' in schema).toBe(false)
     })
 
@@ -109,9 +106,9 @@ describe('GetTrieHashesReq', () => {
       const mockAddSchema = addSchema as jest.MockedFunction<typeof addSchema>
       initGetTrieHashesReq()
       const schema = mockAddSchema.mock.calls[0][1] as any
-      
+
       const propertyNames = Object.keys(schema.properties)
-      propertyNames.forEach(prop => {
+      propertyNames.forEach((prop) => {
         expect(schema.required).toContain(prop)
       })
     })

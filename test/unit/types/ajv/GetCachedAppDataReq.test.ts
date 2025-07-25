@@ -60,10 +60,7 @@ describe('GetCachedAppDataReq', () => {
       initGetCachedAppDataReq()
 
       expect(mockAddSchema).toHaveBeenCalledTimes(1)
-      expect(mockAddSchema).toHaveBeenCalledWith(
-        AJVSchemaEnum.GetCachedAppDataReq,
-        schemaGetCachedAppDataReq
-      )
+      expect(mockAddSchema).toHaveBeenCalledWith(AJVSchemaEnum.GetCachedAppDataReq, schemaGetCachedAppDataReq)
     })
 
     it('should not throw any errors during initialization', () => {
@@ -76,10 +73,7 @@ describe('GetCachedAppDataReq', () => {
       initGetCachedAppDataReq()
 
       expect(mockAddSchema).toHaveBeenCalledTimes(3)
-      expect(mockAddSchema).toHaveBeenCalledWith(
-        AJVSchemaEnum.GetCachedAppDataReq,
-        schemaGetCachedAppDataReq
-      )
+      expect(mockAddSchema).toHaveBeenCalledWith(AJVSchemaEnum.GetCachedAppDataReq, schemaGetCachedAppDataReq)
     })
   })
 
@@ -114,14 +108,14 @@ describe('GetCachedAppDataReq', () => {
     it('should reject objects with additional properties due to additionalProperties: false', () => {
       // The schema has additionalProperties: false, so extra properties should be rejected
       expect(schemaGetCachedAppDataReq.additionalProperties).toBe(false)
-      
+
       // This means objects like { topic: 'x', dataId: 'y', extra: 'z' } would be invalid
       const invalidObject = {
         topic: 'test-topic',
         dataId: 'test-id',
         extraField: 'should-not-be-allowed',
       }
-      
+
       // Verify the schema would reject this
       expect(schemaGetCachedAppDataReq.additionalProperties).toBe(false)
       expect(Object.keys(schemaGetCachedAppDataReq.properties)).not.toContain('extraField')
@@ -149,7 +143,7 @@ describe('GetCachedAppDataReq', () => {
       // Empty strings are still valid strings
       expect(schemaGetCachedAppDataReq.properties.topic.type).toBe('string')
       expect(schemaGetCachedAppDataReq.properties.dataId.type).toBe('string')
-      
+
       // No minimum length is specified in the schema
       expect((schemaGetCachedAppDataReq.properties.topic as any).minLength).toBeUndefined()
       expect((schemaGetCachedAppDataReq.properties.dataId as any).minLength).toBeUndefined()
@@ -158,7 +152,7 @@ describe('GetCachedAppDataReq', () => {
     it('should have both properties as required with no optional fields', () => {
       expect(schemaGetCachedAppDataReq.required).toHaveLength(2)
       expect(schemaGetCachedAppDataReq.required).toEqual(['topic', 'dataId'])
-      
+
       // All properties are required
       const allProperties = Object.keys(schemaGetCachedAppDataReq.properties)
       expect(schemaGetCachedAppDataReq.required).toEqual(expect.arrayContaining(allProperties))

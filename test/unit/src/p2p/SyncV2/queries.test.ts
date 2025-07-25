@@ -58,25 +58,26 @@ describe('SyncV2 queries', () => {
     publicKey: `public-key-${id}`,
   })
 
-  const createMockCycleRecord = (counter: number): CycleRecord => ({
-    counter,
-    previous: counter > 1 ? `cycle-hash-${counter - 1}` : '',
-    start: counter * 30,
-    duration: 30,
-    marker: `marker${counter}`,
-    networkId: 'test-network',
-    networkConfigHash: `config-hash-${counter}`,
-  } as unknown as CycleRecord)
+  const createMockCycleRecord = (counter: number): CycleRecord =>
+    ({
+      counter,
+      previous: counter > 1 ? `cycle-hash-${counter - 1}` : '',
+      start: counter * 30,
+      duration: 30,
+      marker: `marker${counter}`,
+      networkId: 'test-network',
+      networkConfigHash: `config-hash-${counter}`,
+    } as unknown as CycleRecord)
 
   beforeEach(() => {
     jest.clearAllMocks()
-    
+
     // Assign mock implementations
     utilsMock.attempt = mockAttempt
     utilsMock.robustQuery = mockRobustQuery
     httpMock.get = mockHttpGet
     contextMock.logger.getLogger = mockGetLogger
-    
+
     // Setup logger mocks
     mockGetLogger.mockImplementation((name: string) => {
       if (name === 'main') return mockMainLogger
@@ -92,7 +93,7 @@ describe('SyncV2 queries', () => {
     it('should initialize main and p2p loggers', () => {
       // Clear previous initialization
       mockGetLogger.mockClear()
-      
+
       queries.initLogger()
 
       expect(mockGetLogger).toHaveBeenCalledWith('main')
@@ -102,11 +103,7 @@ describe('SyncV2 queries', () => {
   })
 
   describe('robustQueryForCycleRecordHash', () => {
-    const nodes = [
-      createMockActiveNode('node1'),
-      createMockActiveNode('node2'),
-      createMockActiveNode('node3'),
-    ]
+    const nodes = [createMockActiveNode('node1'), createMockActiveNode('node2'), createMockActiveNode('node3')]
 
     it('should successfully query cycle record hash from nodes', async () => {
       const expectedHash = 'cycle-hash-123'
@@ -168,10 +165,7 @@ describe('SyncV2 queries', () => {
   })
 
   describe('robustQueryForValidatorListHash', () => {
-    const nodes = [
-      createMockActiveNode('node1'),
-      createMockActiveNode('node2'),
-    ]
+    const nodes = [createMockActiveNode('node1'), createMockActiveNode('node2')]
 
     it('should successfully query validator list hash and timestamp', async () => {
       const expectedData = {
@@ -282,10 +276,7 @@ describe('SyncV2 queries', () => {
   })
 
   describe('robustQueryForRecentCycleMarkers', () => {
-    const nodes = [
-      createMockActiveNode('node1'),
-      createMockActiveNode('node2'),
-    ]
+    const nodes = [createMockActiveNode('node1'), createMockActiveNode('node2')]
 
     it('should successfully query recent cycle markers', async () => {
       const expectedData = {
@@ -399,11 +390,7 @@ describe('SyncV2 queries', () => {
       await queries.getValidatorListFromNode(node, expectedHash)
 
       // Verify the timeout parameter
-      expect(mockHttpGet).toHaveBeenCalledWith(
-        expect.any(String),
-        false,
-        10000
-      )
+      expect(mockHttpGet).toHaveBeenCalledWith(expect.any(String), false, 10000)
     })
   })
 
@@ -489,11 +476,7 @@ describe('SyncV2 queries', () => {
         expect(result.value).toEqual(mockTxList)
       }
 
-      expect(mockHttpGet).toHaveBeenCalledWith(
-        `${node.ip}:${node.port}/tx-list?hash=${expectedHash}`,
-        false,
-        10000
-      )
+      expect(mockHttpGet).toHaveBeenCalledWith(`${node.ip}:${node.port}/tx-list?hash=${expectedHash}`, false, 10000)
     })
   })
 
@@ -506,11 +489,7 @@ describe('SyncV2 queries', () => {
     })
 
     it('should successfully fetch cycles batch from node', async () => {
-      const mockCycles = [
-        createMockCycleRecord(1),
-        createMockCycleRecord(2),
-        createMockCycleRecord(3),
-      ]
+      const mockCycles = [createMockCycleRecord(1), createMockCycleRecord(2), createMockCycleRecord(3)]
       const response = { cycles: mockCycles }
       mockHttpGet.mockResolvedValue(response)
 
@@ -526,7 +505,9 @@ describe('SyncV2 queries', () => {
         false,
         30000 // Extended timeout for batch operations
       )
-      expect(mockP2pLogger.info).toHaveBeenCalledWith(`SyncV2: getCyclesBatchFromNode: fetching ${markers.length} cycles`)
+      expect(mockP2pLogger.info).toHaveBeenCalledWith(
+        `SyncV2: getCyclesBatchFromNode: fetching ${markers.length} cycles`
+      )
     })
 
     it('should handle empty markers array', async () => {
@@ -540,28 +521,22 @@ describe('SyncV2 queries', () => {
         expect(result.value.cycles).toEqual([])
       }
 
-      expect(mockHttpGet).toHaveBeenCalledWith(
-        `${node.ip}:${node.port}/cycles-batch?markers=`,
-        false,
-        30000
-      )
+      expect(mockHttpGet).toHaveBeenCalledWith(`${node.ip}:${node.port}/cycles-batch?markers=`, false, 30000)
     })
 
     it('should handle large batch with proper timeout', async () => {
-      const largeMarkers = Array(50).fill(0).map((_, i) => `marker${i}`)
+      const largeMarkers = Array(50)
+        .fill(0)
+        .map((_, i) => `marker${i}`)
       const response = { cycles: [] }
       mockHttpGet.mockResolvedValue(response)
 
       const result = await queries.getCyclesBatchFromNode(node, largeMarkers)
 
       expect(result.isOk()).toBe(true)
-      
+
       // Verify the extended timeout is used
-      expect(mockHttpGet).toHaveBeenCalledWith(
-        expect.any(String),
-        false,
-        30000
-      )
+      expect(mockHttpGet).toHaveBeenCalledWith(expect.any(String), false, 30000)
     })
 
     it('should handle network error in batch request', async () => {
@@ -599,11 +574,7 @@ describe('SyncV2 queries', () => {
       }
 
       // Verify timeout is exactly 30000ms
-      expect(mockHttpGet).toHaveBeenCalledWith(
-        expect.stringContaining('/cycles-batch?markers='),
-        false,
-        30000
-      )
+      expect(mockHttpGet).toHaveBeenCalledWith(expect.stringContaining('/cycles-batch?markers='), false, 30000)
 
       // Verify retry behavior on timeout
       expect(mockAttempt).toHaveBeenCalledWith(
@@ -647,7 +618,7 @@ describe('SyncV2 queries', () => {
 
       // Verify multiple HTTP calls were made (initial + retries)
       expect(mockHttpGet).toHaveBeenCalledTimes(2) // mockAttempt implementation calls fn() twice in this test
-      
+
       // Verify attempt was called with correct retry config
       expect(mockAttempt).toHaveBeenCalledWith(
         expect.any(Function),
@@ -700,11 +671,7 @@ describe('SyncV2 queries', () => {
       }
 
       // Verify timeout configuration was used throughout
-      expect(mockHttpGet).toHaveBeenCalledWith(
-        expect.stringContaining('/cycles-batch?markers='),
-        false,
-        30000
-      )
+      expect(mockHttpGet).toHaveBeenCalledWith(expect.stringContaining('/cycles-batch?markers='), false, 30000)
     })
   })
 
@@ -769,7 +736,9 @@ describe('SyncV2 queries', () => {
 
       // Verify all API calls were made correctly
       expect(mockHttpGet).toHaveBeenCalledTimes(6)
-      expect(mockP2pLogger.info).toHaveBeenCalledWith(`SyncV2: getCyclesBatchFromNode: fetching ${markers.length} cycles`)
+      expect(mockP2pLogger.info).toHaveBeenCalledWith(
+        `SyncV2: getCyclesBatchFromNode: fetching ${markers.length} cycles`
+      )
     })
   })
 
@@ -784,122 +753,112 @@ describe('SyncV2 queries', () => {
     it('should properly encode special characters in cycle markers', async () => {
       // Test markers with various special characters (&, =, %, commas)
       const specialMarkers = [
-        'marker&test',     // Ampersand
-        'marker=equals',   // Equals sign
-        'marker%percent',  // Percent sign
-        'marker,comma',    // Comma
-        'marker+plus',     // Plus sign
-        'marker space',    // Space
-        'marker#hash',     // Hash
+        'marker&test', // Ampersand
+        'marker=equals', // Equals sign
+        'marker%percent', // Percent sign
+        'marker,comma', // Comma
+        'marker+plus', // Plus sign
+        'marker space', // Space
+        'marker#hash', // Hash
         'marker?question', // Question mark
       ]
-      
+
       const result = await queries.getCyclesBatchFromNode(node, specialMarkers)
 
       expect(result.isOk()).toBe(true)
-      
+
       // Verify the HTTP call was made
-      expect(mockHttpGet).toHaveBeenCalledWith(
-        expect.stringContaining('/cycles-batch?markers='),
-        false,
-        30000
-      )
-      
+      expect(mockHttpGet).toHaveBeenCalledWith(expect.stringContaining('/cycles-batch?markers='), false, 30000)
+
       // Verify proper URL encoding in request
       const callArgs = mockHttpGet.mock.calls[0]
       const url = callArgs[0] as string
-      
+
       // Check that special characters are properly encoded
-      expect(url).toContain('marker%26test')     // & -> %26
-      expect(url).toContain('marker%3Dequals')   // = -> %3D
-      expect(url).toContain('marker%25percent')  // % -> %25
-      expect(url).toContain('marker%2Ccomma')    // , -> %2C
-      expect(url).toContain('marker%2Bplus')     // + -> %2B
+      expect(url).toContain('marker%26test') // & -> %26
+      expect(url).toContain('marker%3Dequals') // = -> %3D
+      expect(url).toContain('marker%25percent') // % -> %25
+      expect(url).toContain('marker%2Ccomma') // , -> %2C
+      expect(url).toContain('marker%2Bplus') // + -> %2B
       expect(url).toMatch(/marker(%20|\+)space/) // space -> %20 or +
-      expect(url).toContain('marker%23hash')     // # -> %23
+      expect(url).toContain('marker%23hash') // # -> %23
       expect(url).toContain('marker%3Fquestion') // ? -> %3F
-      
+
       // Verify logging
-      expect(mockP2pLogger.info).toHaveBeenCalledWith(`SyncV2: getCyclesBatchFromNode: fetching ${specialMarkers.length} cycles`)
+      expect(mockP2pLogger.info).toHaveBeenCalledWith(
+        `SyncV2: getCyclesBatchFromNode: fetching ${specialMarkers.length} cycles`
+      )
     })
 
     it('should handle Unicode characters in cycle markers', async () => {
       // Test markers with Unicode characters
       const unicodeMarkers = [
-        'marker🚀rocket',     // Emoji
-        'markerñtilde',       // Latin characters
-        'marker中文',          // Chinese characters
-        'markerΑΒΓ',          // Greek characters
-        'marker°degree',      // Degree symbol
-        'marker©copyright',   // Copyright symbol
+        'marker🚀rocket', // Emoji
+        'markerñtilde', // Latin characters
+        'marker中文', // Chinese characters
+        'markerΑΒΓ', // Greek characters
+        'marker°degree', // Degree symbol
+        'marker©copyright', // Copyright symbol
       ]
-      
+
       const result = await queries.getCyclesBatchFromNode(node, unicodeMarkers)
 
       expect(result.isOk()).toBe(true)
-      
+
       // Verify the HTTP call was made
-      expect(mockHttpGet).toHaveBeenCalledWith(
-        expect.stringContaining('/cycles-batch?markers='),
-        false,
-        30000
-      )
-      
+      expect(mockHttpGet).toHaveBeenCalledWith(expect.stringContaining('/cycles-batch?markers='), false, 30000)
+
       // Verify proper URL encoding for Unicode
       const callArgs = mockHttpGet.mock.calls[0]
       const url = callArgs[0] as string
-      
+
       // Unicode characters should be properly encoded
       expect(url).toContain('marker%F0%9F%9A%80rocket') // 🚀 encoded
-      expect(url).toContain('marker%C3%B1tilde')        // ñ encoded
+      expect(url).toContain('marker%C3%B1tilde') // ñ encoded
       expect(url).toContain('marker%E4%B8%AD%E6%96%87') // 中文 encoded
       expect(url).toContain('marker%CE%91%CE%92%CE%93') // ΑΒΓ encoded
-      expect(url).toContain('marker%C2%B0degree')       // ° encoded
-      expect(url).toContain('marker%C2%A9copyright')    // © encoded
+      expect(url).toContain('marker%C2%B0degree') // ° encoded
+      expect(url).toContain('marker%C2%A9copyright') // © encoded
     })
 
     it('should handle edge case special characters', async () => {
       // Test edge case special characters
       const edgeCaseMarkers = [
-        'marker\twithtab',    // Tab character
+        'marker\twithtab', // Tab character
         'marker\nwithnewline', // Newline character
-        'marker"withquote',    // Double quote
+        'marker"withquote', // Double quote
         "marker'withsinglequote", // Single quote
         'marker\\withbackslash', // Backslash
-        'marker[brackets]',    // Square brackets
-        'marker{braces}',      // Curly braces
+        'marker[brackets]', // Square brackets
+        'marker{braces}', // Curly braces
         'marker(parentheses)', // Parentheses
       ]
-      
+
       const result = await queries.getCyclesBatchFromNode(node, edgeCaseMarkers)
 
       expect(result.isOk()).toBe(true)
-      
+
       // Verify the HTTP call was made
-      expect(mockHttpGet).toHaveBeenCalledWith(
-        expect.stringContaining('/cycles-batch?markers='),
-        false,
-        30000
-      )
-      
+      expect(mockHttpGet).toHaveBeenCalledWith(expect.stringContaining('/cycles-batch?markers='), false, 30000)
+
       // Verify proper URL encoding for edge cases
       const callArgs = mockHttpGet.mock.calls[0]
       const url = callArgs[0] as string
-      
+
       // Check that edge case characters are properly encoded
-      expect(url).toContain('marker%09withtab')        // \t -> %09
-      expect(url).toContain('marker%0Awithnewline')    // \n -> %0A
-      expect(url).toContain('marker%22withquote')      // " -> %22
+      expect(url).toContain('marker%09withtab') // \t -> %09
+      expect(url).toContain('marker%0Awithnewline') // \n -> %0A
+      expect(url).toContain('marker%22withquote') // " -> %22
       expect(url).toContain('marker%27withsinglequote') // ' -> %27
-      expect(url).toContain('marker%5Cwithbackslash')  // \ -> %5C
-      expect(url).toContain('marker%5Bbrackets%5D')    // [ ] -> %5B %5D
-      expect(url).toContain('marker%7Bbraces%7D')      // { } -> %7B %7D
+      expect(url).toContain('marker%5Cwithbackslash') // \ -> %5C
+      expect(url).toContain('marker%5Bbrackets%5D') // [ ] -> %5B %5D
+      expect(url).toContain('marker%7Bbraces%7D') // { } -> %7B %7D
       expect(url).toContain('marker%28parentheses%29') // ( ) -> %28 %29
     })
 
     it('should properly encode special characters in parameters', async () => {
       const specialHash = 'hash+with/special&chars=' as hexstring
-      
+
       await queries.getCycleDataFromNode(node, specialHash)
 
       expect(mockHttpGet).toHaveBeenCalledWith(
@@ -911,15 +870,11 @@ describe('SyncV2 queries', () => {
 
     it('should handle multiple parameters correctly', async () => {
       const markers = ['marker&1', 'marker=2', 'marker/3']
-      
+
       await queries.getCyclesBatchFromNode(node, markers)
 
-      expect(mockHttpGet).toHaveBeenCalledWith(
-        expect.stringContaining('cycles-batch?markers='),
-        false,
-        30000
-      )
-      
+      expect(mockHttpGet).toHaveBeenCalledWith(expect.stringContaining('cycles-batch?markers='), false, 30000)
+
       // Verify the URL contains encoded markers
       const callArgs = mockHttpGet.mock.calls[0]
       const url = callArgs[0]
@@ -940,7 +895,7 @@ describe('SyncV2 queries', () => {
     it('should handle extremely long marker lists', async () => {
       // Create 1000+ markers with long names to test URL length handling
       const longMarkers: string[] = []
-      
+
       // Generate 1200 markers, each with a 50-character name
       for (let i = 0; i < 1200; i++) {
         const longMarkerName = `very-long-marker-name-with-lots-of-characters-${i.toString().padStart(10, '0')}`
@@ -960,37 +915,35 @@ describe('SyncV2 queries', () => {
       }
 
       // Verify the HTTP call was made
-      expect(mockHttpGet).toHaveBeenCalledWith(
-        expect.stringContaining('/cycles-batch?markers='),
-        false,
-        30000
-      )
+      expect(mockHttpGet).toHaveBeenCalledWith(expect.stringContaining('/cycles-batch?markers='), false, 30000)
 
       // Verify URL length handling - check that the URL was constructed
       const callArgs = mockHttpGet.mock.calls[0]
       const url = callArgs[0] as string
-      
+
       // The URL should contain the base path and markers parameter
       expect(url).toContain('/cycles-batch?markers=')
-      
+
       // Verify that all markers are included in the URL (no truncation)
       const markersParam = url.split('markers=')[1]
       const decodedMarkers = decodeURIComponent(markersParam).split(',')
       expect(decodedMarkers).toHaveLength(1200)
-      
+
       // Verify first and last markers are present
       expect(decodedMarkers[0]).toBe(longMarkers[0])
       expect(decodedMarkers[1199]).toBe(longMarkers[1199])
 
       // Verify logging shows correct count
-      expect(mockP2pLogger.info).toHaveBeenCalledWith(`SyncV2: getCyclesBatchFromNode: fetching ${longMarkers.length} cycles`)
+      expect(mockP2pLogger.info).toHaveBeenCalledWith(
+        `SyncV2: getCyclesBatchFromNode: fetching ${longMarkers.length} cycles`
+      )
     })
 
     it('should handle extremely long individual marker names', async () => {
       // Create markers with extremely long names (2000+ characters each)
       const extremelyLongMarkers = [
         'a'.repeat(2048) + '-marker-1', // 2048 + 10 = 2058 characters
-        'b'.repeat(2048) + '-marker-2', 
+        'b'.repeat(2048) + '-marker-2',
         'c'.repeat(2048) + '-marker-3',
         'd'.repeat(2048) + '-marker-4',
         'e'.repeat(2048) + '-marker-5',
@@ -1009,24 +962,20 @@ describe('SyncV2 queries', () => {
       }
 
       // Verify the HTTP call was made
-      expect(mockHttpGet).toHaveBeenCalledWith(
-        expect.stringContaining('/cycles-batch?markers='),
-        false,
-        30000
-      )
+      expect(mockHttpGet).toHaveBeenCalledWith(expect.stringContaining('/cycles-batch?markers='), false, 30000)
 
       // Verify URL handles long marker names without errors
       const callArgs = mockHttpGet.mock.calls[0]
       const url = callArgs[0] as string
-      
+
       // The URL should be constructed successfully
       expect(url).toContain('/cycles-batch?markers=')
-      
+
       // Verify all markers are present in the URL
       const markersParam = url.split('markers=')[1]
       const decodedMarkers = decodeURIComponent(markersParam).split(',')
       expect(decodedMarkers).toHaveLength(5)
-      
+
       // Verify the extremely long markers are preserved
       decodedMarkers.forEach((decodedMarker, index) => {
         expect(decodedMarker).toBe(extremelyLongMarkers[index])
@@ -1038,7 +987,7 @@ describe('SyncV2 queries', () => {
       // Create a scenario that would result in a very large URL
       // 500 markers, each 1000 characters long = ~500KB URL
       const massiveMarkerList: string[] = []
-      
+
       for (let i = 0; i < 500; i++) {
         const baseMarker = `marker-${i.toString().padStart(6, '0')}-`
         const padding = 'x'.repeat(1000 - baseMarker.length)
@@ -1047,7 +996,7 @@ describe('SyncV2 queries', () => {
 
       // Verify we have the expected massive marker list
       expect(massiveMarkerList.length).toBe(500)
-      massiveMarkerList.forEach(marker => {
+      massiveMarkerList.forEach((marker) => {
         expect(marker.length).toBe(1000)
       })
 
@@ -1059,31 +1008,27 @@ describe('SyncV2 queries', () => {
       }
 
       // Verify the HTTP call was made successfully
-      expect(mockHttpGet).toHaveBeenCalledWith(
-        expect.stringContaining('/cycles-batch?markers='),
-        false,
-        30000
-      )
+      expect(mockHttpGet).toHaveBeenCalledWith(expect.stringContaining('/cycles-batch?markers='), false, 30000)
 
       // Verify the massive URL was constructed without truncation
       const callArgs = mockHttpGet.mock.calls[0]
       const url = callArgs[0] as string
-      
+
       // Calculate approximate URL size (should be very large)
       expect(url.length).toBeGreaterThan(400000) // Should be > 400KB
-      
+
       // Verify all markers are present
       const markersParam = url.split('markers=')[1]
       const decodedMarkers = decodeURIComponent(markersParam).split(',')
       expect(decodedMarkers).toHaveLength(500)
-      
+
       // Spot check first, middle, and last markers
       expect(decodedMarkers[0]).toBe(massiveMarkerList[0])
       expect(decodedMarkers[249]).toBe(massiveMarkerList[249])
       expect(decodedMarkers[499]).toBe(massiveMarkerList[499])
 
       // Verify all markers have expected length
-      decodedMarkers.forEach(marker => {
+      decodedMarkers.forEach((marker) => {
         expect(marker.length).toBe(1000)
       })
     })
@@ -1091,7 +1036,7 @@ describe('SyncV2 queries', () => {
     it('should handle edge case of single massive marker', async () => {
       // Create a single marker that's extremely large (10MB)
       const massiveMarker = 'x'.repeat(10 * 1024 * 1024) // 10MB marker
-      
+
       const result = await queries.getCyclesBatchFromNode(node, [massiveMarker])
 
       expect(result.isOk()).toBe(true)
@@ -1100,18 +1045,14 @@ describe('SyncV2 queries', () => {
       }
 
       // Verify the HTTP call was made
-      expect(mockHttpGet).toHaveBeenCalledWith(
-        expect.stringContaining('/cycles-batch?markers='),
-        false,
-        30000
-      )
+      expect(mockHttpGet).toHaveBeenCalledWith(expect.stringContaining('/cycles-batch?markers='), false, 30000)
 
       // Verify the massive single marker was handled
       const callArgs = mockHttpGet.mock.calls[0]
       const url = callArgs[0] as string
-      
+
       expect(url).toContain('/cycles-batch?markers=')
-      
+
       // Verify the massive marker is present
       const markersParam = url.split('markers=')[1]
       const decodedMarker = decodeURIComponent(markersParam)
@@ -1125,12 +1066,12 @@ describe('SyncV2 queries', () => {
     it('should handle empty string markers mixed with long markers', async () => {
       // Mix of empty strings, normal markers, and long markers
       const mixedMarkers = [
-        '',  // Empty string
+        '', // Empty string
         'normal-marker',
-        '',  // Another empty string
+        '', // Another empty string
         'y'.repeat(5000), // Very long marker
         'another-normal-marker',
-        '',  // Final empty string
+        '', // Final empty string
         'z'.repeat(3000), // Another long marker
       ]
 
@@ -1142,20 +1083,16 @@ describe('SyncV2 queries', () => {
       }
 
       // Verify the HTTP call was made
-      expect(mockHttpGet).toHaveBeenCalledWith(
-        expect.stringContaining('/cycles-batch?markers='),
-        false,
-        30000
-      )
+      expect(mockHttpGet).toHaveBeenCalledWith(expect.stringContaining('/cycles-batch?markers='), false, 30000)
 
       // Verify all markers (including empty ones) are preserved
       const callArgs = mockHttpGet.mock.calls[0]
       const url = callArgs[0] as string
-      
+
       const markersParam = url.split('markers=')[1]
       const decodedMarkers = decodeURIComponent(markersParam).split(',')
       expect(decodedMarkers).toHaveLength(7)
-      
+
       // Verify the exact marker content is preserved
       expect(decodedMarkers[0]).toBe('')
       expect(decodedMarkers[1]).toBe('normal-marker')
@@ -1196,10 +1133,7 @@ describe('SyncV2 queries', () => {
 
   describe('Robust query internals', () => {
     it('should pass correct query function to robustQuery', async () => {
-      const nodes = [
-        createMockActiveNode('node1', '192.168.1.1'),
-        createMockActiveNode('node2', '192.168.1.2'),
-      ]
+      const nodes = [createMockActiveNode('node1', '192.168.1.1'), createMockActiveNode('node2', '192.168.1.2')]
 
       // Setup to capture the query function
       let capturedQueryFn: any
@@ -1218,7 +1152,7 @@ describe('SyncV2 queries', () => {
         mockHttpGet.mockResolvedValue({ currentCycleHash: 'test-hash' })
         const resultPromise = queryFn(nodes[0])
         const result = await resultPromise
-        
+
         return {
           isRobustResult: true,
           topResult: okAsync(result),
@@ -1228,16 +1162,13 @@ describe('SyncV2 queries', () => {
 
       await queries.robustQueryForCycleRecordHash(nodes)
 
-      expect(mockRobustQuery).toHaveBeenCalledWith(
-        nodes,
-        expect.any(Function)
-      )
+      expect(mockRobustQuery).toHaveBeenCalledWith(nodes, expect.any(Function))
 
       // Verify the query function works correctly
       const [, queryFn] = mockRobustQuery.mock.calls[0]
       mockHttpGet.mockResolvedValue({ currentCycleHash: 'query-test' })
       const queryResult = await queryFn(nodes[0])
-      
+
       expect(mockHttpGet).toHaveBeenCalledWith('192.168.1.1:8080/current-cycle-hash')
       // queryResult is a ResultAsync, so we need to check its value
       if ('isOk' in queryResult && queryResult.isOk()) {
@@ -1264,7 +1195,7 @@ describe('SyncV2 queries', () => {
       mockAttempt.mockImplementation(async (fn, options) => {
         attemptCallCount++
         let lastError: Error | null = null
-        
+
         // Simulate actual retry mechanism: try up to maxRetries + 1 times
         for (let i = 0; i <= options.maxRetries; i++) {
           try {
@@ -1302,7 +1233,7 @@ describe('SyncV2 queries', () => {
 
       // Verify attempt was called exactly once
       expect(attemptCallCount).toBe(1)
-      
+
       // Verify exactly 3 HTTP calls were made (2 failures + 1 success)
       expect(httpCallCount).toBe(3)
       expect(httpAttempts).toBe(3)
@@ -1319,10 +1250,10 @@ describe('SyncV2 queries', () => {
     })
 
     it('should fail when all retries are exhausted', async () => {
-      // Mock attempt to actually perform retry logic  
+      // Mock attempt to actually perform retry logic
       mockAttempt.mockImplementation(async (fn, options) => {
         let lastError: Error | null = null
-        
+
         for (let i = 0; i <= options.maxRetries; i++) {
           try {
             return await fn()
@@ -1378,7 +1309,7 @@ describe('SyncV2 queries', () => {
 
       // Verify only one HTTP call was made
       expect(mockHttpGet).toHaveBeenCalledTimes(1)
-      
+
       // Verify attempt was called once
       expect(mockAttempt).toHaveBeenCalledTimes(1)
     })
@@ -1398,7 +1329,7 @@ describe('SyncV2 queries', () => {
       )
 
       jest.clearAllMocks()
-      
+
       await queries.getArchiverListFromNode(node, 'hash' as hexstring)
       expect(mockAttempt).toHaveBeenCalledWith(
         expect.any(Function),
@@ -1431,24 +1362,30 @@ describe('SyncV2 queries', () => {
     it('should handle very large response payloads', async () => {
       // Create cycles with large data payloads to test response size handling
       const largeCycles = []
-      
+
       for (let i = 1; i <= 5; i++) {
         // Create a cycle with large data payload (simulate real-world large cycle data)
         const largeCycle = {
           ...createMockCycleRecord(i),
           // Add large data fields that might exist in real cycles
           largeDataField: 'x'.repeat(1024 * 1024), // 1MB of data per cycle
-          transactionHashes: Array(10000).fill(0).map((_, idx) => `tx-hash-${i}-${idx}`), // Large transaction list
-          nodeDetails: Array(1000).fill(0).map((_, idx) => ({
-            id: `node-${i}-${idx}`,
-            publicKey: 'key'.repeat(100), // Large public key data
-            metadata: 'meta'.repeat(500)  // Large metadata
-          })),
-          debugLogs: Array(5000).fill(0).map((_, idx) => `debug-log-${i}-${idx}-${'data'.repeat(50)}`), // Large debug logs
+          transactionHashes: Array(10000)
+            .fill(0)
+            .map((_, idx) => `tx-hash-${i}-${idx}`), // Large transaction list
+          nodeDetails: Array(1000)
+            .fill(0)
+            .map((_, idx) => ({
+              id: `node-${i}-${idx}`,
+              publicKey: 'key'.repeat(100), // Large public key data
+              metadata: 'meta'.repeat(500), // Large metadata
+            })),
+          debugLogs: Array(5000)
+            .fill(0)
+            .map((_, idx) => `debug-log-${i}-${idx}-${'data'.repeat(50)}`), // Large debug logs
           networkState: {
             largeConfig: 'config'.repeat(10000), // Large config data
-            stateSnapshot: 'state'.repeat(20000)  // Large state data
-          }
+            stateSnapshot: 'state'.repeat(20000), // Large state data
+          },
         }
         largeCycles.push(largeCycle)
       }
@@ -1469,7 +1406,7 @@ describe('SyncV2 queries', () => {
       if (result.isOk()) {
         expect(result.value).toEqual(largeResponse)
         expect(result.value.cycles).toHaveLength(5)
-        
+
         // Verify large data fields are preserved
         result.value.cycles.forEach((cycle: any, index) => {
           expect(cycle.largeDataField).toHaveLength(1024 * 1024)
@@ -1489,7 +1426,9 @@ describe('SyncV2 queries', () => {
       )
 
       // Verify logging indicates large response handling
-      expect(mockP2pLogger.info).toHaveBeenCalledWith(`SyncV2: getCyclesBatchFromNode: fetching ${markers.length} cycles`)
+      expect(mockP2pLogger.info).toHaveBeenCalledWith(
+        `SyncV2: getCyclesBatchFromNode: fetching ${markers.length} cycles`
+      )
     })
 
     it('should handle extremely large single cycle payload', async () => {
@@ -1498,23 +1437,25 @@ describe('SyncV2 queries', () => {
         ...createMockCycleRecord(1),
         // Extremely large fields
         massiveDataField: 'x'.repeat(20 * 1024 * 1024), // 20MB field
-        hugeCacheData: 'y'.repeat(15 * 1024 * 1024),    // 15MB field  
-        giantLogBuffer: 'z'.repeat(10 * 1024 * 1024),   // 10MB field
+        hugeCacheData: 'y'.repeat(15 * 1024 * 1024), // 15MB field
+        giantLogBuffer: 'z'.repeat(10 * 1024 * 1024), // 10MB field
         // Large array with many elements
-        enormousTransactionList: Array(100000).fill(0).map((_, idx) => ({
-          id: `massive-tx-${idx}`,
-          data: 'transaction-data'.repeat(100),
-          signature: 'sig'.repeat(200),
-          metadata: 'meta'.repeat(150)
-        })),
+        enormousTransactionList: Array(100000)
+          .fill(0)
+          .map((_, idx) => ({
+            id: `massive-tx-${idx}`,
+            data: 'transaction-data'.repeat(100),
+            signature: 'sig'.repeat(200),
+            metadata: 'meta'.repeat(150),
+          })),
         // Large nested object structure
         complexStateTree: {
           level1: 'data'.repeat(1000000),
           level2: {
             level3: 'nested'.repeat(500000),
-            level4: Array(50000).fill('deep-data'.repeat(20))
-          }
-        }
+            level4: Array(50000).fill('deep-data'.repeat(20)),
+          },
+        },
       }
 
       // Verify this is indeed a massive cycle (should be > 50MB)
@@ -1532,9 +1473,9 @@ describe('SyncV2 queries', () => {
       if (result.isOk()) {
         expect(result.value).toEqual(extremeResponse)
         expect(result.value.cycles).toHaveLength(1)
-        
+
         const receivedCycle: any = result.value.cycles[0]
-        
+
         // Verify all large fields are preserved in full
         expect(receivedCycle.massiveDataField).toHaveLength(20 * 1024 * 1024)
         expect(receivedCycle.hugeCacheData).toHaveLength(15 * 1024 * 1024)
@@ -1542,7 +1483,7 @@ describe('SyncV2 queries', () => {
         expect(receivedCycle.enormousTransactionList).toHaveLength(100000)
         expect(receivedCycle.complexStateTree.level1.length).toBeGreaterThan(500000)
         expect(receivedCycle.complexStateTree.level2.level4).toHaveLength(50000)
-        
+
         // Verify content integrity (no truncation occurred)
         expect(receivedCycle.massiveDataField).toBe('x'.repeat(20 * 1024 * 1024))
         expect(receivedCycle.hugeCacheData).toBe('y'.repeat(15 * 1024 * 1024))
@@ -1560,9 +1501,9 @@ describe('SyncV2 queries', () => {
     it('should handle response payload at theoretical limits', async () => {
       // Test at theoretical JSON/HTTP limits (approaching 2GB - JavaScript string limit)
       // Note: This is a stress test - in practice responses shouldn't be this large
-      
+
       const theoreticalLimit = 100 * 1024 * 1024 // 100MB (reasonable test limit)
-      
+
       // Create a response that approaches theoretical limits
       const massiveCycle = {
         ...createMockCycleRecord(1),
@@ -1571,8 +1512,8 @@ describe('SyncV2 queries', () => {
         metadata: {
           size: theoreticalLimit,
           description: 'Cycle at theoretical size limits',
-          warning: 'This represents extreme edge case testing'
-        }
+          warning: 'This represents extreme edge case testing',
+        },
       }
 
       // Verify we're at the intended size
@@ -1590,9 +1531,9 @@ describe('SyncV2 queries', () => {
       if (result.isOk()) {
         expect(result.value).toEqual(theoreticalResponse)
         expect(result.value.cycles).toHaveLength(1)
-        
+
         const receivedCycle: any = result.value.cycles[0]
-        
+
         // Verify the massive field is preserved completely
         expect(receivedCycle.theoreticalLimitField).toHaveLength(theoreticalLimit)
         expect(receivedCycle.theoreticalLimitField).toBe('L'.repeat(theoreticalLimit))
@@ -1612,30 +1553,36 @@ describe('SyncV2 queries', () => {
       const mixedCycles = [
         // Small normal cycle
         createMockCycleRecord(1),
-        
+
         // Medium cycle with moderate data
         {
           ...createMockCycleRecord(2),
           mediumData: 'M'.repeat(1024 * 100), // 100KB
-          transactions: Array(1000).fill('tx').map((tx, i) => `${tx}-${i}`)
+          transactions: Array(1000)
+            .fill('tx')
+            .map((tx, i) => `${tx}-${i}`),
         },
-        
-        // Large cycle with substantial data  
+
+        // Large cycle with substantial data
         {
           ...createMockCycleRecord(3),
           largeData: 'L'.repeat(1024 * 1024 * 5), // 5MB
-          complexState: Array(10000).fill(0).map(i => ({ id: i, data: 'state'.repeat(50) }))
+          complexState: Array(10000)
+            .fill(0)
+            .map((i) => ({ id: i, data: 'state'.repeat(50) })),
         },
-        
+
         // Another small cycle
         createMockCycleRecord(4),
-        
+
         // Very large cycle
         {
           ...createMockCycleRecord(5),
           veryLargeData: 'X'.repeat(1024 * 1024 * 10), // 10MB
-          massiveArray: Array(50000).fill('data').map((d, i) => `${d}-${i}-${'padding'.repeat(20)}`)
-        }
+          massiveArray: Array(50000)
+            .fill('data')
+            .map((d, i) => `${d}-${i}-${'padding'.repeat(20)}`),
+        },
       ]
 
       // Mock HTTP to return mixed size response
@@ -1650,35 +1597,33 @@ describe('SyncV2 queries', () => {
       if (result.isOk()) {
         expect(result.value).toEqual(mixedResponse)
         expect(result.value.cycles).toHaveLength(5)
-        
+
         // Verify each cycle type is preserved correctly
         const cycles: any[] = result.value.cycles
-        
+
         // Small cycle (index 0, 3) should be unchanged
         expect(cycles[0]).toEqual(createMockCycleRecord(1))
         expect(cycles[3]).toEqual(createMockCycleRecord(4))
-        
+
         // Medium cycle (index 1) should have medium data
         expect(cycles[1].mediumData).toHaveLength(1024 * 100)
         expect(cycles[1].transactions).toHaveLength(1000)
-        
+
         // Large cycle (index 2) should have large data
         expect(cycles[2].largeData).toHaveLength(1024 * 1024 * 5)
         expect(cycles[2].complexState).toHaveLength(10000)
-        
+
         // Very large cycle (index 4) should have very large data
         expect(cycles[4].veryLargeData).toHaveLength(1024 * 1024 * 10)
         expect(cycles[4].massiveArray).toHaveLength(50000)
       }
 
       // Verify proper HTTP handling for mixed response
-      expect(mockHttpGet).toHaveBeenCalledWith(
-        expect.stringContaining('/cycles-batch?markers='),
-        false,
-        30000
-      )
+      expect(mockHttpGet).toHaveBeenCalledWith(expect.stringContaining('/cycles-batch?markers='), false, 30000)
 
-      expect(mockP2pLogger.info).toHaveBeenCalledWith(`SyncV2: getCyclesBatchFromNode: fetching ${markers.length} cycles`)
+      expect(mockP2pLogger.info).toHaveBeenCalledWith(
+        `SyncV2: getCyclesBatchFromNode: fetching ${markers.length} cycles`
+      )
     })
 
     it('should handle empty cycles with large metadata', async () => {
@@ -1692,19 +1637,21 @@ describe('SyncV2 queries', () => {
           state: {},
           // But large metadata
           debugInfo: {
-            systemLogs: 'debug'.repeat(1024 * 512),    // 2MB debug logs
-            performanceMetrics: Array(100000).fill(0).map(i => ({
-              timestamp: Date.now() + i,
-              metric: `perf-data-${'metric'.repeat(100)}`
-            })),
-            errorReports: 'error'.repeat(1024 * 256),   // 1MB error reports
-            networkStatistics: 'stats'.repeat(1024 * 512) // 2MB network stats
+            systemLogs: 'debug'.repeat(1024 * 512), // 2MB debug logs
+            performanceMetrics: Array(100000)
+              .fill(0)
+              .map((i) => ({
+                timestamp: Date.now() + i,
+                metric: `perf-data-${'metric'.repeat(100)}`,
+              })),
+            errorReports: 'error'.repeat(1024 * 256), // 1MB error reports
+            networkStatistics: 'stats'.repeat(1024 * 512), // 2MB network stats
           },
           archivalData: {
             historicalState: 'history'.repeat(1024 * 1024), // 7MB historical data
-            backupInfo: 'backup'.repeat(1024 * 512)          // 2MB backup info
-          }
-        }
+            backupInfo: 'backup'.repeat(1024 * 512), // 2MB backup info
+          },
+        },
       ]
 
       // Mock HTTP to return metadata-heavy response
@@ -1718,14 +1665,14 @@ describe('SyncV2 queries', () => {
       if (result.isOk()) {
         expect(result.value).toEqual(metadataResponse)
         expect(result.value.cycles).toHaveLength(1)
-        
+
         const cycle: any = result.value.cycles[0]
-        
+
         // Verify core data is empty as expected
         expect(cycle.transactions).toEqual([])
         expect(cycle.nodes).toEqual([])
         expect(cycle.state).toEqual({})
-        
+
         // Verify large metadata is preserved
         expect(cycle.debugInfo.systemLogs.length).toBeGreaterThan(1000000)
         expect(cycle.debugInfo.performanceMetrics).toHaveLength(100000)

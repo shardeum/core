@@ -23,7 +23,7 @@ const mockComms = {
 const mockConfig = {
   p2p: {
     enableLostArchiversCycles: true,
-  }
+  },
 }
 
 const mockCrypto = {
@@ -92,14 +92,14 @@ jest.mock('../../../../src/p2p/Context', () => ({
   config: {
     p2p: {
       enableLostArchiversCycles: true,
-    }
+    },
   },
   crypto: {
     sign: jest.fn((obj: any) => ({ ...obj, sign: { owner: 'test', sig: 'testsig' } })),
   },
   network: {
     _registerExternal: jest.fn(),
-  }
+  },
 }))
 
 jest.mock('../../../../src/p2p/Utils', () => ({
@@ -127,7 +127,9 @@ jest.mock('../../../../src/p2p/CycleCreator', () => ({
 }))
 
 jest.mock('../../../../src/p2p/Self', () => ({
-  get id() { return mockSelfId }
+  get id() {
+    return mockSelfId
+  },
 }))
 
 jest.mock('../../../../src/p2p/NodeList', () => ({
@@ -199,7 +201,7 @@ describe('LostArchivers/routes', () => {
     jest.clearAllMocks()
     lostArchiversMap.clear()
     registeredHandlers = {}
-    
+
     // Reset default values
     config.p2p.enableLostArchiversCycles = true
     mockSelfId = 'node123'
@@ -289,9 +291,7 @@ describe('LostArchivers/routes', () => {
 
     it('should return early if no record found', () => {
       registeredHandlers.gossipUp(mockUpMsg, 'sender123', 'tracker123')
-      expect(logging.info).toHaveBeenCalledWith(
-        'lostArchiverUpGossip: no record for target archiver123. returning'
-      )
+      expect(logging.info).toHaveBeenCalledWith('lostArchiverUpGossip: no record for target archiver123. returning')
       expect(Comms.sendGossip).not.toHaveBeenCalled()
     })
 
@@ -304,12 +304,12 @@ describe('LostArchivers/routes', () => {
     it('should process valid up message and gossip it', () => {
       lostArchiversMap.set('archiver123', { status: 'down', target: 'archiver123' } as any)
       registeredHandlers.gossipUp(mockUpMsg, 'sender123', 'tracker123')
-      
+
       const record = lostArchiversMap.get('archiver123')
       expect(record?.status).toBe('up')
       expect(record?.archiverUpMsg).toBe(mockUpMsg)
       expect(record?.gossippedUpMsg).toBe(true)
-      
+
       expect(Comms.sendGossip).toHaveBeenCalledWith(
         'lost-archiver-up',
         mockUpMsg,
@@ -380,18 +380,18 @@ describe('LostArchivers/routes', () => {
 
     it('should create new record and gossip when no record exists', () => {
       registeredHandlers.gossipDown(mockDownMsg, 'sender123', 'tracker123')
-      
+
       const record = lostArchiversMap.get('archiver123')
       expect(record?.status).toBe('down')
       expect(record?.archiverDownMsg).toBe(mockDownMsg)
       expect(record?.gossippedDownMsg).toBe(true)
-      
+
       expect(funcs.createLostArchiverRecord).toHaveBeenCalledWith({
         target: 'archiver123',
         status: 'down',
         archiverDownMsg: mockDownMsg,
       })
-      
+
       expect(Comms.sendGossip).toHaveBeenCalledWith(
         'lost-archiver-down',
         mockDownMsg,
@@ -405,12 +405,12 @@ describe('LostArchivers/routes', () => {
     it('should update existing record and gossip', () => {
       lostArchiversMap.set('archiver123', { status: 'reported', target: 'archiver123' } as any)
       registeredHandlers.gossipDown(mockDownMsg, 'sender123', 'tracker123')
-      
+
       const record = lostArchiversMap.get('archiver123')
       expect(record?.status).toBe('down')
       expect(record?.archiverDownMsg).toBe(mockDownMsg)
       expect(record?.gossippedDownMsg).toBe(true)
-      
+
       expect(Comms.sendGossip).toHaveBeenCalled()
     })
   })
@@ -456,27 +456,21 @@ describe('LostArchivers/routes', () => {
       ;(deserializeLostArchiverInvestigateReq as jest.Mock).mockReturnValue(null)
       const payload = Buffer.from('test')
       registeredHandlers.investigateBinary(payload, mockRespond, mockHeader)
-      expect(logging.warn).toHaveBeenCalledWith(
-        'binary/lost_archiver_investigate: Missing payload'
-      )
+      expect(logging.warn).toHaveBeenCalledWith('binary/lost_archiver_investigate: Missing payload')
       expect(funcs.investigateArchiver).not.toHaveBeenCalled()
     })
 
     it('should return early if missing response method', () => {
       const payload = Buffer.from('test')
       registeredHandlers.investigateBinary(payload, null, mockHeader)
-      expect(logging.warn).toHaveBeenCalledWith(
-        'binary/lost_archiver_investigate: Missing response method'
-      )
+      expect(logging.warn).toHaveBeenCalledWith('binary/lost_archiver_investigate: Missing response method')
       expect(funcs.investigateArchiver).not.toHaveBeenCalled()
     })
 
     it('should return early if missing sender ID', () => {
       const payload = Buffer.from('test')
       registeredHandlers.investigateBinary(payload, mockRespond, {})
-      expect(logging.warn).toHaveBeenCalledWith(
-        'binary/lost_archiver_investigate: Missing sender ID'
-      )
+      expect(logging.warn).toHaveBeenCalledWith('binary/lost_archiver_investigate: Missing sender ID')
       expect(funcs.investigateArchiver).not.toHaveBeenCalled()
     })
 
@@ -560,28 +554,28 @@ describe('LostArchivers/routes', () => {
 
     it('should create new record when no existing record', () => {
       registeredHandlers.refute(mockReq, mockRes)
-      
+
       const record = lostArchiversMap.get('archiver123')
       expect(record?.status).toBe('up')
       expect(record?.archiverRefuteMsg).toBe(mockRefuteMsg)
-      
+
       expect(funcs.createLostArchiverRecord).toHaveBeenCalledWith({
         target: 'archiver123',
         status: 'up',
         archiverRefuteMsg: mockRefuteMsg,
       })
-      
+
       expect(mockRes.json).toHaveBeenCalledWith({ status: 'success' })
     })
 
     it('should update existing record', () => {
       lostArchiversMap.set('archiver123', { status: 'down', target: 'archiver123' } as any)
       registeredHandlers.refute(mockReq, mockRes)
-      
+
       const record = lostArchiversMap.get('archiver123')
       expect(record?.status).toBe('up')
       expect(record?.archiverRefuteMsg).toBe(mockRefuteMsg)
-      
+
       expect(mockRes.json).toHaveBeenCalledWith({ status: 'success' })
     })
   })
@@ -602,15 +596,12 @@ describe('LostArchivers/routes', () => {
     it('should report specified archiver by publicKey query param', () => {
       const mockArchiver = { publicKey: 'archiver123', ip: '127.0.0.1', port: 8080 }
       ;(getArchiverWithPublicKey as jest.Mock).mockReturnValue(mockArchiver)
-      
+
       const mockReq = { query: { publicKey: 'archiver123' }, body: {} } as unknown as Request
       registeredHandlers.reportFake(mockReq, mockRes)
-      
+
       expect(getArchiverWithPublicKey).toHaveBeenCalledWith('archiver123')
-      expect(funcs.reportLostArchiver).toHaveBeenCalledWith(
-        'archiver123',
-        'fake lost archiver report'
-      )
+      expect(funcs.reportLostArchiver).toHaveBeenCalledWith('archiver123', 'fake lost archiver report')
       expect(crypto.sign).toHaveBeenCalledWith({
         status: 'accepted',
         pick: 'specified',
@@ -629,15 +620,12 @@ describe('LostArchivers/routes', () => {
     it('should report specified archiver by publickey body param', () => {
       const mockArchiver = { publicKey: 'archiver123', ip: '127.0.0.1', port: 8080 }
       ;(getArchiverWithPublicKey as jest.Mock).mockReturnValue(mockArchiver)
-      
+
       const mockReq = { query: {}, body: { publickey: 'archiver123' } } as unknown as Request
       registeredHandlers.reportFake(mockReq, mockRes)
-      
+
       expect(getArchiverWithPublicKey).toHaveBeenCalledWith('archiver123')
-      expect(funcs.reportLostArchiver).toHaveBeenCalledWith(
-        'archiver123',
-        'fake lost archiver report'
-      )
+      expect(funcs.reportLostArchiver).toHaveBeenCalledWith('archiver123', 'fake lost archiver report')
       expect(crypto.sign).toHaveBeenCalledWith({
         status: 'accepted',
         pick: 'specified',
@@ -656,15 +644,12 @@ describe('LostArchivers/routes', () => {
     it('should report random archiver when no publicKey specified', () => {
       const mockArchiver = { publicKey: 'archiver123', ip: '127.0.0.1', port: 8080 }
       ;(getRandomAvailableArchiver as jest.Mock).mockReturnValue(mockArchiver)
-      
+
       const mockReq = { query: {}, body: {} } as unknown as Request
       registeredHandlers.reportFake(mockReq, mockRes)
-      
+
       expect(getRandomAvailableArchiver).toHaveBeenCalled()
-      expect(funcs.reportLostArchiver).toHaveBeenCalledWith(
-        'archiver123',
-        'fake lost archiver report'
-      )
+      expect(funcs.reportLostArchiver).toHaveBeenCalledWith('archiver123', 'fake lost archiver report')
       expect(crypto.sign).toHaveBeenCalledWith({
         status: 'accepted',
         pick: 'random',
@@ -682,10 +667,10 @@ describe('LostArchivers/routes', () => {
 
     it('should return failure when archiver not found', () => {
       ;(getRandomAvailableArchiver as jest.Mock).mockReturnValue(null)
-      
+
       const mockReq = { query: {}, body: {} } as unknown as Request
       registeredHandlers.reportFake(mockReq, mockRes)
-      
+
       expect(crypto.sign).toHaveBeenCalledWith({
         status: 'failed',
         pick: 'random',
@@ -705,7 +690,7 @@ describe('LostArchivers/routes', () => {
   describe('registerRoutes', () => {
     it('should register all routes correctly', () => {
       // Routes are already registered in beforeEach
-      
+
       // Check debug external route
       expect(network._registerExternal).toHaveBeenCalledWith(
         'GET',
@@ -713,29 +698,19 @@ describe('LostArchivers/routes', () => {
         isDebugModeMiddleware,
         expect.any(Function)
       )
-      
+
       // Check external route
-      expect(network._registerExternal).toHaveBeenCalledWith(
-        'POST',
-        'lost-archiver-refute',
-        expect.any(Function)
-      )
-      
+      expect(network._registerExternal).toHaveBeenCalledWith('POST', 'lost-archiver-refute', expect.any(Function))
+
       // Check internal binary route
       expect(Comms.registerInternalBinary).toHaveBeenCalledWith(
         InternalRouteEnum.binary_lost_archiver_investigate,
         expect.any(Function)
       )
-      
+
       // Check gossip handlers
-      expect(Comms.registerGossipHandler).toHaveBeenCalledWith(
-        'lost-archiver-up',
-        expect.any(Function)
-      )
-      expect(Comms.registerGossipHandler).toHaveBeenCalledWith(
-        'lost-archiver-down',
-        expect.any(Function)
-      )
+      expect(Comms.registerGossipHandler).toHaveBeenCalledWith('lost-archiver-up', expect.any(Function))
+      expect(Comms.registerGossipHandler).toHaveBeenCalledWith('lost-archiver-down', expect.any(Function))
     })
   })
 })

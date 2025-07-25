@@ -80,7 +80,7 @@ describe('readableDuration', () => {
 
     it('should calculate duration from different start and end times', () => {
       const startTime = 1609459200000 // 2021-01-01 00:00:00
-      const endTime = 1609462865123   // 2021-01-01 01:01:05.123
+      const endTime = 1609462865123 // 2021-01-01 01:01:05.123
       const result = readableDuration(startTime, endTime)
       expect(result).toBe('01:01:05.123')
     })

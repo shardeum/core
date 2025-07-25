@@ -187,9 +187,7 @@ describe('RequestTxAndStateReq', () => {
       stream.writeUInt8(1)
 
       const readStream = VectorBufferStream.fromBuffer(stream.getBuffer())
-      expect(() => deserializeRequestTxAndStateReq(readStream)).toThrow(
-        'cRequestTxAndStateReqVersion version mismatch'
-      )
+      expect(() => deserializeRequestTxAndStateReq(readStream)).toThrow('cRequestTxAndStateReqVersion version mismatch')
     })
 
     it('should handle large number of accountIds', () => {

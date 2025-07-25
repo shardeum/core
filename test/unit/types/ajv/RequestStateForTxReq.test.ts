@@ -55,10 +55,7 @@ describe('RequestStateForTxReq', () => {
       initRequestStateForTxReq()
 
       expect(mockAddSchema).toHaveBeenCalledTimes(1)
-      expect(mockAddSchema).toHaveBeenCalledWith(
-        AJVSchemaEnum.RequestStateForTxReq,
-        shcemaRequestStateForTxReq
-      )
+      expect(mockAddSchema).toHaveBeenCalledWith(AJVSchemaEnum.RequestStateForTxReq, shcemaRequestStateForTxReq)
     })
 
     it('should not throw any errors during initialization', () => {
@@ -69,7 +66,7 @@ describe('RequestStateForTxReq', () => {
   describe('schema structure validation', () => {
     it('should have all properties as required', () => {
       const propertyNames = Object.keys(shcemaRequestStateForTxReq.properties)
-      propertyNames.forEach(prop => {
+      propertyNames.forEach((prop) => {
         expect(shcemaRequestStateForTxReq.required).toContain(prop)
       })
     })

@@ -26,10 +26,7 @@ describe('ApoptosisProposalReq', () => {
       initApoptosisProposalReq()
 
       // Verify the schema passed to addSchema matches expected structure
-      expect(mockAddSchema).toHaveBeenCalledWith(
-        AJVSchemaEnum.ApoptosisProposalReq,
-        expectedSchema
-      )
+      expect(mockAddSchema).toHaveBeenCalledWith(AJVSchemaEnum.ApoptosisProposalReq, expectedSchema)
     })
 
     it('should require both id and when properties', () => {
@@ -87,7 +84,7 @@ describe('ApoptosisProposalReq', () => {
   describe('addSchemaDependencies', () => {
     it('should not add any dependencies (function is empty)', () => {
       initApoptosisProposalReq()
-      
+
       // Verify only one call to addSchema (no dependencies added)
       expect(mockAddSchema).toHaveBeenCalledTimes(1)
     })
@@ -98,7 +95,7 @@ describe('ApoptosisProposalReq', () => {
       initApoptosisProposalReq()
 
       const schemaArg = mockAddSchema.mock.calls[0][1] as any
-      
+
       // Valid object structure
       const validRequest = {
         id: 'node-123',
@@ -115,7 +112,7 @@ describe('ApoptosisProposalReq', () => {
       initApoptosisProposalReq()
 
       const schemaArg = mockAddSchema.mock.calls[0][1] as any
-      
+
       // Missing fields scenarios
       const missingId = { when: 1234567890 }
       const missingWhen = { id: 'node-123' }

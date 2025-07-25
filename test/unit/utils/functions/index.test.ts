@@ -68,18 +68,18 @@ describe('utils/functions/index.ts', () => {
 
   it('should only export functions and values, not modules', () => {
     // The index should flatten all exports
-    Object.keys(functionsIndex).forEach(key => {
+    Object.keys(functionsIndex).forEach((key) => {
       const value = functionsIndex[key]
       // Should be either a function or a value, not a module object
       expect(
-        typeof value === 'function' || 
-        typeof value === 'string' || 
-        typeof value === 'number' || 
-        typeof value === 'boolean' ||
-        value === null ||
-        value === undefined ||
-        Array.isArray(value) ||
-        (typeof value === 'object' && value.constructor === Object)
+        typeof value === 'function' ||
+          typeof value === 'string' ||
+          typeof value === 'number' ||
+          typeof value === 'boolean' ||
+          value === null ||
+          value === undefined ||
+          Array.isArray(value) ||
+          (typeof value === 'object' && value.constructor === Object)
       ).toBe(true)
     })
   })

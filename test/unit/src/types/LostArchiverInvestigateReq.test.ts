@@ -203,9 +203,7 @@ describe('LostArchiverInvestigateReq', () => {
       stream.writeString('sig')
 
       const readStream = VectorBufferStream.fromBuffer(stream.getBuffer())
-      expect(() => deserializeLostArchiverInvestigateReq(readStream)).toThrow(
-        'Unexpected type value: invalid-type'
-      )
+      expect(() => deserializeLostArchiverInvestigateReq(readStream)).toThrow('Unexpected type value: invalid-type')
     })
 
     it('should handle empty strings', () => {

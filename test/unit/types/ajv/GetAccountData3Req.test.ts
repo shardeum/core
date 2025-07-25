@@ -19,21 +19,18 @@ describe('GetAccountData3Req', () => {
       initGetAccountData3Req()
 
       expect(addSchemaSpy).toHaveBeenCalledTimes(1)
-      expect(addSchemaSpy).toHaveBeenCalledWith(
-        AJVSchemaEnum.GetAccountDataReq,
-        {
-          type: 'object',
-          properties: {
-            accountStart: { type: 'string' },
-            accountEnd: { type: 'string' },
-            tsStart: { type: 'number' },
-            maxRecords: { type: 'number' },
-            offset: { type: 'number' },
-            accountOffset: { type: 'string' },
-          },
-          required: ['accountStart', 'accountEnd', 'tsStart', 'maxRecords', 'offset', 'accountOffset'],
-        }
-      )
+      expect(addSchemaSpy).toHaveBeenCalledWith(AJVSchemaEnum.GetAccountDataReq, {
+        type: 'object',
+        properties: {
+          accountStart: { type: 'string' },
+          accountEnd: { type: 'string' },
+          tsStart: { type: 'number' },
+          maxRecords: { type: 'number' },
+          offset: { type: 'number' },
+          accountOffset: { type: 'string' },
+        },
+        required: ['accountStart', 'accountEnd', 'tsStart', 'maxRecords', 'offset', 'accountOffset'],
+      })
     })
 
     it('should not throw any errors', () => {
@@ -93,7 +90,7 @@ describe('GetAccountData3Req', () => {
         'tsStart',
         'maxRecords',
         'offset',
-        'accountOffset'
+        'accountOffset',
       ])
     })
   })

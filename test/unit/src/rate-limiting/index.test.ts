@@ -16,15 +16,15 @@ jest.mock('../../../../src/logger', () => ({
   logFlags: { seqdiagram: false },
   logger: {
     mainLog_debug: jest.fn(),
-    combine: jest.fn()
-  }
+    combine: jest.fn(),
+  },
 }))
 jest.mock('../../../../src/p2p/CycleCreator', () => ({
   currentCycle: 1,
-  currentQuarter: 1
+  currentQuarter: 1,
 }))
 jest.mock('../../../../src/p2p/CycleAutoScale', () => ({
-  reset: jest.fn()
+  reset: jest.fn(),
 }))
 
 describe('RateLimiting', () => {
@@ -41,27 +41,24 @@ describe('RateLimiting', () => {
         external: 0.9,
         txTimeInQueue: 1000,
         queueLength: 100,
-        executeQueueLength: 50
-      }
+        executeQueueLength: 50,
+      },
     }
 
     mockSeqLogger = {
-      info: jest.fn()
+      info: jest.fn(),
     }
 
     mockLoadDetection = {
       getCurrentNodeLoad: jest.fn(),
-      getQueueLoad: jest.fn()
+      getQueueLoad: jest.fn(),
     }
-
     ;(Context as any).shardus = {
-      loadDetection: mockLoadDetection
+      loadDetection: mockLoadDetection,
     }
-
     ;(Context as any).config = {
-      rateLimiting: mockConfig
+      rateLimiting: mockConfig,
     }
-
     ;(nestedCountersInstance.countEvent as jest.Mock) = jest.fn()
     ;(shardusGetTime as jest.Mock) = jest.fn().mockReturnValue(1234567890)
     ;(activeIdToPartition.get as jest.Mock) = jest.fn().mockReturnValue('partition1')
@@ -119,8 +116,14 @@ describe('RateLimiting', () => {
 
       expect(result.throttle).toBeGreaterThan(0)
       expect(result.loadType).toBeDefined()
-      expect(nestedCountersInstance.countEvent).toHaveBeenCalledWith('loadRelated', expect.stringContaining('ratelimit reached'))
-      expect(nestedCountersInstance.countEvent).toHaveBeenCalledWith('loadRelated', expect.stringContaining('ratelimit winning load factor'))
+      expect(nestedCountersInstance.countEvent).toHaveBeenCalledWith(
+        'loadRelated',
+        expect.stringContaining('ratelimit reached')
+      )
+      expect(nestedCountersInstance.countEvent).toHaveBeenCalledWith(
+        'loadRelated',
+        expect.stringContaining('ratelimit winning load factor')
+      )
     })
 
     it('should skip loads with null or undefined limits', () => {
@@ -168,12 +171,12 @@ describe('RateLimiting', () => {
       mockLoadDetection.getQueueLoad.mockReturnValue({})
 
       const mockRandom = jest.spyOn(Math, 'random')
-      
+
       // Test case where random returns value less than throttle (should be overloaded)
       mockRandom.mockReturnValue(0.3)
       const result1 = rateLimiting.isOverloaded('tx123')
       expect(result1).toBe(true)
-      
+
       // Test case where random returns value greater than throttle (should not be overloaded)
       mockRandom.mockReturnValue(0.8)
       const result2 = rateLimiting.isOverloaded('tx456')
@@ -206,7 +209,10 @@ describe('RateLimiting', () => {
 
       rateLimiting.isOverloaded('tx123')
 
-      expect(nestedCountersInstance.countEvent).toHaveBeenCalledWith('loadRelated', expect.stringContaining('txRejected:'))
+      expect(nestedCountersInstance.countEvent).toHaveBeenCalledWith(
+        'loadRelated',
+        expect.stringContaining('txRejected:')
+      )
 
       jest.spyOn(Math, 'random').mockRestore()
     })
@@ -257,7 +263,6 @@ describe('RateLimiting', () => {
       rateLimiting.configUpdated()
 
       expect(nestedCountersInstance.countEvent).toHaveBeenCalledWith('RateLimiting', 'config update failed')
-
       ;(Context as any).config = originalConfig
     })
   })

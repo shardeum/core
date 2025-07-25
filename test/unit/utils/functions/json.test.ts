@@ -18,7 +18,7 @@ describe('json utilities', () => {
     it('should read and parse a JSON file', () => {
       const mockFileContent = '{"key": "value", "number": 42}'
       const expectedObject = { key: 'value', number: 42 }
-      
+
       mockFs.readFileSync.mockReturnValue(Buffer.from(mockFileContent))
       mockUtils.safeJsonParse.mockReturnValue(expectedObject)
 
@@ -32,7 +32,7 @@ describe('json utilities', () => {
     it('should handle empty JSON file', () => {
       const mockFileContent = '{}'
       const expectedObject = {}
-      
+
       mockFs.readFileSync.mockReturnValue(Buffer.from(mockFileContent))
       mockUtils.safeJsonParse.mockReturnValue(expectedObject)
 
@@ -46,7 +46,7 @@ describe('json utilities', () => {
     it('should handle JSON arrays', () => {
       const mockFileContent = '[1, 2, 3]'
       const expectedArray = [1, 2, 3]
-      
+
       mockFs.readFileSync.mockReturnValue(Buffer.from(mockFileContent))
       mockUtils.safeJsonParse.mockReturnValue(expectedArray)
 
@@ -60,7 +60,7 @@ describe('json utilities', () => {
     it('should handle complex nested JSON', () => {
       const mockFileContent = '{"nested": {"deep": {"value": true}}}'
       const expectedObject = { nested: { deep: { value: true } } }
-      
+
       mockFs.readFileSync.mockReturnValue(Buffer.from(mockFileContent))
       mockUtils.safeJsonParse.mockReturnValue(expectedObject)
 
@@ -76,7 +76,7 @@ describe('json utilities', () => {
       const mockFileContents = {
         'file1.json': { data: 'file1' },
         'file2.json': { data: 'file2' },
-        'config.json': { setting: true }
+        'config.json': { setting: true },
       }
 
       mockFs.readdirSync.mockReturnValue(mockFiles as any)
@@ -92,7 +92,7 @@ describe('json utilities', () => {
       expect(result).toEqual({
         file1: { data: 'file1' },
         file2: { data: 'file2' },
-        config: { setting: true }
+        config: { setting: true },
       })
     })
 
@@ -107,7 +107,7 @@ describe('json utilities', () => {
 
     it('should handle files with multiple dots in name', () => {
       const mockFiles = ['file.test.json', 'another.file.name.json']
-      
+
       mockFs.readdirSync.mockReturnValue(mockFiles as any)
       mockFs.readFileSync.mockReturnValue(Buffer.from('{}'))
       mockUtils.safeJsonParse.mockReturnValue({})
@@ -115,14 +115,14 @@ describe('json utilities', () => {
       const result = readJSONDir('/test/dir')
 
       expect(result).toEqual({
-        'file': {},
-        'another': {}
+        file: {},
+        another: {},
       })
     })
 
     it('should call readJSON with correct file paths', () => {
       const mockFiles = ['test.json']
-      
+
       mockFs.readdirSync.mockReturnValue(mockFiles as any)
       mockFs.readFileSync.mockReturnValue(Buffer.from('{}'))
       mockUtils.safeJsonParse.mockReturnValue({})
@@ -134,7 +134,7 @@ describe('json utilities', () => {
 
     it('should handle mixed file types (only process .json files implicitly)', () => {
       const mockFiles = ['data.json', 'readme.txt', 'config.json']
-      
+
       mockFs.readdirSync.mockReturnValue(mockFiles as any)
       mockFs.readFileSync.mockImplementation(() => Buffer.from('{}'))
       mockUtils.safeJsonParse.mockReturnValue({})

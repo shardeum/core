@@ -45,9 +45,9 @@ describe('nat-api.d.ts', () => {
       const expectedUsage = {
         purpose: 'NAT traversal for network operations',
         importStyle: 'CommonJS require syntax',
-        usageLocation: 'src/network/index.ts'
+        usageLocation: 'src/network/index.ts',
       }
-      
+
       expect(expectedUsage.purpose).toContain('NAT')
       expect(expectedUsage.importStyle).toContain('CommonJS')
       expect(expectedUsage.usageLocation).toContain('network/index.ts')
@@ -56,8 +56,8 @@ describe('nat-api.d.ts', () => {
     it('should support promisified methods when used', () => {
       // Based on usage in src/network/index.ts, the module supports these operations
       const expectedMethods = ['externalIp', 'map', 'destroy']
-      
-      expectedMethods.forEach(method => {
+
+      expectedMethods.forEach((method) => {
         expect(method).toMatch(/^[a-zA-Z]+$/)
       })
     })
@@ -92,9 +92,9 @@ describe('nat-api.d.ts', () => {
       const moduleResolution = {
         strategy: 'node',
         moduleType: 'ambient',
-        declarationFile: true
+        declarationFile: true,
       }
-      
+
       expect(moduleResolution.strategy).toBe('node')
       expect(moduleResolution.moduleType).toBe('ambient')
       expect(moduleResolution.declarationFile).toBe(true)
@@ -107,9 +107,9 @@ describe('nat-api.d.ts', () => {
       const buildInclusion = {
         included: true,
         fileExtension: '.d.ts',
-        purpose: 'type declarations'
+        purpose: 'type declarations',
       }
-      
+
       expect(buildInclusion.included).toBe(true)
       expect(buildInclusion.fileExtension).toBe('.d.ts')
       expect(buildInclusion.purpose).toContain('type')
@@ -126,9 +126,9 @@ describe('nat-api.d.ts', () => {
       const tsConfigCompatibility = {
         moduleResolution: 'node',
         allowJs: true,
-        declaration: true
+        declaration: true,
       }
-      
+
       expect(tsConfigCompatibility.moduleResolution).toBe('node')
       expect(tsConfigCompatibility.declaration).toBe(true)
     })

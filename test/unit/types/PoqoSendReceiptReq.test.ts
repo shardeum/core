@@ -1,5 +1,9 @@
 import { VectorBufferStream } from '../../../src/utils/serialization/VectorBufferStream'
-import { serializePoqoSendReceiptReq, deserializePoqoSendReceiptReq, PoqoSendReceiptReq } from '../../../src/types/PoqoSendReceiptReq'
+import {
+  serializePoqoSendReceiptReq,
+  deserializePoqoSendReceiptReq,
+  PoqoSendReceiptReq,
+} from '../../../src/types/PoqoSendReceiptReq'
 import { TypeIdentifierEnum } from '../../../src/types/enum/TypeIdentifierEnum'
 import * as SignedReceipt from '../../../src/types/SignedReceipt'
 import { SignedReceiptSerializable } from '../../../src/types/SignedReceipt'
@@ -115,7 +119,7 @@ describe('PoqoSendReceiptReq', () => {
 
       const testCases = [0, 1, 100, 65535, 4294967295] // max uint32
 
-      testCases.forEach(txGroupCycle => {
+      testCases.forEach((txGroupCycle) => {
         const poqoSendReceiptReq: PoqoSendReceiptReq = {
           proposal: {
             applied: true,
@@ -189,7 +193,16 @@ describe('PoqoSendReceiptReq', () => {
       // Version 0 is valid (0 <= 1), so it should not throw
       jest.spyOn(stream, 'readUInt32').mockReturnValue(0)
       mockDeserializeSignedReceipt.mockReturnValue({
-        proposal: { applied: false, cant_preApply: false, accountIDs: [], beforeStateHashes: [], afterStateHashes: [], appReceiptDataHash: '', txid: '', executionShardKey: '' },
+        proposal: {
+          applied: false,
+          cant_preApply: false,
+          accountIDs: [],
+          beforeStateHashes: [],
+          afterStateHashes: [],
+          appReceiptDataHash: '',
+          txid: '',
+          executionShardKey: '',
+        },
         proposalHash: '',
         voteOffsets: [],
         signaturePack: [],
@@ -210,9 +223,60 @@ describe('PoqoSendReceiptReq', () => {
       jest.spyOn(stream, 'readUInt8').mockReturnValue(1)
 
       const testCases = [
-        { txGroupCycle: 0, signedReceipt: { proposal: { applied: true, cant_preApply: false, accountIDs: [], beforeStateHashes: [], afterStateHashes: [], appReceiptDataHash: 'h1', txid: 'tx1', executionShardKey: 'k1' }, proposalHash: 'h1', voteOffsets: [], signaturePack: [] } },
-        { txGroupCycle: 999, signedReceipt: { proposal: { applied: false, cant_preApply: true, accountIDs: ['a1'], beforeStateHashes: ['b1'], afterStateHashes: ['a1'], appReceiptDataHash: 'h2', txid: 'tx2', executionShardKey: 'k2' }, proposalHash: 'h2', voteOffsets: [1], signaturePack: [] } },
-        { txGroupCycle: 4294967295, signedReceipt: { proposal: { applied: true, cant_preApply: true, accountIDs: ['a1', 'a2'], beforeStateHashes: ['b1', 'b2'], afterStateHashes: ['a1', 'a2'], appReceiptDataHash: 'h3', txid: 'tx3', executionShardKey: 'k3' }, proposalHash: 'h3', voteOffsets: [1, 2, 3], signaturePack: [] } },
+        {
+          txGroupCycle: 0,
+          signedReceipt: {
+            proposal: {
+              applied: true,
+              cant_preApply: false,
+              accountIDs: [],
+              beforeStateHashes: [],
+              afterStateHashes: [],
+              appReceiptDataHash: 'h1',
+              txid: 'tx1',
+              executionShardKey: 'k1',
+            },
+            proposalHash: 'h1',
+            voteOffsets: [],
+            signaturePack: [],
+          },
+        },
+        {
+          txGroupCycle: 999,
+          signedReceipt: {
+            proposal: {
+              applied: false,
+              cant_preApply: true,
+              accountIDs: ['a1'],
+              beforeStateHashes: ['b1'],
+              afterStateHashes: ['a1'],
+              appReceiptDataHash: 'h2',
+              txid: 'tx2',
+              executionShardKey: 'k2',
+            },
+            proposalHash: 'h2',
+            voteOffsets: [1],
+            signaturePack: [],
+          },
+        },
+        {
+          txGroupCycle: 4294967295,
+          signedReceipt: {
+            proposal: {
+              applied: true,
+              cant_preApply: true,
+              accountIDs: ['a1', 'a2'],
+              beforeStateHashes: ['b1', 'b2'],
+              afterStateHashes: ['a1', 'a2'],
+              appReceiptDataHash: 'h3',
+              txid: 'tx3',
+              executionShardKey: 'k3',
+            },
+            proposalHash: 'h3',
+            voteOffsets: [1, 2, 3],
+            signaturePack: [],
+          },
+        },
       ]
 
       testCases.forEach(({ txGroupCycle, signedReceipt }) => {

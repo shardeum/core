@@ -12,7 +12,7 @@ describe('GossipReq', () => {
       writeUInt8: jest.fn(),
       writeString: jest.fn(),
       readUInt8: jest.fn(),
-      readString: jest.fn()
+      readString: jest.fn(),
     } as unknown as VectorBufferStream
   })
 
@@ -20,7 +20,7 @@ describe('GossipReq', () => {
     it('should serialize GossipReqBinary without root flag', () => {
       const obj: GossipReqBinary = {
         type: 'testType',
-        data: { key: 'value', number: 123 }
+        data: { key: 'value', number: 123 },
       }
 
       serializeGossipReq(mockStream, obj, false)
@@ -34,7 +34,7 @@ describe('GossipReq', () => {
     it('should serialize GossipReqBinary with root flag', () => {
       const obj: GossipReqBinary = {
         type: 'testType',
-        data: { key: 'value' }
+        data: { key: 'value' },
       }
 
       serializeGossipReq(mockStream, obj, true)
@@ -48,7 +48,7 @@ describe('GossipReq', () => {
     it('should handle null data', () => {
       const obj: GossipReqBinary = {
         type: 'nullType',
-        data: null
+        data: null,
       }
 
       serializeGossipReq(mockStream, obj)
@@ -64,11 +64,11 @@ describe('GossipReq', () => {
           array: [1, 2, 3],
           nested: {
             deep: {
-              value: 'test'
-            }
+              value: 'test',
+            },
           },
-          boolean: true
-        }
+          boolean: true,
+        },
       }
 
       serializeGossipReq(mockStream, obj)
@@ -92,7 +92,7 @@ describe('GossipReq', () => {
 
       expect(result).toEqual({
         type: expectedType,
-        data: expectedData
+        data: expectedData,
       })
       expect(mockStream.readUInt8).toHaveBeenCalledTimes(1)
       expect(mockStream.readString).toHaveBeenCalledTimes(2)
@@ -106,15 +106,13 @@ describe('GossipReq', () => {
 
     it('should handle null data', () => {
       ;(mockStream.readUInt8 as jest.Mock).mockReturnValueOnce(1)
-      ;(mockStream.readString as jest.Mock)
-        .mockReturnValueOnce('nullType')
-        .mockReturnValueOnce('null')
+      ;(mockStream.readString as jest.Mock).mockReturnValueOnce('nullType').mockReturnValueOnce('null')
 
       const result = deserializeGossipReq(mockStream)
 
       expect(result).toEqual({
         type: 'nullType',
-        data: null
+        data: null,
       })
     })
 
@@ -122,7 +120,7 @@ describe('GossipReq', () => {
       const complexData = {
         array: [1, 2, 3],
         nested: { deep: { value: 'test' } },
-        boolean: true
+        boolean: true,
       }
 
       ;(mockStream.readUInt8 as jest.Mock).mockReturnValueOnce(1)
@@ -134,21 +132,19 @@ describe('GossipReq', () => {
 
       expect(result).toEqual({
         type: 'complexType',
-        data: complexData
+        data: complexData,
       })
     })
 
     it('should handle empty type string', () => {
       ;(mockStream.readUInt8 as jest.Mock).mockReturnValueOnce(1)
-      ;(mockStream.readString as jest.Mock)
-        .mockReturnValueOnce('')
-        .mockReturnValueOnce('{}')
+      ;(mockStream.readString as jest.Mock).mockReturnValueOnce('').mockReturnValueOnce('{}')
 
       const result = deserializeGossipReq(mockStream)
 
       expect(result).toEqual({
         type: '',
-        data: {}
+        data: {},
       })
     })
   })

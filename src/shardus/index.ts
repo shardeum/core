@@ -537,7 +537,8 @@ class Shardus extends EventEmitter {
 
           if (archiverCreds.intendedConsensor !== Self.getThisNodeInfo().publicKey) {
             mainLogger.error(
-              `❌ The signature is targeted for consensor @ ${archiverCreds.intendedConsensor} but this node is ${Self.getThisNodeInfo().publicKey
+              `❌ The signature is targeted for consensor @ ${archiverCreds.intendedConsensor} but this node is ${
+                Self.getThisNodeInfo().publicKey
               }`
             )
             return false
@@ -731,13 +732,13 @@ class Shardus extends EventEmitter {
     this.reporter =
       this.config.reporting.report && !isServiceMode()
         ? new Reporter(
-          this.config.reporting,
-          this.logger,
-          this.statistics,
-          this.stateManager,
-          this.profiler,
-          this.loadDetection
-        )
+            this.config.reporting,
+            this.logger,
+            this.statistics,
+            this.stateManager,
+            this.profiler,
+            this.loadDetection
+          )
         : null
     Context.setReporterContext(this.reporter)
 
@@ -1354,17 +1355,19 @@ class Shardus extends EventEmitter {
         cycleNumber: CycleChain.getNewest()?.counter,
       }
       readyPayload = Context.crypto.sign(readyPayload)
-      fireAndForget(() => Comms.sendGossip(
-        'gossip-sync-finished',
-        readyPayload,
-        undefined,
-        undefined,
-        nodeListFromStates([
-          P2P.P2PTypes.NodeStatus.ACTIVE,
-          P2P.P2PTypes.NodeStatus.READY,
-          P2P.P2PTypes.NodeStatus.SYNCING,
-        ])
-      ))
+      fireAndForget(() =>
+        Comms.sendGossip(
+          'gossip-sync-finished',
+          readyPayload,
+          undefined,
+          undefined,
+          nodeListFromStates([
+            P2P.P2PTypes.NodeStatus.ACTIVE,
+            P2P.P2PTypes.NodeStatus.READY,
+            P2P.P2PTypes.NodeStatus.SYNCING,
+          ])
+        )
+      )
       if (this.stateManager) {
         this.stateManager.appFinishedSyncing = true
       }
@@ -2667,14 +2670,14 @@ class Shardus extends EventEmitter {
           _wrappedStates,
           _applyResponse,
           _isExecutionGroup
-        ) { }
+        ) {}
       }
 
       if (typeof application.transactionReceiptFail === 'function') {
         applicationInterfaceImpl.transactionReceiptFail = async (tx, wrappedStates, applyResponse) =>
           application.transactionReceiptFail(tx, wrappedStates, applyResponse)
       } else {
-        applicationInterfaceImpl.transactionReceiptFail = async function (_tx, _wrappedStates, _applyResponse) { }
+        applicationInterfaceImpl.transactionReceiptFail = async function (_tx, _wrappedStates, _applyResponse) {}
       }
 
       if (typeof application.updateAccountFull === 'function') {
@@ -2748,7 +2751,7 @@ class Shardus extends EventEmitter {
           this.profiler.scopedProfileSectionEnd('process-dapp.setCachedRIAccountData')
         }
       } else {
-        applicationInterfaceImpl.setCachedRIAccountData = async (_accountRecords: any[]) => { }
+        applicationInterfaceImpl.setCachedRIAccountData = async (_accountRecords: any[]) => {}
       }
 
       if (typeof application.getAccountDataByRange === 'function') {
@@ -2869,19 +2872,19 @@ class Shardus extends EventEmitter {
         applicationInterfaceImpl.dataSummaryInit = async (blob, accountData) =>
           application.dataSummaryInit(blob, accountData)
       } else {
-        applicationInterfaceImpl.dataSummaryInit = async function (_blob, _accountData) { }
+        applicationInterfaceImpl.dataSummaryInit = async function (_blob, _accountData) {}
       }
       if (typeof application.dataSummaryUpdate === 'function') {
         applicationInterfaceImpl.dataSummaryUpdate = async (blob, accountDataBefore, accountDataAfter) =>
           application.dataSummaryUpdate(blob, accountDataBefore, accountDataAfter)
       } else {
-        applicationInterfaceImpl.dataSummaryUpdate = async function (_blob, _accountDataBefore, _accountDataAfter) { }
+        applicationInterfaceImpl.dataSummaryUpdate = async function (_blob, _accountDataBefore, _accountDataAfter) {}
       }
       if (typeof application.txSummaryUpdate === 'function') {
         applicationInterfaceImpl.txSummaryUpdate = async (blob, tx, wrappedStates) =>
           application.txSummaryUpdate(blob, tx, wrappedStates)
       } else {
-        applicationInterfaceImpl.txSummaryUpdate = async function (_blob, _tx, _wrappedStates) { }
+        applicationInterfaceImpl.txSummaryUpdate = async function (_blob, _tx, _wrappedStates) {}
       }
 
       if (typeof application.getAccountTimestamp === 'function') {
@@ -2928,7 +2931,7 @@ class Shardus extends EventEmitter {
         applicationInterfaceImpl.getNodeInfoAppData = () => application.getNodeInfoAppData()
       } else {
         // If the app doesn't provide getNodeInfoAppData, assume it returns empty obj
-        applicationInterfaceImpl.getNodeInfoAppData = () => { }
+        applicationInterfaceImpl.getNodeInfoAppData = () => {}
       }
       if (typeof application.updateNetworkChangeQueue === 'function') {
         applicationInterfaceImpl.updateNetworkChangeQueue = async (account: ShardusTypes.WrappedData, appData: any) =>

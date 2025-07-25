@@ -99,10 +99,7 @@ describe('FastRandomIterator', () => {
     })
 
     it('should return random indices without repetition', () => {
-      jest.spyOn(Math, 'random')
-        .mockReturnValueOnce(0.1)
-        .mockReturnValueOnce(0.5)
-        .mockReturnValueOnce(0.9)
+      jest.spyOn(Math, 'random').mockReturnValueOnce(0.1).mockReturnValueOnce(0.5).mockReturnValueOnce(0.9)
 
       const index1 = iterator.getNextIndex()
       const index2 = iterator.getNextIndex()
@@ -115,10 +112,7 @@ describe('FastRandomIterator', () => {
     })
 
     it('should handle collision and retry', () => {
-      jest.spyOn(Math, 'random')
-        .mockReturnValueOnce(0.1)
-        .mockReturnValueOnce(0.1)
-        .mockReturnValueOnce(0.2)
+      jest.spyOn(Math, 'random').mockReturnValueOnce(0.1).mockReturnValueOnce(0.1).mockReturnValueOnce(0.2)
 
       const index1 = iterator.getNextIndex()
       const index2 = iterator.getNextIndex()
@@ -158,7 +152,7 @@ describe('FastRandomIterator', () => {
 
       expect(indices).toHaveLength(10)
       expect(new Set(indices)).toHaveProperty('size', 10)
-      expect(indices.every(i => i >= 0 && i < 10)).toBe(true)
+      expect(indices.every((i) => i >= 0 && i < 10)).toBe(true)
     })
 
     it('should return -1 when exhausted', () => {
@@ -188,9 +182,9 @@ describe('FastRandomIterator', () => {
 
     it('should create strides lazily', () => {
       expect(iterator.indexStrides[0]).toBe(false)
-      
+
       iterator.getNextIndex()
-      
+
       expect(Array.isArray(iterator.indexStrides[0])).toBe(true)
     })
 
@@ -280,7 +274,7 @@ describe('FastRandomIterator', () => {
 
       const uniqueIndices = new Set(indices)
       expect(uniqueIndices.size).toBe(indices.length)
-      expect(indices.every(i => i >= 0 && i < 100)).toBe(true)
+      expect(indices.every((i) => i >= 0 && i < 100)).toBe(true)
     })
   })
 })

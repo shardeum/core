@@ -29,7 +29,7 @@ import {
   jsonHttpResWithSize,
   stringForKeys,
   getPrefixInt,
-  testFailChance
+  testFailChance,
 } from '../../../../src/utils/functions/general'
 import { Utils } from '@shardeum-foundation/lib-types'
 import { nestedCountersInstance } from '../../../../src/utils/nestedCounters'
@@ -72,26 +72,32 @@ describe('general utilities', () => {
 
   describe('appdata_replacer', () => {
     it('should handle Map objects', () => {
-      const map = new Map([['key1', 'value1'], ['key2', 'value2']])
+      const map = new Map([
+        ['key1', 'value1'],
+        ['key2', 'value2'],
+      ])
       const result = appdata_replacer('testKey', map)
-      
+
       expect(result).toEqual({
         dataType: 'stringifyReduce_map_2_array',
-        value: [['key1', 'value1'], ['key2', 'value2']]
+        value: [
+          ['key1', 'value1'],
+          ['key2', 'value2'],
+        ],
       })
     })
 
     it('should handle BigInt values', () => {
       const bigIntValue = BigInt(123456789)
       const result = appdata_replacer('testKey', bigIntValue)
-      
+
       expect(result).toBe('123456789')
     })
 
     it('should handle Uint8Array values', () => {
       const uint8Array = new Uint8Array([0x48, 0x65, 0x6c, 0x6c, 0x6f])
       const result = appdata_replacer('testKey', uint8Array)
-      
+
       expect(result).toBe('48656c6c6f')
     })
 
@@ -161,25 +167,21 @@ describe('general utilities', () => {
       const objects = [
         { name: 'Alice', age: 30 },
         { name: 'Bob', age: 25 },
-        { name: 'Charlie', age: 35 }
+        { name: 'Charlie', age: 35 },
       ]
-      
+
       const nameComparator = propComparator<typeof objects[0]>('name')
-      
+
       expect(nameComparator(objects[0], objects[1])).toBe(-1)
       expect(nameComparator(objects[1], objects[0])).toBe(1)
       expect(nameComparator(objects[0], objects[0])).toBe(0)
     })
 
     it('should handle numeric properties', () => {
-      const objects = [
-        { value: 10 },
-        { value: 5 },
-        { value: 15 }
-      ]
-      
+      const objects = [{ value: 10 }, { value: 5 }, { value: 15 }]
+
       const valueComparator = propComparator<typeof objects[0]>('value')
-      
+
       expect(valueComparator(objects[0], objects[1])).toBe(1)
       expect(valueComparator(objects[1], objects[0])).toBe(-1)
       expect(valueComparator(objects[0], objects[0])).toBe(0)
@@ -191,11 +193,11 @@ describe('general utilities', () => {
       const objects = [
         { category: 'A', value: 10 },
         { category: 'A', value: 5 },
-        { category: 'B', value: 3 }
+        { category: 'B', value: 3 },
       ]
-      
+
       const comparator = propComparator2<typeof objects[0]>('category', 'value')
-      
+
       expect(comparator(objects[0], objects[1])).toBe(1) // Same category, different value
       expect(comparator(objects[0], objects[2])).toBe(-1) // Different category
       expect(comparator(objects[0], objects[0])).toBe(0) // Same object
@@ -212,7 +214,7 @@ describe('general utilities', () => {
     it('should handle different hex strings', () => {
       const result1 = XOR('00000000', 'ffffffff')
       const result2 = XOR('aaaaaaaa', '55555555')
-      
+
       expect(typeof result1).toBe('number')
       expect(typeof result2).toBe('number')
       expect(result1).toBeGreaterThanOrEqual(0)
@@ -224,7 +226,7 @@ describe('general utilities', () => {
     it('should find the closest hash', () => {
       const targetHash = '12345678'
       const hashes = ['abcdefgh', '11111111', '22222222']
-      
+
       const result = getClosestHash(targetHash, hashes)
       expect(typeof result).toBe('string')
       expect(hashes).toContain(result)
@@ -232,10 +234,10 @@ describe('general utilities', () => {
 
     it('should return null for duplicate distances', () => {
       jest.spyOn(console, 'error').mockImplementation(() => {})
-      
+
       const targetHash = '12345678'
       const hashes = ['hash1', 'hash2']
-      
+
       const result = getClosestHash(targetHash, hashes)
       expect(result).toBeNull()
     })
@@ -305,7 +307,7 @@ describe('general utilities', () => {
     it('should select neighbors correctly', () => {
       const array = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
       const neighbors = selectNeighbors(array, 5, 2)
-      
+
       expect(neighbors).toHaveLength(4)
       expect(neighbors).toContain(3) // left 2
       expect(neighbors).toContain(4) // left 1
@@ -316,7 +318,7 @@ describe('general utilities', () => {
     it('should handle wrapping around array boundaries', () => {
       const array = [0, 1, 2, 3, 4]
       const neighbors = selectNeighbors(array, 0, 2)
-      
+
       expect(neighbors).toContain(3) // wraps to end
       expect(neighbors).toContain(4) // wraps to end
       expect(neighbors).toContain(1) // normal right
@@ -346,42 +348,42 @@ describe('general utilities', () => {
     it('should validate correct object types', () => {
       const obj = { name: 'John', age: 30, active: true }
       const def = { name: 's', age: 'n', active: 'b' }
-      
+
       expect(validateTypes(obj, def)).toBe('')
     })
 
     it('should detect missing required fields', () => {
       const obj = { name: 'John' }
       const def = { name: 's', age: 'n' }
-      
+
       expect(validateTypes(obj, def)).toBe('age is required')
     })
 
     it('should handle optional fields', () => {
       const obj = { name: 'John' }
       const def = { name: 's', age: 'n?' }
-      
+
       expect(validateTypes(obj, def)).toBe('')
     })
 
     it('should detect wrong types', () => {
       const obj = { name: 123 }
       const def = { name: 's' }
-      
+
       expect(validateTypes(obj, def)).toBe('name must be, string')
     })
 
     it('should handle arrays', () => {
       const obj = { items: [1, 2, 3] }
       const def = { items: 'a' }
-      
+
       expect(validateTypes(obj, def)).toBe('')
     })
 
     it('should handle multiple type options', () => {
       const obj = { value: 'string' }
       const def = { value: 'sn' } // string or number
-      
+
       expect(validateTypes(obj, def)).toBe('')
     })
 
@@ -402,7 +404,7 @@ describe('general utilities', () => {
     it('should convert error to full string', () => {
       const error = new Error('Test error')
       error.stack = 'Error: Test error\n    at test'
-      
+
       const result = errorToStringFull(error)
       expect(result).toBe('Error: Test error at Error: Test error\n    at test')
     })
@@ -412,9 +414,9 @@ describe('general utilities', () => {
     it('should sum numeric properties', () => {
       const sum = { a: 5, b: 10, c: 'ignore' }
       const toAdd = { a: 3, b: 7, d: 20 }
-      
+
       sumObject(sum, toAdd)
-      
+
       expect(sum.a).toBe(8)
       expect(sum.b).toBe(17)
       expect(sum.c).toBe('ignore')
@@ -423,9 +425,9 @@ describe('general utilities', () => {
     it('should handle missing properties in toAdd object', () => {
       const sum = { a: 5, b: 10 }
       const toAdd = { a: 3 }
-      
+
       sumObject(sum, toAdd)
-      
+
       expect(sum.a).toBe(8)
       expect(sum.b).toBe(10)
     })
@@ -435,43 +437,45 @@ describe('general utilities', () => {
     it('should generate schema for simple object', () => {
       const obj = { name: 'John', age: 30, active: true }
       const result = generateObjectSchema(obj)
-      
+
       expect(result).toEqual({
         name: 'string',
         age: 'number',
-        active: 'boolean'
+        active: 'boolean',
       })
     })
 
     it('should handle nested objects', () => {
       const obj = { user: { name: 'John', details: { age: 30 } } }
       const result = generateObjectSchema(obj)
-      
+
       expect(result).toEqual({
         user: {
           name: 'string',
           details: {
-            age: 'number'
-          }
-        }
+            age: 'number',
+          },
+        },
       })
     })
 
     it('should handle arrays', () => {
       const obj = { items: [1, 2, 3] }
       const result = generateObjectSchema(obj) as any
-      
+
       expect(result.items).toBe('number[]')
     })
 
     it('should throw error for array input', () => {
-      expect(() => generateObjectSchema([1, 2, 3])).toThrow('Object schema generation function does not accept array as argument')
+      expect(() => generateObjectSchema([1, 2, 3])).toThrow(
+        'Object schema generation function does not accept array as argument'
+      )
     })
 
     it('should handle devPublicKeys specially', () => {
-      const obj = { devPublicKeys: { 'key1': 1, 'key2': 2 } }
+      const obj = { devPublicKeys: { key1: 1, key2: 2 } }
       const result = generateObjectSchema(obj) as any
-      
+
       expect(result.devPublicKeys).toBe('{ [publicKey: string]: DevSecurityLevel }')
     })
   })
@@ -488,7 +492,12 @@ describe('general utilities', () => {
     })
 
     it('should handle nested arrays', () => {
-      expect(generateArraySchema([[1, 2], [3, 4]])).toBe('array[]')
+      expect(
+        generateArraySchema([
+          [1, 2],
+          [3, 4],
+        ])
+      ).toBe('array[]')
     })
 
     it('should handle diverse types when allowed', () => {
@@ -496,7 +505,9 @@ describe('general utilities', () => {
     })
 
     it('should throw error for diverse types when not allowed', () => {
-      expect(() => generateArraySchema([1, 'a'])).toThrow('Array schema generation does not allowed type diversities in an array unless specified')
+      expect(() => generateArraySchema([1, 'a'])).toThrow(
+        'Array schema generation does not allowed type diversities in an array unless specified'
+      )
     })
 
     it('should handle empty arrays', () => {
@@ -508,9 +519,9 @@ describe('general utilities', () => {
     it('should return valid for matching shapes', () => {
       const idol = { name: 'string', age: 30 }
       const admirer = { name: 'John', age: 25 }
-      
+
       mockUtils.safeStringify.mockReturnValue('{"name":"string","age":"number"}')
-      
+
       const result = compareObjectShape(idol, admirer)
       expect(result.isValid).toBe(true)
     })
@@ -518,12 +529,12 @@ describe('general utilities', () => {
     it('should detect shape differences', () => {
       const idol = { name: 'string', age: 30 }
       const admirer = { name: 'John', age: 'twenty-five' }
-      
+
       mockUtils.safeStringify
         .mockReturnValueOnce('{"name":"string","age":"number"}') // idol schema
         .mockReturnValueOnce('{"name":"string","age":"string"}') // admirer schema
         .mockReturnValue('different')
-      
+
       const result = compareObjectShape(idol, admirer)
       expect(result.isValid).toBe(false)
       expect(result.error).toBeDefined()
@@ -535,7 +546,7 @@ describe('general utilities', () => {
       // The function has an incorrect implementation that caps at index 4 for all cases
       expect(humanFileSize(0)).toBe('0.00 TB')
       expect(humanFileSize(512)).toBe('0.00 TB')
-      expect(humanFileSize(1024)).toBe('0.00 TB') 
+      expect(humanFileSize(1024)).toBe('0.00 TB')
       expect(humanFileSize(1024 * 1024)).toBe('0.00 TB')
       expect(humanFileSize(1024 * 1024 * 1024)).toBe('0.00 TB')
       // Even large values will result in "undefined" due to array bounds issue
@@ -582,7 +593,7 @@ describe('general utilities', () => {
       const result = getIndexesPicked(10, 3)
       expect(Array.isArray(result)).toBe(true)
       expect(result.length).toBeLessThanOrEqual(3)
-      result.forEach(index => {
+      result.forEach((index) => {
         expect(index).toBeGreaterThanOrEqual(0)
         expect(index).toBeLessThan(10)
       })
@@ -617,7 +628,7 @@ describe('general utilities', () => {
     it('should format Error objects', () => {
       const error = new Error('Test error')
       error.stack = 'Error: Test error\n    at test'
-      
+
       const result = formatErrorMessage(error)
       expect(result).toContain('Test error')
       expect(result).toContain('Stack trace:')
@@ -625,7 +636,7 @@ describe('general utilities', () => {
 
     it('should format Error objects without stack', () => {
       const error = new Error('Test error')
-      
+
       const result = formatErrorMessage(error, false)
       expect(result).toBe('Test error')
       expect(result).not.toContain('Stack trace:')
@@ -633,7 +644,7 @@ describe('general utilities', () => {
 
     it('should handle object errors', () => {
       mockUtils.safeStringify.mockReturnValue('{"error":"details"}')
-      
+
       const result = formatErrorMessage({ error: 'details' })
       expect(result).toBe('Unknown error: {"error":"details"}')
     })
@@ -665,7 +676,7 @@ describe('general utilities', () => {
       const valid1 = 'a'.repeat(64)
       const valid2 = 'b'.repeat(64)
       const invalid = 'short'
-      
+
       expect(isValidShardusAddress([valid1, valid2])).toBe(true)
       expect(isValidShardusAddress([valid1, invalid])).toBe(false)
     })
@@ -676,9 +687,9 @@ describe('general utilities', () => {
       const node = {
         id: 'node123',
         externalPort: 9001,
-        externalIp: '192.168.1.1'
+        externalIp: '192.168.1.1',
       }
-      
+
       const result = logNode(node as any)
       expect(result).toBe('Node ID : node123 externalPort : 9001 externalIP : 192.168.1.1')
     })
@@ -689,14 +700,14 @@ describe('general utilities', () => {
       const mockRes = {
         setHeader: jest.fn(),
         write: jest.fn(),
-        end: jest.fn()
+        end: jest.fn(),
       }
-      
+
       const obj = { test: 'data' }
       mockUtils.safeStringify.mockReturnValue('{"test":"data"}')
-      
+
       const size = jsonHttpResWithSize(mockRes as any, obj)
-      
+
       expect(mockRes.setHeader).toHaveBeenCalledWith('Content-Length', 15)
       expect(mockRes.setHeader).toHaveBeenCalledWith('Content-Type', 'application/json')
       expect(mockRes.write).toHaveBeenCalledWith('{"test":"data"}')
@@ -709,7 +720,7 @@ describe('general utilities', () => {
     it('should return string representation for specified keys', () => {
       const obj = { name: 'John', age: 30, city: 'NYC' }
       mockUtils.safeStringify.mockImplementation((val) => JSON.stringify(val))
-      
+
       const result = stringForKeys(obj, 'name age')
       expect(result).toBe('{"John", 30}')
     })
@@ -717,7 +728,7 @@ describe('general utilities', () => {
     it('should handle array input', () => {
       const arr = [{ name: 'John' }, { name: 'Jane' }]
       mockUtils.safeStringify.mockImplementation((val) => JSON.stringify(val))
-      
+
       const result = stringForKeys(arr, 'name')
       expect(result).toBe('[{"John"}, {"Jane"}]')
     })
@@ -732,7 +743,7 @@ describe('general utilities', () => {
       mockUtils.safeStringify.mockImplementation(() => {
         throw new Error('Test error')
       })
-      
+
       const result = stringForKeys(obj, 'name')
       expect(result).toContain('exception')
     })
@@ -768,7 +779,7 @@ describe('general utilities', () => {
     it('should fail when random is less than failChance', () => {
       jest.spyOn(Math, 'random').mockReturnValue(0.3)
       mockNestedCounters.countEvent.mockImplementation(() => {})
-      
+
       const result = testFailChance(0.5, 'test', 'key', 'message', false)
       expect(result).toBe(true)
       expect(mockNestedCounters.countEvent).toHaveBeenCalledWith('dbg_fail_', 'test')
@@ -776,7 +787,7 @@ describe('general utilities', () => {
 
     it('should not fail when random is greater than failChance', () => {
       jest.spyOn(Math, 'random').mockReturnValue(0.7)
-      
+
       const result = testFailChance(0.5, 'test', 'key', 'message', false)
       expect(result).toBe(false)
     })
@@ -784,7 +795,7 @@ describe('general utilities', () => {
     it('should handle null debugName', () => {
       jest.spyOn(Math, 'random').mockReturnValue(0.3)
       mockNestedCounters.countEvent.mockImplementation(() => {})
-      
+
       // When debugName is null, the condition `debugName != null` is false, so countEvent is not called
       const result = testFailChance(0.5, null, 'key', 'message', false)
       expect(result).toBe(true)

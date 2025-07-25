@@ -92,7 +92,10 @@ let lastClean = 0
 const receipts = new Map<P2P.GlobalAccountsTypes.TxHash, P2P.GlobalAccountsTypes.Receipt>()
 const trackers = new Map<P2P.GlobalAccountsTypes.TxHash, P2P.GlobalAccountsTypes.Tracker>()
 const localReceiptInitiationPromises = new Map<P2P.GlobalAccountsTypes.TxHash, Promise<void>>()
-const localReceiptResolvers = new Map<P2P.GlobalAccountsTypes.TxHash, { resolve: () => void; reject: (reason?: any) => void }>()
+const localReceiptResolvers = new Map<
+  P2P.GlobalAccountsTypes.TxHash,
+  { resolve: () => void; reject: (reason?: any) => void }
+>()
 
 /** FUNCTIONS */
 
@@ -210,13 +213,15 @@ export function setGlobal(address, addressHash, value, when, source, afterStateH
   // p2p.tell(consensusGroup, 'make-receipt', signedTx)
   // if (Context.config.p2p.useBinarySerializedEndpoints && Context.config.p2p.makeReceiptBinary) {
   const request = signedTx as MakeReceiptReq
-  fireAndForget(() => Comms.tellBinary<MakeReceiptReq>(
-    consensusGroup,
-    InternalRouteEnum.binary_make_receipt,
-    request,
-    serializeMakeReceiptReq,
-    {}
-  ))
+  fireAndForget(() =>
+    Comms.tellBinary<MakeReceiptReq>(
+      consensusGroup,
+      InternalRouteEnum.binary_make_receipt,
+      request,
+      serializeMakeReceiptReq,
+      {}
+    )
+  )
   // } else {
   // Comms.tell(consensusGroup, 'make-receipt', signedTx)
   // }
@@ -229,7 +234,7 @@ export function createMakeReceiptHandle(txHash: string) {
 /**
  * Waits for local receipt initiation to complete before attempting to access the receipt.
  * This function ensures that makeReceipt has completed its critical local setup.
- * 
+ *
  * @param txHash - The transaction hash to wait for
  * @returns Promise that resolves when the receipt is ready or rejects on timeout/error
  */
@@ -238,13 +243,14 @@ export async function awaitLocalReceiptInitiation(txHash: P2P.GlobalAccountsType
   if (pendingPromise) {
     // Use configurable timeout, with fallback to 15 seconds if not configured
     const timeout = Context.config?.stateManager?.globalAccountsReceiptInitiationTimeout || 15000
-    if (logFlags.verbose) console.log(`GlobalAccounts: Awaiting local receipt initiation for ${txHash} with timeout: ${timeout}ms`)
+    if (logFlags.verbose)
+      console.log(`GlobalAccounts: Awaiting local receipt initiation for ${txHash} with timeout: ${timeout}ms`)
     try {
       await Promise.race([
         pendingPromise,
         new Promise<void>((_, reject) =>
           setTimeout(() => reject(new Error(`Receipt initiation timeout for ${txHash} after ${timeout}ms`)), timeout)
-        )
+        ),
       ])
       if (logFlags.verbose) console.log(`GlobalAccounts: Local receipt initiation completed for ${txHash}`)
     } catch (error) {
@@ -328,7 +334,8 @@ export function makeReceipt(signedTx: P2P.GlobalAccountsTypes.SignedSetGlobalTx,
 
       if (isNewReceiptAndLocalInitiation && currentPromiseResolvers) {
         // Receipt successfully created, but don't resolve yet - wait for majority
-        if (logFlags.verbose) console.log(`GlobalAccounts: Receipt created successfully for ${txHash}, waiting for majority`)
+        if (logFlags.verbose)
+          console.log(`GlobalAccounts: Receipt created successfully for ${txHash}, waiting for majority`)
       }
     } catch (err) {
       if (logFlags.error) console.error(`GlobalAccounts: Error during receipt creation for ${txHash}:`, err)

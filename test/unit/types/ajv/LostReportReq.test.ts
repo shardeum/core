@@ -51,8 +51,8 @@ describe('LostReportReq', () => {
     it('should have all required fields defined', () => {
       const requiredFields = ['target', 'checker', 'reporter', 'cycle', 'timestamp', 'requestId', 'sign']
       expect(schemaLostReportReq.required).toEqual(requiredFields)
-      
-      requiredFields.forEach(field => {
+
+      requiredFields.forEach((field) => {
         expect(schemaLostReportReq.properties).toHaveProperty(field)
       })
     })
@@ -87,8 +87,8 @@ describe('LostReportReq', () => {
         requestId: 'req-123',
         sign: {
           owner: '0x123',
-          sig: 'signature123'
-        }
+          sig: 'signature123',
+        },
       }
 
       // The schema should accept this structure
@@ -107,9 +107,9 @@ describe('LostReportReq', () => {
         requestId: 'req-123',
         sign: {
           owner: '0x123',
-          sig: 'signature123'
+          sig: 'signature123',
         },
-        killother: true
+        killother: true,
       }
 
       // Killother should be boolean type when present
@@ -118,13 +118,13 @@ describe('LostReportReq', () => {
 
     it('should register schema only once per initialization', () => {
       initLostReportReq()
-      
+
       expect(mockAddSchema).toHaveBeenCalledTimes(1)
-      
+
       // Clear mocks and call again
       mockAddSchema.mockClear()
       initLostReportReq()
-      
+
       expect(mockAddSchema).toHaveBeenCalledTimes(1)
     })
   })

@@ -56,10 +56,7 @@ describe('SignAppDataReq', () => {
       initSignAppDataReq()
 
       expect(mockAddSchema).toHaveBeenCalledTimes(1)
-      expect(mockAddSchema).toHaveBeenCalledWith(
-        AJVSchemaEnum.SignAppDataReq,
-        schemaSignAppDataReq
-      )
+      expect(mockAddSchema).toHaveBeenCalledWith(AJVSchemaEnum.SignAppDataReq, schemaSignAppDataReq)
     })
 
     it('should not throw any errors during initialization', () => {
@@ -70,7 +67,7 @@ describe('SignAppDataReq', () => {
   describe('schema structure validation', () => {
     it('should have all properties as required', () => {
       const propertyNames = Object.keys(schemaSignAppDataReq.properties)
-      propertyNames.forEach(prop => {
+      propertyNames.forEach((prop) => {
         expect(schemaSignAppDataReq.required).toContain(prop)
       })
     })

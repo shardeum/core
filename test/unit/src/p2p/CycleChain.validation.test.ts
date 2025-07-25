@@ -9,7 +9,7 @@ jest.mock('../../../../src/p2p/Context', () => {
     trace: jest.fn(),
     fatal: jest.fn(),
   }
-  
+
   // Define the implementation inside the factory function
   const hashImplementation = (input: any) => {
     // Handle different types of input for hash
@@ -19,7 +19,7 @@ jest.mock('../../../../src/p2p/Context', () => {
     }
     return `hash-${JSON.stringify(input)}`
   }
-  
+
   return {
     crypto: {
       hash: jest.fn(hashImplementation),
@@ -66,22 +66,22 @@ describe('CycleChain Validation', () => {
   beforeEach(() => {
     // Clear mock function call history only, not implementations
     const Context = require('../../../../src/p2p/Context')
-    
+
     // Clear call history for logger methods
     const mockLogger = Context.logger.getLogger()
     if (mockLogger) {
-      Object.keys(mockLogger).forEach(key => {
+      Object.keys(mockLogger).forEach((key) => {
         if (typeof mockLogger[key] === 'function' && mockLogger[key].mockClear) {
           mockLogger[key].mockClear()
         }
       })
     }
-    
+
     // Clear other mocks
     Context.crypto.hash.mockClear()
     Context.stateManager.getCurrentCycleShardData.mockClear()
     Context.stateManager.statemanager_fatal.mockClear()
-    
+
     // Re-ensure hash function has correct implementation
     Context.crypto.hash.mockImplementation((input: any) => {
       if (typeof input === 'object' && input.counter !== undefined) {
@@ -89,10 +89,10 @@ describe('CycleChain Validation', () => {
       }
       return `hash-${JSON.stringify(input)}`
     })
-    
+
     // Reset the module state
     CycleChain.reset()
-    
+
     // Re-initialize CycleChain to ensure logger is set up
     CycleChain.init()
   })
@@ -115,7 +115,7 @@ describe('CycleChain Validation', () => {
       // Start with one cycle
       const cycle3 = createMockCycle(3)
       CycleChain.append(cycle3)
-      
+
       // Verify initial state
       expect(CycleChain.cycles).toHaveLength(1)
       expect(CycleChain.cycles[0].counter).toBe(3)
@@ -148,7 +148,7 @@ describe('CycleChain Validation', () => {
       const cycle1 = createMockCycle(1)
       const cycle2 = createMockCycle(2)
       const cycle3 = createMockCycle(3)
-      
+
       // First add cycles 2 and 3
       CycleChain.append(cycle2)
       CycleChain.append(cycle3)
@@ -179,7 +179,7 @@ describe('CycleChain Validation', () => {
     it('should set newest when starting with empty chain', () => {
       const cycle1 = createMockCycle(1)
       const cycle2 = createMockCycle(2)
-      
+
       CycleChain.prependMultiple([cycle1, cycle2])
 
       expect(CycleChain.oldest.counter).toBe(1)
@@ -190,16 +190,16 @@ describe('CycleChain Validation', () => {
       // Start with cycle 5 as newest
       const cycle5 = createMockCycle(5)
       CycleChain.append(cycle5)
-      
+
       // Verify initial state
       expect(CycleChain.newest.counter).toBe(5)
-      
+
       // Prepend cycles [6, 7, 8] which are newer than current newest
       const cycle6 = createMockCycle(6)
       const cycle7 = createMockCycle(7)
       const cycle8 = createMockCycle(8)
       CycleChain.prependMultiple([cycle6, cycle7, cycle8])
-      
+
       // Verify newest updates to cycle 8
       expect(CycleChain.newest.counter).toBe(8)
       expect(CycleChain.cycles).toHaveLength(4)
@@ -213,45 +213,45 @@ describe('CycleChain Validation', () => {
       // Start with a base cycle
       const baseCycle = createMockCycle(10)
       CycleChain.append(baseCycle)
-      
+
       // Create overlapping cycle ranges for concurrent operations
       const batch1 = [createMockCycle(1), createMockCycle(2), createMockCycle(3)]
       const batch2 = [createMockCycle(2), createMockCycle(3), createMockCycle(4)] // Overlaps with batch1
       const batch3 = [createMockCycle(4), createMockCycle(5), createMockCycle(6)] // Overlaps with batch2
-      
+
       // Execute concurrent prepend operations
       const operation1 = Promise.resolve().then(() => CycleChain.prependMultiple(batch1))
       const operation2 = Promise.resolve().then(() => CycleChain.prependMultiple(batch2))
       const operation3 = Promise.resolve().then(() => CycleChain.prependMultiple(batch3))
-      
+
       // Wait for all operations to complete
       await Promise.all([operation1, operation2, operation3])
-      
+
       // Verify final state consistency - all unique cycles should be present
-      const counters = CycleChain.cycles.map(c => c.counter)
-      
+      const counters = CycleChain.cycles.map((c) => c.counter)
+
       // Due to race conditions, we can't guarantee exact ordering, but we can verify:
       // 1. No duplicates exist
       const uniqueCounters = new Set(counters)
       expect(uniqueCounters.size).toBe(counters.length)
-      
+
       // 2. All expected unique cycles are present (deduplicating overlaps)
       const expectedUniqueCounters = new Set([1, 2, 3, 4, 5, 6, 10])
       expect(uniqueCounters).toEqual(expectedUniqueCounters)
-      
+
       // 3. Total count matches expected unique cycles
       expect(CycleChain.cycles).toHaveLength(7)
-      
+
       // 4. No duplicates in cyclesByMarker lookup
       expect(Object.keys(CycleChain.cyclesByMarker)).toHaveLength(7)
-      
+
       // 5. Newest pointer should still be 10 (unchanged from initial state)
       expect(CycleChain.newest.counter).toBe(10)
-      
+
       // 6. Oldest pointer should be valid and point to a cycle that exists
       expect(CycleChain.oldest).not.toBeNull()
       expect(counters).toContain(CycleChain.oldest.counter)
-      
+
       // 7. Verify structural integrity - oldest should be first in array
       expect(CycleChain.cycles[0]).toBe(CycleChain.oldest)
     })
@@ -360,7 +360,10 @@ describe('CycleChain Validation', () => {
   })
 
   describe('validateCycleChain - performance', () => {
-    const createValidCycleForPerf = (counter: number, previousMarker: string = ''): P2P.CycleCreatorTypes.CycleRecord => {
+    const createValidCycleForPerf = (
+      counter: number,
+      previousMarker: string = ''
+    ): P2P.CycleCreatorTypes.CycleRecord => {
       return {
         counter,
         previous: previousMarker,
@@ -385,7 +388,7 @@ describe('CycleChain Validation', () => {
       // Create valid 100-cycle chain with proper marker linkage
       const cycles: P2P.CycleCreatorTypes.CycleRecord[] = []
       let previousMarker = ''
-      
+
       for (let i = 1; i <= 100; i++) {
         const cycle = createValidCycleForPerf(i, previousMarker)
         cycles.push(cycle)
@@ -400,10 +403,10 @@ describe('CycleChain Validation', () => {
 
       // Verify the chain is valid
       expect(isValid).toBe(true)
-      
+
       // Verify validation completes in reasonable time (should be under 100ms for 100 cycles)
       expect(validationTime).toBeLessThan(100)
-      
+
       // Log performance for debugging if needed
       if (validationTime > 50) {
         console.warn(`validateCycleChain took ${validationTime.toFixed(2)}ms for 100 cycles`)
@@ -414,17 +417,17 @@ describe('CycleChain Validation', () => {
       // Create 100 cycles but introduce an error early (at cycle 5)
       const cycles: P2P.CycleCreatorTypes.CycleRecord[] = []
       let previousMarker = ''
-      
+
       for (let i = 1; i <= 100; i++) {
         const cycle = createValidCycleForPerf(i, previousMarker)
-        
+
         // Introduce error at cycle 5 - wrong previous marker
         if (i === 5) {
           cycle.previous = 'invalid-marker'
         }
-        
+
         cycles.push(cycle)
-        
+
         // Update previousMarker for next cycle (even for invalid one to continue chain)
         if (i !== 5) {
           previousMarker = CycleChain.computeCycleMarker(cycle)
@@ -439,10 +442,10 @@ describe('CycleChain Validation', () => {
 
       // Verify the chain is correctly identified as invalid
       expect(isValid).toBe(false)
-      
+
       // Verify early failure detection is fast (should be much faster than validating 100 cycles)
       expect(validationTime).toBeLessThan(10)
-      
+
       // Log performance for debugging
       if (validationTime > 5) {
         console.warn(`Early failure detection took ${validationTime.toFixed(2)}ms (expected < 5ms)`)
@@ -453,10 +456,11 @@ describe('CycleChain Validation', () => {
       // Create cycles with gaps: [1, 3, 5, 7, ...] up to 100 cycles total
       const cycles: P2P.CycleCreatorTypes.CycleRecord[] = []
       let previousMarker = ''
-      
-      for (let i = 1; i <= 200; i += 2) { // Generate 100 cycles with gaps
+
+      for (let i = 1; i <= 200; i += 2) {
+        // Generate 100 cycles with gaps
         if (cycles.length >= 100) break
-        
+
         const cycle = createValidCycleForPerf(i, previousMarker)
         cycles.push(cycle)
         previousMarker = CycleChain.computeCycleMarker(cycle)
@@ -470,10 +474,10 @@ describe('CycleChain Validation', () => {
 
       // Verify gaps are detected (should be invalid due to counter gaps)
       expect(isValid).toBe(false)
-      
+
       // Verify gap detection completes quickly
       expect(validationTime).toBeLessThan(50)
-      
+
       // Verify we created exactly 100 cycles
       expect(cycles).toHaveLength(100)
     })
@@ -488,7 +492,7 @@ describe('CycleChain Validation', () => {
         duration: 30,
         nodeListHash: 'hash' + counter,
         standbyNodeListHash: 'standbyhash' + counter,
-        ...additionalProps
+        ...additionalProps,
       } as P2P.CycleCreatorTypes.CycleRecord
     }
 

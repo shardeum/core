@@ -1,8 +1,8 @@
-import { 
-  serializeRequestStateForTxReq, 
-  deserializeRequestStateForTxReq, 
+import {
+  serializeRequestStateForTxReq,
+  deserializeRequestStateForTxReq,
   RequestStateForTxReq,
-  cRequestStateForTxReqVersion 
+  cRequestStateForTxReqVersion,
 } from '../../../src/types/RequestStateForTxReq'
 import { VectorBufferStream } from '../../../src/utils/serialization/VectorBufferStream'
 import { TypeIdentifierEnum } from '../../../src/types/enum/TypeIdentifierEnum'
@@ -24,7 +24,7 @@ describe('RequestStateForTxReq', () => {
       writeUInt32: jest.fn(),
       readUInt8: jest.fn(),
       readString: jest.fn(),
-      readUInt32: jest.fn()
+      readUInt32: jest.fn(),
     } as unknown as VectorBufferStream
   })
 
@@ -32,7 +32,7 @@ describe('RequestStateForTxReq', () => {
     const mockData: RequestStateForTxReq = {
       txid: 'tx123',
       timestamp: 1234567890,
-      keys: ['key1', 'key2', 'key3']
+      keys: ['key1', 'key2', 'key3'],
     }
 
     it('should serialize without root flag', () => {
@@ -59,7 +59,7 @@ describe('RequestStateForTxReq', () => {
       const dataWithEmptyKeys: RequestStateForTxReq = {
         txid: 'tx456',
         timestamp: 9876543210,
-        keys: []
+        keys: [],
       }
 
       serializeRequestStateForTxReq(mockStream, dataWithEmptyKeys)
@@ -75,7 +75,7 @@ describe('RequestStateForTxReq', () => {
       const dataWithManyKeys: RequestStateForTxReq = {
         txid: 'tx789',
         timestamp: 1111111111,
-        keys: ['a', 'b', 'c', 'd', 'e']
+        keys: ['a', 'b', 'c', 'd', 'e'],
       }
 
       serializeRequestStateForTxReq(mockStream, dataWithManyKeys)
@@ -96,7 +96,7 @@ describe('RequestStateForTxReq', () => {
       // Verify order
       const writeUInt32Order = (mockStream.writeUInt32 as jest.Mock).mock.invocationCallOrder[0]
       const firstKeyOrder = (mockStream.writeString as jest.Mock).mock.invocationCallOrder[2] // After txid and timestamp
-      
+
       expect(writeUInt32Order).toBeLessThan(firstKeyOrder)
     })
   })
@@ -107,53 +107,49 @@ describe('RequestStateForTxReq', () => {
     })
 
     it('should deserialize valid data correctly', () => {
-      (mockStream.readUInt8 as jest.Mock).mockReturnValueOnce(cRequestStateForTxReqVersion);
-      (mockStream.readString as jest.Mock)
+      ;(mockStream.readUInt8 as jest.Mock).mockReturnValueOnce(cRequestStateForTxReqVersion)
+      ;(mockStream.readString as jest.Mock)
         .mockReturnValueOnce('tx123')
         .mockReturnValueOnce('1234567890')
         .mockReturnValueOnce('key1')
         .mockReturnValueOnce('key2')
-        .mockReturnValueOnce('key3');
-      (mockStream.readUInt32 as jest.Mock).mockReturnValueOnce(3)
+        .mockReturnValueOnce('key3')
+      ;(mockStream.readUInt32 as jest.Mock).mockReturnValueOnce(3)
 
       const result = deserializeRequestStateForTxReq(mockStream)
 
       expect(result).toEqual({
         txid: 'tx123',
         timestamp: 1234567890,
-        keys: ['key1', 'key2', 'key3']
+        keys: ['key1', 'key2', 'key3'],
       })
       expect(mockVerifyPayload).toHaveBeenCalledWith(AJVSchemaEnum.RequestStateForTxReq, result)
     })
 
     it('should throw error for unsupported version', () => {
-      (mockStream.readUInt8 as jest.Mock).mockReturnValueOnce(cRequestStateForTxReqVersion + 1)
+      ;(mockStream.readUInt8 as jest.Mock).mockReturnValueOnce(cRequestStateForTxReqVersion + 1)
 
       expect(() => deserializeRequestStateForTxReq(mockStream)).toThrow('Unsupported version')
     })
 
     it('should deserialize empty keys array', () => {
-      (mockStream.readUInt8 as jest.Mock).mockReturnValueOnce(cRequestStateForTxReqVersion);
-      (mockStream.readString as jest.Mock)
-        .mockReturnValueOnce('tx456')
-        .mockReturnValueOnce('9876543210');
-      (mockStream.readUInt32 as jest.Mock).mockReturnValueOnce(0)
+      ;(mockStream.readUInt8 as jest.Mock).mockReturnValueOnce(cRequestStateForTxReqVersion)
+      ;(mockStream.readString as jest.Mock).mockReturnValueOnce('tx456').mockReturnValueOnce('9876543210')
+      ;(mockStream.readUInt32 as jest.Mock).mockReturnValueOnce(0)
 
       const result = deserializeRequestStateForTxReq(mockStream)
 
       expect(result).toEqual({
         txid: 'tx456',
         timestamp: 9876543210,
-        keys: []
+        keys: [],
       })
     })
 
     it('should parse timestamp string to number', () => {
-      (mockStream.readUInt8 as jest.Mock).mockReturnValueOnce(cRequestStateForTxReqVersion);
-      (mockStream.readString as jest.Mock)
-        .mockReturnValueOnce('tx789')
-        .mockReturnValueOnce('9999999999');
-      (mockStream.readUInt32 as jest.Mock).mockReturnValueOnce(0)
+      ;(mockStream.readUInt8 as jest.Mock).mockReturnValueOnce(cRequestStateForTxReqVersion)
+      ;(mockStream.readString as jest.Mock).mockReturnValueOnce('tx789').mockReturnValueOnce('9999999999')
+      ;(mockStream.readUInt32 as jest.Mock).mockReturnValueOnce(0)
 
       const result = deserializeRequestStateForTxReq(mockStream)
 
@@ -162,11 +158,9 @@ describe('RequestStateForTxReq', () => {
     })
 
     it('should throw error for validation failure', () => {
-      (mockStream.readUInt8 as jest.Mock).mockReturnValueOnce(cRequestStateForTxReqVersion);
-      (mockStream.readString as jest.Mock)
-        .mockReturnValueOnce('tx123')
-        .mockReturnValueOnce('1234567890');
-      (mockStream.readUInt32 as jest.Mock).mockReturnValueOnce(0)
+      ;(mockStream.readUInt8 as jest.Mock).mockReturnValueOnce(cRequestStateForTxReqVersion)
+      ;(mockStream.readString as jest.Mock).mockReturnValueOnce('tx123').mockReturnValueOnce('1234567890')
+      ;(mockStream.readUInt32 as jest.Mock).mockReturnValueOnce(0)
       mockVerifyPayload.mockReturnValueOnce(['Invalid field'])
 
       expect(() => deserializeRequestStateForTxReq(mockStream)).toThrow('AJV: validation error -> Invalid field')
@@ -174,19 +168,16 @@ describe('RequestStateForTxReq', () => {
 
     it('should handle large keys arrays', () => {
       const keyCount = 100
-      const mockKeys = Array.from({ length: keyCount }, (_, i) => `key${i}`);
+      const mockKeys = Array.from({ length: keyCount }, (_, i) => `key${i}`)
 
-      (mockStream.readUInt8 as jest.Mock).mockReturnValueOnce(cRequestStateForTxReqVersion);
+      ;(mockStream.readUInt8 as jest.Mock).mockReturnValueOnce(cRequestStateForTxReqVersion)
       const readStringMock = mockStream.readString as jest.Mock
-      readStringMock
-        .mockReturnValueOnce('tx123')
-        .mockReturnValueOnce('1234567890')
-      
-      mockKeys.forEach(key => {
+      readStringMock.mockReturnValueOnce('tx123').mockReturnValueOnce('1234567890')
+
+      mockKeys.forEach((key) => {
         readStringMock.mockReturnValueOnce(key)
-      });
-      
-      (mockStream.readUInt32 as jest.Mock).mockReturnValueOnce(keyCount)
+      })
+      ;(mockStream.readUInt32 as jest.Mock).mockReturnValueOnce(keyCount)
 
       const result = deserializeRequestStateForTxReq(mockStream)
 
@@ -195,14 +186,14 @@ describe('RequestStateForTxReq', () => {
     })
 
     it('should deserialize keys in correct order', () => {
-      (mockStream.readUInt8 as jest.Mock).mockReturnValueOnce(cRequestStateForTxReqVersion);
-      (mockStream.readString as jest.Mock)
+      ;(mockStream.readUInt8 as jest.Mock).mockReturnValueOnce(cRequestStateForTxReqVersion)
+      ;(mockStream.readString as jest.Mock)
         .mockReturnValueOnce('tx123')
         .mockReturnValueOnce('1234567890')
         .mockReturnValueOnce('first')
         .mockReturnValueOnce('second')
-        .mockReturnValueOnce('third');
-      (mockStream.readUInt32 as jest.Mock).mockReturnValueOnce(3)
+        .mockReturnValueOnce('third')
+      ;(mockStream.readUInt32 as jest.Mock).mockReturnValueOnce(3)
 
       const result = deserializeRequestStateForTxReq(mockStream)
 

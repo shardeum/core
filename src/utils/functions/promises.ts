@@ -138,10 +138,7 @@ export async function withTimeout<T>(fn: () => Promise<T>, timeoutMs: number): P
   }
 }
 
-export const fireAndForget = (
-  fn: () => Promise<unknown>,
-  onError?: (error: Error) => void
-): void => {
+export const fireAndForget = (fn: () => Promise<unknown>, onError?: (error: Error) => void): void => {
   try {
     Promise.resolve(fn()).catch((err) => {
       const errorHandler =
@@ -169,4 +166,3 @@ export const fireAndForget = (
     }
   }
 }
-

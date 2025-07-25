@@ -315,7 +315,8 @@ class TransactionRepair {
         utils.shuffleArray(eligibleNodeIdsArray)
         const eligibleNodeIds = new Set(eligibleNodeIdsArray)
         this.mainLogger.debug(
-          `repairToMatchReceipt: ${txLogID} eligibleNodeIds ${eligibleNodeIds.size} && eligibleNodeIdMap ${Object.keys(eligibleNodeIdMap).length
+          `repairToMatchReceipt: ${txLogID} eligibleNodeIds ${eligibleNodeIds.size} && eligibleNodeIdMap ${
+            Object.keys(eligibleNodeIdMap).length
           }`
         )
 
@@ -874,8 +875,9 @@ class TransactionRepair {
 
         const repairLogString = `tx:${queueEntry.logID} updatedAccountAndHashes:${utils.stringifyReduce(
           updatedAccountAndHashes
-        )}  localUpdatedAccountAndHashes:${utils.stringifyReduce(localUpdatedAccountAndHashes)} state:${queueEntry.state
-          } counters:${utils.stringifyReduce(stats)}`
+        )}  localUpdatedAccountAndHashes:${utils.stringifyReduce(localUpdatedAccountAndHashes)} state:${
+          queueEntry.state
+        } counters:${utils.stringifyReduce(stats)}`
         /* prettier-ignore */ if (logFlags.playback) this.logger.playbackLogNote('shrd_repairToMatchReceipt_success', queueEntry.logID, repairLogString)
         /* prettier-ignore */ if (logFlags.debug) this.mainLogger.debug('shrd_repairToMatchReceipt_success ' + repairLogString)
         nestedCountersInstance.countEvent('repair1', 'success')

@@ -37,7 +37,7 @@ describe('getCallstack', () => {
   it('should return consistent stack trace format', () => {
     const result1 = getCallstack()
     const result2 = getCallstack()
-    
+
     // Both should start with the same error message
     const errorMessage = 'Error: Artificially induced error to get a call stack'
     expect(result1.startsWith(errorMessage)).toBe(true)
@@ -112,7 +112,7 @@ describe('getCallstack', () => {
       results.push(getCallstack())
     }
 
-    results.forEach(result => {
+    results.forEach((result) => {
       expect(result).toContain('Error: Artificially induced error to get a call stack')
       expect(typeof result).toBe('string')
     })

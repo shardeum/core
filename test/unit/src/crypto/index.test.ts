@@ -20,7 +20,7 @@ const mockCryptoLib = {
   hash: jest.fn(),
   hashObj: jest.fn(),
   sign: jest.fn(),
-  verify: jest.fn()
+  verify: jest.fn(),
 }
 jest.mock('@shardeum-foundation/lib-crypto-utils', () => mockCryptoLib)
 jest.mock('child_process')
@@ -31,11 +31,11 @@ jest.mock('../../../../src/storage', () => ({
   init: jest.fn(),
   set: jest.fn(),
   get: jest.fn(),
-  close: jest.fn()
+  close: jest.fn(),
 }))
 jest.mock('@shardeum-foundation/lib-types')
 jest.mock('sqlite3', () => ({
-  Database: jest.fn()
+  Database: jest.fn(),
 }))
 
 // Import after mocking
@@ -62,15 +62,15 @@ describe('Crypto', () => {
     mockLogger = {
       getLogger: jest.fn().mockReturnValue({
         info: jest.fn(),
-        error: jest.fn()
-      })
+        error: jest.fn(),
+      }),
     }
 
     // Setup mock storage
     mockStorage = {
       _checkInit: jest.fn(),
       getProperty: jest.fn(),
-      setProperty: jest.fn()
+      setProperty: jest.fn(),
     }
 
     // Setup mock config
@@ -79,9 +79,9 @@ describe('Crypto', () => {
         hashKey: 'test-hash-key',
         keyPairConfig: {
           useKeyPairFromFile: false,
-          keyPairJsonFile: 'keypair.json'
-        }
-      }
+          keyPairJsonFile: 'keypair.json',
+        },
+      },
     }
 
     // Mock crypto library functions
@@ -89,7 +89,7 @@ describe('Crypto', () => {
     mockedCrypto.setCustomStringifier.mockImplementation(() => {})
     mockedCrypto.generateKeypair.mockReturnValue({
       publicKey: 'test-public-key',
-      secretKey: 'test-secret-key'
+      secretKey: 'test-secret-key',
     })
     mockedCrypto.convertSkToCurve.mockReturnValue('test-curve-secret-key')
     mockedCrypto.convertPkToCurve.mockReturnValue('test-curve-public-key')
@@ -134,14 +134,11 @@ describe('Crypto', () => {
   describe('init', () => {
     it('should initialize crypto library', async () => {
       mockStorage.getProperty.mockResolvedValue(null)
-      
+
       await cryptoInstance.init()
 
       expect(mockedCrypto.init).toHaveBeenCalledWith('test-hash-key')
-      expect(mockedCrypto.setCustomStringifier).toHaveBeenCalledWith(
-        mockedUtils.safeStringify,
-        'shardus_safeStringify'
-      )
+      expect(mockedCrypto.setCustomStringifier).toHaveBeenCalledWith(mockedUtils.safeStringify, 'shardus_safeStringify')
     })
 
     it('should load keypair from database if available', async () => {
@@ -159,35 +156,35 @@ describe('Crypto', () => {
       mockStorage.getProperty.mockResolvedValue(null)
       mockConfig.crypto.keyPairConfig.useKeyPairFromFile = true
       mockedFs.existsSync.mockReturnValue(true)
-      
+
       jest.spyOn(cryptoInstance, 'readKeypairFromFile').mockReturnValue({
         publicKey: 'file-public',
-        secretKey: 'file-secret'
+        secretKey: 'file-secret',
       })
 
       await cryptoInstance.init()
 
       expect(cryptoInstance.keypair).toEqual({
         publicKey: 'file-public',
-        secretKey: 'file-secret'
+        secretKey: 'file-secret',
       })
     })
 
     it('should generate new keypair if none exists', async () => {
       mockStorage.getProperty.mockResolvedValue(null)
-      
+
       await cryptoInstance.init()
 
       expect(mockedCrypto.generateKeypair).toHaveBeenCalled()
       expect(mockStorage.setProperty).toHaveBeenCalledWith('keypair', {
         publicKey: 'test-public-key',
-        secretKey: 'test-secret-key'
+        secretKey: 'test-secret-key',
       })
     })
 
     it('should handle database errors gracefully', async () => {
       mockStorage.getProperty.mockRejectedValue(new Error('Database error'))
-      
+
       await cryptoInstance.init()
 
       expect(mockedCrypto.generateKeypair).toHaveBeenCalled()
@@ -199,14 +196,14 @@ describe('Crypto', () => {
       // Set up the instance keypair first since setCurveKeyPair uses this.keypair not the parameter
       cryptoInstance.keypair = { publicKey: 'ed-public', secretKey: 'ed-secret' }
       const keypair = { publicKey: 'ed-public', secretKey: 'ed-secret' }
-      
+
       cryptoInstance.setCurveKeyPair(keypair)
 
       expect(mockedCrypto.convertSkToCurve).toHaveBeenCalledWith('ed-secret')
       expect(mockedCrypto.convertPkToCurve).toHaveBeenCalledWith('ed-public')
       expect(cryptoInstance.curveKeypair).toEqual({
         secretKey: 'test-curve-secret-key',
-        publicKey: 'test-curve-public-key'
+        publicKey: 'test-curve-public-key',
       })
     })
 
@@ -219,7 +216,7 @@ describe('Crypto', () => {
   describe('getKeyPairFile', () => {
     it('should return correct file path', () => {
       const result = cryptoInstance.getKeyPairFile()
-      
+
       expect(mockedPath.join).toHaveBeenCalledWith('/test/base', 'keypair.json')
       expect(result).toBe('/test/base/keypair.json')
     })
@@ -229,7 +226,7 @@ describe('Crypto', () => {
     it('should write keypair to file', () => {
       const keypair = { publicKey: 'test-public', secretKey: 'test-secret' }
       jest.spyOn(cryptoInstance, 'getKeyPairFile').mockReturnValue('/test/keypair.json')
-      
+
       cryptoInstance.writeKeypairToFile(keypair)
 
       expect(mockedFs.writeFileSync).toHaveBeenCalledWith(
@@ -243,7 +240,7 @@ describe('Crypto', () => {
     it('should read keypair from file if exists', () => {
       mockedFs.existsSync.mockReturnValue(true)
       jest.spyOn(cryptoInstance, 'getKeyPairFile').mockReturnValue('/test/keypair.json')
-      
+
       const result = cryptoInstance.readKeypairFromFile()
 
       expect(mockedFs.readFileSync).toHaveBeenCalledWith('/test/keypair.json')
@@ -252,7 +249,7 @@ describe('Crypto', () => {
 
     it('should return null if file does not exist', () => {
       mockedFs.existsSync.mockReturnValue(false)
-      
+
       const result = cryptoInstance.readKeypairFromFile()
 
       expect(result).toBeNull()
@@ -266,7 +263,7 @@ describe('Crypto', () => {
       expect(mockedCrypto.generateKeypair).toHaveBeenCalled()
       expect(result).toEqual({
         publicKey: 'test-public-key',
-        secretKey: 'test-secret-key'
+        secretKey: 'test-secret-key',
       })
     })
   })
@@ -283,7 +280,7 @@ describe('Crypto', () => {
   describe('getPublicKey', () => {
     it('should return public key', () => {
       cryptoInstance.keypair = { publicKey: 'test-public-key' }
-      
+
       const result = cryptoInstance.getPublicKey()
 
       expect(result).toBe('test-public-key')
@@ -293,7 +290,7 @@ describe('Crypto', () => {
   describe('getCurvePublicKey', () => {
     it('should return curve public key', () => {
       cryptoInstance.curveKeypair = { publicKey: 'test-curve-public-key' }
-      
+
       const result = cryptoInstance.getCurvePublicKey()
 
       expect(result).toBe('test-curve-public-key')
@@ -308,10 +305,7 @@ describe('Crypto', () => {
     it('should generate and cache shared key', () => {
       const result = cryptoInstance.getSharedKey('recipient-curve-pk')
 
-      expect(mockedCrypto.generateSharedKey).toHaveBeenCalledWith(
-        'test-curve-secret',
-        'recipient-curve-pk'
-      )
+      expect(mockedCrypto.generateSharedKey).toHaveBeenCalledWith('test-curve-secret', 'recipient-curve-pk')
       expect(result).toEqual(Buffer.from('shared-key'))
       expect(cryptoInstance.sharedKeys['recipient-curve-pk']).toEqual(Buffer.from('shared-key'))
     })
@@ -319,7 +313,7 @@ describe('Crypto', () => {
     it('should return cached shared key', () => {
       const cachedKey = Buffer.from('cached-key')
       cryptoInstance.sharedKeys['recipient-curve-pk'] = cachedKey
-      
+
       const result = cryptoInstance.getSharedKey('recipient-curve-pk')
 
       expect(mockedCrypto.generateSharedKey).not.toHaveBeenCalled()
@@ -331,14 +325,11 @@ describe('Crypto', () => {
     it('should tag object with shared key', () => {
       jest.spyOn(cryptoInstance, 'getSharedKey').mockReturnValue(Buffer.from('shared-key'))
       const obj = { data: 'test' }
-      
+
       const result = cryptoInstance.tag(obj, 'recipient-curve-pk')
 
       expect(cryptoInstance.getSharedKey).toHaveBeenCalledWith('recipient-curve-pk')
-      expect(mockedCrypto.tagObj).toHaveBeenCalledWith(
-        { data: 'test' },
-        Buffer.from('shared-key')
-      )
+      expect(mockedCrypto.tagObj).toHaveBeenCalledWith({ data: 'test' }, Buffer.from('shared-key'))
       expect(result).toEqual({ data: 'test' })
     })
   })
@@ -347,7 +338,7 @@ describe('Crypto', () => {
     it('should tag object with size and shared key', () => {
       jest.spyOn(cryptoInstance, 'getSharedKey').mockReturnValue(Buffer.from('shared-key'))
       const obj = { data: 'test' }
-      
+
       const result = cryptoInstance.tagWithSize(obj, 'recipient-curve-pk')
 
       expect(result.msgSize).toBeGreaterThan(0)
@@ -360,14 +351,14 @@ describe('Crypto', () => {
     it('should sign object with message size', () => {
       cryptoInstance.keypair = { secretKey: 'test-secret', publicKey: 'test-public' }
       const obj = { data: 'test' }
-      
+
       const result = cryptoInstance.signWithSize(obj)
 
       expect((obj as any).msgSize).toBeGreaterThan(0)
       expect(mockedCrypto.signObj).toHaveBeenCalledWith(
         expect.objectContaining({
           data: 'test',
-          msgSize: expect.any(Number)
+          msgSize: expect.any(Number),
         }),
         'test-secret',
         'test-public'
@@ -379,14 +370,11 @@ describe('Crypto', () => {
     it('should authenticate tagged object', () => {
       jest.spyOn(cryptoInstance, 'getSharedKey').mockReturnValue(Buffer.from('shared-key'))
       const taggedObj = { data: 'test', tag: 'some-tag' } as any
-      
+
       const result = cryptoInstance.authenticate(taggedObj, 'sender-curve-pk')
 
       expect(cryptoInstance.getSharedKey).toHaveBeenCalledWith('sender-curve-pk')
-      expect(mockedCrypto.authenticateObj).toHaveBeenCalledWith(
-        taggedObj,
-        Buffer.from('shared-key')
-      )
+      expect(mockedCrypto.authenticateObj).toHaveBeenCalledWith(taggedObj, Buffer.from('shared-key'))
       expect(result).toBe(true)
     })
   })
@@ -395,7 +383,7 @@ describe('Crypto', () => {
     it('should sign object', () => {
       cryptoInstance.keypair = { secretKey: 'test-secret', publicKey: 'test-public' }
       const obj = { data: 'test' }
-      
+
       const result = cryptoInstance.sign(obj)
 
       expect(mockedCrypto.signObj).toHaveBeenCalledWith(
@@ -403,20 +391,22 @@ describe('Crypto', () => {
         'test-secret',
         'test-public'
       )
-      expect(result).toEqual(expect.objectContaining({ 
-        data: 'test',
-        sign: expect.objectContaining({
-          owner: 'test-public',
-          sig: 'test-signature'
+      expect(result).toEqual(
+        expect.objectContaining({
+          data: 'test',
+          sign: expect.objectContaining({
+            owner: 'test-public',
+            sig: 'test-signature',
+          }),
         })
-      }))
+      )
     })
   })
 
   describe('verify', () => {
     it('should verify signed object', () => {
       const signedObj = { data: 'test', sign: { owner: 'test-owner' } } as any
-      
+
       const result = cryptoInstance.verify(signedObj)
 
       expect(mockedCrypto.verifyObj).toHaveBeenCalledWith(signedObj)
@@ -425,7 +415,7 @@ describe('Crypto', () => {
 
     it('should verify with expected public key', () => {
       const signedObj = { data: 'test', sign: { owner: 'test-owner' } } as any
-      
+
       const result = cryptoInstance.verify(signedObj, 'test-owner')
 
       expect(result).toBe(true)
@@ -433,7 +423,7 @@ describe('Crypto', () => {
 
     it('should reject if expected public key does not match', () => {
       const signedObj = { data: 'test', sign: { owner: 'wrong-owner' } } as any
-      
+
       const result = cryptoInstance.verify(signedObj, 'test-owner')
 
       expect(result).toBe(false)
@@ -444,7 +434,7 @@ describe('Crypto', () => {
         throw new Error('Verification error')
       })
       const signedObj = { data: 'test', sign: { owner: 'test-owner' } } as any
-      
+
       const result = cryptoInstance.verify(signedObj)
 
       expect(result).toBe(false)
@@ -461,7 +451,7 @@ describe('Crypto', () => {
 
     it('should hash object without signature', () => {
       const obj = { data: 'test' }
-      
+
       const result = cryptoInstance.hash(obj)
 
       expect(mockedCrypto.hashObj).toHaveBeenCalledWith(obj)
@@ -470,7 +460,7 @@ describe('Crypto', () => {
 
     it('should hash object with signature', () => {
       const obj = { data: 'test', sign: { owner: 'test', sig: 'test-sig' } }
-      
+
       const result = cryptoInstance.hash(obj)
 
       expect(mockedCrypto.hashObj).toHaveBeenCalledWith(obj, true)
@@ -490,14 +480,10 @@ describe('Crypto', () => {
   describe('getComputeProofOfWork', () => {
     it('should delegate to proof of work generator', async () => {
       jest.spyOn(cryptoInstance, '_runProofOfWorkGenerator').mockResolvedValue({ nonce: 123, hash: 'test-hash' })
-      
+
       const result = await cryptoInstance.getComputeProofOfWork('test-seed', 4)
 
-      expect(cryptoInstance._runProofOfWorkGenerator).toHaveBeenCalledWith(
-        './computePowGenerator.js',
-        'test-seed',
-        4
-      )
+      expect(cryptoInstance._runProofOfWorkGenerator).toHaveBeenCalledWith('./computePowGenerator.js', 'test-seed', 4)
       expect(result).toEqual({ nonce: 123, hash: 'test-hash' })
     })
   })
@@ -507,10 +493,10 @@ describe('Crypto', () => {
       const mockProcess1 = { kill: jest.fn() }
       const mockProcess2 = { kill: jest.fn() }
       cryptoInstance.powGenerators = {
-        'gen1': mockProcess1 as any,
-        'gen2': mockProcess2 as any
+        gen1: mockProcess1 as any,
+        gen2: mockProcess2 as any,
       }
-      
+
       cryptoInstance.stopAllGenerators()
 
       expect(mockProcess1.kill).toHaveBeenCalled()

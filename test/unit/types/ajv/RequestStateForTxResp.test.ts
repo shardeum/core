@@ -14,7 +14,7 @@ describe('RequestStateForTxResp', () => {
 
     it('should have correct properties', () => {
       const { properties } = schemaRequestStateForTxResp
-      
+
       expect(properties.stateList).toBeDefined()
       expect(properties.beforeHashes).toBeDefined()
       expect(properties.note).toBeDefined()
@@ -42,12 +42,7 @@ describe('RequestStateForTxResp', () => {
     })
 
     it('should have correct required fields', () => {
-      expect(schemaRequestStateForTxResp.required).toEqual([
-        'stateList',
-        'beforeHashes',
-        'note',
-        'success'
-      ])
+      expect(schemaRequestStateForTxResp.required).toEqual(['stateList', 'beforeHashes', 'note', 'success'])
     })
 
     it('should reference schemaWrappedData correctly in stateList', () => {
@@ -71,10 +66,7 @@ describe('RequestStateForTxResp', () => {
       initRequestStateForTxResp()
 
       expect(addSchemaSpy).toHaveBeenCalledTimes(1)
-      expect(addSchemaSpy).toHaveBeenCalledWith(
-        AJVSchemaEnum.RequestStateForTxResp,
-        schemaRequestStateForTxResp
-      )
+      expect(addSchemaSpy).toHaveBeenCalledWith(AJVSchemaEnum.RequestStateForTxResp, schemaRequestStateForTxResp)
     })
 
     it('should not throw any errors', () => {

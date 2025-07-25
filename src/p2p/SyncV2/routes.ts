@@ -202,7 +202,7 @@ const recentCycleMarkersRoute: P2P.P2PTypes.Route<Handler> = {
     try {
       const cycleCount = Math.min(cycles.length, CycleCreator.MAX_CYCLES_TO_KEEP) // Limit to MAX_CYCLES_TO_KEEP
       const recentMarkers: string[] = []
-      
+
       // Get most recent cycle markers
       for (let i = cycles.length - cycleCount; i < cycles.length; i++) {
         if (cycles[i]) {
@@ -210,7 +210,7 @@ const recentCycleMarkersRoute: P2P.P2PTypes.Route<Handler> = {
           recentMarkers.push(marker)
         }
       }
-      
+
       // Find the oldest defined cycle in the range
       let oldestCounter = 0
       for (let i = cycles.length - cycleCount; i < cycles.length; i++) {
@@ -239,15 +239,15 @@ const cyclesBatchRoute: P2P.P2PTypes.Route<Handler> = {
         res.status(400).json({ error: 'markers parameter is required' })
         return
       }
-      
+
       const markers = markersParam.split(',')
       const maxBatchSize = 50
-      
+
       if (markers.length > maxBatchSize) {
         res.status(400).json({ error: `batch size exceeds limit of ${maxBatchSize}` })
         return
       }
-      
+
       const cyclesResult: P2P.CycleCreatorTypes.CycleRecord[] = []
       for (const marker of markers) {
         const cycle = CycleChain.cyclesByMarker[marker]
@@ -255,7 +255,7 @@ const cyclesBatchRoute: P2P.P2PTypes.Route<Handler> = {
           cyclesResult.push(cycle)
         }
       }
-      
+
       respondSize = jsonHttpResWithSize(res, { cycles: cyclesResult })
     } finally {
       profilerInstance.scopedProfileSectionEnd('cycles-batch', respondSize)
@@ -284,7 +284,7 @@ export function initRoutes(): void {
   for (const route of routes) {
     network._registerExternal(route.method, route.name, route.handler)
   }
-  
+
   // Register cycle monitoring routes with debug middleware
   registerCycleMonitoringRoutes(network)
 }

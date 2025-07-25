@@ -36,7 +36,7 @@ describe('GetAppliedVoteReq', () => {
         { txId: '0x1234567890abcdef' },
       ]
 
-      validObjects.forEach(obj => {
+      validObjects.forEach((obj) => {
         expect(validate(obj)).toBe(true)
         expect(validate.errors).toBeNull()
       })
@@ -60,7 +60,7 @@ describe('GetAppliedVoteReq', () => {
         123, // not an object
       ]
 
-      invalidObjects.forEach(obj => {
+      invalidObjects.forEach((obj) => {
         expect(validate(obj)).toBe(false)
         expect(validate.errors).not.toBeNull()
       })
@@ -70,10 +70,10 @@ describe('GetAppliedVoteReq', () => {
       const ajv = new Ajv()
       const validate = ajv.compile(schemaGetAppliedVoteReq)
 
-      const objWithExtra = { 
+      const objWithExtra = {
         txId: 'abc123',
         extraField: 'extra value',
-        anotherField: 123 
+        anotherField: 123,
       }
 
       expect(validate(objWithExtra)).toBe(true)
@@ -83,14 +83,9 @@ describe('GetAppliedVoteReq', () => {
       const ajv = new Ajv()
       const validate = ajv.compile(schemaGetAppliedVoteReq)
 
-      const unicodeObjects = [
-        { txId: '🚀✨💎' },
-        { txId: '中文字符' },
-        { txId: 'مرحبا' },
-        { txId: 'Здравствуйте' },
-      ]
+      const unicodeObjects = [{ txId: '🚀✨💎' }, { txId: '中文字符' }, { txId: 'مرحبا' }, { txId: 'Здравствуйте' }]
 
-      unicodeObjects.forEach(obj => {
+      unicodeObjects.forEach((obj) => {
         expect(validate(obj)).toBe(true)
       })
     })
@@ -101,10 +96,7 @@ describe('GetAppliedVoteReq', () => {
       initGetAppliedVoteReq()
 
       expect(mockAddSchema).toHaveBeenCalledTimes(1)
-      expect(mockAddSchema).toHaveBeenCalledWith(
-        AJVSchemaEnum.GetAppliedVoteReq,
-        schemaGetAppliedVoteReq
-      )
+      expect(mockAddSchema).toHaveBeenCalledWith(AJVSchemaEnum.GetAppliedVoteReq, schemaGetAppliedVoteReq)
     })
 
     it('should be idempotent (callable multiple times)', () => {
@@ -113,10 +105,7 @@ describe('GetAppliedVoteReq', () => {
       initGetAppliedVoteReq()
 
       expect(mockAddSchema).toHaveBeenCalledTimes(3)
-      expect(mockAddSchema).toHaveBeenCalledWith(
-        AJVSchemaEnum.GetAppliedVoteReq,
-        schemaGetAppliedVoteReq
-      )
+      expect(mockAddSchema).toHaveBeenCalledWith(AJVSchemaEnum.GetAppliedVoteReq, schemaGetAppliedVoteReq)
     })
   })
 
@@ -156,7 +145,7 @@ describe('GetAppliedVoteReq', () => {
         { txId: '\u0000\u0001\u0002' }, // control characters
       ]
 
-      specialIds.forEach(obj => {
+      specialIds.forEach((obj) => {
         expect(validate(obj)).toBe(true)
       })
     })
@@ -173,7 +162,7 @@ describe('GetAppliedVoteReq', () => {
       // Verify the schema is a plain object (not a class instance or function)
       expect(schemaGetAppliedVoteReq).toEqual(expect.any(Object))
       expect(schemaGetAppliedVoteReq.constructor).toBe(Object)
-      
+
       // Verify it has the expected properties
       expect(schemaGetAppliedVoteReq).toHaveProperty('type', 'object')
       expect(schemaGetAppliedVoteReq).toHaveProperty('properties')

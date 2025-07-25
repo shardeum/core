@@ -1,8 +1,8 @@
-import { 
+import {
   RequestStateForTxRespSerialized,
-  serializeRequestStateForTxResp, 
+  serializeRequestStateForTxResp,
   deserializeRequestStateForTxResp,
-  cRequestStateForTxRespVersion
+  cRequestStateForTxRespVersion,
 } from '../../../src/types/RequestStateForTxResp'
 import { VectorBufferStream } from '../../../src/utils/serialization/VectorBufferStream'
 import * as AjvHelpers from '../../../src/types/ajv/Helpers'
@@ -16,17 +16,17 @@ describe('RequestStateForTxResp', () => {
     accountId: 'acc123',
     stateId: 'state456',
     data: { test: 'data' },
-    timestamp: 1234567890
+    timestamp: 1234567890,
   }
 
   const mockRequestStateForTxResp: RequestStateForTxRespSerialized = {
     stateList: [mockWrappedData],
     beforeHashes: {
-      'acc1': 'hash1',
-      'acc2': 'hash2'
+      acc1: 'hash1',
+      acc2: 'hash2',
     },
     note: 'test note',
-    success: true
+    success: true,
   }
 
   beforeEach(() => {
@@ -34,7 +34,7 @@ describe('RequestStateForTxResp', () => {
     ;(AjvHelpers.verifyPayload as jest.Mock).mockReturnValue(null)
     ;(WrappedData.serializeWrappedData as jest.Mock).mockImplementation(() => {})
     ;(WrappedData.deserializeWrappedData as jest.Mock).mockReturnValue(mockWrappedData)
-    
+
     // Mock console.log to suppress output in tests
     jest.spyOn(console, 'log').mockImplementation(() => {})
   })
@@ -52,7 +52,7 @@ describe('RequestStateForTxResp', () => {
   describe('serializeRequestStateForTxResp', () => {
     it('should serialize without type identifier when bool is false', () => {
       const stream = new VectorBufferStream(0)
-      
+
       serializeRequestStateForTxResp(stream, mockRequestStateForTxResp, false)
 
       expect(stream.getBuffer().length).toBeGreaterThan(0)
@@ -62,7 +62,7 @@ describe('RequestStateForTxResp', () => {
 
     it('should serialize with type identifier when bool is true', () => {
       const stream = new VectorBufferStream(0)
-      
+
       serializeRequestStateForTxResp(stream, mockRequestStateForTxResp, true)
 
       expect(stream.getBuffer().length).toBeGreaterThan(0)
@@ -71,7 +71,7 @@ describe('RequestStateForTxResp', () => {
     it('should serialize empty stateList', () => {
       const stream = new VectorBufferStream(0)
       const emptyResp = { ...mockRequestStateForTxResp, stateList: [] }
-      
+
       serializeRequestStateForTxResp(stream, emptyResp)
 
       expect(stream.getBuffer().length).toBeGreaterThan(0)
@@ -82,9 +82,9 @@ describe('RequestStateForTxResp', () => {
       const stream = new VectorBufferStream(0)
       const multipleStateResp = {
         ...mockRequestStateForTxResp,
-        stateList: [mockWrappedData, mockWrappedData, mockWrappedData]
+        stateList: [mockWrappedData, mockWrappedData, mockWrappedData],
       }
-      
+
       serializeRequestStateForTxResp(stream, multipleStateResp)
 
       expect(WrappedData.serializeWrappedData).toHaveBeenCalledTimes(3)
@@ -93,7 +93,7 @@ describe('RequestStateForTxResp', () => {
     it('should serialize empty beforeHashes', () => {
       const stream = new VectorBufferStream(0)
       const emptyHashesResp = { ...mockRequestStateForTxResp, beforeHashes: {} }
-      
+
       serializeRequestStateForTxResp(stream, emptyHashesResp)
 
       expect(stream.getBuffer().length).toBeGreaterThan(0)
@@ -102,7 +102,7 @@ describe('RequestStateForTxResp', () => {
     it('should serialize success false correctly', () => {
       const stream = new VectorBufferStream(0)
       const failureResp = { ...mockRequestStateForTxResp, success: false }
-      
+
       serializeRequestStateForTxResp(stream, failureResp)
 
       expect(stream.getBuffer().length).toBeGreaterThan(0)
@@ -111,7 +111,7 @@ describe('RequestStateForTxResp', () => {
     it('should serialize empty note', () => {
       const stream = new VectorBufferStream(0)
       const emptyNoteResp = { ...mockRequestStateForTxResp, note: '' }
-      
+
       serializeRequestStateForTxResp(stream, emptyNoteResp)
 
       expect(stream.getBuffer().length).toBeGreaterThan(0)
@@ -122,7 +122,7 @@ describe('RequestStateForTxResp', () => {
     it('should deserialize valid data correctly', () => {
       const stream = new VectorBufferStream(0)
       serializeRequestStateForTxResp(stream, mockRequestStateForTxResp)
-      
+
       const readStream = VectorBufferStream.fromBuffer(stream.getBuffer())
       const result = deserializeRequestStateForTxResp(readStream)
 
@@ -138,7 +138,7 @@ describe('RequestStateForTxResp', () => {
       const stream = new VectorBufferStream(0)
       const emptyResp = { ...mockRequestStateForTxResp, stateList: [] }
       serializeRequestStateForTxResp(stream, emptyResp)
-      
+
       const readStream = VectorBufferStream.fromBuffer(stream.getBuffer())
       const result = deserializeRequestStateForTxResp(readStream)
 
@@ -150,10 +150,10 @@ describe('RequestStateForTxResp', () => {
       const stream = new VectorBufferStream(0)
       const multipleStateResp = {
         ...mockRequestStateForTxResp,
-        stateList: [mockWrappedData, mockWrappedData, mockWrappedData]
+        stateList: [mockWrappedData, mockWrappedData, mockWrappedData],
       }
       serializeRequestStateForTxResp(stream, multipleStateResp)
-      
+
       const readStream = VectorBufferStream.fromBuffer(stream.getBuffer())
       const result = deserializeRequestStateForTxResp(readStream)
 
@@ -165,7 +165,7 @@ describe('RequestStateForTxResp', () => {
       const stream = new VectorBufferStream(0)
       const emptyHashesResp = { ...mockRequestStateForTxResp, beforeHashes: {} }
       serializeRequestStateForTxResp(stream, emptyHashesResp)
-      
+
       const readStream = VectorBufferStream.fromBuffer(stream.getBuffer())
       const result = deserializeRequestStateForTxResp(readStream)
 
@@ -176,7 +176,7 @@ describe('RequestStateForTxResp', () => {
       const stream = new VectorBufferStream(0)
       const failureResp = { ...mockRequestStateForTxResp, success: false }
       serializeRequestStateForTxResp(stream, failureResp)
-      
+
       const readStream = VectorBufferStream.fromBuffer(stream.getBuffer())
       const result = deserializeRequestStateForTxResp(readStream)
 
@@ -196,7 +196,7 @@ describe('RequestStateForTxResp', () => {
 
       const stream = new VectorBufferStream(0)
       serializeRequestStateForTxResp(stream, mockRequestStateForTxResp)
-      
+
       const readStream = VectorBufferStream.fromBuffer(stream.getBuffer())
 
       expect(() => deserializeRequestStateForTxResp(readStream)).toThrow('AJV: validation error -> validation error')
@@ -210,7 +210,7 @@ describe('RequestStateForTxResp', () => {
       }
       const complexResp = { ...mockRequestStateForTxResp, beforeHashes: complexHashes }
       serializeRequestStateForTxResp(stream, complexResp)
-      
+
       const readStream = VectorBufferStream.fromBuffer(stream.getBuffer())
       const result = deserializeRequestStateForTxResp(readStream)
 
@@ -223,7 +223,7 @@ describe('RequestStateForTxResp', () => {
       const longNote = 'x'.repeat(10000)
       const longNoteResp = { ...mockRequestStateForTxResp, note: longNote }
       serializeRequestStateForTxResp(stream, longNoteResp)
-      
+
       const readStream = VectorBufferStream.fromBuffer(stream.getBuffer())
       const result = deserializeRequestStateForTxResp(readStream)
 
@@ -234,7 +234,7 @@ describe('RequestStateForTxResp', () => {
     it('should log result during deserialization', () => {
       const stream = new VectorBufferStream(0)
       serializeRequestStateForTxResp(stream, mockRequestStateForTxResp)
-      
+
       const readStream = VectorBufferStream.fromBuffer(stream.getBuffer())
       deserializeRequestStateForTxResp(readStream)
 

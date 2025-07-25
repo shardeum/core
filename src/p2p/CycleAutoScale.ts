@@ -184,7 +184,8 @@ function validateScalingRequest(scalingRequest: P2P.CycleAutoScaleTypes.SignedSc
   // Check if cycle counter matches
   if (scalingRequest.counter !== CycleCreator.currentCycle) {
     warn(
-      `Invalid scaling request, not for this cycle. Current cycle:${CycleCreator.currentCycle}, cycleInScaleRequest: ${scalingRequest.counter
+      `Invalid scaling request, not for this cycle. Current cycle:${CycleCreator.currentCycle}, cycleInScaleRequest: ${
+        scalingRequest.counter
       } Request: ${Utils.safeStringify(scalingRequest)}`
     )
     return false
@@ -451,9 +452,9 @@ export function configUpdated() {
   // }
 }
 
-export function queueRequest(request) { }
+export function queueRequest(request) {}
 
-export function sendRequests() { }
+export function sendRequests() {}
 
 //TODO please review this.  It seems we get consensus on scale up/down, but then
 //are not using the autoscaling list for the subsequent operations?

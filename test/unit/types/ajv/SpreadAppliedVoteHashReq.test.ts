@@ -19,27 +19,24 @@ describe('SpreadAppliedVoteHashReq', () => {
       initSpreadAppliedVoteHashReq()
 
       expect(addSchemaSpy).toHaveBeenCalledTimes(1)
-      expect(addSchemaSpy).toHaveBeenCalledWith(
-        AJVSchemaEnum.SpreadAppliedVoteHashReq,
-        {
-          type: 'object',
-          properties: {
-            txid: { type: 'string' },
-            voteHash: { type: 'string' },
-            sign: {
-              type: 'object',
-              properties: {
-                owner: { type: 'string' },
-                sig: { type: 'string' },
-              },
-              required: ['owner', 'sig'],
-              additionalProperties: false,
+      expect(addSchemaSpy).toHaveBeenCalledWith(AJVSchemaEnum.SpreadAppliedVoteHashReq, {
+        type: 'object',
+        properties: {
+          txid: { type: 'string' },
+          voteHash: { type: 'string' },
+          sign: {
+            type: 'object',
+            properties: {
+              owner: { type: 'string' },
+              sig: { type: 'string' },
             },
+            required: ['owner', 'sig'],
+            additionalProperties: false,
           },
-          required: ['txid', 'voteHash'],
-          additionalProperties: false,
-        }
-      )
+        },
+        required: ['txid', 'voteHash'],
+        additionalProperties: false,
+      })
     })
 
     it('should not throw any errors', () => {
@@ -70,7 +67,7 @@ describe('SpreadAppliedVoteHashReq', () => {
       initSpreadAppliedVoteHashReq()
 
       const { properties } = capturedSchema
-      
+
       expect(properties.txid).toEqual({ type: 'string' })
       expect(properties.voteHash).toEqual({ type: 'string' })
       expect(properties.sign).toBeDefined()
@@ -125,7 +122,7 @@ describe('SpreadAppliedVoteHashReq', () => {
 
       // Check root level
       expect(capturedSchema.additionalProperties).toBe(false)
-      
+
       // Check sign object level
       expect(capturedSchema.properties.sign.additionalProperties).toBe(false)
     })

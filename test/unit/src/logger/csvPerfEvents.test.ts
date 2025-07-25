@@ -49,9 +49,9 @@ describe('csvPerfEvents', () => {
   describe('logPerfEvents', () => {
     it('should not log when logCSVPerfEvents is false', () => {
       config.debug.logCSVPerfEvents = false
-      
+
       logPerfEvents('testEvent')
-      
+
       expect(mockFs.existsSync).not.toHaveBeenCalled()
       expect(mockFs.appendFileSync).not.toHaveBeenCalled()
     })
@@ -59,36 +59,24 @@ describe('csvPerfEvents', () => {
     it('should create CSV file with headers when file does not exist', () => {
       config.debug.logCSVPerfEvents = true
       mockFs.existsSync.mockReturnValue(false)
-      
+
       logPerfEvents('testEvent')
-      
+
       expect(mockFs.existsSync).toHaveBeenCalledWith(mockFilePath)
-      expect(mockFs.appendFileSync).toHaveBeenCalledWith(
-        mockFilePath,
-        'timestamp,eventName,cycleNumber\n',
-        'utf8'
-      )
-      expect(mockFs.appendFileSync).toHaveBeenCalledWith(
-        mockFilePath,
-        '1234567890,testEvent,42\n',
-        'utf8'
-      )
+      expect(mockFs.appendFileSync).toHaveBeenCalledWith(mockFilePath, 'timestamp,eventName,cycleNumber\n', 'utf8')
+      expect(mockFs.appendFileSync).toHaveBeenCalledWith(mockFilePath, '1234567890,testEvent,42\n', 'utf8')
     })
 
     it('should append event when file exists and is under 10MB', () => {
       config.debug.logCSVPerfEvents = true
       mockFs.existsSync.mockReturnValue(true)
       mockFs.statSync.mockReturnValue({ size: 1000 } as fs.Stats)
-      
+
       logPerfEvents('testEvent')
-      
+
       expect(mockFs.existsSync).toHaveBeenCalledWith(mockFilePath)
       expect(mockFs.statSync).toHaveBeenCalledWith(mockFilePath)
-      expect(mockFs.appendFileSync).toHaveBeenCalledWith(
-        mockFilePath,
-        '1234567890,testEvent,42\n',
-        'utf8'
-      )
+      expect(mockFs.appendFileSync).toHaveBeenCalledWith(mockFilePath, '1234567890,testEvent,42\n', 'utf8')
     })
 
     it('should not log when file is over 10MB', () => {
@@ -96,14 +84,14 @@ describe('csvPerfEvents', () => {
       mockFs.existsSync.mockReturnValue(true)
       mockFs.statSync.mockReturnValue({ size: 10_485_761 } as fs.Stats)
       const consoleSpy = jest.spyOn(console, 'log').mockImplementation()
-      
+
       logPerfEvents('testEvent')
-      
+
       expect(mockFs.existsSync).toHaveBeenCalledWith(mockFilePath)
       expect(mockFs.statSync).toHaveBeenCalledWith(mockFilePath)
       expect(consoleSpy).toHaveBeenCalledWith('perf events csv file size is > 10MB!')
       expect(mockFs.appendFileSync).not.toHaveBeenCalled()
-      
+
       consoleSpy.mockRestore()
     })
 
@@ -111,14 +99,10 @@ describe('csvPerfEvents', () => {
       config.debug.logCSVPerfEvents = true
       mockFs.existsSync.mockReturnValue(true)
       mockFs.statSync.mockReturnValue(undefined as unknown as fs.Stats)
-      
+
       logPerfEvents('testEvent')
-      
-      expect(mockFs.appendFileSync).toHaveBeenCalledWith(
-        mockFilePath,
-        '1234567890,testEvent,42\n',
-        'utf8'
-      )
+
+      expect(mockFs.appendFileSync).toHaveBeenCalledWith(mockFilePath, '1234567890,testEvent,42\n', 'utf8')
     })
 
     describe('buffering behavior', () => {
@@ -145,12 +129,12 @@ describe('csvPerfEvents', () => {
           mockFs.existsSync.mockReturnValue(true)
           mockFs.statSync.mockReturnValue({ size: 1000 } as fs.Stats)
           jest.spyOn(Date, 'now').mockReturnValue(1234567890)
-          
+
           // First 3 events should be written directly
           logPerfEvents('event1')
           logPerfEvents('event2')
           logPerfEvents('event3')
-          
+
           expect(mockFs.appendFileSync).toHaveBeenCalledTimes(3)
         })
       })
@@ -178,26 +162,26 @@ describe('csvPerfEvents', () => {
           mockFs.existsSync.mockReturnValue(true)
           mockFs.statSync.mockReturnValue({ size: 1000 } as fs.Stats)
           jest.spyOn(Date, 'now').mockReturnValue(1234567890)
-          
+
           // Write first 3 events directly (numOfEvents: 0, 1, 2)
           logPerfEvents('event1')
           logPerfEvents('event2')
           logPerfEvents('event3')
-          
+
           // Clear previous calls
           mockFs.appendFileSync.mockClear()
-          
+
           // Event 4: numOfEvents=3, 3%3=0, so it flushes buffer (empty) and writes event4
           logPerfEvents('event4')
           expect(mockFs.appendFileSync).toHaveBeenCalledTimes(1)
-          
+
           mockFs.appendFileSync.mockClear()
-          
+
           // Events 5 and 6 should be buffered
           logPerfEvents('event5')
           logPerfEvents('event6')
           expect(mockFs.appendFileSync).not.toHaveBeenCalled()
-          
+
           // Event 7: numOfEvents=6, 6%3=0, so it should flush buffer
           logPerfEvents('event7')
           expect(mockFs.appendFileSync).toHaveBeenCalledTimes(3) // event5, event6, event7
@@ -230,35 +214,27 @@ describe('csvPerfEvents', () => {
         mockFs.existsSync.mockReturnValue(true)
         mockFs.statSync.mockReturnValue({ size: 1000 } as fs.Stats)
         jest.spyOn(Date, 'now').mockReturnValue(1234567890)
-        
+
         // Write first 3 events directly
         logPerfEvents('event1')
         logPerfEvents('event2')
         logPerfEvents('event3')
-        
+
         // Event 4 is written directly (numOfEvents=3, 3%3=0)
         logPerfEvents('event4')
-        
+
         // Buffer events 5 and 6
         logPerfEvents('event5')
         logPerfEvents('event6')
-        
+
         mockFs.appendFileSync.mockClear()
-        
+
         // Write buffer to CSV
         writeBufferToCSV()
-        
+
         expect(mockFs.appendFileSync).toHaveBeenCalledTimes(2)
-        expect(mockFs.appendFileSync).toHaveBeenCalledWith(
-          mockFilePath,
-          '1234567890,event5,42\n',
-          'utf8'
-        )
-        expect(mockFs.appendFileSync).toHaveBeenCalledWith(
-          mockFilePath,
-          '1234567890,event6,42\n',
-          'utf8'
-        )
+        expect(mockFs.appendFileSync).toHaveBeenCalledWith(mockFilePath, '1234567890,event5,42\n', 'utf8')
+        expect(mockFs.appendFileSync).toHaveBeenCalledWith(mockFilePath, '1234567890,event6,42\n', 'utf8')
       })
     })
 
@@ -282,9 +258,9 @@ describe('csvPerfEvents', () => {
 
         const { writeBufferToCSV } = require('../../../../src/logger/csvPerfEvents')
         const mockFs = require('fs') as jest.Mocked<typeof fs>
-        
+
         writeBufferToCSV()
-        
+
         expect(mockFs.appendFileSync).not.toHaveBeenCalled()
       })
     })
@@ -312,25 +288,25 @@ describe('csvPerfEvents', () => {
         mockFs.existsSync.mockReturnValue(true)
         mockFs.statSync.mockReturnValue({ size: 1000 } as fs.Stats)
         jest.spyOn(Date, 'now').mockReturnValue(1234567890)
-        
+
         // Write first 3 events
         logPerfEvents('event1')
         logPerfEvents('event2')
         logPerfEvents('event3')
-        
+
         // Event 4 is written directly
         logPerfEvents('event4')
-        
+
         // Buffer events 5 and 6
         logPerfEvents('event5')
         logPerfEvents('event6')
-        
+
         mockFs.appendFileSync.mockClear()
-        
+
         // Write buffer twice
         writeBufferToCSV()
         expect(mockFs.appendFileSync).toHaveBeenCalledTimes(2)
-        
+
         mockFs.appendFileSync.mockClear()
         writeBufferToCSV()
         expect(mockFs.appendFileSync).not.toHaveBeenCalled()

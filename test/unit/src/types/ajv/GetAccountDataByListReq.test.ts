@@ -15,23 +15,23 @@ describe('GetAccountDataByListReq', () => {
     it('should define correct schema structure', () => {
       // Access the schema through the mock call after initialization
       initGetAccountDataByListReq()
-      
+
       expect(mockAddSchema).toHaveBeenCalled()
       const [enumValue, schema] = mockAddSchema.mock.calls[0] as [AJVSchemaEnum, any]
-      
+
       expect(schema).toBeDefined()
       expect(schema.type).toBe('object')
       expect(schema.properties).toEqual({
-        accountIds: { type: 'array', items: { type: 'string' } }
+        accountIds: { type: 'array', items: { type: 'string' } },
       })
       expect(schema.required).toEqual(['accountIds'])
     })
 
     it('should have accountIds as array of strings', () => {
       initGetAccountDataByListReq()
-      
+
       const [, schema] = mockAddSchema.mock.calls[0] as [AJVSchemaEnum, any]
-      
+
       expect(schema.properties.accountIds).toBeDefined()
       expect(schema.properties.accountIds.type).toBe('array')
       expect(schema.properties.accountIds.items).toEqual({ type: 'string' })
@@ -39,18 +39,18 @@ describe('GetAccountDataByListReq', () => {
 
     it('should require accountIds property', () => {
       initGetAccountDataByListReq()
-      
+
       const [, schema] = mockAddSchema.mock.calls[0] as [AJVSchemaEnum, any]
-      
+
       expect(schema.required).toContain('accountIds')
       expect(schema.required).toHaveLength(1)
     })
 
     it('should match expected schema exactly', () => {
       initGetAccountDataByListReq()
-      
+
       const [, schema] = mockAddSchema.mock.calls[0] as [AJVSchemaEnum, any]
-      
+
       const expectedSchema = {
         type: 'object',
         properties: {
@@ -93,7 +93,7 @@ describe('GetAccountDataByListReq', () => {
       const firstCall = mockAddSchema.mock.calls[0]
       const secondCall = mockAddSchema.mock.calls[1]
       const thirdCall = mockAddSchema.mock.calls[2]
-      
+
       expect(firstCall).toEqual(secondCall)
       expect(secondCall).toEqual(thirdCall)
     })
@@ -103,14 +103,14 @@ describe('GetAccountDataByListReq', () => {
     it('should accept valid object with accountIds array', () => {
       initGetAccountDataByListReq()
       const [, schema] = mockAddSchema.mock.calls[0] as [AJVSchemaEnum, any]
-      
+
       const validExamples = [
         { accountIds: [] },
         { accountIds: ['id1'] },
         { accountIds: ['id1', 'id2', 'id3'] },
-        { accountIds: ['0x123', '0x456', '0x789'] }
+        { accountIds: ['0x123', '0x456', '0x789'] },
       ]
-      
+
       // Schema structure allows these formats
       validExamples.forEach(() => {
         expect(schema.required).toContain('accountIds')
@@ -121,7 +121,7 @@ describe('GetAccountDataByListReq', () => {
     it('should require accountIds to be present', () => {
       initGetAccountDataByListReq()
       const [, schema] = mockAddSchema.mock.calls[0] as [AJVSchemaEnum, any]
-      
+
       const invalidObject = {}
       // Schema requires accountIds
       expect(schema.required).toContain('accountIds')
@@ -130,7 +130,7 @@ describe('GetAccountDataByListReq', () => {
     it('should only accept string values in accountIds array', () => {
       initGetAccountDataByListReq()
       const [, schema] = mockAddSchema.mock.calls[0] as [AJVSchemaEnum, any]
-      
+
       // Schema specifies items must be strings
       expect(schema.properties.accountIds.items.type).toBe('string')
     })
@@ -138,16 +138,16 @@ describe('GetAccountDataByListReq', () => {
     it('should not accept non-array accountIds values (schema validation)', () => {
       initGetAccountDataByListReq()
       const [, schema] = mockAddSchema.mock.calls[0] as [AJVSchemaEnum, any]
-      
+
       const invalidExamples = [
         { accountIds: 'not-an-array' },
         { accountIds: 123 },
         { accountIds: true },
         { accountIds: null },
         { accountIds: undefined },
-        { accountIds: {} }
+        { accountIds: {} },
       ]
-      
+
       // Schema specifies accountIds must be array
       expect(schema.properties.accountIds.type).toBe('array')
     })
@@ -155,7 +155,7 @@ describe('GetAccountDataByListReq', () => {
     it('should handle empty arrays', () => {
       initGetAccountDataByListReq()
       const [, schema] = mockAddSchema.mock.calls[0] as [AJVSchemaEnum, any]
-      
+
       // Empty array should be valid according to schema
       const emptyArrayExample = { accountIds: [] }
       expect(schema.properties.accountIds.type).toBe('array')
@@ -183,7 +183,7 @@ describe('GetAccountDataByListReq', () => {
     it('should properly define array items schema', () => {
       initGetAccountDataByListReq()
       const [, schema] = mockAddSchema.mock.calls[0] as [AJVSchemaEnum, any]
-      
+
       expect(schema.properties.accountIds.items).toBeDefined()
       expect(schema.properties.accountIds.items).toEqual({ type: 'string' })
     })
@@ -191,14 +191,14 @@ describe('GetAccountDataByListReq', () => {
     it('should not have additional properties defined', () => {
       initGetAccountDataByListReq()
       const [, schema] = mockAddSchema.mock.calls[0] as [AJVSchemaEnum, any]
-      
+
       expect(Object.keys(schema.properties)).toEqual(['accountIds'])
     })
 
     it('should be an object type schema', () => {
       initGetAccountDataByListReq()
       const [, schema] = mockAddSchema.mock.calls[0] as [AJVSchemaEnum, any]
-      
+
       expect(schema.type).toBe('object')
     })
   })

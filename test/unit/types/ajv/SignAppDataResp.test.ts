@@ -14,7 +14,7 @@ describe('SignAppDataResp', () => {
 
     it('should have correct properties', () => {
       const { properties } = schemaSignAppDataResp
-      
+
       expect(properties.success).toBeDefined()
       expect(properties.signature).toBeDefined()
     })
@@ -65,10 +65,7 @@ describe('SignAppDataResp', () => {
       initSignAppDataResp()
 
       expect(addSchemaSpy).toHaveBeenCalledTimes(1)
-      expect(addSchemaSpy).toHaveBeenCalledWith(
-        AJVSchemaEnum.SignAppDataResp,
-        schemaSignAppDataResp
-      )
+      expect(addSchemaSpy).toHaveBeenCalledWith(AJVSchemaEnum.SignAppDataResp, schemaSignAppDataResp)
     })
 
     it('should not throw any errors', () => {

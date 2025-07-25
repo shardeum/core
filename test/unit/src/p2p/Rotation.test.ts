@@ -4,19 +4,19 @@ const mockLogger = {
     info: jest.fn(),
     warn: jest.fn(),
     error: jest.fn(),
-    debug: jest.fn()
-  }))
+    debug: jest.fn(),
+  })),
 }
 const mockContext = {
   config: {
     p2p: {
       enableProblematicNodeRemoval: false,
       enableProblematicNodeRemovalOnCycle: 10,
-      maxShrinkMultiplier: 0.02
-    }
+      maxShrinkMultiplier: 0.02,
+    },
   },
   logger: mockLogger,
-  setDefaultConfigs: jest.fn()
+  setDefaultConfigs: jest.fn(),
 }
 
 jest.mock('@shardeum-foundation/lib-types')
@@ -27,13 +27,13 @@ jest.mock('../../../../src/p2p/NodeList')
 jest.mock('../../../../src/p2p/Self')
 const mockCycleCreator = {
   currentCycle: 5,
-  scaleFactor: 1.0
+  scaleFactor: 1.0,
 }
 jest.mock('../../../../src/p2p/CycleCreator', () => mockCycleCreator)
 const mockCycleChain = {
   newest: {
-    counter: 10
-  }
+    counter: 10,
+  },
 }
 jest.mock('../../../../src/p2p/CycleChain', () => mockCycleChain)
 jest.mock('../../../../src/utils/nestedCounters')
@@ -42,7 +42,7 @@ jest.mock('../../../../src/logger', () => mockLogger)
 jest.mock('../../../../src/p2p/CycleAutoScale', () => ({
   reset: jest.fn(),
   getDesiredCount: jest.fn(() => 5),
-  updateDesiredNodes: jest.fn()
+  updateDesiredNodes: jest.fn(),
 }))
 
 // Import after mocking
@@ -77,7 +77,7 @@ describe('Rotation', () => {
       info: jest.fn(),
       warn: jest.fn(),
       error: jest.fn(),
-      debug: jest.fn()
+      debug: jest.fn(),
     }
     ;(mockedLogger.getLogger as jest.Mock).mockReturnValue(mockP2pLogger)
 
@@ -85,7 +85,7 @@ describe('Rotation', () => {
     mockedConfig.p2p = {
       enableProblematicNodeRemoval: false,
       enableProblematicNodeRemovalOnCycle: 10,
-      maxShrinkMultiplier: 0.02
+      maxShrinkMultiplier: 0.02,
     }
 
     // Setup mock nested counters
@@ -129,11 +129,11 @@ describe('Rotation', () => {
     it('should validate valid record types', () => {
       const record = {
         expired: 5,
-        removed: ['node1', 'node2']
+        removed: ['node1', 'node2'],
       }
-      
+
       const result = Rotation.validateRecordTypes(record as any)
-      
+
       expect(mockedValidateTypes).toHaveBeenCalledWith(record, { expired: 'n', removed: 'a' })
       expect(result).toBe('')
     })
@@ -142,33 +142,33 @@ describe('Rotation', () => {
       mockedValidateTypes.mockReturnValue('Invalid type')
       const record = {
         expired: 'invalid',
-        removed: ['node1']
+        removed: ['node1'],
       }
-      
+
       const result = Rotation.validateRecordTypes(record as any)
-      
+
       expect(result).toBe('Invalid type')
     })
 
     it('should return error for non-string removed items', () => {
       const record = {
         expired: 5,
-        removed: ['node1', 123] // Invalid non-string item
+        removed: ['node1', 123], // Invalid non-string item
       }
-      
+
       const result = Rotation.validateRecordTypes(record as any)
-      
+
       expect(result).toBe('items of removed array must be strings')
     })
 
     it('should handle empty removed array', () => {
       const record = {
         expired: 0,
-        removed: []
+        removed: [],
       }
-      
+
       const result = Rotation.validateRecordTypes(record as any)
-      
+
       expect(result).toBe('')
     })
   })
@@ -176,9 +176,9 @@ describe('Rotation', () => {
   describe('dropInvalidTxs', () => {
     it('should return the same txs object', () => {
       const txs = { test: 'data' }
-      
+
       const result = Rotation.dropInvalidTxs(txs as any)
-      
+
       expect(result).toBe(txs)
     })
   })
@@ -191,14 +191,14 @@ describe('Rotation', () => {
     beforeEach(() => {
       mockRecord = {
         expired: undefined,
-        removed: undefined
+        removed: undefined,
       }
       mockPrevRecord = {
         start: 1000,
-        desired: 100
+        desired: 100,
       }
       mockTxs = {
-        apoptosis: []
+        apoptosis: [],
       }
     })
 
@@ -217,7 +217,7 @@ describe('Rotation', () => {
     })
 
     it('should use getExpiredRemovedV2 when problematic node removal is disabled', () => {
-      mockedConfig.p2p.enableProblematicNodeRemoval = false;
+      mockedConfig.p2p.enableProblematicNodeRemoval = false
       mockedGetExpiredRemovedV2.mockReturnValue({ expired: 3, removed: ['node1', 'node2'] })
 
       Rotation.updateRecord(mockTxs, mockRecord, mockPrevRecord)
@@ -236,9 +236,9 @@ describe('Rotation', () => {
     })
 
     it('should use getExpiredRemovedV3 when problematic node removal is enabled and past threshold cycle', () => {
-      mockedConfig.p2p.enableProblematicNodeRemoval = true;
-      mockedConfig.p2p.enableProblematicNodeRemovalOnCycle = 3;
-      mockedCycleCreator.currentCycle = 5; // Past threshold
+      mockedConfig.p2p.enableProblematicNodeRemoval = true
+      mockedConfig.p2p.enableProblematicNodeRemovalOnCycle = 3
+      mockedCycleCreator.currentCycle = 5 // Past threshold
       mockedGetExpiredRemovedV3.mockReturnValue({ expired: 2, removed: ['problematic1'], problematic: 1 })
 
       Rotation.updateRecord(mockTxs, mockRecord, mockPrevRecord)
@@ -257,9 +257,9 @@ describe('Rotation', () => {
     })
 
     it('should not enable problematic node removal when current cycle is before threshold', () => {
-      mockedConfig.p2p.enableProblematicNodeRemoval = true;
-      mockedConfig.p2p.enableProblematicNodeRemovalOnCycle = 10;
-      mockedCycleCreator.currentCycle = 5; // Before threshold
+      mockedConfig.p2p.enableProblematicNodeRemoval = true
+      mockedConfig.p2p.enableProblematicNodeRemovalOnCycle = 10
+      mockedCycleCreator.currentCycle = 5 // Before threshold
       mockedGetExpiredRemovedV2.mockReturnValue({ expired: 1, removed: [] })
 
       Rotation.updateRecord(mockTxs, mockRecord, mockPrevRecord)
@@ -269,7 +269,7 @@ describe('Rotation', () => {
     })
 
     it('should count events for both V2 and V3 results', () => {
-      mockedConfig.p2p.enableProblematicNodeRemoval = false;
+      mockedConfig.p2p.enableProblematicNodeRemoval = false
       mockedGetExpiredRemovedV2.mockReturnValue({ expired: 5, removed: ['a', 'b', 'c'] })
 
       Rotation.updateRecord(mockTxs, mockRecord, mockPrevRecord)
@@ -285,13 +285,13 @@ describe('Rotation', () => {
   describe('integration scenarios', () => {
     it('should handle complete initialization flow', () => {
       Rotation.init()
-      
+
       const txs = Rotation.getTxs()
       expect(txs).toEqual({})
-      
+
       const validRecord = {
         expired: 0,
-        removed: []
+        removed: [],
       }
       const validationResult = Rotation.validateRecordTypes(validRecord as any)
       expect(validationResult).toBe('')
@@ -299,15 +299,15 @@ describe('Rotation', () => {
 
     it('should handle record update with various configurations', () => {
       Rotation.init()
-      
+
       const record = { expired: undefined, removed: undefined }
       const prevRecord = { start: 2000, desired: 50 }
       const txs = { someTransaction: 'data', apoptosis: [] }
-      
+
       // Test with problematic node removal disabled
-      mockedConfig.p2p.enableProblematicNodeRemoval = false;
+      mockedConfig.p2p.enableProblematicNodeRemoval = false
       Rotation.updateRecord(txs as any, record as any, prevRecord as any)
-      
+
       expect(mockedGetExpiredRemovedV2).toHaveBeenCalled()
     })
   })

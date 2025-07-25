@@ -31,14 +31,16 @@ describe('PoqoDataAndReceiptReq', () => {
       const obj: PoqoDataAndReceiptReq = {
         finalState: {
           txid: 'test-tx-id',
-          stateList: [{
-            accountId: 'account1',
-            stateId: 'state1',
-            data: 'test-data',
-            timestamp: 1234567890,
-            accountCreated: true,
-            isPartial: false
-          }],
+          stateList: [
+            {
+              accountId: 'account1',
+              stateId: 'state1',
+              data: 'test-data',
+              timestamp: 1234567890,
+              accountCreated: true,
+              isPartial: false,
+            },
+          ],
         },
         receipt: mockReceipt as any,
         txGroupCycle: 12345,
@@ -91,29 +93,29 @@ describe('PoqoDataAndReceiptReq', () => {
     it('should handle complex stateList', () => {
       const mockReceipt = { tx: { txId: 'test-tx' }, sign: { sig: 'test-sig' } }
       const complexStateList = [
-        { 
+        {
           accountId: 'account1',
           stateId: 'state1',
           data: { key: 'value1', nested: { prop: 'test' } },
           timestamp: 1234567890,
           accountCreated: true,
-          isPartial: false
+          isPartial: false,
         },
-        { 
+        {
           accountId: 'account2',
-          stateId: 'state2', 
+          stateId: 'state2',
           data: 'string-data',
           timestamp: 1234567891,
           accountCreated: false,
-          isPartial: true
+          isPartial: true,
         },
-        { 
+        {
           accountId: 'account3',
           stateId: 'state3',
           data: null,
           timestamp: 1234567892,
           accountCreated: true,
-          isPartial: false
+          isPartial: false,
         },
       ]
       const obj: PoqoDataAndReceiptReq = {
@@ -168,15 +170,17 @@ describe('PoqoDataAndReceiptReq', () => {
   describe('deserializePoqoDataAndReceiptResp', () => {
     it('should deserialize correctly', () => {
       const mockReceipt = { tx: { txId: 'test-tx' }, sign: { sig: 'test-sig' } }
-      const mockStateList = [{
-        accountId: 'account1',
-        stateId: 'state1',
-        data: 'test-data',
-        timestamp: 1234567890,
-        accountCreated: true,
-        isPartial: false
-      }]
-      
+      const mockStateList = [
+        {
+          accountId: 'account1',
+          stateId: 'state1',
+          data: 'test-data',
+          timestamp: 1234567890,
+          accountCreated: true,
+          isPartial: false,
+        },
+      ]
+
       ;(StringUtils.safeJsonParse as jest.Mock).mockReturnValue(mockStateList)
       ;(deserializeSignedReceipt as jest.Mock).mockReturnValue(mockReceipt)
 
@@ -210,14 +214,12 @@ describe('PoqoDataAndReceiptReq', () => {
       stream.writeUInt32(12345)
 
       const readStream = VectorBufferStream.fromBuffer(stream.getBuffer())
-      expect(() => deserializePoqoDataAndReceiptResp(readStream)).toThrow(
-        'PoqoDataAndReceiptReq version mismatch'
-      )
+      expect(() => deserializePoqoDataAndReceiptResp(readStream)).toThrow('PoqoDataAndReceiptReq version mismatch')
     })
 
     it('should handle empty stateList', () => {
       const mockReceipt = { tx: { txId: 'test-tx' }, sign: { sig: 'test-sig' } }
-      
+
       ;(StringUtils.safeJsonParse as jest.Mock).mockReturnValue([])
       ;(deserializeSignedReceipt as jest.Mock).mockReturnValue(mockReceipt)
 
@@ -245,25 +247,25 @@ describe('PoqoDataAndReceiptReq', () => {
     it('should handle complex parsed stateList', () => {
       const mockReceipt = { tx: { txId: 'test-tx' }, sign: { sig: 'test-sig' } }
       const complexStateList = [
-        { 
+        {
           accountId: 'account1',
           stateId: 'state1',
           data: { complex: { nested: 'object' } },
           timestamp: 1234567890,
           accountCreated: true,
-          isPartial: false
+          isPartial: false,
         },
-        { 
+        {
           accountId: 'account2',
           stateId: 'state2',
           data: null,
           timestamp: 1234567891,
           accountCreated: false,
-          isPartial: true
+          isPartial: true,
         },
       ]
       const serializedStateList = JSON.stringify(complexStateList)
-      
+
       ;(StringUtils.safeJsonParse as jest.Mock).mockReturnValue(complexStateList)
       ;(deserializeSignedReceipt as jest.Mock).mockReturnValue(mockReceipt)
 
@@ -295,14 +297,16 @@ describe('PoqoDataAndReceiptReq', () => {
       const original: PoqoDataAndReceiptReq = {
         finalState: {
           txid: 'round-trip-tx',
-          stateList: [{ 
-            accountId: 'account1',
-            stateId: 'state1',
-            data: { test: 'data' },
-            timestamp: 1234567890,
-            accountCreated: true,
-            isPartial: false
-          }] as any,
+          stateList: [
+            {
+              accountId: 'account1',
+              stateId: 'state1',
+              data: { test: 'data' },
+              timestamp: 1234567890,
+              accountCreated: true,
+              isPartial: false,
+            },
+          ] as any,
         },
         receipt: mockReceipt as any,
         txGroupCycle: 54321,

@@ -1,8 +1,13 @@
-import { getLinearSeededGossip, getLinearGossipBurstList, getLinearGossipList, getRandomGossipIn } from '../../../../../src/utils/functions/gossip'
+import {
+  getLinearSeededGossip,
+  getLinearGossipBurstList,
+  getLinearGossipList,
+  getRandomGossipIn,
+} from '../../../../../src/utils/functions/gossip'
 
 // Mock the mod function
 jest.mock('../../../../../src/utils', () => ({
-  mod: (a: number, b: number) => ((a % b) + b) % b
+  mod: (a: number, b: number) => ((a % b) + b) % b,
 }))
 
 describe('gossip functions', () => {

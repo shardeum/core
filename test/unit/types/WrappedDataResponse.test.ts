@@ -1,8 +1,8 @@
-import { 
-  serializeWrappedDataResponse, 
-  deserializeWrappedDataResponse, 
+import {
+  serializeWrappedDataResponse,
+  deserializeWrappedDataResponse,
   WrappedDataResponse,
-  cWrappedDataResponseVersion 
+  cWrappedDataResponseVersion,
 } from '../../../src/types/WrappedDataResponse'
 import { VectorBufferStream } from '../../../src/utils/serialization/VectorBufferStream'
 import { TypeIdentifierEnum } from '../../../src/types/enum/TypeIdentifierEnum'
@@ -15,8 +15,12 @@ jest.mock('../../../src/types/ajv/Helpers')
 
 describe('WrappedDataResponse', () => {
   let mockStream: VectorBufferStream
-  const mockSerializeWrappedData = WrappedData.serializeWrappedData as jest.MockedFunction<typeof WrappedData.serializeWrappedData>
-  const mockDeserializeWrappedData = WrappedData.deserializeWrappedData as jest.MockedFunction<typeof WrappedData.deserializeWrappedData>
+  const mockSerializeWrappedData = WrappedData.serializeWrappedData as jest.MockedFunction<
+    typeof WrappedData.serializeWrappedData
+  >
+  const mockDeserializeWrappedData = WrappedData.deserializeWrappedData as jest.MockedFunction<
+    typeof WrappedData.deserializeWrappedData
+  >
   const mockVerifyPayload = ajvHelpers.verifyPayload as jest.MockedFunction<typeof ajvHelpers.verifyPayload>
 
   beforeEach(() => {
@@ -24,7 +28,7 @@ describe('WrappedDataResponse', () => {
     mockStream = {
       writeUInt16: jest.fn(),
       writeUInt8: jest.fn(),
-      readUInt8: jest.fn()
+      readUInt8: jest.fn(),
     } as unknown as VectorBufferStream
   })
 
@@ -35,7 +39,7 @@ describe('WrappedDataResponse', () => {
       data: { someField: 'someValue' },
       timestamp: 1234567890,
       accountCreated: true,
-      isPartial: false
+      isPartial: false,
     }
 
     it('should serialize without root flag', () => {
@@ -61,15 +65,15 @@ describe('WrappedDataResponse', () => {
         { accountCreated: true, isPartial: true, expectedValues: [1, 1] },
         { accountCreated: true, isPartial: false, expectedValues: [1, 0] },
         { accountCreated: false, isPartial: true, expectedValues: [0, 1] },
-        { accountCreated: false, isPartial: false, expectedValues: [0, 0] }
+        { accountCreated: false, isPartial: false, expectedValues: [0, 0] },
       ]
 
-      testCases.forEach(testCase => {
+      testCases.forEach((testCase) => {
         mockStream.writeUInt8 = jest.fn()
         const data: WrappedDataResponse = {
           ...mockData,
           accountCreated: testCase.accountCreated,
-          isPartial: testCase.isPartial
+          isPartial: testCase.isPartial,
         }
 
         serializeWrappedDataResponse(mockStream, data)
@@ -84,7 +88,7 @@ describe('WrappedDataResponse', () => {
 
       const writeUInt8Calls = (mockStream.writeUInt8 as jest.Mock).mock.invocationCallOrder
       const serializeWrappedDataOrder = mockSerializeWrappedData.mock.invocationCallOrder[0]
-      
+
       // Version is written first
       expect(writeUInt8Calls[0]).toBeLessThan(serializeWrappedDataOrder)
       // Boolean fields are written after wrapped data
@@ -105,7 +109,7 @@ describe('WrappedDataResponse', () => {
       accountId: 'acc123',
       stateId: 'state456',
       data: { deserializedField: 'value' },
-      timestamp: 1234567890
+      timestamp: 1234567890,
     }
 
     beforeEach(() => {
@@ -114,24 +118,24 @@ describe('WrappedDataResponse', () => {
     })
 
     it('should deserialize valid data correctly', () => {
-      (mockStream.readUInt8 as jest.Mock)
+      ;(mockStream.readUInt8 as jest.Mock)
         .mockReturnValueOnce(cWrappedDataResponseVersion)
         .mockReturnValueOnce(1) // accountCreated = true
-        .mockReturnValueOnce(0); // isPartial = false
+        .mockReturnValueOnce(0) // isPartial = false
 
       const result = deserializeWrappedDataResponse(mockStream)
 
       expect(result).toEqual({
         ...mockWrappedData,
         accountCreated: true,
-        isPartial: false
+        isPartial: false,
       })
       expect(mockDeserializeWrappedData).toHaveBeenCalledWith(mockStream)
       expect(mockVerifyPayload).toHaveBeenCalledWith(AJVSchemaEnum.WrappedDataResponse, result)
     })
 
     it('should throw error for unsupported version', () => {
-      (mockStream.readUInt8 as jest.Mock).mockReturnValueOnce(cWrappedDataResponseVersion + 1)
+      ;(mockStream.readUInt8 as jest.Mock).mockReturnValueOnce(cWrappedDataResponseVersion + 1)
 
       expect(() => deserializeWrappedDataResponse(mockStream)).toThrow('WrappedDataResponse version mismatch')
     })
@@ -141,11 +145,12 @@ describe('WrappedDataResponse', () => {
         { readValues: [1, 1], expected: { accountCreated: true, isPartial: true } },
         { readValues: [1, 0], expected: { accountCreated: true, isPartial: false } },
         { readValues: [0, 1], expected: { accountCreated: false, isPartial: true } },
-        { readValues: [0, 0], expected: { accountCreated: false, isPartial: false } }
+        { readValues: [0, 0], expected: { accountCreated: false, isPartial: false } },
       ]
 
-      testCases.forEach(testCase => {
-        mockStream.readUInt8 = jest.fn()
+      testCases.forEach((testCase) => {
+        mockStream.readUInt8 = jest
+          .fn()
           .mockReturnValueOnce(cWrappedDataResponseVersion)
           .mockReturnValueOnce(testCase.readValues[0])
           .mockReturnValueOnce(testCase.readValues[1])
@@ -158,7 +163,7 @@ describe('WrappedDataResponse', () => {
     })
 
     it('should throw error for validation failure', () => {
-      (mockStream.readUInt8 as jest.Mock)
+      ;(mockStream.readUInt8 as jest.Mock)
         .mockReturnValueOnce(cWrappedDataResponseVersion)
         .mockReturnValueOnce(1)
         .mockReturnValueOnce(0)
@@ -168,7 +173,7 @@ describe('WrappedDataResponse', () => {
     })
 
     it('should merge wrapped data with boolean fields', () => {
-      (mockStream.readUInt8 as jest.Mock)
+      ;(mockStream.readUInt8 as jest.Mock)
         .mockReturnValueOnce(cWrappedDataResponseVersion)
         .mockReturnValueOnce(1)
         .mockReturnValueOnce(1)
@@ -184,7 +189,7 @@ describe('WrappedDataResponse', () => {
     })
 
     it('should validate the complete object', () => {
-      (mockStream.readUInt8 as jest.Mock)
+      ;(mockStream.readUInt8 as jest.Mock)
         .mockReturnValueOnce(cWrappedDataResponseVersion)
         .mockReturnValueOnce(0)
         .mockReturnValueOnce(1)
@@ -200,7 +205,7 @@ describe('WrappedDataResponse', () => {
           data: expect.any(Object),
           timestamp: 1234567890,
           accountCreated: false,
-          isPartial: true
+          isPartial: true,
         })
       )
     })

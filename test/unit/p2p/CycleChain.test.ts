@@ -10,41 +10,41 @@ const mockLogger = {
   info: jest.fn(),
   debug: jest.fn(),
   warn: jest.fn(),
-  error: jest.fn()
+  error: jest.fn(),
 }
 
 jest.mock('../../../src/p2p/Context', () => ({
   crypto: {
-    hash: jest.fn()
+    hash: jest.fn(),
   },
   logger: {
-    getLogger: jest.fn(() => mockLogger)
+    getLogger: jest.fn(() => mockLogger),
   },
   stateManager: {
     getCurrentCycleShardData: jest.fn(),
     syncSettleTime: 1000,
-    statemanager_fatal: jest.fn()
-  }
+    statemanager_fatal: jest.fn(),
+  },
 }))
 
 jest.mock('../../../src/p2p/NodeList', () => ({
-  nodes: new Map()
+  nodes: new Map(),
 }))
 
 jest.mock('../../../src/utils/nestedCounters', () => ({
   nestedCountersInstance: {
-    countEvent: jest.fn()
-  }
+    countEvent: jest.fn(),
+  },
 }))
 
 jest.mock('../../../src/network', () => ({
-  shardusGetTime: jest.fn().mockReturnValue(1234567890)
+  shardusGetTime: jest.fn().mockReturnValue(1234567890),
 }))
 
 jest.mock('../../../src/logger', () => ({
   logFlags: {
-    verbose: false
-  }
+    verbose: false,
+  },
 }))
 
 describe('CycleChain', () => {
@@ -105,16 +105,16 @@ describe('CycleChain', () => {
     networkSummaryHash: [],
     txadd: [],
     txremove: [],
-    txlisthash: `txlist-hash-${counter}`
+    txlisthash: `txlist-hash-${counter}`,
   })
 
   beforeEach(() => {
     // Clear all mocks
     jest.clearAllMocks()
-    
+
     // Reset CycleChain state
     CycleChain.reset()
-    
+
     // Setup crypto mock to return predictable hashes
     const mockCrypto = Context.crypto as jest.Mocked<typeof Context.crypto>
     mockCrypto.hash.mockImplementation((data) => {
@@ -128,9 +128,9 @@ describe('CycleChain', () => {
   describe('init', () => {
     it('should initialize p2p logger', () => {
       const mockLogger = Context.logger as jest.Mocked<typeof Context.logger>
-      
+
       CycleChain.init()
-      
+
       expect(mockLogger.getLogger).toHaveBeenCalledWith('p2p')
     })
   })
@@ -140,10 +140,10 @@ describe('CycleChain', () => {
       // Add some data first
       const cycle = createMockCycle(1)
       CycleChain.append(cycle)
-      
+
       // Reset
       CycleChain.reset()
-      
+
       // Verify state is cleared
       expect(CycleChain.cycles).toEqual([])
       expect(CycleChain.cyclesByMarker).toEqual({})
@@ -160,10 +160,10 @@ describe('CycleChain', () => {
     it('should return the newest cycle', () => {
       const cycle1 = createMockCycle(1)
       const cycle2 = createMockCycle(2)
-      
+
       CycleChain.append(cycle1)
       CycleChain.append(cycle2)
-      
+
       expect(CycleChain.getNewest()).toBe(cycle2)
     })
   })
@@ -171,9 +171,9 @@ describe('CycleChain', () => {
   describe('append', () => {
     it('should append a new cycle', () => {
       const cycle = createMockCycle(1)
-      
+
       CycleChain.append(cycle)
-      
+
       expect(CycleChain.cycles).toHaveLength(1)
       expect(CycleChain.cycles[0]).toBe(cycle)
       expect(CycleChain.newest).toBe(cycle)
@@ -182,20 +182,20 @@ describe('CycleChain', () => {
 
     it('should not append duplicate cycles', () => {
       const cycle = createMockCycle(1)
-      
+
       CycleChain.append(cycle)
       CycleChain.append(cycle)
-      
+
       expect(CycleChain.cycles).toHaveLength(1)
     })
 
     it('should update newest but not oldest when appending multiple cycles', () => {
       const cycle1 = createMockCycle(1)
       const cycle2 = createMockCycle(2)
-      
+
       CycleChain.append(cycle1)
       CycleChain.append(cycle2)
-      
+
       expect(CycleChain.oldest).toBe(cycle1)
       expect(CycleChain.newest).toBe(cycle2)
     })
@@ -204,9 +204,9 @@ describe('CycleChain', () => {
   describe('prepend', () => {
     it('should prepend a new cycle', () => {
       const cycle = createMockCycle(1)
-      
+
       CycleChain.prepend(cycle)
-      
+
       expect(CycleChain.cycles).toHaveLength(1)
       expect(CycleChain.cycles[0]).toBe(cycle)
       expect(CycleChain.oldest).toBe(cycle)
@@ -215,20 +215,20 @@ describe('CycleChain', () => {
 
     it('should not prepend duplicate cycles', () => {
       const cycle = createMockCycle(1)
-      
+
       CycleChain.prepend(cycle)
       CycleChain.prepend(cycle)
-      
+
       expect(CycleChain.cycles).toHaveLength(1)
     })
 
     it('should update oldest when prepending to existing cycles', () => {
       const cycle2 = createMockCycle(2)
       const cycle1 = createMockCycle(1)
-      
+
       CycleChain.append(cycle2)
       CycleChain.prepend(cycle1)
-      
+
       expect(CycleChain.oldest).toBe(cycle1)
       expect(CycleChain.newest).toBe(cycle2)
       expect(CycleChain.cycles[0]).toBe(cycle1)
@@ -238,10 +238,10 @@ describe('CycleChain', () => {
     it('should update newest if prepended cycle has higher counter', () => {
       const cycle1 = createMockCycle(1)
       const cycle3 = createMockCycle(3)
-      
+
       CycleChain.append(cycle1)
       CycleChain.prepend(cycle3)
-      
+
       expect(CycleChain.newest).toBe(cycle3)
     })
   })
@@ -250,7 +250,7 @@ describe('CycleChain', () => {
     // These tests are commented out due to logger initialization issues in the validate function
     // The validate function calls an internal info() function that requires p2pLogger to be initialized
     // In a real environment, CycleChain.init() would be called during startup, but in tests it's not persisting
-    
+
     it('should validate cycles (tests commented due to logger issues)', () => {
       // The validate function works correctly but has logging dependencies that are hard to mock
       // Manual testing shows:
@@ -292,7 +292,7 @@ describe('CycleChain', () => {
       for (let i = 11; i <= 150; i++) {
         CycleChain.append(createMockCycle(i))
       }
-      
+
       const cycles = CycleChain.getCycleChain(1, 200)
       // getCycleChain limits to 100, so end becomes start + 100 = 101
       // But slice is inclusive of end, so we get 101 items (1 to 101)
@@ -315,11 +315,11 @@ describe('CycleChain', () => {
       const cycle1 = createMockCycle(1, 1000)
       const cycle2 = createMockCycle(2, 1060)
       const cycle3 = createMockCycle(3, 1120)
-      
+
       CycleChain.append(cycle1)
       CycleChain.append(cycle2)
       CycleChain.append(cycle3)
-      
+
       // Test timestamp in milliseconds (cycle times are in seconds)
       expect(CycleChain.getStoredCycleByTimestamp(1030000)).toBe(cycle1)
       expect(CycleChain.getStoredCycleByTimestamp(1090000)).toBe(cycle2)
@@ -329,7 +329,7 @@ describe('CycleChain', () => {
     it('should return null when timestamp is outside stored cycles', () => {
       const cycle = createMockCycle(1, 1000)
       CycleChain.append(cycle)
-      
+
       expect(CycleChain.getStoredCycleByTimestamp(900000)).toBeNull()
       expect(CycleChain.getStoredCycleByTimestamp(1200000)).toBeNull()
     })
@@ -337,7 +337,7 @@ describe('CycleChain', () => {
     it('should handle edge case when timestamp equals first cycle start', () => {
       const cycle = createMockCycle(1, 1000)
       CycleChain.append(cycle)
-      
+
       expect(CycleChain.getStoredCycleByTimestamp(1000)).toBe(cycle)
       expect(nestedCountersInstance.countEvent).toHaveBeenCalledWith(
         'getCycleNumberFromTimestamp',
@@ -362,7 +362,7 @@ describe('CycleChain', () => {
         shardGlobals: {},
         ourNode: null,
         paused: false,
-        nodes: {}
+        nodes: {},
       } as any)
 
       // Add some test cycles with proper timestamps (in seconds)
@@ -427,7 +427,7 @@ describe('CycleChain', () => {
 
     it('should keep specified number of cycles', () => {
       CycleChain.prune(5)
-      
+
       expect(CycleChain.cycles).toHaveLength(5)
       expect(CycleChain.cycles[0].counter).toBe(6)
       expect(CycleChain.oldest.counter).toBe(6)
@@ -435,14 +435,14 @@ describe('CycleChain', () => {
 
     it('should do nothing when keep >= cycles.length', () => {
       CycleChain.prune(15)
-      
+
       expect(CycleChain.cycles).toHaveLength(10)
       expect(CycleChain.oldest.counter).toBe(1)
     })
 
     it('should handle keep = 0', () => {
       CycleChain.prune(0)
-      
+
       expect(CycleChain.cycles).toHaveLength(0)
     })
   })
@@ -451,10 +451,10 @@ describe('CycleChain', () => {
     it('should compute hash of cycle fields', () => {
       const mockCrypto = Context.crypto as jest.Mocked<typeof Context.crypto>
       mockCrypto.hash.mockReturnValue('computed-hash')
-      
+
       const fields = { counter: 1, data: 'test' }
       const result = CycleChain.computeCycleMarker(fields)
-      
+
       expect(mockCrypto.hash).toHaveBeenCalledWith(fields)
       expect(result).toBe('computed-hash')
     })
@@ -476,13 +476,13 @@ describe('CycleChain', () => {
       cycle1.refuted = ['node-4']
       cycle1.apoptosized = ['node-5']
       cycle1.refreshedConsensors = [{ externalIp: '192.168.1.2', externalPort: 8081, counterRefreshed: 5 } as any]
-      
+
       CycleChain.append(cycle1)
-      
+
       // Mock nodes for ID lookup
       const mockNodes = NodeList.nodes as Map<string, any>
       mockNodes.set('node-1', { externalIp: '192.168.1.10', externalPort: 9000 })
-      
+
       const debug = CycleChain.getDebug()
       expect(debug).toContain('DIGESTED:   1')
       expect(debug).toContain('192.168.1.1:8080')
@@ -492,9 +492,9 @@ describe('CycleChain', () => {
     it('should handle special case for removed = ["all"]', () => {
       const cycle = createMockCycle(1)
       cycle.removed = ['all']
-      
+
       CycleChain.append(cycle)
-      
+
       const debug = CycleChain.getDebug()
       expect(debug).toContain('rmvd:[all]')
     })
@@ -508,10 +508,10 @@ describe('CycleChain', () => {
     it('should return marker of most recently appended cycle', () => {
       const mockCrypto = Context.crypto as jest.Mocked<typeof Context.crypto>
       mockCrypto.hash.mockReturnValue('current-marker')
-      
+
       const cycle = createMockCycle(1)
       CycleChain.append(cycle)
-      
+
       expect(CycleChain.getCurrentCycleMarker()).toBe('current-marker')
     })
   })
@@ -520,7 +520,7 @@ describe('CycleChain', () => {
     it('should return log string with cycle -1 when no cycles exist', () => {
       const mockShardusGetTime = network.shardusGetTime as jest.MockedFunction<typeof network.shardusGetTime>
       mockShardusGetTime.mockReturnValue(1234567890)
-      
+
       const result = CycleChain.getNewestCycleInfoLogStr('Test message')
       expect(result).toBe('Cycle: -1 Time:1234567890 Test message')
     })
@@ -528,10 +528,10 @@ describe('CycleChain', () => {
     it('should return log string with newest cycle info', () => {
       const mockShardusGetTime = network.shardusGetTime as jest.MockedFunction<typeof network.shardusGetTime>
       mockShardusGetTime.mockReturnValue(1234567890)
-      
+
       const cycle = createMockCycle(5)
       CycleChain.append(cycle)
-      
+
       const result = CycleChain.getNewestCycleInfoLogStr('Test message')
       expect(result).toBe('Cycle: 5 Time:1234567890 Test message')
     })

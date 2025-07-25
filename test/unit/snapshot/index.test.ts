@@ -7,7 +7,7 @@ describe('Snapshot Index Tests', () => {
       // Mock crypto.hash function
       const mockHash = jest.fn().mockReturnValue('mock-hash-123')
       const mockCrypto = { hash: mockHash }
-      
+
       // Import the function directly and test it
       const hashPartitionBlocks = (partitionId: number, partitionBlocks: any[]) => {
         const partitionBlock = partitionBlocks.find((b) => b.partition === partitionId)
@@ -17,7 +17,7 @@ describe('Snapshot Index Tests', () => {
       const partitionBlocks = [
         { partition: 0, data: 'block0' },
         { partition: 1, data: 'block1' },
-        { partition: 2, data: 'block2' }
+        { partition: 2, data: 'block2' },
       ]
 
       const result = hashPartitionBlocks(1, partitionBlocks)
@@ -29,7 +29,7 @@ describe('Snapshot Index Tests', () => {
     it('should hash empty object when partition not found', () => {
       const mockHash = jest.fn().mockReturnValue('empty-hash')
       const mockCrypto = { hash: mockHash }
-      
+
       const hashPartitionBlocks = (partitionId: number, partitionBlocks: any[]) => {
         const partitionBlock = partitionBlocks.find((b) => b.partition === partitionId)
         return mockCrypto.hash(partitionBlock || {})
@@ -37,7 +37,7 @@ describe('Snapshot Index Tests', () => {
 
       const partitionBlocks = [
         { partition: 0, data: 'block0' },
-        { partition: 2, data: 'block2' }
+        { partition: 2, data: 'block2' },
       ]
 
       const result = hashPartitionBlocks(1, partitionBlocks)
@@ -49,7 +49,8 @@ describe('Snapshot Index Tests', () => {
 
   describe('getPartitionRanges', () => {
     it('should create partition ranges map', () => {
-      const mockPartitionToAddressRange = jest.fn()
+      const mockPartitionToAddressRange = jest
+        .fn()
         .mockReturnValueOnce({ low: '0000', high: '3fff' })
         .mockReturnValueOnce({ low: '4000', high: '7fff' })
         .mockReturnValueOnce({ low: '8000', high: 'bfff' })
@@ -64,7 +65,7 @@ describe('Snapshot Index Tests', () => {
 
       const shard = {
         ourStoredPartitions: [0, 1, 2],
-        shardGlobals: { someConfig: true }
+        shardGlobals: { someConfig: true },
       }
 
       const result = getPartitionRanges(shard)
@@ -79,7 +80,12 @@ describe('Snapshot Index Tests', () => {
 
   describe('createOffer', () => {
     it('should create offer object with correct structure', () => {
-      const createOffer = (oldDataMap: Map<number, any>, networkStateHash: string, selfIp: string, selfPort: number) => {
+      const createOffer = (
+        oldDataMap: Map<number, any>,
+        networkStateHash: string,
+        selfIp: string,
+        selfPort: number
+      ) => {
         const partitionsToOffer = []
         for (const [partitionId] of oldDataMap) {
           partitionsToOffer.push(partitionId)
@@ -87,14 +93,14 @@ describe('Snapshot Index Tests', () => {
         return {
           networkStateHash: networkStateHash,
           partitions: partitionsToOffer,
-          downloadUrl: `http://${selfIp}:${selfPort}/download-snapshot-data`
+          downloadUrl: `http://${selfIp}:${selfPort}/download-snapshot-data`,
         }
       }
 
       const oldDataMap = new Map([
         [0, { data: 'partition0' }],
         [1, { data: 'partition1' }],
-        [2, { data: 'partition2' }]
+        [2, { data: 'partition2' }],
       ])
 
       const result = createOffer(oldDataMap, 'test-network-hash', '192.168.1.1', 8080)
@@ -102,7 +108,7 @@ describe('Snapshot Index Tests', () => {
       expect(result).toEqual({
         networkStateHash: 'test-network-hash',
         partitions: [0, 1, 2],
-        downloadUrl: 'http://192.168.1.1:8080/download-snapshot-data'
+        downloadUrl: 'http://192.168.1.1:8080/download-snapshot-data',
       })
     })
   })
@@ -129,7 +135,7 @@ describe('Snapshot Index Tests', () => {
       const nodeShardDataMap = new Map([
         ['node1', { node: { id: 'node1', ip: '1.1.1.1' }, homePartition: 0 }],
         ['node2', { node: { id: 'node2', ip: '2.2.2.2' }, homePartition: 1 }],
-        ['self', { node: { id: 'self', ip: '3.3.3.3' }, homePartition: 2 }]
+        ['self', { node: { id: 'self', ip: '3.3.3.3' }, homePartition: 2 }],
       ])
 
       const result = getNodesThatCoverPartition(-1, {}, nodeShardDataMap, 'self')
@@ -178,22 +184,22 @@ describe('Snapshot Index Tests', () => {
         ['node1', { node: { id: 'node1', ip: '1.1.1.1' }, homePartition: 0 }],
         ['node2', { node: { id: 'node2', ip: '2.2.2.2' }, homePartition: 1 }],
         ['node3', { node: { id: 'node3', ip: '3.3.3.3' }, homePartition: 5 }],
-        ['self', { node: { id: 'self', ip: '4.4.4.4' }, homePartition: 2 }]
+        ['self', { node: { id: 'self', ip: '4.4.4.4' }, homePartition: 2 }],
       ])
 
       const result = getNodesThatCoverPartition(1, {}, nodeShardDataMap, 'self')
 
       expect(result).toHaveLength(2)
-      expect(result.find(n => n.id === 'node1')).toBeDefined()
-      expect(result.find(n => n.id === 'node2')).toBeDefined()
-      expect(result.find(n => n.id === 'node3')).toBeUndefined()
+      expect(result.find((n) => n.id === 'node1')).toBeDefined()
+      expect(result.find((n) => n.id === 'node2')).toBeDefined()
+      expect(result.find((n) => n.id === 'node3')).toBeUndefined()
     })
   })
 
   describe('increaseNotNeededNodes', () => {
     it('should add node id to notNeededRepliedNodes map', () => {
       const notNeededRepliedNodes = new Map<string, true>()
-      
+
       const increaseNotNeededNodes = (id: string) => {
         notNeededRepliedNodes.set(id, true)
       }
@@ -211,8 +217,8 @@ describe('Snapshot Index Tests', () => {
     it('should process valid partition data and update state', () => {
       const missingPartitions: number[] = [0, 1, 2]
       const dataToMigrate = new Map<number, any>()
-      const mockCrypto = { 
-        hash: jest.fn().mockReturnValue('correct-hash')
+      const mockCrypto = {
+        hash: jest.fn().mockReturnValue('correct-hash'),
       }
 
       const processDownloadedMissingData = (missingData: any) => {
@@ -226,11 +232,11 @@ describe('Snapshot Index Tests', () => {
               data: typeof acc.data === 'object' ? JSON.stringify(acc.data) : acc.data,
               timestamp: acc.timestamp,
               hash: acc.hash,
-              isGlobal: acc.isGlobal
+              isGlobal: acc.isGlobal,
             }
           })
           const computedHash = mockCrypto.hash(accountsInPartition)
-          
+
           if (computedHash === partitionData.hash) {
             if (!dataToMigrate.has(parseInt(partitionId))) {
               dataToMigrate.set(parseInt(partitionId), partitionData.data)
@@ -243,17 +249,13 @@ describe('Snapshot Index Tests', () => {
 
       const missingData = {
         '0': {
-          data: [
-            { accountId: 'acc1', data: { balance: 100 }, timestamp: 1234, hash: 'h1', isGlobal: false }
-          ],
-          hash: 'correct-hash'
+          data: [{ accountId: 'acc1', data: { balance: 100 }, timestamp: 1234, hash: 'h1', isGlobal: false }],
+          hash: 'correct-hash',
         },
         '1': {
-          data: [
-            { accountId: 'acc2', data: { balance: 200 }, timestamp: 1235, hash: 'h2', isGlobal: false }
-          ],
-          hash: 'correct-hash'
-        }
+          data: [{ accountId: 'acc2', data: { balance: 200 }, timestamp: 1235, hash: 'h2', isGlobal: false }],
+          hash: 'correct-hash',
+        },
       }
 
       processDownloadedMissingData(missingData)
@@ -267,8 +269,8 @@ describe('Snapshot Index Tests', () => {
     it('should reject data with incorrect hash', () => {
       const missingPartitions: number[] = [0]
       const dataToMigrate = new Map<number, any>()
-      const mockCrypto = { 
-        hash: jest.fn().mockReturnValue('wrong-hash')
+      const mockCrypto = {
+        hash: jest.fn().mockReturnValue('wrong-hash'),
       }
 
       const processDownloadedMissingData = (missingData: any) => {
@@ -282,11 +284,11 @@ describe('Snapshot Index Tests', () => {
               data: typeof acc.data === 'object' ? JSON.stringify(acc.data) : acc.data,
               timestamp: acc.timestamp,
               hash: acc.hash,
-              isGlobal: acc.isGlobal
+              isGlobal: acc.isGlobal,
             }
           })
           const computedHash = mockCrypto.hash(accountsInPartition)
-          
+
           if (computedHash === partitionData.hash) {
             if (!dataToMigrate.has(parseInt(partitionId))) {
               dataToMigrate.set(parseInt(partitionId), partitionData.data)
@@ -299,11 +301,9 @@ describe('Snapshot Index Tests', () => {
 
       const missingData = {
         '0': {
-          data: [
-            { accountId: 'acc1', data: { balance: 100 }, timestamp: 1234, hash: 'h1', isGlobal: false }
-          ],
-          hash: 'correct-hash'
-        }
+          data: [{ accountId: 'acc1', data: { balance: 100 }, timestamp: 1234, hash: 'h1', isGlobal: false }],
+          hash: 'correct-hash',
+        },
       }
 
       processDownloadedMissingData(missingData)
@@ -317,7 +317,7 @@ describe('Snapshot Index Tests', () => {
     it('should prepare account copies for storage', async () => {
       const mockCommitAccountCopies = jest.fn().mockResolvedValue(undefined)
       const currentCycle = { counter: 10 }
-      
+
       const storeDataToNewDB = async (dataMap: Map<number, any[]>) => {
         const accountCopies: any[] = []
         for (const [, data] of dataMap) {
@@ -325,7 +325,7 @@ describe('Snapshot Index Tests', () => {
             data.forEach((accountData) => {
               accountCopies.push({
                 ...accountData,
-                cycleNumber: currentCycle.counter
+                cycleNumber: currentCycle.counter,
               })
             })
           }
@@ -334,13 +334,14 @@ describe('Snapshot Index Tests', () => {
       }
 
       const dataMap = new Map([
-        [0, [
-          { accountId: 'acc1', data: 'data1', timestamp: 1234 },
-          { accountId: 'acc2', data: 'data2', timestamp: 1235 }
-        ]],
-        [1, [
-          { accountId: 'acc3', data: 'data3', timestamp: 1236 }
-        ]]
+        [
+          0,
+          [
+            { accountId: 'acc1', data: 'data1', timestamp: 1234 },
+            { accountId: 'acc2', data: 'data2', timestamp: 1235 },
+          ],
+        ],
+        [1, [{ accountId: 'acc3', data: 'data3', timestamp: 1236 }]],
       ])
 
       await storeDataToNewDB(dataMap)
@@ -348,14 +349,14 @@ describe('Snapshot Index Tests', () => {
       expect(mockCommitAccountCopies).toHaveBeenCalledWith([
         { accountId: 'acc1', data: 'data1', timestamp: 1234, cycleNumber: 10 },
         { accountId: 'acc2', data: 'data2', timestamp: 1235, cycleNumber: 10 },
-        { accountId: 'acc3', data: 'data3', timestamp: 1236, cycleNumber: 10 }
+        { accountId: 'acc3', data: 'data3', timestamp: 1236, cycleNumber: 10 },
       ])
     })
 
     it('should handle empty data map', async () => {
       const mockCommitAccountCopies = jest.fn().mockResolvedValue(undefined)
       const currentCycle = { counter: 10 }
-      
+
       const storeDataToNewDB = async (dataMap: Map<number, any[]>) => {
         const accountCopies: any[] = []
         for (const [, data] of dataMap) {
@@ -363,7 +364,7 @@ describe('Snapshot Index Tests', () => {
             data.forEach((accountData) => {
               accountCopies.push({
                 ...accountData,
-                cycleNumber: currentCycle.counter
+                cycleNumber: currentCycle.counter,
               })
             })
           }

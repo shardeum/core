@@ -50,7 +50,7 @@ describe('GetAccountDataByListReq', () => {
         { accountIds: Array(100).fill('accountId') }, // Large array
       ]
 
-      validObjects.forEach(obj => {
+      validObjects.forEach((obj) => {
         expect(validate(obj)).toBe(true)
         expect(validate.errors).toBeNull()
       })
@@ -80,7 +80,7 @@ describe('GetAccountDataByListReq', () => {
         123, // not an object
       ]
 
-      invalidObjects.forEach(obj => {
+      invalidObjects.forEach((obj) => {
         expect(validate(obj)).toBe(false)
         expect(validate.errors).not.toBeNull()
       })
@@ -99,10 +99,10 @@ describe('GetAccountDataByListReq', () => {
       const ajv = new Ajv()
       const validate = ajv.compile(capturedSchema)
 
-      const objWithExtra = { 
+      const objWithExtra = {
         accountIds: ['account1', 'account2'],
         extraField: 'extra value',
-        anotherField: 123 
+        anotherField: 123,
       }
 
       expect(validate(objWithExtra)).toBe(true)
@@ -119,7 +119,7 @@ describe('GetAccountDataByListReq', () => {
         { accountIds: ['Здравствуйте', 'Русский'] },
       ]
 
-      unicodeObjects.forEach(obj => {
+      unicodeObjects.forEach((obj) => {
         expect(validate(obj)).toBe(true)
       })
     })
@@ -136,7 +136,7 @@ describe('GetAccountDataByListReq', () => {
         { accountIds: ['a'.repeat(10000)] }, // very long string
       ]
 
-      specialCases.forEach(obj => {
+      specialCases.forEach((obj) => {
         expect(validate(obj)).toBe(true)
       })
     })
@@ -185,7 +185,7 @@ describe('GetAccountDataByListReq', () => {
       const validate = ajv.compile(capturedSchema)
 
       const duplicates = {
-        accountIds: ['account1', 'account1', 'account1']
+        accountIds: ['account1', 'account1', 'account1'],
       }
 
       expect(validate(duplicates)).toBe(true)
@@ -196,7 +196,7 @@ describe('GetAccountDataByListReq', () => {
       const validate = ajv.compile(capturedSchema)
 
       const largeArray = {
-        accountIds: Array(10000).fill('accountId')
+        accountIds: Array(10000).fill('accountId'),
       }
 
       expect(validate(largeArray)).toBe(true)
@@ -215,7 +215,7 @@ describe('GetAccountDataByListReq', () => {
           'true', // boolean as string
           'null', // null as string
           JSON.stringify({ complex: 'object' }), // stringified object
-        ]
+        ],
       }
 
       expect(validate(mixed)).toBe(true)

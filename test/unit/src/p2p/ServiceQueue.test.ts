@@ -59,18 +59,18 @@ jest.mock('../../../../src/logger', () => ({
     console: false,
     verbose: false,
     important_as_error: false,
-  }
+  },
 }))
 jest.mock('../../../../src/utils/profiler', () => ({
   profilerInstance: {
     scopedProfileSectionStart: jest.fn(),
     scopedProfileSectionEnd: jest.fn(),
-  }
+  },
 }))
 jest.mock('../../../../src/utils/nestedCounters', () => ({
   nestedCountersInstance: {
     countEvent: jest.fn(),
-  }
+  },
 }))
 jest.mock('../../../../src/network/debugMiddleware')
 jest.mock('../../../../src/debug')
@@ -80,7 +80,7 @@ jest.mock('crypto', () => ({
     const aStr = a.toString ? a.toString() : a
     const bStr = b.toString ? b.toString() : b
     return aStr === bStr
-  })
+  }),
 }))
 
 // Now import modules after mocks are set up
@@ -145,16 +145,16 @@ describe('ServiceQueue', () => {
     // Reset cycle values
     ;(CycleCreator as any).currentCycle = 1
     ;(CycleCreator as any).currentQuarter = 1
-    
+
     // Reset the hash mock to ensure consistent behavior
     mockCrypto.hash.mockReset()
     mockCrypto.hash.mockImplementation((data) => 'hash_' + JSON.stringify(data))
-    
+
     // Reset the mock logger methods
     mockLoggerInstance.info.mockClear()
     mockLoggerInstance.warn.mockClear()
     mockLoggerInstance.error.mockClear()
-    
+
     // Initialize ServiceQueue for each test to ensure clean state
     ServiceQueue.init()
   })
@@ -163,7 +163,7 @@ describe('ServiceQueue', () => {
     it('should initialize the service queue correctly', () => {
       // Call init again to verify the calls
       ServiceQueue.init()
-      
+
       // Verify logger was created
       expect(mockLogger.getLogger).toHaveBeenCalledWith('p2p')
 
@@ -274,11 +274,11 @@ describe('ServiceQueue', () => {
 
     it('should return true when tx data hash is in list', () => {
       const txData = { test: 'data' }
-      
+
       // First set up the txList with a known entry
       const expectedHash = 'test_hash_12345'
       mockCrypto.hash.mockReturnValue(expectedHash)
-      
+
       const txEntry: P2P.ServiceQueueTypes.NetworkTxEntry = {
         hash: expectedHash,
         tx: {
@@ -326,27 +326,27 @@ describe('ServiceQueue', () => {
     it('should add a network transaction successfully', async () => {
       // For this test, we'll verify the basic flow
       const tx = { data: 'test_tx' }
-      
+
       // Capture the calls to hash and sign
       mockCrypto.hash.mockClear()
       mockCrypto.sign.mockClear()
-      
+
       // Without a verifier, the transaction won't be added
       await ServiceQueue.addNetworkTx('test_type', tx, 'subqueue_key', 5)
 
       // Verify hash was called
       expect(mockCrypto.hash).toHaveBeenCalledWith(tx)
-      
+
       // Since no verifier is registered, sign should not be called
       expect(mockCrypto.sign).not.toHaveBeenCalled()
     })
 
     it('should use default priority when not specified', async () => {
       const tx = { data: 'test_tx' }
-      
+
       // Clear mocks
       mockCrypto.hash.mockClear()
-      
+
       await ServiceQueue.addNetworkTx('test_type', tx)
 
       // Verify hash was called and priority defaulted to 0
@@ -356,9 +356,9 @@ describe('ServiceQueue', () => {
     it('should handle subqueue key parameter', async () => {
       const tx = { data: 'test_tx' }
       const subqueueKey = 'test_subqueue'
-      
+
       mockCrypto.hash.mockClear()
-      
+
       await ServiceQueue.addNetworkTx('test_type', tx, subqueueKey, 5)
 
       // Verify the function was called with the subqueue key
@@ -427,10 +427,10 @@ describe('ServiceQueue', () => {
     it('should return hash of empty list', () => {
       const expectedHash = 'hash_empty_list'
       mockCrypto.hash.mockReturnValue(expectedHash)
-      
+
       ServiceQueue.setTxList([])
       const result = ServiceQueue.getTxListHash()
-      
+
       expect(mockCrypto.hash).toHaveBeenCalledWith([])
       expect(result).toBe(expectedHash)
     })
@@ -449,7 +449,7 @@ describe('ServiceQueue', () => {
         },
       ]
       ServiceQueue.setTxList(entries)
-      
+
       const result = ServiceQueue.getTxListHash()
       expect(mockCrypto.hash).toHaveBeenCalledWith(entries)
     })
@@ -470,7 +470,7 @@ describe('ServiceQueue', () => {
         },
       ]
       ServiceQueue.setTxList(entries)
-      
+
       const result = ServiceQueue.getTxList()
       expect(result).toEqual(entries)
     })
@@ -479,7 +479,6 @@ describe('ServiceQueue', () => {
   describe('updateRecord', () => {
     // Removed test: 'should update record with sorted txadd and txremove'
     // This test is too complex to properly mock due to internal state dependencies
-
     // Removed test: 'should process shutdown handlers in shutdown mode'
     // This test fails due to logger initialization issues in the error handling
   })
@@ -534,16 +533,12 @@ describe('ServiceQueue', () => {
   describe('processNetworkTransactions', () => {
     // Removed test: 'should not process in non-processing mode'
     // This test fails due to logger initialization issues
-
     // Removed test: 'should not process if injections disabled'
     // This test fails due to logger initialization issues
-
     // Removed test: 'should process transactions in quarter 3'
     // This test fails due to logger initialization issues
-
     // Removed test: 'should skip already processed subqueue keys'
     // This test fails due to logger initialization issues
-
     // Removed test: 'should remove transaction if apply verifier returns true'
     // This test fails due to logger initialization issues
   })
@@ -583,13 +578,8 @@ describe('ServiceQueue', () => {
 
       try {
         await ServiceQueue.syncTxListFromArchiver()
-        
-        expect(getFromArchiver).toHaveBeenCalledWith(
-          expect.any(Object),
-          'network-txs-list',
-          undefined,
-          10000
-        )
+
+        expect(getFromArchiver).toHaveBeenCalledWith(expect.any(Object), 'network-txs-list', undefined, 10000)
         expect(ServiceQueue.getTxList()).toEqual(mockTxList)
       } catch (e) {
         // If it fails due to logger issues, we skip this test
@@ -605,9 +595,7 @@ describe('ServiceQueue', () => {
     it('should throw error when no archiver available', async () => {
       ;(Utils.getRandomAvailableArchiver as jest.Mock).mockReturnValue(null)
 
-      await expect(ServiceQueue.syncTxListFromArchiver()).rejects.toThrow(
-        'Fatal: Could not get random archiver'
-      )
+      await expect(ServiceQueue.syncTxListFromArchiver()).rejects.toThrow('Fatal: Could not get random archiver')
     })
 
     it('should throw error when archiver request fails', async () => {
@@ -615,16 +603,13 @@ describe('ServiceQueue', () => {
         ip: '127.0.0.1',
         port: 4000,
       })
-
       ;(getFromArchiver as jest.Mock).mockResolvedValue({
         isOk: () => false,
         isErr: () => true,
         error: new Error('Network error'),
       })
 
-      await expect(ServiceQueue.syncTxListFromArchiver()).rejects.toThrow(
-        'Fatal: Could not get tx list from archiver'
-      )
+      await expect(ServiceQueue.syncTxListFromArchiver()).rejects.toThrow('Fatal: Could not get tx list from archiver')
     })
 
     it('should throw error when hash mismatch', async () => {
@@ -641,7 +626,6 @@ describe('ServiceQueue', () => {
         ip: '127.0.0.1',
         port: 4000,
       })
-
       ;(CycleChain as any).newest = {
         txlisthash: 'different_hash',
       }
@@ -940,7 +924,7 @@ describe('ServiceQueue', () => {
           message: 'Verified',
           cycle: 1,
         })
-        
+
         // We need to mock the internal verifyDebugDropNGT function
         // This is tricky since it's not exported, so we'll test through the route handler
         const payload = {
@@ -956,7 +940,7 @@ describe('ServiceQueue', () => {
         // by checking if sendGossip is called when all conditions are met
         await handlers['debug-drop-ngt'](payload, 'sender', 'tracker')
 
-        // Since verifyDebugDropNGT would fail without proper setup, 
+        // Since verifyDebugDropNGT would fail without proper setup,
         // we expect no gossip in this case
         expect(Comms.sendGossip).not.toHaveBeenCalled()
       })
@@ -982,16 +966,18 @@ describe('ServiceQueue', () => {
           send: jest.fn(),
         }
 
-        const txList: P2P.ServiceQueueTypes.NetworkTxEntry[] = [{
-          hash: 'test_hash',
-          tx: {
+        const txList: P2P.ServiceQueueTypes.NetworkTxEntry[] = [
+          {
             hash: 'test_hash',
-            type: 'test',
-            txData: { data: 'test' },
-            cycle: 1,
-            priority: 0,
-          }
-        }]
+            tx: {
+              hash: 'test_hash',
+              type: 'test',
+              txData: { data: 'test' },
+              cycle: 1,
+              priority: 0,
+            },
+          },
+        ]
         ServiceQueue.setTxList(txList)
 
         routes['debug-network-txlist'](mockReq, mockRes)

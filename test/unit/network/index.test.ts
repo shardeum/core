@@ -27,7 +27,7 @@ const NatAPIMock = jest.fn(() => mockNatClient)
 
 // Mock all dependencies
 jest.mock('@hapi/sntp', () => ({
-  time: jest.fn().mockResolvedValue({ t: 1000 })
+  time: jest.fn().mockResolvedValue({ t: 1000 }),
 }))
 jest.mock('@shardeum-foundation/lib-net', () => ({
   Sn: mockSnConstructor,
@@ -138,7 +138,7 @@ jest.mock('../../../src/p2p/Context', () => {
       mainLog_info: jest.fn(),
     },
     setDefaultConfigs: jest.fn(),
-  };
+  }
   // Return both default export and named exports
   return {
     ...Context,
@@ -146,7 +146,7 @@ jest.mock('../../../src/p2p/Context', () => {
     config: Context.config,
     defaultConfigs: Context.defaultConfigs,
     logger: Context.logger,
-  };
+  }
 })
 jest.mock('../../../src/p2p/Utils')
 jest.mock('../../../src/utils')
@@ -166,7 +166,19 @@ jest.mock('../../../src/utils/profiler', () => ({
 }))
 
 import { EventEmitter } from 'events'
-import { NetworkClass, IPInfo, init, checkAndUpdateTimeSyncedOffset, shardusGetTime, getNetworkTimeOffset, calculateFakeTimeOffset, clearFakeTimeOffset, getFakeTimeOffset, getLastNTPObject, ipInfo } from '../../../src/network'
+import {
+  NetworkClass,
+  IPInfo,
+  init,
+  checkAndUpdateTimeSyncedOffset,
+  shardusGetTime,
+  getNetworkTimeOffset,
+  calculateFakeTimeOffset,
+  clearFakeTimeOffset,
+  getFakeTimeOffset,
+  getLastNTPObject,
+  ipInfo,
+} from '../../../src/network'
 import * as Shardus from '../../../src/shardus/shardus-types'
 import { config, logger as contextLogger } from '../../../src/p2p/Context'
 import { Utils } from '@shardeum-foundation/lib-types'
@@ -223,8 +235,6 @@ const mockServer = {
   callback: null as any,
 }
 
-
-
 // Setup test data
 const testIpInfo: IPInfo = {
   externalIp: '192.168.1.100',
@@ -270,7 +280,7 @@ describe('NetworkClass', () => {
     bodyParser.urlencoded = jest.fn().mockReturnValue(jest.fn())
     // @ts-ignore
     cors.mockReturnValue(jest.fn())
-    mockApp.listen.mockImplementation(function(port, callback) {
+    mockApp.listen.mockImplementation(function (port, callback) {
       // Don't call callback immediately to avoid context issues
       if (callback) {
         // Store callback for later if needed
@@ -403,7 +413,9 @@ describe('NetworkClass', () => {
 
     it('should throw error if external port is missing', async () => {
       const incompleteIpInfo = { ...testIpInfo, externalPort: 0 }
-      await expect(network.setup(incompleteIpInfo, 'key')).rejects.toThrow('Fatal: network module requires externalPort')
+      await expect(network.setup(incompleteIpInfo, 'key')).rejects.toThrow(
+        'Fatal: network module requires externalPort'
+      )
     })
   })
 
@@ -411,7 +423,7 @@ describe('NetworkClass', () => {
     it('should close servers and cleanup', async () => {
       network.extServer = mockServer
       network.sn = mockSn
-      
+
       await network.shutdown()
 
       expect(mockServer.close).toHaveBeenCalled()
@@ -443,11 +455,10 @@ describe('NetworkClass', () => {
       await network.tell(nodes, 'test-route', message)
 
       expect(mockSn.send).toHaveBeenCalledTimes(2)
-      expect(mockSn.send).toHaveBeenCalledWith(
-        testNode.internalPort,
-        testNode.internalIp,
-        { route: 'test-route', payload: message }
-      )
+      expect(mockSn.send).toHaveBeenCalledWith(testNode.internalPort, testNode.internalIp, {
+        route: 'test-route',
+        payload: message,
+      })
     })
 
     it('should handle empty node list', async () => {
@@ -468,7 +479,15 @@ describe('NetworkClass', () => {
       await network.tell([testNode], 'test-route', { data: 'test' })
 
       expect(mockNestedCounters.countEvent).toHaveBeenCalledWith('network', 'error2-tell test-route ')
-      expect(network.emit).toHaveBeenCalledWith('error', testNode, 'test-uuid-123', 'tell', 'Error: Network error', 'test-route', '')
+      expect(network.emit).toHaveBeenCalledWith(
+        'error',
+        testNode,
+        'test-uuid-123',
+        'tell',
+        'Error: Network error',
+        'test-route',
+        ''
+      )
     })
 
     // Note: The tell method doesn't implement debugNetworkDelay, only ask and askBinary do
@@ -500,7 +519,7 @@ describe('NetworkClass', () => {
     })
 
     it('should use combined tell binary when configured', async () => {
-      (config as any).p2p.useCombinedTellBinary = true
+      ;(config as any).p2p.useCombinedTellBinary = true
       const nodes = [testNode, { ...testNode, id: 'node2' }]
 
       await network.tellBinary(nodes, 'test-route', testBuffer, testAppHeader, 'track123')
@@ -599,12 +618,20 @@ describe('NetworkClass', () => {
       // The ask method doesn't reject on send errors, it catches them and emits an error event
       // The promise will hang unless onRes or onTimeout is called
       const askPromise = network.ask(testNode, 'test-route', { data: 'test' })
-      
+
       // Give time for the error handling to occur
-      await new Promise(resolve => setImmediate(resolve))
-      
+      await new Promise((resolve) => setImmediate(resolve))
+
       expect(mockNestedCounters.countEvent).toHaveBeenCalledWith('network', 'error-ask test-route')
-      expect(network.emit).toHaveBeenCalledWith('error', testNode, 'test-uuid-123', 'ask', 'Error: Send error', 'test-route', '')
+      expect(network.emit).toHaveBeenCalledWith(
+        'error',
+        testNode,
+        'test-uuid-123',
+        'ask',
+        'Error: Send error',
+        'test-route',
+        ''
+      )
     })
   })
 
@@ -620,7 +647,7 @@ describe('NetworkClass', () => {
       const response = Buffer.from('response data')
       const responseHeader = { version: 2 }
       const responseSign = { sig: 'signature' }
-      
+
       mockSn.sendWithHeader.mockImplementation((port, ip, data, header, timeout, onRes) => {
         onRes(response, responseHeader, responseSign)
         return Promise.resolve()
@@ -647,7 +674,9 @@ describe('NetworkClass', () => {
       })
       network.emit = jest.fn()
 
-      await expect(network.askBinary(testNode, 'test-route', testBuffer, testAppHeader, 'track123')).rejects.toThrow('askBinary: request timed out')
+      await expect(network.askBinary(testNode, 'test-route', testBuffer, testAppHeader, 'track123')).rejects.toThrow(
+        'askBinary: request timed out'
+      )
       expect(mockNestedCounters.countEvent).toHaveBeenCalledWith('network', 'timeout')
       expect(network.emit).toHaveBeenCalledWith('timeout', testNode, 'test-uuid-123', 'askBinary')
     })
@@ -692,7 +721,7 @@ describe('NetworkClass', () => {
       const loggerModule = require('../../../src/logger')
       const originalErrorFlag = loggerModule.logFlags.error
       loggerModule.logFlags.error = true
-      
+
       network.sn = mockSn
       mockSn.evictSocket.mockImplementation(() => {
         throw new Error('Eviction error')
@@ -701,7 +730,7 @@ describe('NetworkClass', () => {
       network.evictCachedSockets([testNode])
 
       expect(mockMainLogger.error).toHaveBeenCalledWith(expect.stringContaining('Error evicting socket'))
-      
+
       // Restore original flag
       loggerModule.logFlags.error = originalErrorFlag
     })
@@ -723,7 +752,9 @@ describe('NetworkClass', () => {
     it('should throw error if route already exists', () => {
       const handler = jest.fn()
       network.registerInternal('test-route', handler)
-      expect(() => network.registerInternal('test-route', handler)).toThrow('Handler already exists for specified internal route.')
+      expect(() => network.registerInternal('test-route', handler)).toThrow(
+        'Handler already exists for specified internal route.'
+      )
     })
   })
 
@@ -731,9 +762,9 @@ describe('NetworkClass', () => {
     it('should remove internal route handler', () => {
       const handler = jest.fn()
       network.internalRoutes['test-route'] = handler
-      
+
       network.unregisterInternal('test-route')
-      
+
       expect(network.internalRoutes['test-route']).toBeUndefined()
     })
 
@@ -766,7 +797,7 @@ describe('Module functions', () => {
   describe('init', () => {
     it('should initialize IP info with config values', async () => {
       await init()
-      
+
       // Check that ipInfo was set correctly
       expect(ipInfo).toBeDefined()
       expect(ipInfo.externalIp).toBe('192.168.1.100')
@@ -781,25 +812,25 @@ describe('Module functions', () => {
   describe('checkAndUpdateTimeSyncedOffset', () => {
     it('should update time offset from NTP server', async () => {
       mockSntp.time.mockResolvedValue({ t: 1000 })
-      
+
       const result = await checkAndUpdateTimeSyncedOffset(['ntp1.test.com'])
-      
+
       expect(result).toBe(true)
       expect(mockSntp.time).toHaveBeenCalledWith({ host: 'ntp1.test.com', timeout: 10000 })
     })
 
     it('should return true if ignoreTimeCheck is enabled', async () => {
-      (config as any).debug.ignoreTimeCheck = true
-      
+      ;(config as any).debug.ignoreTimeCheck = true
+
       const result = await checkAndUpdateTimeSyncedOffset(['ntp1.test.com'])
-      
+
       expect(result).toBe(true)
       expect(mockSntp.time).not.toHaveBeenCalled()
     })
 
     it('should handle NTP server errors', async () => {
       mockSntp.time.mockRejectedValue(new Error('NTP error'))
-      
+
       // The function actually returns true on first error, only throws after multiple failures
       const result = await checkAndUpdateTimeSyncedOffset(['ntp1.test.com'])
       expect(result).toBe(true)
@@ -807,9 +838,9 @@ describe('Module functions', () => {
 
     it('should handle NaN time offset', async () => {
       mockSntp.time.mockResolvedValue({ t: NaN })
-      
+
       const result = await checkAndUpdateTimeSyncedOffset(['ntp1.test.com'])
-      
+
       // When NaN is detected, the function returns true
       expect(result).toBe(true)
     })
@@ -817,9 +848,9 @@ describe('Module functions', () => {
     it('should check offset is within sync limit', async () => {
       // Sync limit is 300 seconds (300000 ms)
       mockSntp.time.mockResolvedValue({ t: 400000 }) // 400 seconds offset
-      
+
       const result = await checkAndUpdateTimeSyncedOffset(['ntp1.test.com'])
-      
+
       // The function checks if the absolute offset is less than syncLimit
       // Since 400000 ms is greater than 300000 ms, it should return false
       expect(result).toBe(true) // Actually returns true because it's checking the opposite
@@ -830,56 +861,56 @@ describe('Module functions', () => {
     it('should return current time without offsets', () => {
       const now = Date.now()
       jest.spyOn(Date, 'now').mockReturnValue(now)
-      
+
       const time = shardusGetTime()
-      
+
       expect(time).toBe(now)
     })
 
     it('should apply NTP offset when enabled', async () => {
-      (config as any).p2p.useNTPOffsets = true
+      ;(config as any).p2p.useNTPOffsets = true
       mockSntp.time.mockResolvedValue({ t: 5000 })
       await checkAndUpdateTimeSyncedOffset(['ntp1.test.com'])
-      
+
       const now = Date.now()
       jest.spyOn(Date, 'now').mockReturnValue(now)
-      
+
       const time = shardusGetTime()
-      
+
       expect(time).toBe(now + 5000)
     })
 
     it('should apply fake time offset when enabled', () => {
-      (config as any).p2p.useFakeTimeOffsets = true
+      ;(config as any).p2p.useFakeTimeOffsets = true
       calculateFakeTimeOffset(1000, 0)
-      
+
       const now = Date.now()
       jest.spyOn(Date, 'now').mockReturnValue(now)
-      
+
       const time = shardusGetTime()
-      
+
       expect(time).toBe(now + 1000)
     })
   })
 
   describe('getNetworkTimeOffset', () => {
     it('should return NTP offset when enabled', async () => {
-      (config as any).p2p.useNTPOffsets = true
+      ;(config as any).p2p.useNTPOffsets = true
       mockSntp.time.mockResolvedValue({ t: 1000 })
       await checkAndUpdateTimeSyncedOffset(['ntp1.test.com'])
-      
+
       const offset = getNetworkTimeOffset()
-      
+
       expect(offset).toBe(1000)
     })
 
     it('should return NTP offset even when disabled', async () => {
-      (config as any).p2p.useNTPOffsets = false
+      ;(config as any).p2p.useNTPOffsets = false
       mockSntp.time.mockResolvedValue({ t: 1000 })
       await checkAndUpdateTimeSyncedOffset(['ntp1.test.com'])
-      
+
       const offset = getNetworkTimeOffset()
-      
+
       expect(offset).toBe(1000)
     })
   })
@@ -915,7 +946,7 @@ describe('Module functions', () => {
     it('should clear fake time offset', () => {
       calculateFakeTimeOffset(1000, 0)
       const clearedOffset = clearFakeTimeOffset()
-      
+
       expect(clearedOffset).toBe(0)
       expect(getFakeTimeOffset()).toBe(0)
     })
@@ -923,20 +954,20 @@ describe('Module functions', () => {
 
   describe('getFakeTimeOffset', () => {
     it('should return fake time offset when enabled', () => {
-      (config as any).p2p.useFakeTimeOffsets = true
+      ;(config as any).p2p.useFakeTimeOffsets = true
       calculateFakeTimeOffset(2000, 0)
-      
+
       const offset = getFakeTimeOffset()
-      
+
       expect(offset).toBe(2000)
     })
 
     it('should return 0 when disabled', () => {
-      (config as any).p2p.useFakeTimeOffsets = false
+      ;(config as any).p2p.useFakeTimeOffsets = false
       calculateFakeTimeOffset(2000, 0)
-      
+
       const offset = getFakeTimeOffset()
-      
+
       expect(offset).toBe(0)
     })
   })
@@ -958,9 +989,9 @@ describe('Module functions', () => {
       const ntpTimeObj = { t: 1000 }
       mockSntp.time.mockResolvedValue(ntpTimeObj)
       await checkAndUpdateTimeSyncedOffset(['ntp1.test.com'])
-      
+
       const lastObj = getLastNTPObject()
-      
+
       expect(lastObj).toEqual(ntpTimeObj)
     })
   })
@@ -981,7 +1012,7 @@ describe('Edge cases and error scenarios', () => {
   describe('_registerExternal error handling', () => {
     it('should throw error for invalid HTTP method', () => {
       expect(() => {
-        (network as any)._registerExternal('INVALID', 'test', jest.fn())
+        ;(network as any)._registerExternal('INVALID', 'test', jest.fn())
       }).toThrow('Fatal: Invalid HTTP method for handler INVALID.')
     })
 
@@ -997,16 +1028,18 @@ describe('Edge cases and error scenarios', () => {
     it('should handle concurrent tell operations', async () => {
       network.sn = mockSn
       mockSn.send.mockResolvedValue(undefined)
-      
-      const nodes = Array(10).fill(null).map((_, i) => ({ ...testNode, id: `node${i}` }))
+
+      const nodes = Array(10)
+        .fill(null)
+        .map((_, i) => ({ ...testNode, id: `node${i}` }))
       const promises = []
-      
+
       for (let i = 0; i < 5; i++) {
         promises.push(network.tell(nodes, `route${i}`, { data: `message${i}` }))
       }
-      
+
       await Promise.all(promises)
-      
+
       expect(mockSn.send).toHaveBeenCalledTimes(50) // 10 nodes * 5 routes
     })
 
@@ -1017,16 +1050,16 @@ describe('Edge cases and error scenarios', () => {
         onRes({ result: 'ok' })
         return Promise.resolve()
       })
-      
+
       const promises = []
       for (let i = 0; i < 10; i++) {
         promises.push(network.ask({ ...testNode, id: `node${i}` }, 'test-route', { data: i }))
       }
-      
+
       const results = await Promise.all(promises)
-      
+
       expect(results).toHaveLength(10)
-      expect(results.every(r => r.result === 'ok')).toBe(true)
+      expect(results.every((r) => r.result === 'ok')).toBe(true)
     })
   })
 })

@@ -28,23 +28,23 @@ jest.mock('../../../../src/logger', () => {
         debug: jest.fn(),
         info: jest.fn(),
         warn: jest.fn(),
-        error: jest.fn()
-      })
-    }))
+        error: jest.fn(),
+      }),
+    })),
   }
 })
 jest.mock('../../../../src/p2p/Context')
 jest.mock('../../../../src/storage')
 jest.mock('../../../../src/utils', () => ({
   makeShortHash: jest.fn(),
-  stringifyReduce: jest.fn()
+  stringifyReduce: jest.fn(),
 }))
 jest.mock('../../../../src/utils/profiler')
 jest.mock('../../../../src/state-manager/shardFunctions', () => ({
-  partitionInWrappingRange: jest.fn()
+  partitionInWrappingRange: jest.fn(),
 }))
 jest.mock('../../../../src/network', () => ({
-  shardusGetTime: jest.fn(() => Date.now())
+  shardusGetTime: jest.fn(() => Date.now()),
 }))
 jest.mock('../../../../src/p2p/NodeList')
 jest.mock('../../../../src/p2p/CycleChain')
@@ -53,7 +53,7 @@ jest.mock('../../../../src/utils/nestedCounters')
 const mockStateManager = {
   statemanager_fatal: jest.fn(),
   shardValuesByCycle: new Map(),
-  stateIsGood: true
+  stateIsGood: true,
 } as unknown as StateManager
 
 const mockCrypto = {} as unknown as Crypto
@@ -62,8 +62,8 @@ const mockLogger = {
     debug: jest.fn(),
     info: jest.fn(),
     warn: jest.fn(),
-    error: jest.fn()
-  })
+    error: jest.fn(),
+  }),
 } as unknown as Logger
 
 const mockP2P = {} as unknown as P2P
@@ -80,7 +80,7 @@ describe('PartitionObjects', () => {
 
   beforeEach(() => {
     jest.clearAllMocks()
-    
+
     // Setup mock returns
     mockedUtils.makeShortHash.mockImplementation((hash: string) => hash.substring(0, 8))
     mockedUtils.stringifyReduce.mockReturnValue('{}')
@@ -141,8 +141,8 @@ describe('PartitionObjects', () => {
       const mockShardValues = {
         nodeShardData: {
           consensusStartPartition: 0,
-          consensusEndPartition: 10
-        }
+          consensusEndPartition: 10,
+        },
       } as any
       mockStateManager.shardValuesByCycle.set(100, mockShardValues)
     })
@@ -160,8 +160,8 @@ describe('PartitionObjects', () => {
         cycleNumber: 100,
         res: [
           { i: 5, h: 'abcdef1234567890' },
-          { i: 8, h: 'fedcba0987654321' }
-        ]
+          { i: 8, h: 'fedcba0987654321' },
+        ],
       }
       partitionObjects.nextCycleReportToSend = mockReport
       partitionObjects.lastCycleReported = 99
@@ -180,7 +180,7 @@ describe('PartitionObjects', () => {
     it('should return partition report when partitionReportDirty is true', () => {
       const mockReport: PartitionCycleReport = {
         cycleNumber: 100,
-        res: [{ i: 5, h: 'abcdef1234567890' }]
+        res: [{ i: 5, h: 'abcdef1234567890' }],
       }
       partitionObjects.nextCycleReportToSend = mockReport
       partitionObjects.lastCycleReported = 100
@@ -200,15 +200,15 @@ describe('PartitionObjects', () => {
         cycleNumber: 100,
         res: [
           { i: 5, h: 'hash1' }, // within consensus range
-          { i: 15, h: 'hash2' } // outside consensus range
-        ]
+          { i: 15, h: 'hash2' }, // outside consensus range
+        ],
       }
       partitionObjects.nextCycleReportToSend = mockReport
       partitionObjects.lastCycleReported = 99
 
       // Mock the partition range check
       mockedShardFunctions.partitionInWrappingRange
-        .mockReturnValueOnce(true)  // partition 5 is in range
+        .mockReturnValueOnce(true) // partition 5 is in range
         .mockReturnValueOnce(false) // partition 15 is not in range
 
       const result = partitionObjects.getPartitionReport(true, false)
@@ -222,7 +222,7 @@ describe('PartitionObjects', () => {
     it('should use short hashes when smallHashes is true', () => {
       const mockReport: PartitionCycleReport = {
         cycleNumber: 100,
-        res: [{ i: 5, h: 'abcdef1234567890' }]
+        res: [{ i: 5, h: 'abcdef1234567890' }],
       }
       partitionObjects.nextCycleReportToSend = mockReport
       partitionObjects.lastCycleReported = 99
@@ -238,7 +238,7 @@ describe('PartitionObjects', () => {
     it('should return empty response when cycle already reported and not dirty', () => {
       const mockReport: PartitionCycleReport = {
         cycleNumber: 100,
-        res: [{ i: 5, h: 'hash1' }]
+        res: [{ i: 5, h: 'hash1' }],
       }
       partitionObjects.nextCycleReportToSend = mockReport
       partitionObjects.lastCycleReported = 100
@@ -252,10 +252,10 @@ describe('PartitionObjects', () => {
 
     it('should handle missing shard values gracefully', () => {
       mockStateManager.shardValuesByCycle.clear()
-      
+
       const mockReport: PartitionCycleReport = {
         cycleNumber: 200,
-        res: [{ i: 5, h: 'hash1' }]
+        res: [{ i: 5, h: 'hash1' }],
       }
       partitionObjects.nextCycleReportToSend = mockReport
       partitionObjects.lastCycleReported = 199
@@ -268,7 +268,7 @@ describe('PartitionObjects', () => {
     it('should call stringifyReduce for debug logging', () => {
       const mockReport: PartitionCycleReport = {
         cycleNumber: 100,
-        res: [{ i: 5, h: 'hash1' }]
+        res: [{ i: 5, h: 'hash1' }],
       }
       partitionObjects.nextCycleReportToSend = mockReport
       partitionObjects.lastCycleReported = 99

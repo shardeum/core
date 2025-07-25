@@ -124,7 +124,7 @@ describe('debug/index', () => {
     it('should have correct export structure', () => {
       // Verify the module exports both default and named exports
       const moduleExports = require('../../../src/debug/index')
-      
+
       expect(moduleExports).toBeDefined()
       expect(moduleExports.default).toBeDefined()
       expect(moduleExports.unsafeUnlock).toBeDefined()
@@ -161,7 +161,7 @@ describe('debug/index', () => {
     it('should maintain export consistency between import styles', () => {
       // CommonJS require
       const cjsExports = require('../../../src/debug/index')
-      
+
       // ES6 imports (already imported at top)
       expect(cjsExports.default).toBe(DefaultDebug)
       expect(cjsExports.unsafeUnlock).toBe(debugExports.unsafeUnlock)

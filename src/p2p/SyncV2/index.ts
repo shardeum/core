@@ -77,7 +77,7 @@ export function syncV2(activeNodes: P2P.SyncTypes.ActiveNode[], shardus: Shardus
 
             // Log config value before patching (for comparison)
             info(`syncV2: syncV2HistoricalCyclesCount before patch: ${config.p2p.syncV2HistoricalCyclesCount}`)
-            
+
             return ResultAsync.fromPromise(
               shardus.earlyConfigFetchAndPatch(cycle.counter),
               (error) => new Error(`Failed to fetch and patch config: ${error}`)
@@ -129,31 +129,37 @@ export function syncV2(activeNodes: P2P.SyncTypes.ActiveNode[], shardus: Shardus
               return syncHistoricalCycles(activeNodes, cycle).andThen((historicalCycles) => {
                 if (historicalCycles.length > 0) {
                   info(`syncV2: Adding ${historicalCycles.length} historical cycles to CycleChain`)
-                  
+
                   // Use batch prepend for efficiency
                   CycleChain.prependMultiple(historicalCycles)
-                  
+
                   info(`syncV2: CycleChain now has ${CycleChain.cycles.length} cycles`)
                   info(`syncV2: Oldest cycle counter: ${CycleChain.oldest.counter}`)
                   info(`syncV2: Newest cycle counter: ${CycleChain.newest.counter}`)
-                  info(`syncV2: Historical sync complete - using network config value of ${config.p2p.syncV2HistoricalCyclesCount}`)
-                  
+                  info(
+                    `syncV2: Historical sync complete - using network config value of ${config.p2p.syncV2HistoricalCyclesCount}`
+                  )
+
                   // Rebuild problematic node cache with all available cycles
                   if (config.p2p.enableProblematicNodeCacheBuilding) {
                     ProblemNodeHandler.rebuildCacheFromCycleChain()
                     info(`syncV2: Rebuilt ProblematicNodeCache with ${CycleChain.cycles.length} cycles`)
-                    
+
                     // Validate we have sufficient history for problematic node detection
                     const availableHistory = CycleChain.cycles.length
                     const requiredHistory = config.p2p.problematicNodeHistoryLength
                     if (availableHistory < requiredHistory) {
-                      warn(`syncV2: Insufficient cycle history for problematic node detection. Have ${availableHistory}, need ${requiredHistory}`)
+                      warn(
+                        `syncV2: Insufficient cycle history for problematic node detection. Have ${availableHistory}, need ${requiredHistory}`
+                      )
                     }
                   }
                 } else {
-                  info(`syncV2: No historical cycles synced (network config: ${config.p2p.syncV2HistoricalCyclesCount})`)
+                  info(
+                    `syncV2: No historical cycles synced (network config: ${config.p2p.syncV2HistoricalCyclesCount})`
+                  )
                 }
-                
+
                 return okAsync(void 0)
               })
             })
@@ -282,7 +288,7 @@ function syncLatestCycleRecord(
 
 /**
  * Synchronizes historical cycles from the network.
- * 
+ *
  * @param {P2P.SyncTypes.ActiveNode[]} activeNodes - Active nodes to query
  * @param {P2P.CycleCreatorTypes.CycleRecord} latestCycle - The latest cycle already synced
  * @returns {ResultAsync<P2P.CycleCreatorTypes.CycleRecord[], Error>} Array of historical cycles
@@ -295,106 +301,106 @@ function syncHistoricalCycles(
   // Note: The config object from Context is the same reference that gets patched,
   // so this will automatically use the network's value after earlyConfigFetchAndPatch runs
   const rawHistoricalCount = config.p2p.syncV2HistoricalCyclesCount || 0
-  
+
   // Log the config value being used (helps verify network vs local config)
   info(`syncV2HistoricalCyclesCount from config: ${rawHistoricalCount}`)
-  
+
   // Validate the count is within reasonable bounds (0-100)
   const MAX_HISTORICAL_CYCLES = 100
   const historicalCount = Math.min(Math.max(0, rawHistoricalCount), MAX_HISTORICAL_CYCLES)
-  
+
   if (rawHistoricalCount !== historicalCount) {
-    info(`Historical cycles count adjusted from ${rawHistoricalCount} to ${historicalCount} (max: ${MAX_HISTORICAL_CYCLES})`)
+    info(
+      `Historical cycles count adjusted from ${rawHistoricalCount} to ${historicalCount} (max: ${MAX_HISTORICAL_CYCLES})`
+    )
   }
-  
+
   if (historicalCount <= 0) {
     info('Historical cycles sync disabled (count = 0)')
     return okAsync([])
   }
-  
+
   info(`Starting historical cycles sync with network config value: ${historicalCount} cycles`)
-  
+
   // Run robust query for recent cycle markers with error handling for backward compatibility
   return robustQueryForRecentCycleMarkers(activeNodes)
     .andThen(({ value, winningNodes }) => {
-    const { cycleMarkers, oldestCounter } = value
-    
-    if (cycleMarkers.length === 0) {
-      info('No historical cycles available from network')
-      return okAsync([])
-    }
-    
-    info(`Found ${cycleMarkers.length} cycle markers available, oldest counter: ${oldestCounter}`)
-    
-    // Filter out the latest cycle we already have
-    const latestMarker = makeCycleMarker(latestCycle)
-    const historicalMarkers = cycleMarkers.filter(marker => marker !== latestMarker)
-    
-    // Limit to configured count
-    const markersToFetch = historicalMarkers.slice(-historicalCount)
-    
-    if (markersToFetch.length === 0) {
-      info('No additional historical cycles to fetch')
-      return okAsync([])
-    }
-    
-    info(`Fetching ${markersToFetch.length} historical cycles`)
-    
-    // Fetch cycles in batches
-    const batchSize = 10
-    const batches: string[][] = []
-    for (let i = 0; i < markersToFetch.length; i += batchSize) {
-      batches.push(markersToFetch.slice(i, i + batchSize))
-    }
-    
-    // Fetch all batches
-    const batchPromises = batches.map(batch => 
-      getCyclesBatchFromNode(winningNodes[0], batch)
-    )
-    
-    return ResultAsync.combine(batchPromises).andThen(results => {
-      const allCycles: P2P.CycleCreatorTypes.CycleRecord[] = []
-      for (const result of results) {
-        allCycles.push(...result.cycles)
+      const { cycleMarkers, oldestCounter } = value
+
+      if (cycleMarkers.length === 0) {
+        info('No historical cycles available from network')
+        return okAsync([])
       }
-      
-      // Sort cycles by counter (oldest to newest)
-      allCycles.sort((a, b) => a.counter - b.counter)
-      
-      // Validate cycle chain continuity
-      for (let i = 1; i < allCycles.length; i++) {
-        const prev = allCycles[i - 1]
-        const curr = allCycles[i]
-        if (!CycleChain.validate(prev, curr)) {
-          return errAsync(new Error(`Invalid cycle chain: cycle ${curr.counter} does not follow ${prev.counter}`))
+
+      info(`Found ${cycleMarkers.length} cycle markers available, oldest counter: ${oldestCounter}`)
+
+      // Filter out the latest cycle we already have
+      const latestMarker = makeCycleMarker(latestCycle)
+      const historicalMarkers = cycleMarkers.filter((marker) => marker !== latestMarker)
+
+      // Limit to configured count
+      const markersToFetch = historicalMarkers.slice(-historicalCount)
+
+      if (markersToFetch.length === 0) {
+        info('No additional historical cycles to fetch')
+        return okAsync([])
+      }
+
+      info(`Fetching ${markersToFetch.length} historical cycles`)
+
+      // Fetch cycles in batches
+      const batchSize = 10
+      const batches: string[][] = []
+      for (let i = 0; i < markersToFetch.length; i += batchSize) {
+        batches.push(markersToFetch.slice(i, i + batchSize))
+      }
+
+      // Fetch all batches
+      const batchPromises = batches.map((batch) => getCyclesBatchFromNode(winningNodes[0], batch))
+
+      return ResultAsync.combine(batchPromises).andThen((results) => {
+        const allCycles: P2P.CycleCreatorTypes.CycleRecord[] = []
+        for (const result of results) {
+          allCycles.push(...result.cycles)
         }
-      }
-      
-      // Validate connection to latest cycle
-      if (allCycles.length > 0) {
-        const lastHistorical = allCycles[allCycles.length - 1]
-        if (lastHistorical.counter !== latestCycle.counter - 1) {
-          // Check if we can still validate the chain
-          const expectedPrevMarker = makeCycleMarker(lastHistorical)
-          if (latestCycle.previous !== expectedPrevMarker) {
-            return errAsync(new Error(`Historical cycles do not connect to latest cycle`))
+
+        // Sort cycles by counter (oldest to newest)
+        allCycles.sort((a, b) => a.counter - b.counter)
+
+        // Validate cycle chain continuity
+        for (let i = 1; i < allCycles.length; i++) {
+          const prev = allCycles[i - 1]
+          const curr = allCycles[i]
+          if (!CycleChain.validate(prev, curr)) {
+            return errAsync(new Error(`Invalid cycle chain: cycle ${curr.counter} does not follow ${prev.counter}`))
           }
         }
-      }
-      
-      info(`Successfully fetched and validated ${allCycles.length} historical cycles`)
-      return okAsync(allCycles)
+
+        // Validate connection to latest cycle
+        if (allCycles.length > 0) {
+          const lastHistorical = allCycles[allCycles.length - 1]
+          if (lastHistorical.counter !== latestCycle.counter - 1) {
+            // Check if we can still validate the chain
+            const expectedPrevMarker = makeCycleMarker(lastHistorical)
+            if (latestCycle.previous !== expectedPrevMarker) {
+              return errAsync(new Error(`Historical cycles do not connect to latest cycle`))
+            }
+          }
+        }
+
+        info(`Successfully fetched and validated ${allCycles.length} historical cycles`)
+        return okAsync(allCycles)
+      })
     })
-  })
-  .orElse((error) => {
-    // Handle backward compatibility - older nodes won't have the endpoint
-    if (error.message.includes('404') || error.message.includes('not found')) {
-      info('Historical cycles sync not supported by network (backward compatibility)')
-      return okAsync([])
-    }
-    // Re-throw other errors
-    return errAsync(error)
-  })
+    .orElse((error) => {
+      // Handle backward compatibility - older nodes won't have the endpoint
+      if (error.message.includes('404') || error.message.includes('not found')) {
+        info('Historical cycles sync not supported by network (backward compatibility)')
+        return okAsync([])
+      }
+      // Re-throw other errors
+      return errAsync(error)
+    })
 }
 
 function info(...msg: any[]) {

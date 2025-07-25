@@ -4,51 +4,51 @@ import { Request, Response } from 'express'
 const mockCycleChain = {
   getCurrentCycleMarker: jest.fn(),
   cyclesByMarker: {},
-  newest: {}
+  newest: {},
 }
 jest.mock('../../../../../src/p2p/CycleChain', () => mockCycleChain)
 
 const mockCycleCreator = {
-  nextQ1Start: 0
+  nextQ1Start: 0,
 }
 jest.mock('../../../../../src/p2p/CycleCreator', () => mockCycleCreator)
 
 jest.mock('../../../../../src/p2p/NodeList', () => ({
   getNodeListHash: jest.fn(),
-  getLastHashedNodeList: jest.fn()
+  getLastHashedNodeList: jest.fn(),
 }))
 jest.mock('../../../../../src/p2p/Archivers', () => ({
   getArchiverListHash: jest.fn(),
-  getLastHashedArchiverList: jest.fn()
+  getLastHashedArchiverList: jest.fn(),
 }))
 jest.mock('../../../../../src/p2p/Join/v2', () => ({
   getStandbyListHash: jest.fn(),
-  getLastHashedStandbyList: jest.fn()
+  getLastHashedStandbyList: jest.fn(),
 }))
 jest.mock('../../../../../src/p2p/ServiceQueue', () => ({
   getTxListHash: jest.fn(),
-  getTxList: jest.fn()
+  getTxList: jest.fn(),
 }))
 jest.mock('../../../../../src/utils/profiler', () => ({
   profilerInstance: {
     scopedProfileSectionStart: jest.fn(),
-    scopedProfileSectionEnd: jest.fn()
-  }
+    scopedProfileSectionEnd: jest.fn(),
+  },
 }))
 jest.mock('../../../../../src/logger', () => ({
   logFlags: {
-    debug: false
-  }
+    debug: false,
+  },
 }))
 jest.mock('../../../../../src/utils', () => ({
-  jsonHttpResWithSize: jest.fn()
+  jsonHttpResWithSize: jest.fn(),
 }))
 jest.mock('../../../../../src/p2p/Context', () => ({
   network: {
     _registerExternal: jest.fn(),
-    registerExternalGet: jest.fn()
+    registerExternalGet: jest.fn(),
   },
-  setDefaultConfigs: jest.fn()
+  setDefaultConfigs: jest.fn(),
 }))
 
 // Import after mocking
@@ -76,14 +76,14 @@ describe('SyncV2 Routes', () => {
 
   beforeEach(() => {
     mockReq = {
-      query: {}
+      query: {},
     }
     mockRes = {
       json: jest.fn(),
       send: jest.fn(),
       status: jest.fn().mockReturnThis(),
       write: jest.fn(),
-      end: jest.fn()
+      end: jest.fn(),
     }
 
     // Reset all mocks
@@ -118,20 +118,21 @@ describe('SyncV2 Routes', () => {
     it('should return nodeListHash and nextCycleTimestamp', () => {
       const mockHash = 'test-hash'
       const mockTimestamp = 123456789
-      
+
       mockedNodeList.getNodeListHash.mockReturnValue(mockHash)
       mockCycleCreator.nextQ1Start = mockTimestamp
 
       // Get the handler from the registered routes
       initRoutes()
-      const handler = (network._registerExternal as jest.Mock).mock.calls
-        .find((call: any) => call[1] === 'validator-list-hash')[2]
+      const handler = (network._registerExternal as jest.Mock).mock.calls.find(
+        (call: any) => call[1] === 'validator-list-hash'
+      )[2]
 
       handler(mockReq, mockRes)
 
       expect(mockRes.json).toHaveBeenCalledWith({
         nodeListHash: mockHash,
-        nextCycleTimestamp: mockTimestamp
+        nextCycleTimestamp: mockTimestamp,
       })
     })
   })
@@ -142,13 +143,14 @@ describe('SyncV2 Routes', () => {
       mockedArchivers.getArchiverListHash.mockReturnValue(mockHash)
 
       initRoutes()
-      const handler = (network._registerExternal as jest.Mock).mock.calls
-        .find((call: any) => call[1] === 'archiver-list-hash')[2]
+      const handler = (network._registerExternal as jest.Mock).mock.calls.find(
+        (call: any) => call[1] === 'archiver-list-hash'
+      )[2]
 
       handler(mockReq, mockRes)
 
       expect(mockRes.json).toHaveBeenCalledWith({
-        archiverListHash: mockHash
+        archiverListHash: mockHash,
       })
     })
   })
@@ -159,13 +161,14 @@ describe('SyncV2 Routes', () => {
       mockedJoinV2.getStandbyListHash.mockReturnValue(mockHash)
 
       initRoutes()
-      const handler = (network._registerExternal as jest.Mock).mock.calls
-        .find((call: any) => call[1] === 'standby-list-hash')[2]
+      const handler = (network._registerExternal as jest.Mock).mock.calls.find(
+        (call: any) => call[1] === 'standby-list-hash'
+      )[2]
 
       handler(mockReq, mockRes)
 
       expect(mockRes.json).toHaveBeenCalledWith({
-        standbyNodeListHash: mockHash
+        standbyNodeListHash: mockHash,
       })
     })
   })
@@ -176,13 +179,14 @@ describe('SyncV2 Routes', () => {
       mockedServiceQueue.getTxListHash.mockReturnValue(mockHash)
 
       initRoutes()
-      const handler = (network._registerExternal as jest.Mock).mock.calls
-        .find((call: any) => call[1] === 'tx-list-hash')[2]
+      const handler = (network._registerExternal as jest.Mock).mock.calls.find(
+        (call: any) => call[1] === 'tx-list-hash'
+      )[2]
 
       handler(mockReq, mockRes)
 
       expect(mockRes.send).toHaveBeenCalledWith({
-        txListHash: mockHash
+        txListHash: mockHash,
       })
     })
   })
@@ -193,13 +197,14 @@ describe('SyncV2 Routes', () => {
       mockCycleChain.getCurrentCycleMarker.mockReturnValue(mockHash)
 
       initRoutes()
-      const handler = (network._registerExternal as jest.Mock).mock.calls
-        .find((call: any) => call[1] === 'current-cycle-hash')[2]
+      const handler = (network._registerExternal as jest.Mock).mock.calls.find(
+        (call: any) => call[1] === 'current-cycle-hash'
+      )[2]
 
       handler(mockReq, mockRes)
 
       expect(mockRes.json).toHaveBeenCalledWith({
-        currentCycleHash: mockHash
+        currentCycleHash: mockHash,
       })
     })
   })
@@ -208,14 +213,15 @@ describe('SyncV2 Routes', () => {
     it('should return validator list when hash matches', () => {
       const mockHash = 'valid-hash'
       const mockNodeList = [] as any
-      
+
       mockReq.query = { hash: mockHash }
       mockedNodeList.getNodeListHash.mockReturnValue(mockHash)
       mockedNodeList.getLastHashedNodeList.mockReturnValue(mockNodeList)
 
       initRoutes()
-      const handler = (network._registerExternal as jest.Mock).mock.calls
-        .find((call: any) => call[1] === 'validator-list')[2]
+      const handler = (network._registerExternal as jest.Mock).mock.calls.find(
+        (call: any) => call[1] === 'validator-list'
+      )[2]
 
       handler(mockReq, mockRes)
 
@@ -227,34 +233,36 @@ describe('SyncV2 Routes', () => {
     it('should return 404 when hash does not match', () => {
       const expectedHash = 'expected-hash'
       const actualHash = 'actual-hash'
-      
+
       mockReq.query = { hash: expectedHash }
       mockedNodeList.getNodeListHash.mockReturnValue(actualHash)
 
       initRoutes()
-      const handler = (network._registerExternal as jest.Mock).mock.calls
-        .find((call: any) => call[1] === 'validator-list')[2]
+      const handler = (network._registerExternal as jest.Mock).mock.calls.find(
+        (call: any) => call[1] === 'validator-list'
+      )[2]
 
       handler(mockReq, mockRes)
 
       expect(mockRes.status).toHaveBeenCalledWith(404)
       expect(mockRes.json).toHaveBeenCalledWith({
-        error: `validator list with hash '${expectedHash}' not found`
+        error: `validator list with hash '${expectedHash}' not found`,
       })
     })
 
     it('should return 404 when no hash provided', () => {
       mockReq.query = {}
-      
+
       initRoutes()
-      const handler = (network._registerExternal as jest.Mock).mock.calls
-        .find((call: any) => call[1] === 'validator-list')[2]
+      const handler = (network._registerExternal as jest.Mock).mock.calls.find(
+        (call: any) => call[1] === 'validator-list'
+      )[2]
 
       handler(mockReq, mockRes)
 
       expect(mockRes.status).toHaveBeenCalledWith(404)
       expect(mockRes.json).toHaveBeenCalledWith({
-        error: `validator list with hash 'undefined' not found`
+        error: `validator list with hash 'undefined' not found`,
       })
     })
   })
@@ -263,14 +271,15 @@ describe('SyncV2 Routes', () => {
     it('should return archiver list when hash matches', () => {
       const mockHash = 'valid-hash'
       const mockArchiverList = [] as any
-      
+
       mockReq.query = { hash: mockHash }
       mockedArchivers.getArchiverListHash.mockReturnValue(mockHash)
       mockedArchivers.getLastHashedArchiverList.mockReturnValue(mockArchiverList)
 
       initRoutes()
-      const handler = (network._registerExternal as jest.Mock).mock.calls
-        .find((call: any) => call[1] === 'archiver-list')[2]
+      const handler = (network._registerExternal as jest.Mock).mock.calls.find(
+        (call: any) => call[1] === 'archiver-list'
+      )[2]
 
       handler(mockReq, mockRes)
 
@@ -282,19 +291,20 @@ describe('SyncV2 Routes', () => {
     it('should return 404 when hash does not match', () => {
       const expectedHash = 'expected-hash'
       const actualHash = 'actual-hash'
-      
+
       mockReq.query = { hash: expectedHash }
       mockedArchivers.getArchiverListHash.mockReturnValue(actualHash)
 
       initRoutes()
-      const handler = (network._registerExternal as jest.Mock).mock.calls
-        .find((call: any) => call[1] === 'archiver-list')[2]
+      const handler = (network._registerExternal as jest.Mock).mock.calls.find(
+        (call: any) => call[1] === 'archiver-list'
+      )[2]
 
       handler(mockReq, mockRes)
 
       expect(mockRes.status).toHaveBeenCalledWith(404)
       expect(mockRes.json).toHaveBeenCalledWith({
-        error: `archiver list with hash '${expectedHash}' not found`
+        error: `archiver list with hash '${expectedHash}' not found`,
       })
     })
   })
@@ -303,14 +313,15 @@ describe('SyncV2 Routes', () => {
     it('should return standby list when hash matches', () => {
       const mockHash = 'valid-hash'
       const mockStandbyList = [] as any
-      
+
       mockReq.query = { hash: mockHash }
       mockedJoinV2.getStandbyListHash.mockReturnValue(mockHash)
       mockedJoinV2.getLastHashedStandbyList.mockReturnValue(mockStandbyList)
 
       initRoutes()
-      const handler = (network._registerExternal as jest.Mock).mock.calls
-        .find((call: any) => call[1] === 'standby-list')[2]
+      const handler = (network._registerExternal as jest.Mock).mock.calls.find(
+        (call: any) => call[1] === 'standby-list'
+      )[2]
 
       handler(mockReq, mockRes)
 
@@ -322,19 +333,20 @@ describe('SyncV2 Routes', () => {
     it('should return 404 when hash does not match', () => {
       const expectedHash = 'expected-hash'
       const actualHash = 'actual-hash'
-      
+
       mockReq.query = { hash: expectedHash }
       mockedJoinV2.getStandbyListHash.mockReturnValue(actualHash)
 
       initRoutes()
-      const handler = (network._registerExternal as jest.Mock).mock.calls
-        .find((call: any) => call[1] === 'standby-list')[2]
+      const handler = (network._registerExternal as jest.Mock).mock.calls.find(
+        (call: any) => call[1] === 'standby-list'
+      )[2]
 
       handler(mockReq, mockRes)
 
       expect(mockRes.status).toHaveBeenCalledWith(404)
       expect(mockRes.json).toHaveBeenCalledWith({
-        error: `standby list with hash '${expectedHash}' not found`
+        error: `standby list with hash '${expectedHash}' not found`,
       })
     })
   })
@@ -343,14 +355,13 @@ describe('SyncV2 Routes', () => {
     it('should return tx list when hash matches', () => {
       const mockHash = 'valid-hash'
       const mockTxList = [] as any
-      
+
       mockReq.query = { hash: mockHash }
       mockedServiceQueue.getTxListHash.mockReturnValue(mockHash)
       mockedServiceQueue.getTxList.mockReturnValue(mockTxList)
 
       initRoutes()
-      const handler = (network._registerExternal as jest.Mock).mock.calls
-        .find((call: any) => call[1] === 'tx-list')[2]
+      const handler = (network._registerExternal as jest.Mock).mock.calls.find((call: any) => call[1] === 'tx-list')[2]
 
       handler(mockReq, mockRes)
 
@@ -362,13 +373,12 @@ describe('SyncV2 Routes', () => {
     it('should return 404 when hash does not match', () => {
       const expectedHash = 'expected-hash'
       const actualHash = 'actual-hash'
-      
+
       mockReq.query = { hash: expectedHash }
       mockedServiceQueue.getTxListHash.mockReturnValue(actualHash)
 
       initRoutes()
-      const handler = (network._registerExternal as jest.Mock).mock.calls
-        .find((call: any) => call[1] === 'tx-list')[2]
+      const handler = (network._registerExternal as jest.Mock).mock.calls.find((call: any) => call[1] === 'tx-list')[2]
 
       handler(mockReq, mockRes)
 
@@ -381,13 +391,14 @@ describe('SyncV2 Routes', () => {
     it('should return cycle when marker exists', () => {
       const mockMarker = 'test-marker'
       const mockCycle = {} as any
-      
+
       mockReq.query = { marker: mockMarker }
       mockCycleChain.cyclesByMarker = { [mockMarker]: mockCycle }
 
       initRoutes()
-      const handler = (network._registerExternal as jest.Mock).mock.calls
-        .find((call: any) => call[1] === 'cycle-by-marker')[2]
+      const handler = (network._registerExternal as jest.Mock).mock.calls.find(
+        (call: any) => call[1] === 'cycle-by-marker'
+      )[2]
 
       handler(mockReq, mockRes)
 
@@ -398,19 +409,20 @@ describe('SyncV2 Routes', () => {
 
     it('should return 404 when marker does not exist', () => {
       const mockMarker = 'nonexistent-marker'
-      
+
       mockReq.query = { marker: mockMarker }
       mockCycleChain.cyclesByMarker = {}
 
       initRoutes()
-      const handler = (network._registerExternal as jest.Mock).mock.calls
-        .find((call: any) => call[1] === 'cycle-by-marker')[2]
+      const handler = (network._registerExternal as jest.Mock).mock.calls.find(
+        (call: any) => call[1] === 'cycle-by-marker'
+      )[2]
 
       handler(mockReq, mockRes)
 
       expect(mockRes.status).toHaveBeenCalledWith(404)
       expect(mockRes.json).toHaveBeenCalledWith({
-        error: `cycle with marker '${mockMarker}' not found`
+        error: `cycle with marker '${mockMarker}' not found`,
       })
     })
   })
@@ -421,8 +433,9 @@ describe('SyncV2 Routes', () => {
       mockCycleChain.newest = mockNewestCycle
 
       initRoutes()
-      const handler = (network._registerExternal as jest.Mock).mock.calls
-        .find((call: any) => call[1] === 'newest-cycle-record')[2]
+      const handler = (network._registerExternal as jest.Mock).mock.calls.find(
+        (call: any) => call[1] === 'newest-cycle-record'
+      )[2]
 
       handler(mockReq, mockRes)
 

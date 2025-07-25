@@ -35,15 +35,16 @@ jest.mock('../../../../src/p2p/NodeList', () => ({
   potentiallyRemoved: new Set(),
 }))
 
-const createMockNode = (id: string, externalIp: string, externalPort: number): Shardus.Node => ({
-  id,
-  externalIp,
-  externalPort,
-  internalIp: '192.168.1.1',
-  internalPort: 9001,
-  publicKey: `mock-public-key-${id}`,
-  status: 'active',
-} as Shardus.Node)
+const createMockNode = (id: string, externalIp: string, externalPort: number): Shardus.Node =>
+  ({
+    id,
+    externalIp,
+    externalPort,
+    internalIp: '192.168.1.1',
+    internalPort: 9001,
+    publicKey: `mock-public-key-${id}`,
+    status: 'active',
+  } as Shardus.Node)
 
 const createMockStateManager = (): any => ({
   mainLogger: {
@@ -176,28 +177,23 @@ describe('DataSourceHelper', () => {
       dataSourceHelper.initByRange('1000', '2000')
 
       expect(mockShardFunctions.getCenterHomeNode).toHaveBeenCalled()
-      expect(mockStateManager.mainLogger.error).toHaveBeenCalledWith(
-        'getDataSourceNode: centerNode not found'
-      )
+      expect(mockStateManager.mainLogger.error).toHaveBeenCalledWith('getDataSourceNode: centerNode not found')
       expect(dataSourceHelper.dataSourceNodeList).toEqual([])
     })
 
     it('should successfully initialize with valid range and nodes', () => {
       const mockCycleShardData = createMockCycleShardData()
       mockStateManager.currentCycleShardData = mockCycleShardData
-      
+
       const centerNode = createMockCenterNodeShardData()
-      const proximityNodes = [
-        createMockNode('node1', '127.0.0.1', 4000),
-        createMockNode('node2', '127.0.0.2', 4001),
-      ]
-      
+      const proximityNodes = [createMockNode('node1', '127.0.0.1', 4000), createMockNode('node2', '127.0.0.2', 4001)]
+
       mockShardFunctions.getCenterHomeNode.mockReturnValue(centerNode)
       mockShardFunctions.getNodesByProximity.mockReturnValue(proximityNodes)
       mockShardFunctions.testAddressInRange.mockReturnValue(true)
 
       // Mock nodeShardDataMap
-      proximityNodes.forEach(node => {
+      proximityNodes.forEach((node) => {
         mockCycleShardData.nodeShardDataMap.set(node.id, createMockNodeShardData())
       })
 
@@ -227,26 +223,22 @@ describe('DataSourceHelper', () => {
     it('should filter out nodes that cannot fit the range', () => {
       const mockCycleShardData = createMockCycleShardData()
       mockStateManager.currentCycleShardData = mockCycleShardData
-      
+
       const centerNode = createMockCenterNodeShardData()
-      const proximityNodes = [
-        createMockNode('node1', '127.0.0.1', 4000),
-        createMockNode('node2', '127.0.0.2', 4001),
-      ]
-      
+      const proximityNodes = [createMockNode('node1', '127.0.0.1', 4000), createMockNode('node2', '127.0.0.2', 4001)]
+
       mockShardFunctions.getCenterHomeNode.mockReturnValue(centerNode)
       mockShardFunctions.getNodesByProximity.mockReturnValue(proximityNodes)
       // First node fails range test, second passes
       mockShardFunctions.testAddressInRange
         .mockReturnValueOnce(false) // queryLow fails for node1
-        .mockReturnValueOnce(true)   // queryLow passes for node2
-        .mockReturnValueOnce(true)   // queryHigh passes for node2
+        .mockReturnValueOnce(true) // queryLow passes for node2
+        .mockReturnValueOnce(true) // queryHigh passes for node2
 
       // Mock nodeShardDataMap
-      proximityNodes.forEach(node => {
+      proximityNodes.forEach((node) => {
         mockCycleShardData.nodeShardDataMap.set(node.id, createMockNodeShardData())
       })
-
       ;(logFlags as any).error = true
 
       dataSourceHelper.initByRange('1000', '2000')
@@ -261,21 +253,18 @@ describe('DataSourceHelper', () => {
     it('should filter out potentially removed nodes', () => {
       const mockCycleShardData = createMockCycleShardData()
       mockStateManager.currentCycleShardData = mockCycleShardData
-      
+
       const centerNode = createMockCenterNodeShardData()
-      const proximityNodes = [
-        createMockNode('node1', '127.0.0.1', 4000),
-        createMockNode('node2', '127.0.0.2', 4001),
-      ]
-      
+      const proximityNodes = [createMockNode('node1', '127.0.0.1', 4000), createMockNode('node2', '127.0.0.2', 4001)]
+
       // Mark node1 as potentially removed
       ;(potentiallyRemoved as Set<string>).add('node1')
-      
+
       mockShardFunctions.getCenterHomeNode.mockReturnValue(centerNode)
       mockShardFunctions.getNodesByProximity.mockReturnValue(proximityNodes)
       mockShardFunctions.testAddressInRange.mockReturnValue(true)
 
-      proximityNodes.forEach(node => {
+      proximityNodes.forEach((node) => {
         mockCycleShardData.nodeShardDataMap.set(node.id, createMockNodeShardData())
       })
 
@@ -288,18 +277,17 @@ describe('DataSourceHelper', () => {
     it('should handle case with no valid nodes found', () => {
       const mockCycleShardData = createMockCycleShardData()
       mockStateManager.currentCycleShardData = mockCycleShardData
-      
+
       const centerNode = createMockCenterNodeShardData()
       const proximityNodes = [createMockNode('node1', '127.0.0.1', 4000)]
-      
+
       mockShardFunctions.getCenterHomeNode.mockReturnValue(centerNode)
       mockShardFunctions.getNodesByProximity.mockReturnValue(proximityNodes)
       mockShardFunctions.testAddressInRange.mockReturnValue(false)
 
-      proximityNodes.forEach(node => {
+      proximityNodes.forEach((node) => {
         mockCycleShardData.nodeShardDataMap.set(node.id, createMockNodeShardData())
       })
-
       ;(logFlags as any).error = true
 
       dataSourceHelper.initByRange('1000', '2000')
@@ -386,10 +374,7 @@ describe('DataSourceHelper', () => {
 
   describe('tryRestartList', () => {
     it('should restart list with small number of nodes', () => {
-      const nodes = [
-        createMockNode('node1', '127.0.0.1', 4000),
-        createMockNode('node2', '127.0.0.2', 4001),
-      ]
+      const nodes = [createMockNode('node1', '127.0.0.1', 4000), createMockNode('node2', '127.0.0.2', 4001)]
       dataSourceHelper.initWithList(nodes)
       dataSourceHelper.dataSourceNodeIndex = 1
 
@@ -522,10 +507,7 @@ describe('DataSourceHelper', () => {
 
   describe('integration scenarios', () => {
     it('should handle complete node rotation', () => {
-      const nodes = [
-        createMockNode('node1', '127.0.0.1', 4000),
-        createMockNode('node2', '127.0.0.2', 4001),
-      ]
+      const nodes = [createMockNode('node1', '127.0.0.1', 4000), createMockNode('node2', '127.0.0.2', 4001)]
       dataSourceHelper.initWithList(nodes)
 
       expect(dataSourceHelper.dataSourceNode.externalIp).toBe('127.0.0.1')

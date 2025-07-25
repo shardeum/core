@@ -38,15 +38,15 @@ jest.mock('../../../../src/snapshot/index', () => ({
   safetyModeVals: { safetyNum: 100 },
   snapshotLogger: {
     error: jest.fn(),
-  }
+  },
 }))
 jest.mock('../../../../src/network')
 jest.mock('../../../../src/logger', () => ({
   logFlags: { console: false, verbose: false },
   logger: {
     mainLog_debug: jest.fn(),
-    combine: jest.fn()
-  }
+    combine: jest.fn(),
+  },
 }))
 jest.mock('got')
 jest.mock('zlib')
@@ -67,10 +67,10 @@ describe('snapshotFunctions', () => {
     mockContext.crypto = {
       hash: jest.fn(),
     } as any
-    
+
     // Set default return value for hash
     ;(mockContext.crypto.hash as jest.Mock).mockReturnValue('mock-hash')
-    
+
     mockContext.storage = {
       addPartitionHash: jest.fn() as jest.Mock,
       addNetworkState: jest.fn() as jest.Mock,
@@ -169,7 +169,7 @@ describe('snapshotFunctions', () => {
         networkHash: 'new-hash',
         counter: 150,
       } as P2P.SnapshotTypes.StateHashes
-      
+
       // Create a map with 100 entries from 49 to 148 (this will make it 101 after adding the new entry at 150)
       const existingEntries: [number, P2P.SnapshotTypes.StateHashes][] = []
       for (let i = 49; i <= 148; i++) {
@@ -219,7 +219,10 @@ describe('snapshotFunctions', () => {
     it('should convert receiptMapHashes Map to object', () => {
       const counter = 50
       const receiptHash = {
-        receiptMapHashes: new Map([['1', 'hash1'], ['2', 'hash2']]),
+        receiptMapHashes: new Map([
+          ['1', 'hash1'],
+          ['2', 'hash2'],
+        ]),
         networkReceiptHash: 'network-hash',
         counter: 50,
       } as P2P.SnapshotTypes.ReceiptHashes
@@ -251,7 +254,10 @@ describe('snapshotFunctions', () => {
     it('should convert summaryHashes Map to object', () => {
       const counter = 50
       const summaryHashes = {
-        summaryHashes: new Map([['1', 'hash1'], ['2', 'hash2']]),
+        summaryHashes: new Map([
+          ['1', 'hash1'],
+          ['2', 'hash2'],
+        ]),
         networkSummaryHash: 'network-hash',
         counter: 50,
       } as P2P.SnapshotTypes.SummaryHashes
@@ -430,51 +436,55 @@ describe('snapshotFunctions', () => {
     const mockShardGlobals = {
       numPartitions: 100,
     } as StateManager.shardFunctionTypes.ShardGlobals
-    
+
     const mockNodeShardDataMap = new Map()
-    const mockOldPartitionHashMap = new Map([[1, 'hash1'], [-1, 'global-hash']])
+    const mockOldPartitionHashMap = new Map([
+      [1, 'hash1'],
+      [-1, 'global-hash'],
+    ])
     const lastSnapshotCycle = 10
 
     beforeEach(() => {
       mockNodeList.byIdOrder = [{ id: 'node1', cycleJoined: 1 }] as any
       mockShardFunctions.computePartitionShardDataMap = jest.fn()
       mockShardFunctions.computeNodePartitionDataMap = jest.fn()
-      
+
       // Mock partition shard data map
       const mockPartitionShardDataMap = new Map([
-        [1, { 
-          homeRange: { 
-            low: 'low1', 
-            high: 'high1',
-            partition: 1,
-            p_low: 1,
-            p_high: 2,
-            partitionEnd: 2,
-            startAddr: 1,
-            endAddr: 2
-          } 
-        }],
+        [
+          1,
+          {
+            homeRange: {
+              low: 'low1',
+              high: 'high1',
+              partition: 1,
+              p_low: 1,
+              p_high: 2,
+              partitionEnd: 2,
+              startAddr: 1,
+              endAddr: 2,
+            },
+          },
+        ],
       ])
       mockShardFunctions.computePartitionShardDataMap.mockImplementation((globals, map) => {
-        map.set(1, { 
-          homeRange: { 
-            low: 'low1', 
+        map.set(1, {
+          homeRange: {
+            low: 'low1',
             high: 'high1',
             partition: 1,
             p_low: 1,
             p_high: 2,
             partitionEnd: 2,
             startAddr: 1,
-            endAddr: 2
-          } 
+            endAddr: 2,
+          },
         } as any)
       })
     })
 
     it('should return old data map with matching hashes', async () => {
-      const mockAccountCopies = [
-        { accountId: 'acc1', data: {}, timestamp: 123, hash: 'acc-hash1', isGlobal: false },
-      ]
+      const mockAccountCopies = [{ accountId: 'acc1', data: {}, timestamp: 123, hash: 'acc-hash1', isGlobal: false }]
       const mockGlobalAccounts = [
         { accountId: 'global1', data: {}, timestamp: 123, hash: 'global-hash1', isGlobal: true },
       ]
@@ -497,9 +507,7 @@ describe('snapshotFunctions', () => {
     })
 
     it('should exclude data with mismatched hashes', async () => {
-      const mockAccountCopies = [
-        { accountId: 'acc1', data: {}, timestamp: 123, hash: 'acc-hash1', isGlobal: false },
-      ]
+      const mockAccountCopies = [{ accountId: 'acc1', data: {}, timestamp: 123, hash: 'acc-hash1', isGlobal: false }]
 
       ;(mockContext.storage.getOldAccountCopiesByCycleAndRange as jest.Mock).mockResolvedValue(mockAccountCopies)
       ;(mockContext.crypto.hash as jest.Mock).mockReturnValue('different-hash')
@@ -516,7 +524,9 @@ describe('snapshotFunctions', () => {
 
     it('should handle storage errors gracefully', async () => {
       const consoleSpy = jest.spyOn(console, 'log').mockImplementation()
-      ;(mockContext.storage.getOldAccountCopiesByCycleAndRange as jest.Mock).mockRejectedValue(new Error('Storage error'))
+      ;(mockContext.storage.getOldAccountCopiesByCycleAndRange as jest.Mock).mockRejectedValue(
+        new Error('Storage error')
+      )
 
       const result = await calculateOldDataMap(
         mockShardGlobals,
@@ -547,13 +557,19 @@ describe('snapshotFunctions', () => {
       expect(dataToMigrate.has(1)).toBe(true)
       expect(dataToMigrate.has(2)).toBe(true)
       expect(dataToMigrate.has(3)).toBe(true)
-      expect(dataToMigrate.get(1)).toEqual([{ accountId: 'existing-acc1', cycleNumber: 1, data: {}, timestamp: 123, hash: 'hash1', isGlobal: false }]) // Should not overwrite
-      expect(dataToMigrate.get(2)).toEqual([{ accountId: 'acc2', cycleNumber: 1, data: {}, timestamp: 123, hash: 'hash2', isGlobal: false }])
+      expect(dataToMigrate.get(1)).toEqual([
+        { accountId: 'existing-acc1', cycleNumber: 1, data: {}, timestamp: 123, hash: 'hash1', isGlobal: false },
+      ]) // Should not overwrite
+      expect(dataToMigrate.get(2)).toEqual([
+        { accountId: 'acc2', cycleNumber: 1, data: {}, timestamp: 123, hash: 'hash2', isGlobal: false },
+      ])
     })
 
     it('should handle empty oldDataMap', () => {
       const oldDataMap = new Map()
-      const dataToMigrate = new Map([[1, [{ accountId: 'acc1', cycleNumber: 1, data: {}, timestamp: 123, hash: 'hash1', isGlobal: false }]]])
+      const dataToMigrate = new Map([
+        [1, [{ accountId: 'acc1', cycleNumber: 1, data: {}, timestamp: 123, hash: 'hash1', isGlobal: false }]],
+      ])
 
       copyOldDataToDataToMigrate(oldDataMap, dataToMigrate)
 
@@ -568,7 +584,7 @@ describe('snapshotFunctions', () => {
 
     beforeEach(() => {
       mockSelf.id = 'node1'
-      
+
       mockShardFunctions.addressToPartition.mockReturnValue({ homePartition: 10, addressNum: 123 })
       mockShardFunctions.calculateStoredPartitions2.mockReturnValue({
         partitionStart: 8,
@@ -613,7 +629,13 @@ describe('snapshotFunctions', () => {
     })
 
     it('should always include global partition (-1) if missing', () => {
-      const oldDataMap = new Map([[8, []], [9, []], [10, []], [11, []], [12, []]])
+      const oldDataMap = new Map([
+        [8, []],
+        [9, []],
+        [10, []],
+        [11, []],
+        [12, []],
+      ])
 
       const result = getMissingPartitions(mockShardGlobals, oldDataMap)
 
@@ -622,7 +644,12 @@ describe('snapshotFunctions', () => {
 
     it('should return empty array when all partitions are present', () => {
       const oldDataMap = new Map([
-        [8, []], [9, []], [10, []], [11, []], [12, []], [-1, []],
+        [8, []],
+        [9, []],
+        [10, []],
+        [11, []],
+        [12, []],
+        [-1, []],
       ])
 
       const result = getMissingPartitions(mockShardGlobals, oldDataMap)
@@ -661,16 +688,15 @@ describe('snapshotFunctions', () => {
 
       registerDownloadRoutes(mockNetwork, oldDataMap, oldPartitionHashMap)
 
-      expect(mockNetwork.registerExternalGet).toHaveBeenCalledWith(
-        'download-snapshot-data',
-        expect.any(Function)
-      )
+      expect(mockNetwork.registerExternalGet).toHaveBeenCalledWith('download-snapshot-data', expect.any(Function))
     })
 
     it('should handle download request with streaming and compression', () => {
-      const oldDataMap = new Map([[1, [{ accountId: 'acc1', cycleNumber: 1, data: {}, timestamp: 123, hash: 'hash1', isGlobal: false }]]])
+      const oldDataMap = new Map([
+        [1, [{ accountId: 'acc1', cycleNumber: 1, data: {}, timestamp: 123, hash: 'hash1', isGlobal: false }]],
+      ])
       const oldPartitionHashMap = new Map([[1, 'hash1']])
-      
+
       const mockGzip = {
         pipe: jest.fn().mockImplementation(() => ({
           on: jest.fn((event, callback) => {
@@ -678,7 +704,7 @@ describe('snapshotFunctions', () => {
               // Simulate the end event
               callback()
             }
-          })
+          }),
         })),
         on: jest.fn(),
       }

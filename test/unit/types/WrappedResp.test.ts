@@ -2,7 +2,7 @@ import {
   WrappedResp,
   serializeWrappedResp,
   deserializeWrappedResp,
-  cWrappedRespVersion
+  cWrappedRespVersion,
 } from '../../../src/types/WrappedResp'
 import { VectorBufferStream } from '../../../src/utils/serialization/VectorBufferStream'
 import { TypeIdentifierEnum } from '../../../src/types/enum/TypeIdentifierEnum'
@@ -16,7 +16,7 @@ describe('WrappedResp', () => {
       writeUInt8: jest.fn(),
       writeBuffer: jest.fn(),
       readUInt8: jest.fn(),
-      readBuffer: jest.fn()
+      readBuffer: jest.fn(),
     } as unknown as VectorBufferStream
   })
 
@@ -30,7 +30,7 @@ describe('WrappedResp', () => {
     it('should serialize without root flag', () => {
       const payload = Buffer.from('response payload data')
       const resp: WrappedResp = {
-        payload
+        payload,
       }
 
       serializeWrappedResp(mockStream, resp, false)
@@ -43,7 +43,7 @@ describe('WrappedResp', () => {
     it('should serialize with root flag', () => {
       const payload = Buffer.from('response payload data')
       const resp: WrappedResp = {
-        payload
+        payload,
       }
 
       serializeWrappedResp(mockStream, resp, true)
@@ -55,7 +55,7 @@ describe('WrappedResp', () => {
 
     it('should handle empty buffer', () => {
       const resp: WrappedResp = {
-        payload: Buffer.alloc(0)
+        payload: Buffer.alloc(0),
       }
 
       serializeWrappedResp(mockStream, resp)
@@ -67,7 +67,7 @@ describe('WrappedResp', () => {
     it('should handle large buffer', () => {
       const largePayload = Buffer.alloc(50000, 'z')
       const resp: WrappedResp = {
-        payload: largePayload
+        payload: largePayload,
       }
 
       serializeWrappedResp(mockStream, resp)
@@ -76,9 +76,9 @@ describe('WrappedResp', () => {
     })
 
     it('should handle binary data in buffer', () => {
-      const binaryData = Buffer.from([0xDE, 0xAD, 0xBE, 0xEF, 0xCA, 0xFE, 0xBA, 0xBE])
+      const binaryData = Buffer.from([0xde, 0xad, 0xbe, 0xef, 0xca, 0xfe, 0xba, 0xbe])
       const resp: WrappedResp = {
-        payload: binaryData
+        payload: binaryData,
       }
 
       serializeWrappedResp(mockStream, resp)
@@ -89,7 +89,7 @@ describe('WrappedResp', () => {
     it('should handle UTF-8 encoded string data', () => {
       const utf8Data = Buffer.from('Hello 世界! 🌍', 'utf8')
       const resp: WrappedResp = {
-        payload: utf8Data
+        payload: utf8Data,
       }
 
       serializeWrappedResp(mockStream, resp)
@@ -108,7 +108,7 @@ describe('WrappedResp', () => {
       const result = deserializeWrappedResp(mockStream)
 
       expect(result).toEqual({
-        payload: expectedPayload
+        payload: expectedPayload,
       })
       expect(mockStream.readUInt8).toHaveBeenCalledTimes(1)
       expect(mockStream.readBuffer).toHaveBeenCalledTimes(1)
@@ -129,7 +129,7 @@ describe('WrappedResp', () => {
       const result = deserializeWrappedResp(mockStream)
 
       expect(result).toEqual({
-        payload: emptyBuffer
+        payload: emptyBuffer,
       })
     })
 
@@ -142,12 +142,12 @@ describe('WrappedResp', () => {
       const result = deserializeWrappedResp(mockStream)
 
       expect(result).toEqual({
-        payload: largePayload
+        payload: largePayload,
       })
     })
 
     it('should handle binary data', () => {
-      const binaryData = Buffer.from([0xDE, 0xAD, 0xBE, 0xEF, 0xCA, 0xFE, 0xBA, 0xBE])
+      const binaryData = Buffer.from([0xde, 0xad, 0xbe, 0xef, 0xca, 0xfe, 0xba, 0xbe])
 
       ;(mockStream.readUInt8 as jest.Mock).mockReturnValueOnce(cWrappedRespVersion)
       ;(mockStream.readBuffer as jest.Mock).mockReturnValueOnce(binaryData)
@@ -155,7 +155,7 @@ describe('WrappedResp', () => {
       const result = deserializeWrappedResp(mockStream)
 
       expect(result).toEqual({
-        payload: binaryData
+        payload: binaryData,
       })
     })
 
@@ -168,7 +168,7 @@ describe('WrappedResp', () => {
       const result = deserializeWrappedResp(mockStream)
 
       expect(result).toEqual({
-        payload
+        payload,
       })
     })
 
@@ -181,7 +181,7 @@ describe('WrappedResp', () => {
       const result = deserializeWrappedResp(mockStream)
 
       expect(result).toEqual({
-        payload: utf8Data
+        payload: utf8Data,
       })
     })
   })

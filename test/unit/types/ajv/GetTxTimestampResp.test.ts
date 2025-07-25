@@ -18,27 +18,24 @@ describe('GetTxTimestampResp', () => {
       initGetTxTimestampResp()
 
       expect(addSchemaSpy).toHaveBeenCalledTimes(1)
-      expect(addSchemaSpy).toHaveBeenCalledWith(
-        'GetTxTimestampResp',
-        {
-          type: 'object',
-          properties: {
-            txId: { type: 'string' },
-            cycleCounter: { type: 'number' },
-            cycleMarker: { type: 'string' },
-            timestamp: { type: 'number' },
-            sign: {
-              type: 'object',
-              properties: {
-                owner: { type: 'string' },
-                sig: { type: 'string' },
-              },
+      expect(addSchemaSpy).toHaveBeenCalledWith('GetTxTimestampResp', {
+        type: 'object',
+        properties: {
+          txId: { type: 'string' },
+          cycleCounter: { type: 'number' },
+          cycleMarker: { type: 'string' },
+          timestamp: { type: 'number' },
+          sign: {
+            type: 'object',
+            properties: {
+              owner: { type: 'string' },
+              sig: { type: 'string' },
             },
-            isResponse: { type: 'boolean' },
           },
-          required: ['txId', 'cycleCounter', 'cycleMarker', 'timestamp'],
-        }
-      )
+          isResponse: { type: 'boolean' },
+        },
+        required: ['txId', 'cycleCounter', 'cycleMarker', 'timestamp'],
+      })
     })
 
     it('should not throw any errors', () => {
@@ -68,7 +65,7 @@ describe('GetTxTimestampResp', () => {
       initGetTxTimestampResp()
 
       const { properties } = capturedSchema
-      
+
       expect(properties.txId).toEqual({ type: 'string' })
       expect(properties.cycleCounter).toEqual({ type: 'number' })
       expect(properties.cycleMarker).toEqual({ type: 'string' })
@@ -100,12 +97,7 @@ describe('GetTxTimestampResp', () => {
 
       initGetTxTimestampResp()
 
-      expect(capturedSchema.required).toEqual([
-        'txId',
-        'cycleCounter',
-        'cycleMarker',
-        'timestamp'
-      ])
+      expect(capturedSchema.required).toEqual(['txId', 'cycleCounter', 'cycleMarker', 'timestamp'])
     })
 
     it('should not require sign and isResponse fields', () => {
@@ -124,10 +116,7 @@ describe('GetTxTimestampResp', () => {
       initGetTxTimestampResp()
 
       // Check that the first argument is a string, not an enum value
-      expect(addSchemaSpy).toHaveBeenCalledWith(
-        'GetTxTimestampResp',
-        expect.any(Object)
-      )
+      expect(addSchemaSpy).toHaveBeenCalledWith('GetTxTimestampResp', expect.any(Object))
       expect(typeof addSchemaSpy.mock.calls[0][0]).toBe('string')
     })
   })

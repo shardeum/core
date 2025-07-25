@@ -497,13 +497,15 @@ class CachedAppDataManager {
           cycle: message.cachedAppData.cycle,
         },
       }
-      fireAndForget(() => this.p2p.tellBinary<SendCachedAppDataReq>(
-        filteredCorrespondingAccNodes,
-        InternalRouteEnum.binary_send_cachedAppData,
-        sendCacheAppDataReq,
-        serializeSendCachedAppDataReq,
-        {}
-      ))
+      fireAndForget(() =>
+        this.p2p.tellBinary<SendCachedAppDataReq>(
+          filteredCorrespondingAccNodes,
+          InternalRouteEnum.binary_send_cachedAppData,
+          sendCacheAppDataReq,
+          serializeSendCachedAppDataReq,
+          {}
+        )
+      )
       // return
       // }
 
@@ -709,13 +711,15 @@ class CachedAppDataManager {
                 cycle: message.cachedAppData.cycle,
               },
             }
-            fireAndForget(() => this.p2p.tellBinary<SendCachedAppDataReq>(
-              filteredCorrespondingAccNodes,
-              InternalRouteEnum.binary_send_cachedAppData,
-              sendCacheAppDataReq,
-              serializeSendCachedAppDataReq,
-              {}
-            ))
+            fireAndForget(() =>
+              this.p2p.tellBinary<SendCachedAppDataReq>(
+                filteredCorrespondingAccNodes,
+                InternalRouteEnum.binary_send_cachedAppData,
+                sendCacheAppDataReq,
+                serializeSendCachedAppDataReq,
+                {}
+              )
+            )
             // return
             // }
 

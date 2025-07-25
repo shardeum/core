@@ -110,7 +110,7 @@ describe('GetAccountQueueCountResp', () => {
       const validObjectResponse = {
         counts: [1, 2, 3],
         committingAppData: [{ some: 'data' }, { other: 'data' }],
-        accounts: ['acc1', 'acc2', { id: 'acc3' }]
+        accounts: ['acc1', 'acc2', { id: 'acc3' }],
       }
 
       // Valid boolean response
@@ -137,13 +137,13 @@ describe('GetAccountQueueCountResp', () => {
 
     it('should register schema only once per initialization', () => {
       initGetAccountQueueCountResp()
-      
+
       expect(mockAddSchema).toHaveBeenCalledTimes(1)
-      
+
       // Clear mocks and call again
       mockAddSchema.mockClear()
       initGetAccountQueueCountResp()
-      
+
       expect(mockAddSchema).toHaveBeenCalledTimes(1)
     })
   })

@@ -26,10 +26,7 @@ describe('GetTxTimestampReq', () => {
       initGetTxTimestampReq()
 
       // Verify the schema passed to addSchema matches expected structure
-      expect(mockAddSchema).toHaveBeenCalledWith(
-        'GetTxTimestampReq',
-        expectedSchema
-      )
+      expect(mockAddSchema).toHaveBeenCalledWith('GetTxTimestampReq', expectedSchema)
     })
 
     it('should require all three properties', () => {
@@ -102,7 +99,7 @@ describe('GetTxTimestampReq', () => {
   describe('addSchemaDependencies', () => {
     it('should not add any dependencies (function is empty)', () => {
       initGetTxTimestampReq()
-      
+
       // Verify only one call to addSchema (no dependencies added)
       expect(mockAddSchema).toHaveBeenCalledTimes(1)
     })
@@ -113,7 +110,7 @@ describe('GetTxTimestampReq', () => {
       initGetTxTimestampReq()
 
       const schemaArg = mockAddSchema.mock.calls[0][1] as any
-      
+
       // Valid object structure
       const validRequest = {
         txId: 'tx-12345',
@@ -132,7 +129,7 @@ describe('GetTxTimestampReq', () => {
       initGetTxTimestampReq()
 
       const schemaArg = mockAddSchema.mock.calls[0][1] as any
-      
+
       // Missing fields scenarios
       const missingTxId = { cycleCounter: 42, cycleMarker: 'marker' }
       const missingCycleCounter = { txId: 'tx-123', cycleMarker: 'marker' }
@@ -149,7 +146,7 @@ describe('GetTxTimestampReq', () => {
       initGetTxTimestampReq()
 
       const schemaArg = mockAddSchema.mock.calls[0][1] as any
-      
+
       // Type validation scenarios
       const wrongTypes = {
         txId: 123, // should be string
@@ -167,7 +164,7 @@ describe('GetTxTimestampReq', () => {
       initGetTxTimestampReq()
 
       const schemaArg = mockAddSchema.mock.calls[0][1] as any
-      
+
       // Edge cases for number field
       const edgeCases = {
         zero: { txId: 'tx-123', cycleCounter: 0, cycleMarker: 'marker' },

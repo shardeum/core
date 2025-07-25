@@ -1,4 +1,7 @@
-import { initAllowedArchiverResponse, schemaAllowedArchiverResponse } from '../../../../src/types/ajv/AllowedArchiverResponse'
+import {
+  initAllowedArchiverResponse,
+  schemaAllowedArchiverResponse,
+} from '../../../../src/types/ajv/AllowedArchiverResponse'
 import * as SchemaHelpers from '../../../../src/utils/serialization/SchemaHelpers'
 import { AJVSchemaEnum } from '../../../../src/types/enum/AJVSchemaEnum'
 
@@ -47,7 +50,7 @@ describe('AllowedArchiverResponse', () => {
 
     it('should have correct archiver item schema', () => {
       const archiverSchema = schemaAllowedArchiverResponse.properties.allowedArchivers.items as any
-      
+
       expect(archiverSchema.type).toBe('object')
       expect(archiverSchema.properties).toHaveProperty('ip')
       expect(archiverSchema.properties).toHaveProperty('port')
@@ -60,7 +63,7 @@ describe('AllowedArchiverResponse', () => {
 
     it('should have correct signature item schema', () => {
       const signatureSchema = schemaAllowedArchiverResponse.properties.signatures.items as any
-      
+
       expect(signatureSchema.type).toBe('object')
       expect(signatureSchema.properties).toHaveProperty('owner')
       expect(signatureSchema.properties).toHaveProperty('sig')
@@ -100,24 +103,24 @@ describe('AllowedArchiverResponse', () => {
           {
             ip: '192.168.1.1',
             port: 8080,
-            publicKey: 'pubkey123'
+            publicKey: 'pubkey123',
           },
           {
             ip: '10.0.0.1',
             port: 9090,
-            publicKey: 'pubkey456'
-          }
+            publicKey: 'pubkey456',
+          },
         ],
         signatures: [
           {
             owner: 'owner1',
-            sig: 'signature1'
+            sig: 'signature1',
           },
           {
             owner: 'owner2',
-            sig: 'signature2'
-          }
-        ]
+            sig: 'signature2',
+          },
+        ],
       }
 
       // The schema should accept this structure
@@ -128,7 +131,7 @@ describe('AllowedArchiverResponse', () => {
     it('should handle empty arrays', () => {
       const emptyData = {
         allowedArchivers: [],
-        signatures: []
+        signatures: [],
       }
 
       // Empty arrays should still be valid
@@ -138,13 +141,13 @@ describe('AllowedArchiverResponse', () => {
 
     it('should register schema only once per initialization', () => {
       initAllowedArchiverResponse()
-      
+
       expect(mockAddSchema).toHaveBeenCalledTimes(1)
-      
+
       // Clear mocks and call again
       mockAddSchema.mockClear()
       initAllowedArchiverResponse()
-      
+
       expect(mockAddSchema).toHaveBeenCalledTimes(1)
     })
   })

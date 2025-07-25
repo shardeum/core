@@ -12,22 +12,25 @@ describe('JoinReq', () => {
     it('should initialize JoinReq schema', () => {
       initJoinReq()
 
-      expect(SchemaHelpers.addSchema).toHaveBeenCalledWith('JoinReq', expect.objectContaining({
-        type: 'object',
-        properties: expect.objectContaining({
-          nodeInfo: expect.any(Object),
-          selectionNum: expect.objectContaining({ type: 'string' }),
-          cycleMarker: expect.objectContaining({ type: 'string' }),
-          proofOfWork: expect.objectContaining({ type: 'string' }),
-          version: expect.objectContaining({ type: 'string' }),
-          sign: expect.any(Object),
-          appJoinData: expect.objectContaining({ 
-            type: 'object', 
-            additionalProperties: true 
-          })
-        }),
-        required: ['nodeInfo', 'cycleMarker', 'proofOfWork', 'version', 'sign']
-      }))
+      expect(SchemaHelpers.addSchema).toHaveBeenCalledWith(
+        'JoinReq',
+        expect.objectContaining({
+          type: 'object',
+          properties: expect.objectContaining({
+            nodeInfo: expect.any(Object),
+            selectionNum: expect.objectContaining({ type: 'string' }),
+            cycleMarker: expect.objectContaining({ type: 'string' }),
+            proofOfWork: expect.objectContaining({ type: 'string' }),
+            version: expect.objectContaining({ type: 'string' }),
+            sign: expect.any(Object),
+            appJoinData: expect.objectContaining({
+              type: 'object',
+              additionalProperties: true,
+            }),
+          }),
+          required: ['nodeInfo', 'cycleMarker', 'proofOfWork', 'version', 'sign'],
+        })
+      )
     })
 
     it('should call addSchema with correct schema structure', () => {
@@ -78,7 +81,7 @@ describe('JoinReq', () => {
         'joinRequestTimestamp',
         'activeTimestamp',
         'syncingTimestamp',
-        'readyTimestamp'
+        'readyTimestamp',
       ])
     })
 
@@ -90,11 +93,11 @@ describe('JoinReq', () => {
 
       expect(nodeInfoSchema.properties.externalIp.pattern).toBeDefined()
       expect(nodeInfoSchema.properties.internalIp.pattern).toBeDefined()
-      
+
       // Test that the pattern matches valid IPs
       const ipPattern = nodeInfoSchema.properties.externalIp.pattern
       const regex = new RegExp(ipPattern)
-      
+
       expect(regex.test('192.168.1.1')).toBe(true)
       expect(regex.test('10.0.0.1')).toBe(true)
       expect(regex.test('255.255.255.255')).toBe(true)
@@ -124,14 +127,9 @@ describe('JoinReq', () => {
       const schema = (SchemaHelpers.addSchema as jest.Mock).mock.calls[0][1]
       const nodeInfoSchema = schema.properties.nodeInfo
 
-      const timestampFields = [
-        'joinRequestTimestamp', 
-        'activeTimestamp', 
-        'syncingTimestamp', 
-        'readyTimestamp'
-      ]
+      const timestampFields = ['joinRequestTimestamp', 'activeTimestamp', 'syncingTimestamp', 'readyTimestamp']
 
-      timestampFields.forEach(field => {
+      timestampFields.forEach((field) => {
         expect(nodeInfoSchema.properties[field].type).toBe('integer')
         expect(nodeInfoSchema.properties[field].minimum).toBe(0)
       })

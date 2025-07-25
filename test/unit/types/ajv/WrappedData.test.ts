@@ -38,7 +38,7 @@ describe('WrappedData', () => {
       const syncDataSchema = schemaWrappedData.properties.syncData as any
       expect(syncDataSchema.anyOf).toBeDefined()
       expect(syncDataSchema.anyOf).toHaveLength(6)
-      
+
       const types = syncDataSchema.anyOf.map((s: any) => s.type)
       expect(types).toContain('object')
       expect(types).toContain('string')
@@ -55,8 +55,8 @@ describe('WrappedData', () => {
     it('should have all required fields defined', () => {
       const requiredFields = ['accountId', 'stateId', 'data', 'timestamp']
       expect(schemaWrappedData.required).toEqual(requiredFields)
-      
-      requiredFields.forEach(field => {
+
+      requiredFields.forEach((field) => {
         expect(schemaWrappedData.properties).toHaveProperty(field)
       })
     })
@@ -91,7 +91,7 @@ describe('WrappedData', () => {
         accountId: 'acc123',
         stateId: 'state456',
         data: { someField: 'someValue', nested: { value: 42 } },
-        timestamp: Date.now()
+        timestamp: Date.now(),
       }
 
       // The schema should accept this structure
@@ -110,13 +110,13 @@ describe('WrappedData', () => {
         { syncData: null }, // null
       ]
 
-      testCases.forEach(testCase => {
+      testCases.forEach((testCase) => {
         const data = {
           accountId: 'acc123',
           stateId: 'state456',
           data: {},
           timestamp: Date.now(),
-          ...testCase
+          ...testCase,
         }
 
         // All these syncData types should be valid according to the schema
@@ -127,13 +127,13 @@ describe('WrappedData', () => {
 
     it('should register schema only once per initialization', () => {
       initWrappedData()
-      
+
       expect(mockAddSchema).toHaveBeenCalledTimes(1)
-      
+
       // Clear mocks and call again
       mockAddSchema.mockClear()
       initWrappedData()
-      
+
       expect(mockAddSchema).toHaveBeenCalledTimes(1)
     })
   })

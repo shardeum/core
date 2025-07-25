@@ -18,10 +18,7 @@ describe('RequestStateForTxPostReq', () => {
       initRequestStateForTxPostReq()
 
       expect(mockAddSchema).toHaveBeenCalledTimes(1)
-      expect(mockAddSchema).toHaveBeenCalledWith(
-        AJVSchemaEnum.RequestStateForTxPostReq,
-        expect.any(Object)
-      )
+      expect(mockAddSchema).toHaveBeenCalledWith(AJVSchemaEnum.RequestStateForTxPostReq, expect.any(Object))
     })
 
     it('should call addSchema with correct schema structure', () => {
@@ -52,7 +49,7 @@ describe('RequestStateForTxPostReq', () => {
       const mockAddSchema = addSchema as jest.MockedFunction<typeof addSchema>
       initRequestStateForTxPostReq()
       const schema = mockAddSchema.mock.calls[0][1] as any
-      
+
       expect(schema.type).toBe('object')
     })
 
@@ -60,7 +57,7 @@ describe('RequestStateForTxPostReq', () => {
       const mockAddSchema = addSchema as jest.MockedFunction<typeof addSchema>
       initRequestStateForTxPostReq()
       const schema = mockAddSchema.mock.calls[0][1] as any
-      
+
       expect(schema.properties.txid).toEqual({ type: 'string' })
     })
 
@@ -68,7 +65,7 @@ describe('RequestStateForTxPostReq', () => {
       const mockAddSchema = addSchema as jest.MockedFunction<typeof addSchema>
       initRequestStateForTxPostReq()
       const schema = mockAddSchema.mock.calls[0][1] as any
-      
+
       expect(schema.properties.timestamp).toEqual({ type: 'number' })
     })
 
@@ -76,7 +73,7 @@ describe('RequestStateForTxPostReq', () => {
       const mockAddSchema = addSchema as jest.MockedFunction<typeof addSchema>
       initRequestStateForTxPostReq()
       const schema = mockAddSchema.mock.calls[0][1] as any
-      
+
       expect(schema.properties.key).toEqual({ type: 'string' })
     })
 
@@ -84,7 +81,7 @@ describe('RequestStateForTxPostReq', () => {
       const mockAddSchema = addSchema as jest.MockedFunction<typeof addSchema>
       initRequestStateForTxPostReq()
       const schema = mockAddSchema.mock.calls[0][1] as any
-      
+
       expect(schema.properties.hash).toEqual({ type: 'string' })
     })
 
@@ -92,7 +89,7 @@ describe('RequestStateForTxPostReq', () => {
       const mockAddSchema = addSchema as jest.MockedFunction<typeof addSchema>
       initRequestStateForTxPostReq()
       const schema = mockAddSchema.mock.calls[0][1] as any
-      
+
       expect(Object.keys(schema.properties)).toHaveLength(4)
     })
 
@@ -100,7 +97,7 @@ describe('RequestStateForTxPostReq', () => {
       const mockAddSchema = addSchema as jest.MockedFunction<typeof addSchema>
       initRequestStateForTxPostReq()
       const schema = mockAddSchema.mock.calls[0][1] as any
-      
+
       expect(schema.required).toEqual(['txid', 'timestamp', 'key', 'hash'])
     })
 
@@ -108,7 +105,7 @@ describe('RequestStateForTxPostReq', () => {
       const mockAddSchema = addSchema as jest.MockedFunction<typeof addSchema>
       initRequestStateForTxPostReq()
       const schema = mockAddSchema.mock.calls[0][1] as any
-      
+
       expect(schema.required).toHaveLength(4)
     })
 
@@ -116,7 +113,7 @@ describe('RequestStateForTxPostReq', () => {
       const mockAddSchema = addSchema as jest.MockedFunction<typeof addSchema>
       initRequestStateForTxPostReq()
       const schema = mockAddSchema.mock.calls[0][1] as any
-      
+
       expect('additionalProperties' in schema).toBe(false)
     })
 
@@ -124,9 +121,9 @@ describe('RequestStateForTxPostReq', () => {
       const mockAddSchema = addSchema as jest.MockedFunction<typeof addSchema>
       initRequestStateForTxPostReq()
       const schema = mockAddSchema.mock.calls[0][1] as any
-      
+
       const propertyNames = Object.keys(schema.properties)
-      propertyNames.forEach(prop => {
+      propertyNames.forEach((prop) => {
         expect(schema.required).toContain(prop)
       })
     })

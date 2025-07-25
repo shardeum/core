@@ -70,13 +70,7 @@ describe('GetAccountDataByHashesResp', () => {
       const schema = mockAddSchema.mock.calls[0][1] as any
       const stateTableItemSchema = schema.properties.stateTableData.items
 
-      expect(stateTableItemSchema.required).toEqual([
-        'accountId',
-        'txId',
-        'txTimestamp',
-        'stateBefore',
-        'stateAfter'
-      ])
+      expect(stateTableItemSchema.required).toEqual(['accountId', 'txId', 'txTimestamp', 'stateBefore', 'stateAfter'])
     })
 
     it('should have string types for all stateTableData fields', () => {
@@ -106,8 +100,8 @@ describe('GetAccountDataByHashesResp', () => {
             accountId: 'acc1',
             stateId: 'state1',
             data: {},
-            timestamp: Date.now()
-          }
+            timestamp: Date.now(),
+          },
         ],
         stateTableData: [
           {
@@ -115,15 +109,15 @@ describe('GetAccountDataByHashesResp', () => {
             txId: 'tx123',
             txTimestamp: '1234567890',
             stateBefore: 'before_hash',
-            stateAfter: 'after_hash'
-          }
-        ]
+            stateAfter: 'after_hash',
+          },
+        ],
       }
 
       initGetAccountDataByHashesResp()
-      
+
       const schema = mockAddSchema.mock.calls[0][1] as any
-      
+
       // Check that arrays are properly defined
       expect(schema.properties.accounts.type).toBe('array')
       expect(schema.properties.stateTableData.type).toBe('array')
@@ -131,13 +125,13 @@ describe('GetAccountDataByHashesResp', () => {
 
     it('should register schema only once per initialization', () => {
       initGetAccountDataByHashesResp()
-      
+
       expect(mockAddSchema).toHaveBeenCalledTimes(1)
-      
+
       // Clear mocks and call again
       mockAddSchema.mockClear()
       initGetAccountDataByHashesResp()
-      
+
       expect(mockAddSchema).toHaveBeenCalledTimes(1)
     })
   })

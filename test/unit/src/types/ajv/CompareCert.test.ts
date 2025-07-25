@@ -18,7 +18,7 @@ describe('CompareCert', () => {
       CompareCert.initCompareCertReq()
 
       const { addSchema } = require('../../../../../src/utils/serialization/SchemaHelpers')
-      
+
       // Verify that addSchema was called with correct parameters
       expect(addSchema).toHaveBeenCalledTimes(2)
       expect(addSchema).toHaveBeenCalledWith(
@@ -75,7 +75,7 @@ describe('CompareCert', () => {
       CompareCert.initCompareCertReq()
 
       const schema = addSchema.mock.calls[0][1] as any
-      
+
       expect(schema.properties.certs).toEqual({
         type: 'array',
         items: {
@@ -94,7 +94,7 @@ describe('CompareCert', () => {
       CompareCert.initCompareCertReq()
 
       const schema = addSchema.mock.calls[0][1] as any
-      
+
       // Verify record has required properties
       expect(schema.properties.record.properties).toHaveProperty('networkId')
       expect(schema.properties.record.properties).toHaveProperty('counter')
@@ -103,13 +103,13 @@ describe('CompareCert', () => {
       expect(schema.properties.record.properties).toHaveProperty('duration')
       expect(schema.properties.record.properties).toHaveProperty('networkConfigHash')
       expect(schema.properties.record.properties).toHaveProperty('mode')
-      
+
       // Verify mode enum values
       expect(schema.properties.record.properties.mode).toEqual({
         type: 'string',
         enum: ['forming', 'processing', 'safety', 'recovery', 'restart', 'restore', 'shutdown'],
       })
-      
+
       // Verify required fields
       expect(schema.properties.record.required).toContain('networkId')
       expect(schema.properties.record.required).toContain('counter')
@@ -127,7 +127,7 @@ describe('CompareCert', () => {
       CompareCert.initCompareCertReq()
 
       const schema = addSchema.mock.calls[0][1] as any
-      
+
       expect(schema.properties.record.properties.networkDataHash).toEqual({
         type: 'array',
         items: {
@@ -146,7 +146,7 @@ describe('CompareCert', () => {
       CompareCert.initCompareCertReq()
 
       const schema = addSchema.mock.calls[0][1] as any
-      
+
       expect(schema.additionalProperties).toBe(true)
       expect(schema.properties.record.additionalProperties).toBe(true)
     })
@@ -157,7 +157,7 @@ describe('CompareCert', () => {
 
       const reqSchema = addSchema.mock.calls[0][1] as any
       const respSchema = addSchema.mock.calls[1][1] as any
-      
+
       // Both schemas should be identical
       expect(reqSchema).toEqual(respSchema)
     })
@@ -178,7 +178,7 @@ describe('CompareCert', () => {
 
       const schema = addSchema.mock.calls[0][1] as any
       const recordProps = schema.properties.record.properties
-      
+
       // Array properties that should allow any items
       const arrayPropsWithTrueItems = [
         'refreshedArchivers',
@@ -189,14 +189,14 @@ describe('CompareCert', () => {
         'joinedConsensors',
         'standbyAdd',
       ]
-      
-      arrayPropsWithTrueItems.forEach(prop => {
+
+      arrayPropsWithTrueItems.forEach((prop) => {
         expect(recordProps[prop]).toEqual({
           type: 'array',
           items: true,
         })
       })
-      
+
       // Array properties that should have string items
       const arrayPropsWithStringItems = [
         'standbyRemove',
@@ -215,8 +215,8 @@ describe('CompareCert', () => {
         'joined',
         'returned',
       ]
-      
-      arrayPropsWithStringItems.forEach(prop => {
+
+      arrayPropsWithStringItems.forEach((prop) => {
         expect(recordProps[prop]).toEqual({
           type: 'array',
           items: { type: 'string' },
@@ -230,7 +230,7 @@ describe('CompareCert', () => {
 
       const schema = addSchema.mock.calls[0][1] as any
       const recordProps = schema.properties.record.properties
-      
+
       // String properties
       const stringProps = [
         'networkId',
@@ -241,11 +241,11 @@ describe('CompareCert', () => {
         'archiverListHash',
         'standbyNodeListHash',
       ]
-      
-      stringProps.forEach(prop => {
+
+      stringProps.forEach((prop) => {
         expect(recordProps[prop]).toEqual({ type: 'string' })
       })
-      
+
       // Number properties
       const numberProps = [
         'counter',
@@ -261,11 +261,11 @@ describe('CompareCert', () => {
         'desired',
         'target',
       ]
-      
-      numberProps.forEach(prop => {
+
+      numberProps.forEach((prop) => {
         expect(recordProps[prop]).toEqual({ type: 'number' })
       })
-      
+
       // Boolean properties
       expect(recordProps.safetyMode).toEqual({ type: 'boolean' })
     })

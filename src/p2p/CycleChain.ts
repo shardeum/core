@@ -95,31 +95,31 @@ export function prepend(cycle: P2P.CycleCreatorTypes.CycleRecord) {
  */
 export function prependMultiple(newCycles: P2P.CycleCreatorTypes.CycleRecord[]) {
   if (newCycles.length === 0) return
-  
+
   // Create a map to store computed markers to avoid recalculation
   const cycleMarkerMap = new Map<P2P.CycleCreatorTypes.CycleRecord, string>()
-  
+
   // Filter out cycles we already have and compute markers once
-  const uniqueCycles = newCycles.filter(cycle => {
+  const uniqueCycles = newCycles.filter((cycle) => {
     const marker = computeCycleMarker(cycle)
     cycleMarkerMap.set(cycle, marker)
     return !cyclesByMarker[marker]
   })
-  
+
   if (uniqueCycles.length === 0) return
-  
+
   // Add all cycles to the map
   for (const cycle of uniqueCycles) {
     const marker = cycleMarkerMap.get(cycle)
     cyclesByMarker[marker] = cycle
   }
-  
+
   // Prepend all cycles at once
   cycles.unshift(...uniqueCycles)
-  
+
   // Update oldest
   oldest = uniqueCycles[0]
-  
+
   // Update newest if needed
   if (newest == null) {
     newest = uniqueCycles[uniqueCycles.length - 1]
@@ -160,24 +160,24 @@ export function validate(prev: P2P.CycleCreatorTypes.CycleRecord, next: P2P.Cycl
  */
 export function validateCycleChain(cyclesToValidate: P2P.CycleCreatorTypes.CycleRecord[]): boolean {
   if (cyclesToValidate.length < 2) return true
-  
+
   for (let i = 1; i < cyclesToValidate.length; i++) {
     const prev = cyclesToValidate[i - 1]
     const curr = cyclesToValidate[i]
-    
+
     // Check counter continuity
     if (curr.counter !== prev.counter + 1) {
       info(`validateCycleChain: Counter gap detected: ${prev.counter} -> ${curr.counter}`)
       return false
     }
-    
+
     // Check marker chain
     if (!validate(prev, curr)) {
       info(`validateCycleChain: Invalid chain at cycles ${prev.counter} -> ${curr.counter}`)
       return false
     }
   }
-  
+
   return true
 }
 

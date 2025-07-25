@@ -43,10 +43,7 @@ describe('saveConsoleOutput', () => {
       readable: true,
       writable: true,
     } as any
-
-    ;(RollingFileStream as jest.MockedClass<typeof RollingFileStream>).mockImplementation(
-      () => mockRollingFileStream
-    )
+    ;(RollingFileStream as jest.MockedClass<typeof RollingFileStream>).mockImplementation(() => mockRollingFileStream)
   })
 
   afterEach(() => {
@@ -65,11 +62,7 @@ describe('saveConsoleOutput', () => {
   it('should create RollingFileStream with correct parameters', () => {
     startSaving(tempDir)
 
-    expect(RollingFileStream).toHaveBeenCalledWith(
-      join(tempDir, 'out.log'),
-      10000000,
-      10
-    )
+    expect(RollingFileStream).toHaveBeenCalledWith(join(tempDir, 'out.log'), 10000000, 10)
   })
 
   it('should monkey patch global console', () => {
@@ -96,11 +89,11 @@ describe('saveConsoleOutput', () => {
 
     // Check that PassThrough streams pipe to correct destinations
     const pipeCalls = stdoutPipeSpy.mock.calls
-    const destinations = pipeCalls.map(call => call[0])
+    const destinations = pipeCalls.map((call) => call[0])
 
     expect(destinations).toContain(originalStdout)
     expect(destinations).toContain(originalStderr)
-    expect(destinations.filter(d => d === mockRollingFileStream)).toHaveLength(2)
+    expect(destinations.filter((d) => d === mockRollingFileStream)).toHaveLength(2)
 
     stdoutPipeSpy.mockRestore()
   })
@@ -121,11 +114,7 @@ describe('saveConsoleOutput', () => {
     startSaving(tempDir)
 
     const expectedPath = join(tempDir, 'out.log')
-    expect(RollingFileStream).toHaveBeenCalledWith(
-      expectedPath,
-      expect.any(Number),
-      expect.any(Number)
-    )
+    expect(RollingFileStream).toHaveBeenCalledWith(expectedPath, expect.any(Number), expect.any(Number))
   })
 
   it('should create RollingFileStream with 10MB max file size', () => {
@@ -152,21 +141,17 @@ describe('saveConsoleOutput', () => {
     const customDir = '/custom/path'
     startSaving(customDir)
 
-    expect(RollingFileStream).toHaveBeenCalledWith(
-      join(customDir, 'out.log'),
-      expect.any(Number),
-      expect.any(Number)
-    )
+    expect(RollingFileStream).toHaveBeenCalledWith(join(customDir, 'out.log'), expect.any(Number), expect.any(Number))
   })
 
   it('should replace console with a new Console instance', () => {
     const originalConsoleInstance = console
-    
+
     startSaving(tempDir)
 
     // Verify console has been replaced
     expect(console).not.toBe(originalConsoleInstance)
-    
+
     // Verify it's still a Console instance
     expect(console.log).toBeDefined()
     expect(console.error).toBeDefined()

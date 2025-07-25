@@ -84,7 +84,9 @@ jest.mock('../../../../src/p2p/Context', () => mockContext)
 jest.mock('../../../../src/p2p/NodeList', () => mockNodeList)
 jest.mock('../../../../src/p2p/LostArchivers/logging', () => mockLogging)
 jest.mock('../../../../src/p2p/Self', () => ({
-  get id() { return mockSelfId } // Use a getter so it can be dynamic
+  get id() {
+    return mockSelfId
+  }, // Use a getter so it can be dynamic
 }))
 jest.mock('../../../../src/utils/functions/arrays', () => mockArrays)
 jest.mock('../../../../src/utils', () => mockUtils)
@@ -100,7 +102,7 @@ describe('LostArchivers/functions', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     lostArchiversMap.clear()
-    
+
     // Reset default values
     mockContext.config.p2p.enableLostArchiversCycles = true
     mockContext.config.p2p.lostArchiversCyclesToWait = 5
@@ -156,7 +158,9 @@ describe('LostArchivers/functions', () => {
 
     it('should add new entry to lostArchiversMap when archiver not exists', () => {
       funcs.reportLostArchiver('archiver123', 'connection error')
-      expect(mockLogging.info).toHaveBeenCalledWith('reportLostArchiver: publicKey: archiver123, errorMsg: connection error')
+      expect(mockLogging.info).toHaveBeenCalledWith(
+        'reportLostArchiver: publicKey: archiver123, errorMsg: connection error'
+      )
       expect(mockLogging.info).toHaveBeenCalledWith('reportLostArchiver: adding new LostArchiverRecord')
       expect(lostArchiversMap.size).toBe(1)
       expect(lostArchiversMap.get('archiver123')).toMatchObject({
@@ -171,7 +175,7 @@ describe('LostArchivers/functions', () => {
         status: 'investigating',
       })
       lostArchiversMap.set('archiver123', existingRecord)
-      
+
       funcs.reportLostArchiver('archiver123', 'connection error')
       expect(mockLogging.info).toHaveBeenCalledWith('reportLostArchiver: already have LostArchiverRecord')
       expect(lostArchiversMap.get('archiver123')).toBe(existingRecord)
@@ -237,11 +241,7 @@ describe('LostArchivers/functions', () => {
 
   describe('getInvestigator', () => {
     const mockCycleMarker: CycleMarker = 'cycle1'
-    const mockNodes: Node[] = [
-      { id: 'node1' } as Node,
-      { id: 'node2' } as Node,
-      { id: 'node3' } as Node,
-    ]
+    const mockNodes: Node[] = [{ id: 'node1' } as Node, { id: 'node2' } as Node, { id: 'node3' } as Node]
 
     beforeEach(() => {
       mockNodeList.activeByIdOrder = mockNodes
@@ -264,10 +264,10 @@ describe('LostArchivers/functions', () => {
       const originalId = mockSelfId
       mockSelfId = 'node1'
       mockArrays.binarySearch.mockReturnValue(0) // This will find node1
-      
+
       const investigator = funcs.getInvestigator('archiver123', mockCycleMarker)
       expect(investigator).toBe(mockNodes[0]) // It returns node1 due to the bug
-      
+
       mockSelfId = originalId
     })
 
@@ -280,9 +280,7 @@ describe('LostArchivers/functions', () => {
     it('should throw error when node not found', () => {
       mockNodeList.activeByIdOrder = []
       mockArrays.binarySearch.mockReturnValue(0)
-      expect(() => funcs.getInvestigator('archiver123', mockCycleMarker)).toThrow(
-        'activeByIdOrder idx:0 length: 0'
-      )
+      expect(() => funcs.getInvestigator('archiver123', mockCycleMarker)).toThrow('activeByIdOrder idx:0 length: 0')
     })
   })
 
@@ -305,12 +303,12 @@ describe('LostArchivers/functions', () => {
       mockNodeList.activeByIdOrder = [mockInvestigator]
       mockArrays.binarySearch.mockReturnValue(0)
       mockContext.crypto.hash.mockReturnValue('hashedvalue')
-      
+
       // Check that getCurrentCycleMarker is properly mocked
       expect(mockCycleChain.getCurrentCycleMarker()).toBe(mockCycleMarker)
-      
+
       funcs.informInvestigator('archiver123')
-      
+
       // Check if we're catching any errors
       if (mockLogging.error.mock.calls.length > 0) {
         console.log('Error was called with:', mockLogging.error.mock.calls)
@@ -326,7 +324,7 @@ describe('LostArchivers/functions', () => {
         sender: 'node123',
         cycle: mockCycleMarker,
       })
-      
+
       expect(mockComms.tellBinary).toHaveBeenCalledWith(
         [mockInvestigator],
         InternalRouteEnum.binary_lost_archiver_investigate,
@@ -345,9 +343,9 @@ describe('LostArchivers/functions', () => {
       mockNodeList.activeByIdOrder = [selfNode]
       mockArrays.binarySearch.mockReturnValue(0)
       mockContext.crypto.hash.mockReturnValue('hashedvalue')
-      
+
       funcs.informInvestigator('archiver123')
-      
+
       expect(mockLogging.info).toHaveBeenCalledWith(
         'informInvestigator: investigator is self, not sending InvestigateArchiverMsg'
       )
@@ -361,7 +359,7 @@ describe('LostArchivers/functions', () => {
       mockUtils.formatErrorMessage.mockReturnValue('Test error')
 
       funcs.informInvestigator('archiver123')
-      
+
       expect(mockNestedCounters.countEvent).toHaveBeenCalledWith(
         'p2p',
         expect.stringContaining('informInvestigator error')
@@ -374,7 +372,13 @@ describe('LostArchivers/functions', () => {
     const mockRecord: LostArchiverRecord = {
       target: 'archiver123',
       status: 'down',
-      investigateMsg: { type: 'investigate', target: 'archiver123', investigator: 'node123', sender: 'sender123', cycle: 'cycle1' } as any,
+      investigateMsg: {
+        type: 'investigate',
+        target: 'archiver123',
+        investigator: 'node123',
+        sender: 'sender123',
+        cycle: 'cycle1',
+      } as any,
     } as LostArchiverRecord
 
     const mockCycleMarker: CycleMarker = 'cycle1'
@@ -386,13 +390,13 @@ describe('LostArchivers/functions', () => {
 
     it('should create and gossip down message', () => {
       funcs.tellNetworkArchiverIsDown(mockRecord)
-      
+
       expect(mockContext.crypto.sign).toHaveBeenCalledWith({
         type: 'down',
         cycle: mockCycleMarker,
         investigateMsg: mockRecord.investigateMsg,
       })
-      
+
       expect(mockComms.sendGossip).toHaveBeenCalledWith(
         'lost-archiver-down',
         expect.objectContaining({ type: 'down' }),
@@ -401,7 +405,7 @@ describe('LostArchivers/functions', () => {
         mockNodeList.byIdOrder,
         true
       )
-      
+
       expect(mockRecord.archiverDownMsg).toBeDefined()
     })
   })
@@ -423,14 +427,14 @@ describe('LostArchivers/functions', () => {
 
     it('should create and gossip up message', () => {
       funcs.tellNetworkArchiverIsUp(mockRecord)
-      
+
       expect(mockContext.crypto.sign).toHaveBeenCalledWith({
         type: 'up',
         downMsg: mockRecord.archiverDownMsg,
         refuteMsg: mockRecord.archiverRefuteMsg,
         cycle: mockCycleMarker,
       })
-      
+
       expect(mockComms.sendGossip).toHaveBeenCalledWith(
         'lost-archiver-up',
         expect.objectContaining({ type: 'up' }),
@@ -439,7 +443,7 @@ describe('LostArchivers/functions', () => {
         mockNodeList.byIdOrder,
         true
       )
-      
+
       expect(mockRecord.archiverUpMsg).toBeDefined()
     })
   })

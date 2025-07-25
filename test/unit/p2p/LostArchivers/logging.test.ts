@@ -5,8 +5,8 @@ import { Logger } from 'log4js'
 // Mock the Context module
 jest.mock('../../../../src/p2p/Context', () => ({
   logger: {
-    getLogger: jest.fn()
-  }
+    getLogger: jest.fn(),
+  },
 }))
 
 describe('LostArchivers logging', () => {
@@ -209,7 +209,7 @@ describe('LostArchivers logging', () => {
 
     it('should handle symbols', () => {
       const sym = Symbol('test')
-      
+
       // Symbol cannot be directly converted to string by join, it will throw
       expect(() => info('symbol:', sym)).toThrow('Cannot convert a Symbol value to a string')
     })

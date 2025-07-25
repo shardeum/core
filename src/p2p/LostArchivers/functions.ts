@@ -172,13 +172,15 @@ export function informInvestigator(target: publicKey): void {
     // Send message to investigator
     info(`informInvestigator: sending InvestigateArchiverMsg: ${inspect(investigateMsg)}`)
     // if (this.config.p2p.useBinarySerializedEndpoints && this.config.p2p.lostArchiverInvestigateBinary) {
-    fireAndForget(() => Comms.tellBinary<LostArchiverInvestigateReq>(
-      [investigator],
-      InternalRouteEnum.binary_lost_archiver_investigate,
-      investigateMsg,
-      serializeLostArchiverInvestigateReq,
-      {}
-    ))
+    fireAndForget(() =>
+      Comms.tellBinary<LostArchiverInvestigateReq>(
+        [investigator],
+        InternalRouteEnum.binary_lost_archiver_investigate,
+        investigateMsg,
+        serializeLostArchiverInvestigateReq,
+        {}
+      )
+    )
     // } else {
     //   Comms.tell([investigator], 'lost-archiver-investigate', investigateMsg)
     // }
@@ -202,7 +204,9 @@ export function tellNetworkArchiverIsDown(record: LostArchiverRecord): void {
   })
   info(`tellNetworkArchiverIsDown: downMsg: ${Utils.safeStringify(downMsg)}`)
   record.archiverDownMsg = downMsg
-  fireAndForget(() => Comms.sendGossip('lost-archiver-down', downMsg, '', null, NodeList.byIdOrder, /* isOrigin */ true))
+  fireAndForget(() =>
+    Comms.sendGossip('lost-archiver-down', downMsg, '', null, NodeList.byIdOrder, /* isOrigin */ true)
+  )
   // This is to inform the rest of the network that the Archiver is down
 }
 

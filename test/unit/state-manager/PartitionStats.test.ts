@@ -5,63 +5,62 @@ jest.mock('../../../src/logger', () => ({
       debug: jest.fn(),
       error: jest.fn(),
       warn: jest.fn(),
-      info: jest.fn()
+      info: jest.fn(),
     }),
-    _internalHackGetWithResp: jest.fn()
+    _internalHackGetWithResp: jest.fn(),
   })),
   logFlags: {
     verbose: false,
     error: false,
-    debug: false
-  }
+    debug: false,
+  },
 }))
 
 jest.mock('../../../src/network', () => ({
-  shardusGetTime: jest.fn(() => Date.now())
+  shardusGetTime: jest.fn(() => Date.now()),
 }))
 
 jest.mock('../../../src/utils', () => ({
-  makeShortHash: jest.fn((str) => str ? str.slice(0, 6) : ''),
-  stringifyReduce: jest.fn((obj) => JSON.stringify(obj))
+  makeShortHash: jest.fn((str) => (str ? str.slice(0, 6) : '')),
+  stringifyReduce: jest.fn((obj) => JSON.stringify(obj)),
 }))
 
 jest.mock('@shardeum-foundation/lib-types', () => ({
   Utils: {
     safeStringify: jest.fn().mockImplementation((obj) => JSON.stringify(obj)),
-    safeJsonParse: jest.fn().mockImplementation((str) => JSON.parse(str))
-  }
+    safeJsonParse: jest.fn().mockImplementation((str) => JSON.parse(str)),
+  },
 }))
 
 jest.mock('../../../src/network/debugMiddleware', () => ({
-  isDebugModeMiddleware: jest.fn((req, res, next) => next())
+  isDebugModeMiddleware: jest.fn((req, res, next) => next()),
 }))
 
 jest.mock('../../../src/p2p/Context', () => ({
   network: {
-    registerExternalGet: jest.fn()
-  }
+    registerExternalGet: jest.fn(),
+  },
 }))
 
 jest.mock('../../../src/p2p/Wrapper', () => ({
   p2p: {
     state: {
-      getNodes: jest.fn().mockReturnValue([])
-    }
-  }
+      getNodes: jest.fn().mockReturnValue([]),
+    },
+  },
 }))
 
 jest.mock('../../../src/state-manager/AccountCache', () => {
   return jest.fn().mockImplementation(() => ({
     hasAccount: jest.fn().mockReturnValue(false),
     updateAccountHash: jest.fn(),
-    getAccountHash: jest.fn()
+    getAccountHash: jest.fn(),
   }))
 })
 
 import PartitionStats from '../../../src/state-manager/PartitionStats'
 import { CycleShardData } from '../../../src/state-manager/state-manager-types'
 import { Utils } from '@shardeum-foundation/lib-types'
-
 
 describe('PartitionStats', () => {
   let partitionStats: PartitionStats
@@ -75,15 +74,15 @@ describe('PartitionStats', () => {
 
   beforeEach(() => {
     jest.clearAllMocks()
-    
+
     // Re-setup the mock implementations that get cleared
     const Utils = require('@shardeum-foundation/lib-types').Utils
     Utils.safeStringify.mockImplementation((obj) => JSON.stringify(obj))
     Utils.safeJsonParse.mockImplementation((str) => JSON.parse(str))
-    
+
     // Also re-setup utils mocks
     const utils = require('../../../src/utils')
-    utils.makeShortHash.mockImplementation((str) => str ? str.slice(0, 6) : '')
+    utils.makeShortHash.mockImplementation((str) => (str ? str.slice(0, 6) : ''))
     utils.stringifyReduce.mockImplementation((obj) => JSON.stringify(obj))
 
     mockStateManager = {
@@ -93,8 +92,8 @@ describe('PartitionStats', () => {
       cycleDebugNotes: {},
       feature_generateStats: true,
       accountPatcher: {
-        getNonParitionRanges: jest.fn().mockReturnValue([])
-      }
+        getNonParitionRanges: jest.fn().mockReturnValue([]),
+      },
     }
 
     mockProfiler = {}
@@ -103,7 +102,7 @@ describe('PartitionStats', () => {
       getTimestampAndHashFromAccount: jest.fn().mockReturnValue({ hash: 'mockhash', timestamp: 1234567890 }),
       dataSummaryInit: jest.fn(),
       dataSummaryUpdate: jest.fn(),
-      txSummaryUpdate: jest.fn()
+      txSummaryUpdate: jest.fn(),
     }
 
     mockLogger = {
@@ -111,23 +110,23 @@ describe('PartitionStats', () => {
         debug: jest.fn(),
         error: jest.fn(),
         warn: jest.fn(),
-        info: jest.fn()
+        info: jest.fn(),
       }),
-      _internalHackGetWithResp: jest.fn()
+      _internalHackGetWithResp: jest.fn(),
     }
 
     mockCrypto = {}
 
     mockConfig = {
       debug: {
-        enableSaving: false
-      }
+        enableSaving: false,
+      },
     }
 
     mockAccountCache = {
       hasAccount: jest.fn().mockReturnValue(false),
       updateAccountHash: jest.fn(),
-      getAccountHash: jest.fn()
+      getAccountHash: jest.fn(),
     }
 
     partitionStats = new PartitionStats(
@@ -184,20 +183,20 @@ describe('PartitionStats', () => {
     it('should return a new summary blob with correct structure', () => {
       const partition = 42
       const blob = partitionStats.getNewSummaryBlob(partition)
-      
+
       expect(blob).toEqual({
         counter: 0,
         latestCycle: 0,
         errorNull: 0,
         partition: 42,
-        opaqueBlob: {}
+        opaqueBlob: {},
       })
     })
 
     it('should create independent blob objects', () => {
       const blob1 = partitionStats.getNewSummaryBlob(1)
       const blob2 = partitionStats.getNewSummaryBlob(2)
-      
+
       blob1.counter = 5
       expect(blob2.counter).toBe(0)
       expect(blob1.partition).toBe(1)
@@ -209,7 +208,7 @@ describe('PartitionStats', () => {
     it('should calculate partition from first 3 bytes of address', () => {
       const address = 'abc123456789'
       const partition = partitionStats.getSummaryBlobPartition(address)
-      
+
       // 'abc' in hex = 0xabc = 2748
       expect(partition).toBe(2748)
     })
@@ -230,7 +229,7 @@ describe('PartitionStats', () => {
     it('should create and return blob for new partition', () => {
       const address = '123456789'
       const blob = partitionStats.getSummaryBlob(address)
-      
+
       expect(blob).toBeDefined()
       expect(blob.partition).toBe(291) // 0x123
       expect(partitionStats.summaryBlobByPartition.has(291)).toBe(true)
@@ -240,7 +239,7 @@ describe('PartitionStats', () => {
       const address = '123456789'
       const blob1 = partitionStats.getSummaryBlob(address)
       blob1.counter = 10
-      
+
       const blob2 = partitionStats.getSummaryBlob(address)
       expect(blob2).toBe(blob1)
       expect(blob2.counter).toBe(10)
@@ -251,9 +250,9 @@ describe('PartitionStats', () => {
     it('should delegate to accountCache.hasAccount', () => {
       const accountId = 'account123'
       mockAccountCache.hasAccount.mockReturnValue(true)
-      
+
       const result = partitionStats.hasAccountBeenSeenByStats(accountId)
-      
+
       expect(result).toBe(true)
       expect(mockAccountCache.hasAccount).toHaveBeenCalledWith(accountId)
     })
@@ -261,9 +260,9 @@ describe('PartitionStats', () => {
     it('should return false when account not in cache', () => {
       const accountId = 'newAccount'
       mockAccountCache.hasAccount.mockReturnValue(false)
-      
+
       const result = partitionStats.hasAccountBeenSeenByStats(accountId)
-      
+
       expect(result).toBe(false)
     })
   })
@@ -272,7 +271,7 @@ describe('PartitionStats', () => {
     it('should create a new summary blob collection for a cycle', () => {
       const cycleNumber = 5
       const collection = partitionStats.initTXSummaryBlobsForCycle(cycleNumber)
-      
+
       expect(collection.cycle).toBe(5)
       expect(collection.blobsByPartition).toBeInstanceOf(Map)
       expect(collection.blobsByPartition.size).toBe(4096)
@@ -280,21 +279,21 @@ describe('PartitionStats', () => {
 
     it('should add collection to txSummaryBlobCollections array', () => {
       expect(partitionStats.txSummaryBlobCollections.length).toBe(0)
-      
+
       partitionStats.initTXSummaryBlobsForCycle(5)
-      
+
       expect(partitionStats.txSummaryBlobCollections.length).toBe(1)
       expect(partitionStats.txSummaryBlobCollections[0].cycle).toBe(5)
     })
 
     it('should prune old collections when exceeding maxCyclesToStoreBlob', () => {
       partitionStats.maxCyclesToStoreBlob = 3
-      
+
       // Add 4 collections
       for (let i = 1; i <= 4; i++) {
         partitionStats.initTXSummaryBlobsForCycle(i)
       }
-      
+
       // Should only keep the last 3
       expect(partitionStats.txSummaryBlobCollections.length).toBe(3)
       expect(partitionStats.txSummaryBlobCollections[0].cycle).toBe(2)
@@ -305,15 +304,15 @@ describe('PartitionStats', () => {
   describe('getOrCreateTXSummaryBlobCollectionByCycle', () => {
     it('should return existing collection for a cycle', () => {
       const collection = partitionStats.initTXSummaryBlobsForCycle(5)
-      
+
       const retrieved = partitionStats.getOrCreateTXSummaryBlobCollectionByCycle(5)
-      
+
       expect(retrieved).toBe(collection)
     })
 
     it('should create new collection if not exists', () => {
       const collection = partitionStats.getOrCreateTXSummaryBlobCollectionByCycle(7)
-      
+
       expect(collection).toBeDefined()
       expect(collection.cycle).toBe(7)
       expect(partitionStats.txSummaryBlobCollections).toContainEqual(collection)
@@ -321,7 +320,7 @@ describe('PartitionStats', () => {
 
     it('should return null for negative cycle', () => {
       const result = partitionStats.getOrCreateTXSummaryBlobCollectionByCycle(-1)
-      
+
       expect(result).toBeNull()
     })
 
@@ -329,9 +328,9 @@ describe('PartitionStats', () => {
       partitionStats.initTXSummaryBlobsForCycle(3)
       partitionStats.initTXSummaryBlobsForCycle(5)
       partitionStats.initTXSummaryBlobsForCycle(7)
-      
+
       const collection = partitionStats.getOrCreateTXSummaryBlobCollectionByCycle(5)
-      
+
       expect(collection.cycle).toBe(5)
     })
   })
@@ -341,12 +340,12 @@ describe('PartitionStats', () => {
       const cycleShardData: any = {
         nodeShardData: {
           consensusStartPartition: 0,
-          consensusEndPartition: 100
-        }
+          consensusEndPartition: 100,
+        },
       }
-      
+
       const result = partitionStats.getConsensusSnapshotPartitions(cycleShardData)
-      
+
       expect(result.list).toEqual([])
       expect(result.map.size).toBe(0)
     })
@@ -355,17 +354,17 @@ describe('PartitionStats', () => {
       const cycleShardData: any = {
         nodeShardData: {
           consensusStartPartition: 0,
-          consensusEndPartition: 100
-        }
+          consensusEndPartition: 100,
+        },
       }
-      
+
       // Mock to return a range that excludes some partitions
       mockStateManager.accountPatcher.getNonParitionRanges.mockReturnValue([
-        { low: '010000', high: '020000' } // This should exclude partitions 16-32
+        { low: '010000', high: '020000' }, // This should exclude partitions 16-32
       ])
-      
+
       const result = partitionStats.getConsensusSnapshotPartitions(cycleShardData)
-      
+
       // Should include partitions outside the excluded range
       expect(result.list).not.toContain(16)
       expect(result.list).not.toContain(32)
@@ -377,17 +376,17 @@ describe('PartitionStats', () => {
       const cycleShardData: any = {
         nodeShardData: {
           consensusStartPartition: 0,
-          consensusEndPartition: 100
-        }
+          consensusEndPartition: 100,
+        },
       }
-      
+
       mockStateManager.accountPatcher.getNonParitionRanges.mockReturnValue([
         { low: '010000', high: '020000' },
-        { low: '030000', high: '040000' }
+        { low: '030000', high: '040000' },
       ])
-      
+
       const result = partitionStats.getConsensusSnapshotPartitions(cycleShardData)
-      
+
       // Should exclude both ranges
       expect(result.map.has(16)).toBe(false)
       expect(result.map.has(48)).toBe(false)
@@ -397,48 +396,43 @@ describe('PartitionStats', () => {
   describe('statsDataSummaryInit', () => {
     const accountId = 'acc123'
     const accountData = { balance: 100 }
-    
+
     it('should update blob counter', () => {
       partitionStats.statsDataSummaryInit(5, accountId, accountData, 'test')
-      
+
       const blob = partitionStats.getSummaryBlob(accountId)
       expect(blob.counter).toBe(1)
     })
 
     it('should return early if account already exists', () => {
       mockAccountCache.hasAccount.mockReturnValue(true)
-      
+
       partitionStats.statsDataSummaryInit(5, accountId, accountData, 'test')
-      
+
       expect(mockApp.getTimestampAndHashFromAccount).not.toHaveBeenCalled()
     })
 
     it('should update account cache for new account', () => {
       mockAccountCache.hasAccount.mockReturnValue(false)
-      
+
       partitionStats.statsDataSummaryInit(5, accountId, accountData, 'test')
-      
+
       expect(mockApp.getTimestampAndHashFromAccount).toHaveBeenCalledWith(accountData)
-      expect(mockAccountCache.updateAccountHash).toHaveBeenCalledWith(
-        accountId,
-        'mockhash',
-        1234567890,
-        5
-      )
+      expect(mockAccountCache.updateAccountHash).toHaveBeenCalledWith(accountId, 'mockhash', 1234567890, 5)
     })
 
     it('should handle null account data', () => {
       partitionStats.statsDataSummaryInit(5, accountId, null, 'test')
-      
+
       const blob = partitionStats.getSummaryBlob(accountId)
       expect(blob.errorNull).toBe(1)
     })
 
     it('should add work to queue when stats enabled', () => {
       mockStateManager.feature_generateStats = true
-      
+
       partitionStats.statsDataSummaryInit(5, accountId, accountData, 'test')
-      
+
       expect(partitionStats.workQueue.length).toBe(1)
       expect(partitionStats.workQueue[0].cycle).toBe(5)
     })
@@ -451,28 +445,28 @@ describe('PartitionStats', () => {
       accountId: accountId,
       data: { balance: 200 },
       timestamp: 1234567891,
-      stateId: 'newhash'
+      stateId: 'newhash',
     }
-    
+
     it('should update blob counter', () => {
       partitionStats.statsDataSummaryUpdate(5, accountBefore, accountAfter, 'test')
-      
+
       const blob = partitionStats.getSummaryBlob(accountId)
       expect(blob.counter).toBe(1)
     })
 
     it('should handle null account data after', () => {
       const nullAfter = { ...accountAfter, data: null }
-      
+
       partitionStats.statsDataSummaryUpdate(5, accountBefore, nullAfter, 'test')
-      
+
       const blob = partitionStats.getSummaryBlob(accountId)
       expect(blob.errorNull).toBe(100000000)
     })
 
     it('should handle null account data before', () => {
       partitionStats.statsDataSummaryUpdate(5, null, accountAfter, 'test')
-      
+
       const blob = partitionStats.getSummaryBlob(accountId)
       expect(blob.errorNull).toBe(10000000000)
     })
@@ -480,18 +474,18 @@ describe('PartitionStats', () => {
     it('should skip update if cached timestamp is newer', () => {
       mockAccountCache.hasAccount.mockReturnValue(true)
       mockAccountCache.getAccountHash.mockReturnValue({ t: 1234567892 })
-      
+
       partitionStats.statsDataSummaryUpdate(5, accountBefore, accountAfter, 'test')
-      
+
       expect(partitionStats.workQueue.length).toBe(0)
     })
 
     it('should add work to queue when stats enabled', () => {
       mockStateManager.feature_generateStats = true
       mockAccountCache.hasAccount.mockReturnValue(false)
-      
+
       partitionStats.statsDataSummaryUpdate(5, accountBefore, accountAfter, 'test')
-      
+
       expect(partitionStats.workQueue.length).toBe(1)
       expect(partitionStats.workQueue[0].cycle).toBe(5)
     })
@@ -503,65 +497,61 @@ describe('PartitionStats', () => {
       logID: 'tx123',
       uniqueWritableKeys: ['acc123'],
       acceptedTx: {
-        data: { amount: 100 }
-      }
+        data: { amount: 100 },
+      },
     }
-    
+
     it('should skip if no writable keys', () => {
       const emptyEntry = { ...queueEntry, uniqueWritableKeys: [] }
-      
+
       partitionStats.statsTxSummaryUpdate(5, emptyEntry)
-      
+
       expect(mockApp.txSummaryUpdate).not.toHaveBeenCalled()
     })
 
     it('should update TX blob for partition', () => {
       const collection = partitionStats.initTXSummaryBlobsForCycle(5)
-      
+
       partitionStats.statsTxSummaryUpdate(5, queueEntry)
-      
-      expect(mockApp.txSummaryUpdate).toHaveBeenCalledWith(
-        expect.any(Object),
-        queueEntry.acceptedTx.data,
-        null
-      )
+
+      expect(mockApp.txSummaryUpdate).toHaveBeenCalledWith(expect.any(Object), queueEntry.acceptedTx.data, null)
     })
 
     it('should increment blob counter', () => {
       partitionStats.initTXSummaryBlobsForCycle(5)
-      
+
       partitionStats.statsTxSummaryUpdate(5, queueEntry)
-      
+
       const partition = partitionStats.getSummaryBlobPartition('acc123')
       const collection = partitionStats.getOrCreateTXSummaryBlobCollectionByCycle(5)
       const blob = collection.blobsByPartition.get(partition)
-      
+
       expect(blob.counter).toBe(1)
     })
 
     it('should handle missing collection', () => {
       // Don't create collection - use a cycle that doesn't exist
       const missingCycleEntry = { ...queueEntry, cycleToRecordOn: -1 }
-      
+
       partitionStats.statsTxSummaryUpdate(10, missingCycleEntry)
-      
+
       expect(mockApp.txSummaryUpdate).not.toHaveBeenCalled()
     })
 
     it('should use first writable key for partitioning', () => {
-      const keys = ['abc123', 'def456', 'ghi789']  // Use keys that start with valid hex chars
-      const multiKeyEntry = { 
-        ...queueEntry, 
-        uniqueWritableKeys: keys 
+      const keys = ['abc123', 'def456', 'ghi789'] // Use keys that start with valid hex chars
+      const multiKeyEntry = {
+        ...queueEntry,
+        uniqueWritableKeys: keys,
       }
       const collection = partitionStats.initTXSummaryBlobsForCycle(5)
-      
+
       partitionStats.statsTxSummaryUpdate(5, multiKeyEntry)
-      
+
       // Should use 'abc123' for partition calculation
       const partition = partitionStats.getSummaryBlobPartition('abc123')
       const blob = collection.blobsByPartition.get(partition)
-      
+
       expect(blob).toBeDefined()
       expect(blob.counter).toBe(1)
       expect(mockApp.txSummaryUpdate).toHaveBeenCalled()
@@ -572,23 +562,23 @@ describe('PartitionStats', () => {
     it('should execute queued work for current cycle', () => {
       const fn1 = jest.fn()
       const fn2 = jest.fn()
-      
+
       partitionStats.workQueue = [
         { cycle: 3, fn: fn1, args: ['arg1'] },
         { cycle: 5, fn: fn2, args: ['arg2'] },
-        { cycle: 7, fn: jest.fn(), args: [] }
+        { cycle: 7, fn: jest.fn(), args: [] },
       ]
-      
+
       const cycleShardData: any = {
         cycleNumber: 5,
         nodeShardData: {
           consensusStartPartition: 0,
-          consensusEndPartition: 100
-        }
+          consensusEndPartition: 100,
+        },
       }
-      
+
       partitionStats.buildStatsReport(cycleShardData)
-      
+
       expect(fn1).toHaveBeenCalledWith('arg1')
       expect(fn2).toHaveBeenCalledWith('arg2')
       expect(partitionStats.workQueue.length).toBe(1) // Only cycle 7 remains
@@ -604,19 +594,19 @@ describe('PartitionStats', () => {
         cycleNumber: 5,
         nodeShardData: {
           consensusStartPartition: 0,
-          consensusEndPartition: 100
-        }
+          consensusEndPartition: 100,
+        },
       }
-      
+
       // Create some data blobs
       const blob1 = partitionStats.getSummaryBlob('123456')
       blob1.counter = 5
-      
+
       // Mock to include all partitions
       mockStateManager.accountPatcher.getNonParitionRanges.mockReturnValue([])
-      
+
       const report = partitionStats.buildStatsReport(cycleShardData)
-      
+
       expect(report.covered).toEqual([])
       expect(report.error).toBe(false)
     })
@@ -626,20 +616,18 @@ describe('PartitionStats', () => {
         cycleNumber: 5,
         nodeShardData: {
           consensusStartPartition: 0,
-          consensusEndPartition: 100
-        }
+          consensusEndPartition: 100,
+        },
       }
-      
+
       // Create empty blob
       partitionStats.getSummaryBlob('aaa111')
-      
+
       // Mock to include partition
-      mockStateManager.accountPatcher.getNonParitionRanges.mockReturnValue([
-        { low: 'bbb000', high: 'fff000' }
-      ])
-      
+      mockStateManager.accountPatcher.getNonParitionRanges.mockReturnValue([{ low: 'bbb000', high: 'fff000' }])
+
       const report = partitionStats.buildStatsReport(cycleShardData)
-      
+
       expect(report.dataStats.length).toBe(0)
     })
 
@@ -648,23 +636,23 @@ describe('PartitionStats', () => {
         cycleNumber: 5,
         nodeShardData: {
           consensusStartPartition: 0,
-          consensusEndPartition: 100
-        }
+          consensusEndPartition: 100,
+        },
       }
-      
+
       // Create TX blob collection
       const collection = partitionStats.initTXSummaryBlobsForCycle(5)
       const blob = collection.blobsByPartition.get(291) // Partition for '123'
       blob.counter = 3
-      
+
       // Mock to exclude partition 291 (hex 0x123)
       // The range needs to cover 0x123 (291) with padding
       mockStateManager.accountPatcher.getNonParitionRanges.mockReturnValue([
-        { low: '122000', high: '124000' } // This will exclude partitions around 291 (0x123)
+        { low: '122000', high: '124000' }, // This will exclude partitions around 291 (0x123)
       ])
-      
+
       const report = partitionStats.buildStatsReport(cycleShardData)
-      
+
       expect(report.txStats.length).toBe(0) // Should be excluded by range
     })
   })
@@ -673,19 +661,11 @@ describe('PartitionStats', () => {
     it('should register external endpoints', () => {
       const mockRegister = jest.fn()
       require('../../../src/p2p/Context').network.registerExternalGet = mockRegister
-      
+
       partitionStats.setupHandlers()
-      
-      expect(mockRegister).toHaveBeenCalledWith(
-        'get-stats-dump',
-        expect.any(Function),
-        expect.any(Function)
-      )
-      expect(mockRegister).toHaveBeenCalledWith(
-        'get-stats-report-all',
-        expect.any(Function),
-        expect.any(Function)
-      )
+
+      expect(mockRegister).toHaveBeenCalledWith('get-stats-dump', expect.any(Function), expect.any(Function))
+      expect(mockRegister).toHaveBeenCalledWith('get-stats-report-all', expect.any(Function), expect.any(Function))
     })
 
     it('should handle get-stats-dump endpoint request', () => {
@@ -696,26 +676,26 @@ describe('PartitionStats', () => {
         }
       })
       require('../../../src/p2p/Context').network.registerExternalGet = mockRegister
-      
+
       partitionStats.setupHandlers()
-      
+
       const req = { query: { cycle: '8' } }
       const res = {
         write: jest.fn(),
-        end: jest.fn()
+        end: jest.fn(),
       }
-      
+
       // Mock shardValuesByCycle
       mockStateManager.shardValuesByCycle.set(8, {
         cycleNumber: 8,
         nodeShardData: {
           consensusStartPartition: 0,
-          consensusEndPartition: 100
-        }
+          consensusEndPartition: 100,
+        },
       })
-      
+
       handler(req, res)
-      
+
       expect(res.write).toHaveBeenCalled()
       expect(res.end).toHaveBeenCalled()
     })
@@ -728,17 +708,17 @@ describe('PartitionStats', () => {
         }
       })
       require('../../../src/p2p/Context').network.registerExternalGet = mockRegister
-      
+
       partitionStats.setupHandlers()
-      
+
       const req = { query: {} }
       const res = {
         write: jest.fn(),
-        end: jest.fn()
+        end: jest.fn(),
       }
-      
+
       handler(req, res)
-      
+
       expect(res.write).toHaveBeenCalled()
       expect(res.end).toHaveBeenCalled()
     })
@@ -751,29 +731,29 @@ describe('PartitionStats', () => {
         }
       })
       require('../../../src/p2p/Context').network.registerExternalGet = mockRegister
-      
+
       partitionStats.setupHandlers()
-      
+
       const req = { query: { raw: 'false' } }
       const res = {
         write: jest.fn(),
-        end: jest.fn()
+        end: jest.fn(),
       }
-      
+
       // Mock getNodes
       const mockGetNodes = jest.fn().mockReturnValue([
         { externalIp: '1.1.1.1', externalPort: 8080 },
-        { externalIp: '2.2.2.2', externalPort: 8080 }
+        { externalIp: '2.2.2.2', externalPort: 8080 },
       ])
       require('../../../src/p2p/Wrapper').p2p.state.getNodes = mockGetNodes
-      
+
       // Mock _internalHackGetWithResp
       mockLogger._internalHackGetWithResp = jest.fn().mockResolvedValue({
-        body: '{"covered":[0,1,2],"cycle":8,"dataStats":[],"txStats":[]}'
+        body: '{"covered":[0,1,2],"cycle":8,"dataStats":[],"txStats":[]}',
       })
-      
+
       await handler(req, res)
-      
+
       expect(res.write).toHaveBeenCalledWith(expect.stringContaining('building shard report'))
       expect(res.write).toHaveBeenCalledWith(expect.stringContaining('statsReport'))
       expect(res.end).toHaveBeenCalled()
@@ -787,28 +767,26 @@ describe('PartitionStats', () => {
         }
       })
       require('../../../src/p2p/Context').network.registerExternalGet = mockRegister
-      
+
       partitionStats.setupHandlers()
-      
+
       const req = { query: { raw: 'true' } }
       const res = {
         write: jest.fn(),
-        end: jest.fn()
+        end: jest.fn(),
       }
-      
+
       // Mock getNodes
-      const mockGetNodes = jest.fn().mockReturnValue([
-        { externalIp: '1.1.1.1', externalPort: 8080 }
-      ])
+      const mockGetNodes = jest.fn().mockReturnValue([{ externalIp: '1.1.1.1', externalPort: 8080 }])
       require('../../../src/p2p/Wrapper').p2p.state.getNodes = mockGetNodes
-      
+
       // Mock _internalHackGetWithResp
       mockLogger._internalHackGetWithResp = jest.fn().mockResolvedValue({
-        body: '{"test": "data"}'
+        body: '{"test": "data"}',
       })
-      
+
       await handler(req, res)
-      
+
       expect(res.write).toHaveBeenCalledWith(expect.stringContaining('['))
       expect(res.end).toHaveBeenCalled()
     })
@@ -821,23 +799,23 @@ describe('PartitionStats', () => {
         }
       })
       require('../../../src/p2p/Context').network.registerExternalGet = mockRegister
-      
+
       partitionStats.setupHandlers()
-      
+
       const req = { query: {} }
       const res = {
         write: jest.fn(),
-        end: jest.fn()
+        end: jest.fn(),
       }
-      
+
       // Mock getNodes to throw
       const mockGetNodes = jest.fn().mockImplementation(() => {
         throw new Error('Network error')
       })
       require('../../../src/p2p/Wrapper').p2p.state.getNodes = mockGetNodes
-      
+
       await handler(req, res)
-      
+
       expect(res.write).toHaveBeenCalledWith(expect.stringContaining('Error'))
       expect(res.end).toHaveBeenCalled()
     })
@@ -871,20 +849,20 @@ describe('PartitionStats', () => {
         cycleNumber: 5,
         nodeShardData: {
           consensusStartPartition: 0,
-          consensusEndPartition: 100
-        }
+          consensusEndPartition: 100,
+        },
       }
-      
+
       // Create some test data
       const blob = partitionStats.getSummaryBlob('abc123')
       blob.counter = 5
-      
+
       const txCollection = partitionStats.initTXSummaryBlobsForCycle(5)
       const txBlob = txCollection.blobsByPartition.get(2748) // partition for 'abc'
       txBlob.counter = 3
-      
+
       const result = partitionStats.dumpLogsForCycle(5, false, cycleShardData)
-      
+
       expect(result.cycle).toBe(5)
       expect(result.dataStats.length).toBeGreaterThan(0)
       expect(result.txStats.length).toBeGreaterThan(0)
@@ -892,7 +870,7 @@ describe('PartitionStats', () => {
 
     it('should work without cycleShardData', () => {
       const result = partitionStats.dumpLogsForCycle(5, false)
-      
+
       expect(result.cycle).toBe(5)
       expect(result.covered).toEqual([])
     })
@@ -906,19 +884,19 @@ describe('PartitionStats', () => {
     it('should add debug info when invasiveDebugInfo is true', () => {
       const accountId = 'acc123'
       const accountData = { balance: 100 }
-      
+
       partitionStats.statsDataSummaryInit(5, accountId, accountData, 'test')
-      
+
       // Process the work queue
       const cycleShardData: any = {
         cycleNumber: 5,
         nodeShardData: {
           consensusStartPartition: 0,
-          consensusEndPartition: 100
-        }
+          consensusEndPartition: 100,
+        },
       }
       partitionStats.buildStatsReport(cycleShardData)
-      
+
       const blob = partitionStats.getSummaryBlob(accountId)
       expect(blob.opaqueBlob.dbgData).toBeDefined()
     })
@@ -936,21 +914,21 @@ describe('PartitionStats', () => {
         accountId: accountId,
         data: { balance: 200 },
         timestamp: 1234567891,
-        stateId: 'newhash'
+        stateId: 'newhash',
       }
-      
+
       partitionStats.statsDataSummaryUpdate(5, accountBefore, accountAfter, 'test')
-      
+
       // Process the work queue
       const cycleShardData: any = {
         cycleNumber: 5,
         nodeShardData: {
           consensusStartPartition: 0,
-          consensusEndPartition: 100
-        }
+          consensusEndPartition: 100,
+        },
       }
       partitionStats.buildStatsReport(cycleShardData)
-      
+
       const blob = partitionStats.getSummaryBlob(accountId)
       expect(blob.opaqueBlob.dbgData).toBeDefined()
     })
@@ -967,17 +945,17 @@ describe('PartitionStats', () => {
         logID: 'tx123',
         uniqueWritableKeys: ['acc123'],
         acceptedTx: {
-          data: { amount: 100 }
-        }
+          data: { amount: 100 },
+        },
       }
-      
+
       partitionStats.initTXSummaryBlobsForCycle(5)
       partitionStats.statsTxSummaryUpdate(5, queueEntry)
-      
+
       const partition = partitionStats.getSummaryBlobPartition('acc123')
       const collection = partitionStats.getOrCreateTXSummaryBlobCollectionByCycle(5)
       const blob = collection.blobsByPartition.get(partition)
-      
+
       expect(blob.opaqueBlob.dbg).toBeDefined()
       expect(blob.opaqueBlob.dbg).toContain('tx123')
     })
@@ -988,11 +966,11 @@ describe('PartitionStats', () => {
       const accountData = {
         data: {
           data: {
-            balance: '1000'
-          }
-        }
+            balance: '1000',
+          },
+        },
       }
-      
+
       const result = partitionStats.debugAccountData(accountData)
       expect(result).toBe('1000')
     })
@@ -1000,26 +978,26 @@ describe('PartitionStats', () => {
     it('should extract balance from data property', () => {
       const accountData = {
         data: {
-          balance: '500'
-        }
+          balance: '500',
+        },
       }
-      
+
       const result = partitionStats.debugAccountData(accountData)
       expect(result).toBe('500')
     })
 
     it('should extract balance from root level', () => {
       const accountData = {
-        balance: '250'
+        balance: '250',
       }
-      
+
       const result = partitionStats.debugAccountData(accountData)
       expect(result).toBe('250')
     })
 
     it('should return X for unrecognized structure', () => {
       const accountData = { someOtherProperty: 'value' } as any
-      
+
       const result = partitionStats.debugAccountData(accountData)
       expect(result).toBe('X')
     })
@@ -1031,24 +1009,22 @@ describe('PartitionStats', () => {
         cycleNumber: 5,
         nodeShardData: {
           consensusStartPartition: 0,
-          consensusEndPartition: 100
-        }
+          consensusEndPartition: 100,
+        },
       }
-      
+
       // Create blobs with data
       const blob1 = partitionStats.getSummaryBlob('111222')
       blob1.counter = 5
-      
+
       const blob2 = partitionStats.getSummaryBlob('aaa111')
       blob2.counter = 3
-      
+
       // Mock to include partition 273 (0x111) and 2721 (0xaaa)
-      mockStateManager.accountPatcher.getNonParitionRanges.mockReturnValue([
-        { low: 'bbb000', high: 'fff000' }
-      ])
-      
+      mockStateManager.accountPatcher.getNonParitionRanges.mockReturnValue([{ low: 'bbb000', high: 'fff000' }])
+
       const report = partitionStats.buildStatsReport(cycleShardData, false)
-      
+
       expect(report.dataStats.length).toBeGreaterThan(0)
       expect(report.error).toBe(false)
     })
@@ -1058,24 +1034,24 @@ describe('PartitionStats', () => {
         cycleNumber: 5,
         nodeShardData: {
           consensusStartPartition: 0,
-          consensusEndPartition: 100
-        }
+          consensusEndPartition: 100,
+        },
       }
-      
+
       // Use address that maps to partition within consensus range (0-100)
       // '010' prefix = partition 16
       const blob = partitionStats.getSummaryBlob('010000')
       blob.counter = 5
       blob.opaqueBlob = { test: 'data' }
-      
+
       // Return a range that excludes partitions outside consensus range
       // This will make partitions 0-100 be included
       mockStateManager.accountPatcher.getNonParitionRanges.mockReturnValue([
-        { low: '065000', high: 'fff000' } // Exclude partitions 101 (0x065) and above
+        { low: '065000', high: 'fff000' }, // Exclude partitions 101 (0x065) and above
       ])
-      
+
       const report = partitionStats.buildStatsReport(cycleShardData)
-      
+
       // Check that the blob was cloned
       expect(report.dataStats.length).toBeGreaterThan(0)
       expect(report.dataStats[0]).not.toBe(blob)
@@ -1092,9 +1068,9 @@ describe('PartitionStats', () => {
     it('should not add work to queue when stats disabled', () => {
       const accountId = 'acc123'
       const accountData = { balance: 100 }
-      
+
       partitionStats.statsDataSummaryInit(5, accountId, accountData, 'test')
-      
+
       expect(partitionStats.workQueue.length).toBe(0)
     })
   })
@@ -1111,11 +1087,11 @@ describe('PartitionStats', () => {
         accountId: accountId,
         data: { balance: 200 },
         timestamp: 1234567891,
-        stateId: 'newhash'
+        stateId: 'newhash',
       }
-      
+
       partitionStats.statsDataSummaryUpdate(5, accountBefore, accountAfter, 'test')
-      
+
       expect(partitionStats.workQueue.length).toBe(0)
     })
   })
@@ -1124,25 +1100,22 @@ describe('PartitionStats', () => {
     it('should handle internalDoInit correctly', () => {
       const accountId = 'acc123'
       const accountData = { balance: 100 }
-      
+
       // Enable stats and add work
       mockStateManager.feature_generateStats = true
       partitionStats.statsDataSummaryInit(5, accountId, accountData, 'test')
-      
+
       // Process the queue
       const cycleShardData: any = {
         cycleNumber: 5,
         nodeShardData: {
           consensusStartPartition: 0,
-          consensusEndPartition: 100
-        }
+          consensusEndPartition: 100,
+        },
       }
       partitionStats.buildStatsReport(cycleShardData)
-      
-      expect(mockApp.dataSummaryInit).toHaveBeenCalledWith(
-        expect.any(Object),
-        accountData
-      )
+
+      expect(mockApp.dataSummaryInit).toHaveBeenCalledWith(expect.any(Object), accountData)
     })
 
     it('should handle internalDoUpdate correctly', () => {
@@ -1152,28 +1125,24 @@ describe('PartitionStats', () => {
         accountId: accountId,
         data: { balance: 200 },
         timestamp: 1234567891,
-        stateId: 'newhash'
+        stateId: 'newhash',
       }
-      
+
       // Enable stats and add work
       mockStateManager.feature_generateStats = true
       partitionStats.statsDataSummaryUpdate(5, accountBefore, accountAfter, 'test')
-      
+
       // Process the queue
       const cycleShardData: any = {
         cycleNumber: 5,
         nodeShardData: {
           consensusStartPartition: 0,
-          consensusEndPartition: 100
-        }
+          consensusEndPartition: 100,
+        },
       }
       partitionStats.buildStatsReport(cycleShardData)
-      
-      expect(mockApp.dataSummaryUpdate).toHaveBeenCalledWith(
-        expect.any(Object),
-        accountBefore,
-        accountAfter.data
-      )
+
+      expect(mockApp.dataSummaryUpdate).toHaveBeenCalledWith(expect.any(Object), accountBefore, accountAfter.data)
     })
   })
 
@@ -1184,12 +1153,12 @@ describe('PartitionStats', () => {
         logID: 'tx123',
         uniqueWritableKeys: new Set(),
         acceptedTx: {
-          data: { amount: 100 }
-        }
+          data: { amount: 100 },
+        },
       }
-      
+
       partitionStats.statsTxSummaryUpdate(5, queueEntry)
-      
+
       expect(mockApp.txSummaryUpdate).not.toHaveBeenCalled()
     })
 
@@ -1199,24 +1168,24 @@ describe('PartitionStats', () => {
         logID: 'tx123',
         uniqueWritableKeys: ['acc123'],
         acceptedTx: {
-          data: { amount: 100 }
-        }
+          data: { amount: 100 },
+        },
       }
-      
+
       const originalMainLogger = partitionStats.mainLogger
       partitionStats.mainLogger = {
         error: jest.fn(),
-        debug: jest.fn()
+        debug: jest.fn(),
       } as any
-      
+
       // Enable invasiveDebugInfo to ensure error is logged
       const originalInvasiveDebugInfo = partitionStats.invasiveDebugInfo
       partitionStats.invasiveDebugInfo = true
-      
+
       partitionStats.statsTxSummaryUpdate(5, queueEntry)
-      
+
       expect(partitionStats.mainLogger.error).toHaveBeenCalled()
-      
+
       partitionStats.mainLogger = originalMainLogger
       partitionStats.invasiveDebugInfo = originalInvasiveDebugInfo
     })
@@ -1225,22 +1194,22 @@ describe('PartitionStats', () => {
   describe('processDataStatsDump', () => {
     it('should process data stats dump correctly', () => {
       const stream = {
-        write: jest.fn()
+        write: jest.fn(),
       }
-      
+
       const lines = [
         {
           raw: 'some prefix {"covered":[0,1,2],"cycle":5,"dataStats":[{"partition":1,"counter":5,"opaqueBlob":{"totalBalance":1000}}],"owner":""}',
-          file: { owner: 'node1' }
+          file: { owner: 'node1' },
         },
         {
           raw: 'prefix {"covered":[0,1,2],"cycle":5,"dataStats":[{"partition":1,"counter":5,"opaqueBlob":{"totalBalance":1000}}],"owner":""}',
-          file: { owner: 'node2' }
-        }
+          file: { owner: 'node2' },
+        },
       ]
-      
+
       const result = partitionStats.processDataStatsDump(stream as any, partitionStats.dataStatsTallyFunction, lines)
-      
+
       expect(result.allPassed).toBe(true)
       expect(result.singleVotePartitions).toBe(1)
       expect(result.multiVotePartitions).toBe(0)
@@ -1248,22 +1217,22 @@ describe('PartitionStats', () => {
 
     it('should handle different votes for same partition', () => {
       const stream = {
-        write: jest.fn()
+        write: jest.fn(),
       }
-      
+
       const lines = [
         {
           raw: '{"covered":[0,1,2],"cycle":5,"dataStats":[{"partition":1,"counter":5,"opaqueBlob":{"totalBalance":1000}}],"owner":""}',
-          file: { owner: 'node1' }
+          file: { owner: 'node1' },
         },
         {
           raw: '{"covered":[0,1,2],"cycle":5,"dataStats":[{"partition":1,"counter":5,"opaqueBlob":{"totalBalance":2000}}],"owner":""}',
-          file: { owner: 'node2' }
-        }
+          file: { owner: 'node2' },
+        },
       ]
-      
+
       const result = partitionStats.processDataStatsDump(stream as any, partitionStats.dataStatsTallyFunction, lines)
-      
+
       expect(result.allPassed).toBe(false)
       expect(result.multiVotePartitions).toBe(1)
       expect(result.badPartitions).toContain(1)
@@ -1271,22 +1240,22 @@ describe('PartitionStats', () => {
 
     it('should skip wrong cycle', () => {
       const stream = {
-        write: jest.fn()
+        write: jest.fn(),
       }
-      
+
       const lines = [
         {
           raw: '{"covered":[0,1,2],"cycle":5,"dataStats":[],"owner":""}',
-          file: { owner: 'node1' }
+          file: { owner: 'node1' },
         },
         {
           raw: '{"covered":[0,1,2],"cycle":4,"dataStats":[],"owner":""}',
-          file: { owner: 'node2' }
-        }
+          file: { owner: 'node2' },
+        },
       ]
-      
+
       const result = partitionStats.processDataStatsDump(stream as any, null, lines)
-      
+
       expect(stream.write).toHaveBeenCalledWith(expect.stringContaining('wrong cycle'))
     })
   })
@@ -1294,22 +1263,22 @@ describe('PartitionStats', () => {
   describe('processTxStatsDump', () => {
     it('should process TX stats dump correctly', () => {
       const stream = {
-        write: jest.fn()
+        write: jest.fn(),
       }
-      
+
       const lines = [
         {
           raw: '{"covered":[0,1,2],"cycle":5,"txStats":[{"partition":1,"counter":5,"opaqueBlob":{"totalTx":10}}],"owner":""}',
-          file: { owner: 'node1' }
+          file: { owner: 'node1' },
         },
         {
           raw: '{"covered":[0,1,2],"cycle":5,"txStats":[{"partition":1,"counter":5,"opaqueBlob":{"totalTx":10}}],"owner":""}',
-          file: { owner: 'node2' }
-        }
+          file: { owner: 'node2' },
+        },
       ]
-      
+
       const result = partitionStats.processTxStatsDump(stream as any, partitionStats.txStatsTallyFunction, lines)
-      
+
       expect(result.allPassed).toBe(true)
       expect(result.singleVotePartitions).toBe(1)
       expect(result.totalTx).toBe(10)
@@ -1317,35 +1286,35 @@ describe('PartitionStats', () => {
 
     it('should handle parse errors', () => {
       const stream = {
-        write: jest.fn()
+        write: jest.fn(),
       }
-      
+
       const lines = [
         {
           raw: 'invalid json {"covered"',
-          file: { owner: 'node1' }
-        }
+          file: { owner: 'node1' },
+        },
       ]
-      
+
       const result = partitionStats.processTxStatsDump(stream as any, null, lines)
-      
+
       expect(result.allPassed).toBe(true) // No valid stats to process
     })
 
     it('should print cycle debug notes', () => {
       const stream = {
-        write: jest.fn()
+        write: jest.fn(),
       }
-      
+
       const lines = [
         {
           raw: '{"covered":[],"cycle":5,"txStats":[],"cycleDebugNotes":{"note1":5,"note2":0}}',
-          file: { owner: 'node1' }
-        }
+          file: { owner: 'node1' },
+        },
       ]
-      
+
       partitionStats.processTxStatsDump(stream as any, null, lines)
-      
+
       expect(stream.write).toHaveBeenCalledWith(expect.stringContaining('node1'))
       expect(stream.write).toHaveBeenCalledWith(expect.stringContaining('"note1":5'))
     })
@@ -1355,11 +1324,11 @@ describe('PartitionStats', () => {
     it('should add debug data when invasiveDebugInfo is true', () => {
       partitionStats.invasiveDebugInfo = true
       const blob: any = {
-        opaqueBlob: {}
+        opaqueBlob: {},
       }
-      
+
       partitionStats.addDebugToBlob(blob, 'account12345')
-      
+
       expect(blob.opaqueBlob.dbgData).toBeDefined()
       expect(blob.opaqueBlob.dbgData).toContain('accoun')
     })
@@ -1368,23 +1337,23 @@ describe('PartitionStats', () => {
       partitionStats.invasiveDebugInfo = true
       const blob: any = {
         opaqueBlob: {
-          dbgData: ['accoun']
-        }
+          dbgData: ['accoun'],
+        },
       }
-      
+
       partitionStats.addDebugToBlob(blob, 'account12345')
-      
+
       expect(blob.opaqueBlob.dbgData).toEqual(['accoun'])
     })
 
     it('should not add debug data when invasiveDebugInfo is false', () => {
       partitionStats.invasiveDebugInfo = false
       const blob: any = {
-        opaqueBlob: {}
+        opaqueBlob: {},
       }
-      
+
       partitionStats.addDebugToBlob(blob, 'account12345')
-      
+
       expect(blob.opaqueBlob.dbgData).toBeUndefined()
     })
   })
@@ -1392,31 +1361,31 @@ describe('PartitionStats', () => {
   describe('process stats with metrics', () => {
     it('should handle bad votes metric in processDataStatsDump', () => {
       const stream = {
-        write: jest.fn()
+        write: jest.fn(),
       }
-      
+
       // Test with 4 nodes where each votes differently - no vote gets > 1/3
       const lines = [
         {
           raw: '{"covered":[1],"cycle":5,"dataStats":[{"partition":1,"counter":5,"opaqueBlob":{"data":"A"}}],"owner":""}',
-          file: { owner: 'node1' }
+          file: { owner: 'node1' },
         },
         {
           raw: '{"covered":[1],"cycle":5,"dataStats":[{"partition":1,"counter":5,"opaqueBlob":{"data":"B"}}],"owner":""}',
-          file: { owner: 'node2' }
+          file: { owner: 'node2' },
         },
         {
           raw: '{"covered":[1],"cycle":5,"dataStats":[{"partition":1,"counter":5,"opaqueBlob":{"data":"C"}}],"owner":""}',
-          file: { owner: 'node3' }
+          file: { owner: 'node3' },
         },
         {
           raw: '{"covered":[1],"cycle":5,"dataStats":[{"partition":1,"counter":5,"opaqueBlob":{"data":"D"}}],"owner":""}',
-          file: { owner: 'node4' }
-        }
+          file: { owner: 'node4' },
+        },
       ]
-      
+
       const result = partitionStats.processDataStatsDump(stream as any, null, lines)
-      
+
       // With 4 voters and 4 different votes, bestVote = 1
       // Math.ceil(4/3) = 2, so 1 < 2 is true, making allPassedMetric2 false
       expect(result.allPassedMetric2).toBe(false)
@@ -1424,43 +1393,43 @@ describe('PartitionStats', () => {
 
     it('should handle uncovered partition in processDataStatsDump', () => {
       const stream = {
-        write: jest.fn()
+        write: jest.fn(),
       }
-      
+
       const lines = [
         {
           raw: '{"covered":[1,2,3],"cycle":5,"dataStats":[{"partition":4,"counter":5,"opaqueBlob":{}}],"owner":""}',
-          file: { owner: 'node1' }
-        }
+          file: { owner: 'node1' },
+        },
       ]
-      
+
       const result = partitionStats.processDataStatsDump(stream as any, null, lines)
-      
+
       expect(result.dataByParition.size).toBe(0)
     })
 
     it('should handle best vote calculation in processTxStatsDump', () => {
       const stream = {
-        write: jest.fn()
+        write: jest.fn(),
       }
-      
+
       const lines = [
         {
           raw: '{"covered":[1],"cycle":5,"txStats":[{"partition":1,"counter":5,"opaqueBlob":{"totalTx":5}}],"owner":""}',
-          file: { owner: 'node1' }
+          file: { owner: 'node1' },
         },
         {
           raw: '{"covered":[1],"cycle":5,"txStats":[{"partition":1,"counter":5,"opaqueBlob":{"totalTx":5}}],"owner":""}',
-          file: { owner: 'node2' }
+          file: { owner: 'node2' },
         },
         {
           raw: '{"covered":[1],"cycle":5,"txStats":[{"partition":1,"counter":5,"opaqueBlob":{"totalTx":10}}],"owner":""}',
-          file: { owner: 'node3' }
-        }
+          file: { owner: 'node3' },
+        },
       ]
-      
+
       const result = partitionStats.processTxStatsDump(stream as any, partitionStats.txStatsTallyFunction, lines)
-      
+
       expect(result.totalTx).toBe(5) // Best vote value
       expect(result.allPassedMetric2).toBe(true) // 2 out of 3 nodes agree
     })
@@ -1472,24 +1441,24 @@ describe('PartitionStats', () => {
       const originalLogger = partitionStats.mainLogger
       partitionStats.mainLogger = {
         debug: jest.fn(),
-        error: jest.fn()
+        error: jest.fn(),
       } as any
-      
+
       const queueEntry: any = {
         cycleToRecordOn: 5,
         logID: 'tx123',
         uniqueWritableKeys: [],
         acceptedTx: {
-          data: { amount: 100 }
-        }
+          data: { amount: 100 },
+        },
       }
-      
+
       partitionStats.statsTxSummaryUpdate(5, queueEntry)
-      
+
       expect(partitionStats.mainLogger.debug).toHaveBeenCalledWith(
         expect.stringContaining('skip(no local writable key)')
       )
-      
+
       partitionStats.mainLogger = originalLogger
     })
   })
@@ -1499,17 +1468,15 @@ describe('PartitionStats', () => {
       const cycleShardData: any = {
         nodeShardData: {
           consensusStartPartition: 0,
-          consensusEndPartition: 100
-        }
+          consensusEndPartition: 100,
+        },
       }
-      
+
       // Return range with low boundary
-      mockStateManager.accountPatcher.getNonParitionRanges.mockReturnValue([
-        { low: '001000', high: '002000' }
-      ])
-      
+      mockStateManager.accountPatcher.getNonParitionRanges.mockReturnValue([{ low: '001000', high: '002000' }])
+
       const result = partitionStats.getConsensusSnapshotPartitions(cycleShardData)
-      
+
       // Should handle negative dialation correctly
       expect(result.map.has(0)).toBe(false) // Should be excluded due to dialation
     })
@@ -1519,23 +1486,21 @@ describe('PartitionStats', () => {
     it('should write logs to statsLogger when writeTofile is true', () => {
       const originalLogger = partitionStats.statsLogger
       partitionStats.statsLogger = {
-        debug: jest.fn()
+        debug: jest.fn(),
       } as any
-      
+
       const cycleShardData: any = {
         cycleNumber: 5,
         nodeShardData: {
           consensusStartPartition: 0,
-          consensusEndPartition: 100
-        }
+          consensusEndPartition: 100,
+        },
       }
-      
+
       partitionStats.dumpLogsForCycle(5, true, cycleShardData)
-      
-      expect(partitionStats.statsLogger.debug).toHaveBeenCalledWith(
-        expect.stringContaining('logs for cycle 5')
-      )
-      
+
+      expect(partitionStats.statsLogger.debug).toHaveBeenCalledWith(expect.stringContaining('logs for cycle 5'))
+
       partitionStats.statsLogger = originalLogger
     })
   })
@@ -1543,85 +1508,85 @@ describe('PartitionStats', () => {
   describe('edge case coverage', () => {
     it('should handle missing cycleDebugNotes in processTxStatsDump', () => {
       const stream = {
-        write: jest.fn()
+        write: jest.fn(),
       }
-      
+
       const lines = [
         {
           raw: '{"covered":[],"cycle":5,"txStats":[]}',
-          file: { owner: 'node1' }
-        }
+          file: { owner: 'node1' },
+        },
       ]
-      
+
       partitionStats.processTxStatsDump(stream as any, null, lines)
-      
+
       expect(stream.write).not.toHaveBeenCalledWith(expect.stringContaining('node1'))
     })
 
     it('should log parse errors in processDataStatsDump', () => {
       const stream = {
-        write: jest.fn()
+        write: jest.fn(),
       }
-      
+
       // Mock logger for this test
       const originalMainLogger = partitionStats.mainLogger
       partitionStats.mainLogger = {
-        error: jest.fn()
+        error: jest.fn(),
       } as any
-      
+
       // Enable error logging
       const logFlags = require('../../../src/logger').logFlags
       const originalErrorFlag = logFlags.error
       logFlags.error = true
-      
+
       const lines = [
         {
           raw: 'prefix {"covered":invalid json}',
-          file: { owner: 'node1' }
-        }
+          file: { owner: 'node1' },
+        },
       ]
-      
+
       const result = partitionStats.processDataStatsDump(stream as any, null, lines)
-      
+
       expect(partitionStats.mainLogger.error).toHaveBeenCalledWith(
         expect.stringContaining('Fail to parse statsObj'),
         expect.any(Error)
       )
-      
+
       partitionStats.mainLogger = originalMainLogger
       logFlags.error = originalErrorFlag
     })
 
     it('should handle parse errors in processTxStatsDump', () => {
       const stream = {
-        write: jest.fn()
+        write: jest.fn(),
       }
-      
+
       // Mock logger for this test
       const originalMainLogger = partitionStats.mainLogger
       partitionStats.mainLogger = {
-        error: jest.fn()
+        error: jest.fn(),
       } as any
-      
+
       // Enable error logging
       const logFlags = require('../../../src/logger').logFlags
       const originalErrorFlag = logFlags.error
       logFlags.error = true
-      
+
       const lines = [
         {
           raw: 'prefix {"covered":invalid json}',
-          file: { owner: 'node1' }
-        }
+          file: { owner: 'node1' },
+        },
       ]
-      
+
       const result = partitionStats.processTxStatsDump(stream as any, null, lines)
-      
+
       expect(partitionStats.mainLogger.error).toHaveBeenCalledWith(
         expect.stringContaining('Fail to parse statsObj'),
         expect.any(Error)
       )
-      
+
       partitionStats.mainLogger = originalMainLogger
       logFlags.error = originalErrorFlag
     })
@@ -1636,21 +1601,21 @@ describe('PartitionStats', () => {
         }
       })
       require('../../../src/p2p/Context').network.registerExternalGet = mockRegister
-      
+
       partitionStats.setupHandlers()
-      
+
       const req = { query: {} }
       const res = {
         write: jest.fn(),
-        end: jest.fn()
+        end: jest.fn(),
       }
-      
+
       // Mock getNodes to return empty
       const mockGetNodes = jest.fn().mockReturnValue([])
       require('../../../src/p2p/Wrapper').p2p.state.getNodes = mockGetNodes
-      
+
       await handler(req, res)
-      
+
       expect(res.write).toHaveBeenCalledWith(expect.stringContaining('building shard report'))
       expect(res.end).toHaveBeenCalled()
     })
@@ -1663,28 +1628,26 @@ describe('PartitionStats', () => {
         }
       })
       require('../../../src/p2p/Context').network.registerExternalGet = mockRegister
-      
+
       partitionStats.setupHandlers()
-      
+
       const req = { query: { raw: 'false' } }
       const res = {
         write: jest.fn(),
-        end: jest.fn()
+        end: jest.fn(),
       }
-      
+
       // Mock getNodes
-      const mockGetNodes = jest.fn().mockReturnValue([
-        { externalIp: '1.1.1.1', externalPort: 8080 }
-      ])
+      const mockGetNodes = jest.fn().mockReturnValue([{ externalIp: '1.1.1.1', externalPort: 8080 }])
       require('../../../src/p2p/Wrapper').p2p.state.getNodes = mockGetNodes
-      
+
       // Mock _internalHackGetWithResp to return null body
       mockLogger._internalHackGetWithResp = jest.fn().mockResolvedValue({
-        body: null
+        body: null,
       })
-      
+
       await handler(req, res)
-      
+
       expect(res.write).toHaveBeenCalledWith(expect.stringContaining('building shard report'))
       expect(res.end).toHaveBeenCalled()
     })
@@ -1697,28 +1660,26 @@ describe('PartitionStats', () => {
         }
       })
       require('../../../src/p2p/Context').network.registerExternalGet = mockRegister
-      
+
       partitionStats.setupHandlers()
-      
+
       const req = { query: { raw: 'false' } }
       const res = {
         write: jest.fn(),
-        end: jest.fn()
+        end: jest.fn(),
       }
-      
+
       // Mock getNodes
-      const mockGetNodes = jest.fn().mockReturnValue([
-        { externalIp: '1.1.1.1', externalPort: 8080 }
-      ])
+      const mockGetNodes = jest.fn().mockReturnValue([{ externalIp: '1.1.1.1', externalPort: 8080 }])
       require('../../../src/p2p/Wrapper').p2p.state.getNodes = mockGetNodes
-      
+
       // Mock _internalHackGetWithResp to return empty body
       mockLogger._internalHackGetWithResp = jest.fn().mockResolvedValue({
-        body: ''
+        body: '',
       })
-      
+
       await handler(req, res)
-      
+
       expect(res.write).toHaveBeenCalledWith(expect.stringContaining('building shard report'))
       expect(res.write).toHaveBeenCalledWith(expect.stringContaining('statsReport'))
       expect(res.end).toHaveBeenCalled()
@@ -1726,66 +1687,66 @@ describe('PartitionStats', () => {
 
     it('should handle null statsObj owner in processDataStatsDump', () => {
       const stream = {
-        write: jest.fn()
+        write: jest.fn(),
       }
-      
+
       const lines = [
         {
           raw: '{"covered":[1],"cycle":5,"dataStats":[{"partition":1,"counter":5,"opaqueBlob":{}}]}',
-          file: { owner: null }
-        }
+          file: { owner: null },
+        },
       ]
-      
+
       const result = partitionStats.processDataStatsDump(stream as any, null, lines)
-      
+
       expect(result).toBeDefined()
     })
 
     it('should handle null bestVoteValue in processTxStatsDump', () => {
       const stream = {
-        write: jest.fn()
+        write: jest.fn(),
       }
-      
+
       const lines = [
         {
           raw: '{"covered":[1],"cycle":5,"txStats":[{"partition":1,"counter":0,"opaqueBlob":{}}]}',
-          file: { owner: 'node1' }
-        }
+          file: { owner: 'node1' },
+        },
       ]
-      
+
       const result = partitionStats.processTxStatsDump(stream as any, partitionStats.txStatsTallyFunction, lines)
-      
+
       expect(result.totalTx).toBe(0)
     })
 
     it('should handle logFlags.error enabled', () => {
       const originalLogFlags = require('../../../src/logger').logFlags
       require('../../../src/logger').logFlags = { error: true }
-      
+
       const cycleShardData: any = null
-      
+
       expect(() => partitionStats.buildStatsReport(cycleShardData, true)).toThrow('cycleShardData is required')
-      
+
       require('../../../src/logger').logFlags = originalLogFlags
     })
 
     it('should update latestCycle in statsDataSummaryInit work', () => {
       const accountId = 'acc123'
       const accountData = { balance: 100 }
-      
+
       mockStateManager.feature_generateStats = true
       partitionStats.statsDataSummaryInit(10, accountId, accountData, 'test')
-      
+
       // Process the work queue with a higher cycle
       const cycleShardData: any = {
         cycleNumber: 10,
         nodeShardData: {
           consensusStartPartition: 0,
-          consensusEndPartition: 100
-        }
+          consensusEndPartition: 100,
+        },
       }
       partitionStats.buildStatsReport(cycleShardData)
-      
+
       const blob = partitionStats.getSummaryBlob(accountId)
       expect(blob.latestCycle).toBe(10)
     })
@@ -1797,22 +1758,22 @@ describe('PartitionStats', () => {
         accountId: accountId,
         data: { balance: 200 },
         timestamp: 1234567891,
-        stateId: 'newhash'
+        stateId: 'newhash',
       }
-      
+
       mockStateManager.feature_generateStats = true
       partitionStats.statsDataSummaryUpdate(15, accountBefore, accountAfter, 'test')
-      
+
       // Process the work queue with a higher cycle
       const cycleShardData: any = {
         cycleNumber: 15,
         nodeShardData: {
           consensusStartPartition: 0,
-          consensusEndPartition: 100
-        }
+          consensusEndPartition: 100,
+        },
       }
       partitionStats.buildStatsReport(cycleShardData)
-      
+
       const blob = partitionStats.getSummaryBlob(accountId)
       expect(blob.latestCycle).toBe(15)
     })
@@ -1825,17 +1786,17 @@ describe('PartitionStats', () => {
         }
       })
       require('../../../src/p2p/Context').network.registerExternalGet = mockRegister
-      
+
       partitionStats.setupHandlers()
-      
+
       const req = { query: { cycle: '999' } }
       const res = {
         write: jest.fn(),
-        end: jest.fn()
+        end: jest.fn(),
       }
-      
+
       handler(req, res)
-      
+
       expect(res.write).toHaveBeenCalled()
       expect(res.end).toHaveBeenCalled()
     })
@@ -1843,49 +1804,49 @@ describe('PartitionStats', () => {
     it('should handle logFlags.verbose for TX stats', () => {
       const originalLogFlags = require('../../../src/logger').logFlags
       require('../../../src/logger').logFlags = { verbose: true }
-      
+
       const collection = partitionStats.initTXSummaryBlobsForCycle(1)
-      
+
       // Add more than maxCyclesToStoreBlob collections
       partitionStats.maxCyclesToStoreBlob = 2
       partitionStats.initTXSummaryBlobsForCycle(2)
       partitionStats.initTXSummaryBlobsForCycle(3)
-      
+
       // Should have pruned and logged
       expect(partitionStats.txSummaryBlobCollections.length).toBe(2)
-      
+
       require('../../../src/logger').logFlags = originalLogFlags
     })
 
     it('should handle dumpLogsForCycle with cycleDebugNotes', () => {
       mockStateManager.cycleDebugNotes = { note1: 'test', note2: 'test2' }
-      
+
       const result = partitionStats.dumpLogsForCycle(5, false)
-      
+
       expect(result.cycleDebugNotes).toBe(mockStateManager.cycleDebugNotes)
     })
 
     it('should handle invasiveDebugInfo in TX summary update with existing dbg', () => {
       partitionStats.invasiveDebugInfo = true
-      
+
       const queueEntry: any = {
         cycleToRecordOn: 5,
         logID: 'tx123',
         uniqueWritableKeys: ['acc123'],
         acceptedTx: {
-          data: { amount: 100 }
-        }
+          data: { amount: 100 },
+        },
       }
-      
+
       const collection = partitionStats.initTXSummaryBlobsForCycle(5)
       const partition = partitionStats.getSummaryBlobPartition('acc123')
       const blob = collection.blobsByPartition.get(partition)
-      
+
       // Add existing dbg
       blob.opaqueBlob.dbg = ['tx000']
-      
+
       partitionStats.statsTxSummaryUpdate(5, queueEntry)
-      
+
       expect(blob.opaqueBlob.dbg).toContain('tx000')
       expect(blob.opaqueBlob.dbg).toContain('tx123')
       expect(blob.opaqueBlob.dbg.length).toBe(2)
@@ -1896,21 +1857,19 @@ describe('PartitionStats', () => {
         cycleNumber: 5,
         nodeShardData: {
           consensusStartPartition: 0,
-          consensusEndPartition: 100
-        }
+          consensusEndPartition: 100,
+        },
       }
-      
+
       // Create blob outside coverage
       const blob = partitionStats.getSummaryBlob('fff123')
       blob.counter = 5
-      
+
       // Mock to exclude the partition
-      mockStateManager.accountPatcher.getNonParitionRanges.mockReturnValue([
-        { low: 'fff000', high: 'ffffff' }
-      ])
-      
+      mockStateManager.accountPatcher.getNonParitionRanges.mockReturnValue([{ low: 'fff000', high: 'ffffff' }])
+
       const report = partitionStats.buildStatsReport(cycleShardData)
-      
+
       expect(report.skippedParitionCount).toBeGreaterThan(0)
     })
 
@@ -1920,17 +1879,17 @@ describe('PartitionStats', () => {
         logID: 'tx123',
         uniqueWritableKeys: ['acc123'],
         acceptedTx: {
-          data: { amount: 100 }
-        }
+          data: { amount: 100 },
+        },
       }
-      
+
       const collection = partitionStats.initTXSummaryBlobsForCycle(5)
       const partition = partitionStats.getSummaryBlobPartition('acc123')
       const blob = collection.blobsByPartition.get(partition)
       blob.latestCycle = 3 // Set lower than cycle
-      
+
       partitionStats.statsTxSummaryUpdate(6, queueEntry)
-      
+
       expect(blob.latestCycle).toBe(6)
     })
 
@@ -1939,22 +1898,20 @@ describe('PartitionStats', () => {
         cycleNumber: 5,
         nodeShardData: {
           consensusStartPartition: 0,
-          consensusEndPartition: 100
-        }
+          consensusEndPartition: 100,
+        },
       }
-      
+
       // Create TX blob
       const collection = partitionStats.initTXSummaryBlobsForCycle(5)
       const blob = collection.blobsByPartition.get(100)
       blob.counter = 5
-      
+
       // Mock to include the partition
-      mockStateManager.accountPatcher.getNonParitionRanges.mockReturnValue([
-        { low: '200000', high: 'fff000' }
-      ])
-      
+      mockStateManager.accountPatcher.getNonParitionRanges.mockReturnValue([{ low: '200000', high: 'fff000' }])
+
       const report = partitionStats.buildStatsReport(cycleShardData)
-      
+
       // Should have TX stats
       expect(report.txStats.length).toBeGreaterThan(0)
     })
@@ -1964,21 +1921,19 @@ describe('PartitionStats', () => {
         cycleNumber: 5,
         nodeShardData: {
           consensusStartPartition: 0,
-          consensusEndPartition: 100
-        }
+          consensusEndPartition: 100,
+        },
       }
-      
+
       // Create blob
       const blob = partitionStats.getSummaryBlob('100123')
       blob.counter = 5
-      
+
       // Mock to include some partitions
-      mockStateManager.accountPatcher.getNonParitionRanges.mockReturnValue([
-        { low: '200000', high: 'fff000' }
-      ])
-      
+      mockStateManager.accountPatcher.getNonParitionRanges.mockReturnValue([{ low: '200000', high: 'fff000' }])
+
       const report = partitionStats.buildStatsReport(cycleShardData, false)
-      
+
       expect(report.coveredParititionCount).toBeGreaterThan(0)
     })
 
@@ -1987,20 +1942,18 @@ describe('PartitionStats', () => {
         cycleNumber: 5,
         nodeShardData: {
           consensusStartPartition: 0,
-          consensusEndPartition: 100
-        }
+          consensusEndPartition: 100,
+        },
       }
-      
+
       // Create empty blob
       partitionStats.getSummaryBlob('100123') // This creates a blob with counter = 0
-      
+
       // Mock to include the partition
-      mockStateManager.accountPatcher.getNonParitionRanges.mockReturnValue([
-        { low: '200000', high: 'fff000' }
-      ])
-      
+      mockStateManager.accountPatcher.getNonParitionRanges.mockReturnValue([{ low: '200000', high: 'fff000' }])
+
       const report = partitionStats.buildStatsReport(cycleShardData, false)
-      
+
       expect(report.dataStats.length).toBeGreaterThanOrEqual(1)
     })
   })

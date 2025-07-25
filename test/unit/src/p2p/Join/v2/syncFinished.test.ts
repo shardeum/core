@@ -15,10 +15,10 @@ jest.mock('../../../../../../src/p2p/CycleChain')
 jest.mock('../../../../../../src/p2p/Context', () => ({
   crypto: {
     verify: jest.fn(),
-    keypair: { publicKey: 'test-public-key' }
+    keypair: { publicKey: 'test-public-key' },
   },
   config: {},
-  setDefaultConfigs: jest.fn()
+  setDefaultConfigs: jest.fn(),
 }))
 jest.mock('../../../../../../src/utils/nestedCounters')
 jest.mock('../../../../../../src/logger')
@@ -26,7 +26,7 @@ jest.mock('../../../../../../src/p2p/Self')
 jest.mock('../../../../../../src/p2p/CycleCreator')
 jest.mock('../../../../../../src/p2p/CycleAutoScale')
 jest.mock('../../../../../../src/network', () => ({
-  shardusGetTime: jest.fn(() => Date.now())
+  shardusGetTime: jest.fn(() => Date.now()),
 }))
 jest.mock('../../../../../../src/shardus', () => ({}))
 jest.mock('../../../../../../src/index', () => ({}))
@@ -43,7 +43,7 @@ describe('syncFinished', () => {
   beforeEach(() => {
     // Reset the module state
     syncFinished.newSyncFinishedNodes.clear()
-    
+
     // Reset mocks
     jest.clearAllMocks()
 
@@ -55,10 +55,10 @@ describe('syncFinished', () => {
     mockedConfig.p2p = {
       allowActivePerCycle: 5,
       activeRecoveryEnabled: false,
-      allowActivePerCycleRecover: 1
+      allowActivePerCycleRecover: 1,
     } as any
     mockedConfig.debug = {
-      readyNodeDelay: 0
+      readyNodeDelay: 0,
     } as any
   })
 
@@ -68,12 +68,16 @@ describe('syncFinished', () => {
       cycleNumber: 100,
       sign: {
         owner: 'test-public-key',
-        sig: 'test-signature'
-      }
+        sig: 'test-signature',
+      },
     }
 
     it('should successfully add a valid finished syncing request', () => {
-      const mockNode = { id: 'test-node-id', publicKey: 'test-public-key', externalPort: 9001 } as unknown as P2P.NodeListTypes.Node
+      const mockNode = {
+        id: 'test-node-id',
+        publicKey: 'test-public-key',
+        externalPort: 9001,
+      } as unknown as P2P.NodeListTypes.Node
       mockedNodeList.byIdOrder = [mockNode]
       mockedCycleChain.getNewest = jest.fn().mockReturnValue({ counter: 100 })
 
@@ -87,15 +91,22 @@ describe('syncFinished', () => {
     })
 
     it('should fail when public keys do not match', () => {
-      const mockNode = { id: 'test-node-id', publicKey: 'different-public-key', externalPort: 9001 } as unknown as P2P.NodeListTypes.Node
+      const mockNode = {
+        id: 'test-node-id',
+        publicKey: 'different-public-key',
+        externalPort: 9001,
+      } as unknown as P2P.NodeListTypes.Node
       mockedNodeList.byIdOrder = [mockNode]
-      
+
       const result = syncFinished.addFinishedSyncing(mockRequest)
 
       expect(result.success).toBe(false)
       expect(result.reason).toBe('public key in addFinishedSyncing does not match public key of node')
       expect(result.fatal).toBe(false)
-      expect(mockedNestedCounters.countEvent).toHaveBeenCalledWith('syncFinished.ts', 'addFinishedSyncing(): publicKeysMatch failed')
+      expect(mockedNestedCounters.countEvent).toHaveBeenCalledWith(
+        'syncFinished.ts',
+        'addFinishedSyncing(): publicKeysMatch failed'
+      )
     })
 
     it('should use crypto keypair public key when node is not found', () => {
@@ -109,7 +120,11 @@ describe('syncFinished', () => {
     })
 
     it('should fail when cycle numbers do not match', () => {
-      const mockNode = { id: 'test-node-id', publicKey: 'test-public-key', externalPort: 9001 } as unknown as P2P.NodeListTypes.Node
+      const mockNode = {
+        id: 'test-node-id',
+        publicKey: 'test-public-key',
+        externalPort: 9001,
+      } as unknown as P2P.NodeListTypes.Node
       mockedNodeList.byIdOrder = [mockNode]
       mockedCycleChain.getNewest = jest.fn().mockReturnValue({ counter: 99 })
 
@@ -118,14 +133,21 @@ describe('syncFinished', () => {
       expect(result.success).toBe(false)
       expect(result.reason).toBe('cycleNumber in request does not match cycleNumber of node')
       expect(result.fatal).toBe(false)
-      expect(mockedNestedCounters.countEvent).toHaveBeenCalledWith('syncFinished.ts', 'addFinishedSyncing(): cycleNumber match failed')
+      expect(mockedNestedCounters.countEvent).toHaveBeenCalledWith(
+        'syncFinished.ts',
+        'addFinishedSyncing(): cycleNumber match failed'
+      )
     })
 
     it('should fail when node already exists in the list', () => {
-      const mockNode = { id: 'test-node-id', publicKey: 'test-public-key', externalPort: 9001 } as unknown as P2P.NodeListTypes.Node
+      const mockNode = {
+        id: 'test-node-id',
+        publicKey: 'test-public-key',
+        externalPort: 9001,
+      } as unknown as P2P.NodeListTypes.Node
       mockedNodeList.byIdOrder = [mockNode]
       mockedCycleChain.getNewest = jest.fn().mockReturnValue({ counter: 100 })
-      
+
       // Add the node first
       syncFinished.newSyncFinishedNodes.set('test-node-id', mockRequest)
 
@@ -134,11 +156,18 @@ describe('syncFinished', () => {
       expect(result.success).toBe(false)
       expect(result.reason).toBe('node has already submitted syncFinished request')
       expect(result.fatal).toBe(false)
-      expect(mockedNestedCounters.countEvent).toHaveBeenCalledWith('syncFinished.ts', 'addFinishedSyncing(): already in local list')
+      expect(mockedNestedCounters.countEvent).toHaveBeenCalledWith(
+        'syncFinished.ts',
+        'addFinishedSyncing(): already in local list'
+      )
     })
 
     it('should fail when signature verification fails', () => {
-      const mockNode = { id: 'test-node-id', publicKey: 'test-public-key', externalPort: 9001 } as unknown as P2P.NodeListTypes.Node
+      const mockNode = {
+        id: 'test-node-id',
+        publicKey: 'test-public-key',
+        externalPort: 9001,
+      } as unknown as P2P.NodeListTypes.Node
       mockedNodeList.byIdOrder = [mockNode]
       mockedCycleChain.getNewest = jest.fn().mockReturnValue({ counter: 100 })
       mockedCrypto.verify = jest.fn().mockReturnValue(false)
@@ -148,14 +177,21 @@ describe('syncFinished', () => {
       expect(result.success).toBe(false)
       expect(result.reason).toBe('verification of syncFinished request failed')
       expect(result.fatal).toBe(false)
-      expect(mockedNestedCounters.countEvent).toHaveBeenCalledWith('syncFinished.ts', 'addFinishedSyncing(): signature invalid')
+      expect(mockedNestedCounters.countEvent).toHaveBeenCalledWith(
+        'syncFinished.ts',
+        'addFinishedSyncing(): signature invalid'
+      )
     })
 
     it('should log verbose messages when verbose flag is enabled', () => {
       mockedLogFlags.verbose = true
       const consoleSpy = jest.spyOn(console, 'log').mockImplementation()
-      
-      const mockNode = { id: 'test-node-id', publicKey: 'different-public-key', externalPort: 9001 } as unknown as P2P.NodeListTypes.Node
+
+      const mockNode = {
+        id: 'test-node-id',
+        publicKey: 'different-public-key',
+        externalPort: 9001,
+      } as unknown as P2P.NodeListTypes.Node
       mockedNodeList.byIdOrder = [mockNode]
 
       syncFinished.addFinishedSyncing(mockRequest)
@@ -164,15 +200,19 @@ describe('syncFinished', () => {
         'addFinishedSyncing(): public key in addFinishedSyncing does not match public key of node',
         'test-node-id'
       )
-      
+
       consoleSpy.mockRestore()
     })
 
     it('should log console messages when console flag is enabled', () => {
       mockedLogFlags.console = true
       const consoleSpy = jest.spyOn(console, 'log').mockImplementation()
-      
-      const mockNode = { id: 'test-node-id', publicKey: 'test-public-key', externalPort: 9001 } as unknown as P2P.NodeListTypes.Node
+
+      const mockNode = {
+        id: 'test-node-id',
+        publicKey: 'test-public-key',
+        externalPort: 9001,
+      } as unknown as P2P.NodeListTypes.Node
       mockedNodeList.byIdOrder = [mockNode]
       mockedCycleChain.getNewest = jest.fn().mockReturnValue({ counter: 99 })
 
@@ -182,7 +222,7 @@ describe('syncFinished', () => {
         'addFinishedSyncing(): cycleNumber in request does not match cycleNumber of node',
         'test-node-id'
       )
-      
+
       consoleSpy.mockRestore()
     })
   })
@@ -192,12 +232,12 @@ describe('syncFinished', () => {
       const mockRequest1: FinishedSyncingRequest = {
         nodeId: 'node-1',
         cycleNumber: 100,
-        sign: { owner: 'key1', sig: 'sig1' }
+        sign: { owner: 'key1', sig: 'sig1' },
       }
       const mockRequest2: FinishedSyncingRequest = {
         nodeId: 'node-2',
         cycleNumber: 100,
-        sign: { owner: 'key2', sig: 'sig2' }
+        sign: { owner: 'key2', sig: 'sig2' },
       }
 
       syncFinished.newSyncFinishedNodes.set('node-1', mockRequest1)
@@ -226,7 +266,7 @@ describe('syncFinished', () => {
       { id: 'node-3', readyTimestamp: 3000 } as P2P.NodeListTypes.Node,
       { id: 'node-4', readyTimestamp: 4000 } as P2P.NodeListTypes.Node,
       { id: 'node-5', readyTimestamp: 5000 } as P2P.NodeListTypes.Node,
-      { id: 'node-6', readyTimestamp: 6000 } as P2P.NodeListTypes.Node
+      { id: 'node-6', readyTimestamp: 6000 } as P2P.NodeListTypes.Node,
     ]
 
     beforeEach(() => {
@@ -272,7 +312,7 @@ describe('syncFinished', () => {
       { id: 'node-2', readyTimestamp: 2000 } as P2P.NodeListTypes.Node,
       { id: 'node-3', readyTimestamp: 3000 } as P2P.NodeListTypes.Node,
       { id: 'node-4', readyTimestamp: 4000 } as P2P.NodeListTypes.Node,
-      { id: 'node-5', readyTimestamp: 5000 } as P2P.NodeListTypes.Node
+      { id: 'node-5', readyTimestamp: 5000 } as P2P.NodeListTypes.Node,
     ]
 
     beforeEach(() => {
@@ -281,7 +321,7 @@ describe('syncFinished', () => {
       mockedCycleChain.newest = {
         active: 10,
         desired: 15,
-        start: 10000
+        start: 10000,
       } as any
     })
 
@@ -303,7 +343,7 @@ describe('syncFinished', () => {
       mockedCycleChain.newest = {
         active: 10,
         desired: 15,
-        start: 10000
+        start: 10000,
       } as any
 
       const result = syncFinished.selectNodesFromReadyList('processing')

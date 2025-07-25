@@ -59,14 +59,14 @@ describe('GetAccountDataByHashesReq', () => {
       initGetAccountDataByHashesReq()
 
       const schema = mockAddSchema.mock.calls[0][1] as any
-      
+
       // Test that the schema structure matches expected format
       const validData = {
         cycle: 123,
         accounts: [
           { accountID: 'acc1', hash: 'hash1' },
-          { accountID: 'acc2', hash: 'hash2' }
-        ]
+          { accountID: 'acc2', hash: 'hash2' },
+        ],
       }
 
       // Schema should accept valid data format
@@ -91,13 +91,13 @@ describe('GetAccountDataByHashesReq', () => {
 
     it('should register schema only once per initialization', () => {
       initGetAccountDataByHashesReq()
-      
+
       expect(mockAddSchema).toHaveBeenCalledTimes(1)
-      
+
       // Clear mocks and call again
       mockAddSchema.mockClear()
       initGetAccountDataByHashesReq()
-      
+
       expect(mockAddSchema).toHaveBeenCalledTimes(1)
     })
   })

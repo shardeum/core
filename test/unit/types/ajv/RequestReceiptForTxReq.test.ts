@@ -1,4 +1,7 @@
-import { schemaRequestReceiptForTxReq, initRequestReceiptForTxReq } from '../../../../src/types/ajv/RequestReceiptForTxReq'
+import {
+  schemaRequestReceiptForTxReq,
+  initRequestReceiptForTxReq,
+} from '../../../../src/types/ajv/RequestReceiptForTxReq'
 import { addSchema } from '../../../../src/utils/serialization/SchemaHelpers'
 import { AJVSchemaEnum } from '../../../../src/types/enum/AJVSchemaEnum'
 
@@ -54,10 +57,7 @@ describe('RequestReceiptForTxReq', () => {
       initRequestReceiptForTxReq()
 
       expect(mockAddSchema).toHaveBeenCalledTimes(1)
-      expect(mockAddSchema).toHaveBeenCalledWith(
-        AJVSchemaEnum.RequestReceiptForTxReq,
-        schemaRequestReceiptForTxReq
-      )
+      expect(mockAddSchema).toHaveBeenCalledWith(AJVSchemaEnum.RequestReceiptForTxReq, schemaRequestReceiptForTxReq)
     })
 
     it('should not throw any errors during initialization', () => {
@@ -70,10 +70,7 @@ describe('RequestReceiptForTxReq', () => {
       initRequestReceiptForTxReq()
 
       expect(mockAddSchema).toHaveBeenCalledTimes(3)
-      expect(mockAddSchema).toHaveBeenCalledWith(
-        AJVSchemaEnum.RequestReceiptForTxReq,
-        schemaRequestReceiptForTxReq
-      )
+      expect(mockAddSchema).toHaveBeenCalledWith(AJVSchemaEnum.RequestReceiptForTxReq, schemaRequestReceiptForTxReq)
     })
   })
 

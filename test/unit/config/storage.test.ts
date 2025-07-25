@@ -60,25 +60,32 @@ describe('storage config', () => {
   it('should contain all expected top-level properties', () => {
     const expectedProperties = ['database', 'username', 'password', 'options']
     const actualProperties = Object.keys(STORAGE_CONFIG)
-    
+
     expect(actualProperties).toHaveLength(expectedProperties.length)
-    expectedProperties.forEach(prop => {
+    expectedProperties.forEach((prop) => {
       expect(actualProperties).toContain(prop)
     })
   })
 
   it('should contain all expected option properties', () => {
     const expectedOptions = [
-      'logging', 'host', 'dialect', 'operatorsAliases',
-      'pool', 'storage', 'sync', 'memoryFile',
-      'saveOldDBFiles', 'walMode', 'exclusiveLockMode'
+      'logging',
+      'host',
+      'dialect',
+      'operatorsAliases',
+      'pool',
+      'storage',
+      'sync',
+      'memoryFile',
+      'saveOldDBFiles',
+      'walMode',
+      'exclusiveLockMode',
     ]
     const actualOptions = Object.keys(STORAGE_CONFIG.options)
-    
+
     expect(actualOptions).toHaveLength(expectedOptions.length)
-    expectedOptions.forEach(opt => {
+    expectedOptions.forEach((opt) => {
       expect(actualOptions).toContain(opt)
     })
   })
-
 })

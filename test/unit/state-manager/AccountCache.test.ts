@@ -4,10 +4,10 @@ import Profiler from '../../../src/utils/profiler'
 import * as Shardus from '../../../src/shardus/shardus-types'
 import Logger from '../../../src/logger'
 import Crypto from '../../../src/crypto'
-import { 
-  AccountHashCacheHistory, 
+import {
+  AccountHashCacheHistory,
   AccountHashCache,
-  CycleShardData 
+  CycleShardData,
 } from '../../../src/state-manager/state-manager-types'
 
 describe('AccountCache', () => {
@@ -24,12 +24,12 @@ describe('AccountCache', () => {
     mockStateManager = {
       statemanager_fatal: jest.fn(),
       currentCycleShardData: {
-        cycleNumber: 10
+        cycleNumber: 10,
       },
       accountPatcher: {
         updateAccountHash: jest.fn(),
-        removeAccountHash: jest.fn()
-      }
+        removeAccountHash: jest.fn(),
+      },
     }
 
     mockProfiler = {} as Profiler
@@ -41,22 +41,15 @@ describe('AccountCache', () => {
         debug: jest.fn(),
         info: jest.fn(),
         warn: jest.fn(),
-        error: jest.fn()
-      }))
+        error: jest.fn(),
+      })),
     }
 
     mockCrypto = {} as Crypto
 
     mockConfig = {} as Shardus.StrictServerConfiguration
 
-    accountCache = new AccountCache(
-      mockStateManager,
-      mockProfiler,
-      mockApp,
-      mockLogger,
-      mockCrypto,
-      mockConfig
-    )
+    accountCache = new AccountCache(mockStateManager, mockProfiler, mockApp, mockLogger, mockCrypto, mockConfig)
   })
 
   afterEach(() => {
@@ -95,7 +88,7 @@ describe('AccountCache', () => {
     it('should reset all cache data to initial state', () => {
       // Add some data first
       accountCache.updateAccountHash('account1', 'hash1', 1000, 5)
-      
+
       // Reset
       accountCache.resetAccountCache()
 
@@ -133,7 +126,7 @@ describe('AccountCache', () => {
 
     it('should create new account history entry for new account', () => {
       accountCache.updateAccountHash('account1', 'hash1', 1000, 5)
-      
+
       expect(accountCache.accountsHashCache3.accountHashMap.has('account1')).toBe(true)
       const history = accountCache.accountsHashCache3.accountHashMap.get('account1')
       expect(history.lastSeenCycle).toBe(9) // currentCycleShardData.cycleNumber - 1
@@ -144,7 +137,7 @@ describe('AccountCache', () => {
     it('should update existing account with same cycle and newer timestamp', () => {
       accountCache.updateAccountHash('account1', 'hash1', 1000, 5)
       accountCache.updateAccountHash('account1', 'hash2', 2000, 5)
-      
+
       const history = accountCache.accountsHashCache3.accountHashMap.get('account1')
       expect(history.accountHashList.length).toBe(1)
       expect(history.accountHashList[0]).toEqual({ t: 2000, h: 'hash2', c: 5 })
@@ -153,7 +146,7 @@ describe('AccountCache', () => {
     it('should not update existing account with same cycle and older timestamp', () => {
       accountCache.updateAccountHash('account1', 'hash1', 2000, 5)
       accountCache.updateAccountHash('account1', 'hash2', 1000, 5)
-      
+
       const history = accountCache.accountsHashCache3.accountHashMap.get('account1')
       expect(history.accountHashList.length).toBe(1)
       expect(history.accountHashList[0]).toEqual({ t: 2000, h: 'hash1', c: 5 })
@@ -162,7 +155,7 @@ describe('AccountCache', () => {
     it('should add new entry for newer cycle', () => {
       accountCache.updateAccountHash('account1', 'hash1', 1000, 5)
       accountCache.updateAccountHash('account1', 'hash2', 2000, 6)
-      
+
       const history = accountCache.accountsHashCache3.accountHashMap.get('account1')
       expect(history.accountHashList.length).toBe(2)
       expect(history.accountHashList[0]).toEqual({ t: 2000, h: 'hash2', c: 6 })
@@ -172,7 +165,7 @@ describe('AccountCache', () => {
     it('should handle edge case of older cycle with newer timestamp', () => {
       accountCache.updateAccountHash('account1', 'hash1', 1000, 6)
       accountCache.updateAccountHash('account1', 'hash2', 2000, 5)
-      
+
       expect(mockStateManager.statemanager_fatal).toHaveBeenCalledWith(
         'updateAccountHash: cycleCalcOff',
         expect.stringContaining('older cycle but newer timestamp')
@@ -186,7 +179,7 @@ describe('AccountCache', () => {
       accountCache.updateAccountHash('account1', 'hash2', 2000, 5)
       // Then add cycle 6 with timestamp 1500 (will unshift since cycle 6 > cycle 5)
       accountCache.updateAccountHash('account1', 'hash3', 1500, 6)
-      
+
       const history = accountCache.accountsHashCache3.accountHashMap.get('account1')
       expect(history.accountHashList.length).toBe(3)
       // Due to the unshift logic based on cycle OR timestamp, the order will be:
@@ -198,7 +191,7 @@ describe('AccountCache', () => {
 
     it('should update cache update queue when newer hash is added', () => {
       accountCache.updateAccountHash('account1', 'hash1', 1000, 5)
-      
+
       expect(accountCache.cacheUpdateQueue.accountIDs).toContain('account1')
       expect(accountCache.cacheUpdateQueue.accountHashesSorted).toContainEqual({ t: 1000, h: 'hash1', c: 5 })
     })
@@ -206,12 +199,12 @@ describe('AccountCache', () => {
     it('should limit account hash list length', () => {
       // Set current calculation cycle to make older entries removable
       accountCache.accountsHashCache3.currentCalculationCycle = 10
-      
+
       // Add multiple entries
       for (let i = 0; i < 10; i++) {
         accountCache.updateAccountHash('account1', `hash${i}`, 1000 + i, i)
       }
-      
+
       const history = accountCache.accountsHashCache3.accountHashMap.get('account1')
       // Should keep only recent entries
       expect(history.accountHashList.length).toBeLessThanOrEqual(3)
@@ -221,10 +214,10 @@ describe('AccountCache', () => {
       // Create a new instance with currentCalculationCycle already set to avoid null access
       accountCache.accountsHashCache3.currentCalculationCycle = 0
       mockStateManager.currentCycleShardData = null
-      
+
       // This should skip the initialization of currentCalculationCycle
       accountCache.updateAccountHash('account1', 'hash1', 1000, 5)
-      
+
       // Verify account was still added
       expect(accountCache.hasAccount('account1')).toBe(true)
     })
@@ -249,7 +242,7 @@ describe('AccountCache', () => {
     it('should return newest hash for existing account', () => {
       accountCache.updateAccountHash('account1', 'hash1', 1000, 5)
       accountCache.updateAccountHash('account1', 'hash2', 2000, 6)
-      
+
       const result = accountCache.getAccountHash('account1')
       expect(result).toEqual({ t: 2000, h: 'hash2', c: 6 })
     })
@@ -265,47 +258,32 @@ describe('AccountCache', () => {
         lastUpdateCycle: -1,
       }
       accountCache.accountsHashCache3.accountHashMap.set('emptyAccount', emptyHistory)
-      
+
       expect(accountCache.getAccountHash('emptyAccount')).toBeUndefined()
     })
   })
 
   describe('sortByTimestampIdAsc', () => {
     it('should sort by timestamp ascending', () => {
-      const result = accountCache.sortByTimestampIdAsc(
-        { t: 1000, id: 'a' },
-        { t: 2000, id: 'b' }
-      )
+      const result = accountCache.sortByTimestampIdAsc({ t: 1000, id: 'a' }, { t: 2000, id: 'b' })
       expect(result).toBe(-1)
     })
 
     it('should sort by timestamp descending', () => {
-      const result = accountCache.sortByTimestampIdAsc(
-        { t: 2000, id: 'a' },
-        { t: 1000, id: 'b' }
-      )
+      const result = accountCache.sortByTimestampIdAsc({ t: 2000, id: 'a' }, { t: 1000, id: 'b' })
       expect(result).toBe(1)
     })
 
     it('should sort by id when timestamps are equal', () => {
-      const result1 = accountCache.sortByTimestampIdAsc(
-        { t: 1000, id: 'a' },
-        { t: 1000, id: 'b' }
-      )
+      const result1 = accountCache.sortByTimestampIdAsc({ t: 1000, id: 'a' }, { t: 1000, id: 'b' })
       expect(result1).toBe(-1)
 
-      const result2 = accountCache.sortByTimestampIdAsc(
-        { t: 1000, id: 'b' },
-        { t: 1000, id: 'a' }
-      )
+      const result2 = accountCache.sortByTimestampIdAsc({ t: 1000, id: 'b' }, { t: 1000, id: 'a' })
       expect(result2).toBe(1)
     })
 
     it('should return 0 for equal items', () => {
-      const result = accountCache.sortByTimestampIdAsc(
-        { t: 1000, id: 'a' },
-        { t: 1000, id: 'a' }
-      )
+      const result = accountCache.sortByTimestampIdAsc({ t: 1000, id: 'a' }, { t: 1000, id: 'a' })
       expect(result).toBe(0)
     })
   })
@@ -329,7 +307,7 @@ describe('AccountCache', () => {
         timestampEndCycle: 0,
         hasCompleteData: true,
         voters: [],
-        calculationTime: 0
+        calculationTime: 0,
       }
 
       // Add some updates
@@ -342,11 +320,11 @@ describe('AccountCache', () => {
       // Check that account patcher was called for non-future updates
       expect(mockStateManager.accountPatcher.updateAccountHash).toHaveBeenCalledWith('account1', 'hash1')
       expect(mockStateManager.accountPatcher.updateAccountHash).toHaveBeenCalledWith('account2', 'hash2')
-      
+
       // Future update should be in the queue
       expect(accountCache.cacheUpdateQueue.accountIDs).toContain('account3')
       expect(accountCache.cacheUpdateQueue.accountHashesSorted).toContainEqual({ t: 3000, h: 'hash3', c: 11 })
-      
+
       // Current calculation cycle should be updated
       expect(accountCache.accountsHashCache3.currentCalculationCycle).toBe(11)
     })
@@ -369,7 +347,7 @@ describe('AccountCache', () => {
         timestampEndCycle: 0,
         hasCompleteData: true,
         voters: [],
-        calculationTime: 0
+        calculationTime: 0,
       }
 
       // Manually add null entries
@@ -400,7 +378,7 @@ describe('AccountCache', () => {
         timestampEndCycle: 0,
         hasCompleteData: true,
         voters: [],
-        calculationTime: 0
+        calculationTime: 0,
       }
 
       // Manually add mismatched entries
@@ -420,9 +398,9 @@ describe('AccountCache', () => {
     it('should return account hash cache history', () => {
       // Add accountCache to mockStateManager
       mockStateManager.accountCache = accountCache
-      
+
       accountCache.updateAccountHash('account1', 'hash1', 1000, 5)
-      
+
       const result = accountCache.getAccountDebugObject('account1')
       expect(result).toBeDefined()
       expect(result.accountHashList).toHaveLength(1)
@@ -432,7 +410,7 @@ describe('AccountCache', () => {
     it('should return undefined for non-existent account', () => {
       // Add accountCache to mockStateManager
       mockStateManager.accountCache = accountCache
-      
+
       const result = accountCache.getAccountDebugObject('nonexistent')
       expect(result).toBeUndefined()
     })
@@ -442,9 +420,9 @@ describe('AccountCache', () => {
     it('should return correct stats', () => {
       accountCache.updateAccountHash('account1', 'hash1', 1000, 5)
       accountCache.updateAccountHash('account2', 'hash2', 2000, 6)
-      
+
       const [workingAccounts, mainMap] = accountCache.getDebugStats()
-      
+
       expect(workingAccounts).toBe(0) // Working list is populated during processCacheUpdates
       expect(mainMap).toBe(2) // Two accounts in the map
     })
@@ -454,9 +432,9 @@ describe('AccountCache', () => {
     it('should return account hash cache history', () => {
       // Add accountCache to mockStateManager
       mockStateManager.accountCache = accountCache
-      
+
       accountCache.updateAccountHash('account1', 'hash1', 1000, 5)
-      
+
       const result = accountCache.getAccountHashHistoryItem('account1')
       expect(result).toBeDefined()
       expect(result.accountHashList).toHaveLength(1)
@@ -466,7 +444,7 @@ describe('AccountCache', () => {
     it('should return undefined for non-existent account', () => {
       // Add accountCache to mockStateManager
       mockStateManager.accountCache = accountCache
-      
+
       const result = accountCache.getAccountHashHistoryItem('nonexistent')
       expect(result).toBeUndefined()
     })

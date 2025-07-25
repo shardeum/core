@@ -97,17 +97,17 @@ describe('GetAccountDataResp', () => {
       initGetAccountDataRespSerializable()
 
       const schema = mockAddSchema.mock.calls[0][1] as any
-      
+
       // Top level should not require data or errors
       expect(schema.required).toEqual([])
-      
+
       // But data object should require all its properties
       expect(schema.properties.data.required).toEqual([
         'wrappedAccounts',
         'lastUpdateNeeded',
         'wrappedAccounts2',
         'highestTs',
-        'delta'
+        'delta',
       ])
     })
 
@@ -119,15 +119,15 @@ describe('GetAccountDataResp', () => {
               accountId: 'acc1',
               stateId: 'state1',
               data: {},
-              timestamp: 123456
-            }
+              timestamp: 123456,
+            },
           ],
           lastUpdateNeeded: true,
           wrappedAccounts2: [],
           highestTs: 789012,
-          delta: 5
+          delta: 5,
         },
-        errors: ['error1', 'error2']
+        errors: ['error1', 'error2'],
       }
 
       initGetAccountDataRespSerializable()
@@ -145,8 +145,8 @@ describe('GetAccountDataResp', () => {
           lastUpdateNeeded: false,
           wrappedAccounts2: [],
           highestTs: 0,
-          delta: 0
-        }
+          delta: 0,
+        },
       }
 
       initGetAccountDataRespSerializable()
@@ -158,7 +158,7 @@ describe('GetAccountDataResp', () => {
 
     it('should allow response with only errors', () => {
       const errorsOnly = {
-        errors: ['Something went wrong']
+        errors: ['Something went wrong'],
       }
 
       initGetAccountDataRespSerializable()
@@ -170,13 +170,13 @@ describe('GetAccountDataResp', () => {
 
     it('should register schema only once per initialization', () => {
       initGetAccountDataRespSerializable()
-      
+
       expect(mockAddSchema).toHaveBeenCalledTimes(1)
-      
+
       // Clear mocks and call again
       mockAddSchema.mockClear()
       initGetAccountDataRespSerializable()
-      
+
       expect(mockAddSchema).toHaveBeenCalledTimes(1)
     })
   })
