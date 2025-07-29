@@ -453,34 +453,7 @@ class CachedAppDataManager {
       )
     const globalOffset = parseInt(txId.slice(-4), 16)
 
-    // populate isSenderWrappedTxGroup
-    let uniqueKeys = [queueEntry.executionShardKey]
-    let isSenderWrappedAllNodes = {}
-    for (const key of uniqueKeys) {
-      const homeNodeShardData = queueEntry.homeNodes[key]
-      const consensusGroupForAccount = homeNodeShardData.consensusNodeForOurNodeFull.map((n) => n.id)
-      const startAndEndIndices = this.stateManager.transactionQueue.getStartAndEndIndexOfTargetGroup(
-        consensusGroupForAccount,
-        allNodes
-      )
-      const isWrapped = startAndEndIndices.endIndex < startAndEndIndices.startIndex
-      if (isWrapped === false) continue
-      const unwrappedEndIndex = startAndEndIndices.endIndex + allNodes.length
-      for (let i = startAndEndIndices.startIndex; i < unwrappedEndIndex; i++) {
-        if (i >= allNodes.length) {
-          const wrappedIndex = i - allNodes.length
-          isSenderWrappedAllNodes[allNodes[wrappedIndex].id] = i
-        }
-      }
-    }
-    const unwrappedIndex = isSenderWrappedAllNodes[ourNodeData.node.id]
-    if (logFlags.shardedCache && logFlags.verbose) {
-      console.log(`isSenderWrappedAllNodes: `, isSenderWrappedAllNodes, unwrappedIndex, ourNodeData.node.id)
-      console.log(
-        `factSendCorrespondingCachedAppDat: dataId: ${dataID} targetStartIndex: ${targetStartIndex}, targetEndIndex: ${targetEndIndex}, globalOffset: ${globalOffset}, targetGroupSize: ${targetGroupSize}, senderGroupSize: ${senderGroupSize}, allNodes.length: ${allNodes.length}`
-      )
-    }
-    let correspondingIndices = getCorrespondingNodes(
+    const correspondingIndices = getCorrespondingNodes(
       senderIndexInTxGroup,
       targetStartIndex,
       targetEndIndex,
@@ -489,30 +462,6 @@ class CachedAppDataManager {
       senderGroupSize,
       allNodes.length
     )
-    if (this.config.stateManager.correspondingTellUseUnwrapped) {
-      if (unwrappedIndex != null) {
-        const extraCorrespondingIndices = getCorrespondingNodes(
-          unwrappedIndex,
-          targetStartIndex,
-          targetEndIndex,
-          globalOffset,
-          targetGroupSize,
-          senderGroupSize,
-          allNodes.length,
-          queueEntry.logID
-        )
-        if (this.config.stateManager.concatCorrespondingTellUseUnwrapped) {
-          correspondingIndices = correspondingIndices.concat(extraCorrespondingIndices)
-        } else {
-          correspondingIndices = extraCorrespondingIndices
-        }
-      }
-    }
-    if (unwrappedIndex != null && logFlags.shardedCache && logFlags.verbose) {
-      console.log(
-        `factSendCorrespondingCachedAppData: dataId: ${dataID} unwrappedIndex: ${unwrappedIndex}, correspondingIndices: ${correspondingIndices}, allNodes.length: ${allNodes.length}`
-      )
-    }
 
     const correspondingNodes: P2PTypes.NodeListTypes.Node[] = []
     for (const index of correspondingIndices) {
