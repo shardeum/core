@@ -384,6 +384,8 @@ class CachedAppDataManager {
       allNodes.length
     )
 
+    // If our initial check fails, we need to check if the sender group needs to be unwrapped
+    // Verifying the sender is quick so we can just call it again with shouldUnwrapSender set.
     if (isValidFactSender === false) {
       isValidFactSender = verifyCorrespondingSender(
         ourIndexInTxGroup,
