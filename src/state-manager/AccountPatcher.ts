@@ -2230,19 +2230,19 @@ class AccountPatcher {
   }
 
   /**
-   * findExtraChildren
-   * a debug method to figure out if we have keys not covered by other nodes.
+   * findLocalOnlyRadixKeys
+   * a method to figure out if we have radix keys not covered by the remote consensus
    * @param consensusArray
    * @param localLayerMap
    * @returns
    */
-  findExtraBadKeys(
+  findLocalOnlyRadixKeys(
     consensusArray: RadixAndHashWithNodeId[],
     localLayerMap: Map<string, HashTrieNode>
   ): RadixAndHashWithNodeId[] {
-    const extraBadRadixes: RadixAndHashWithNodeId[] = []
+    const extraLocalRadixes: RadixAndHashWithNodeId[] = []
     if (consensusArray == null) {
-      this.statemanager_fatal('findExtraBadKeys: consensusArray == null', 'findExtraBadKeys: consensusArray == null')
+      this.statemanager_fatal('findLocalOnlyRadixKeys: consensusArray == null', 'findLocalOnlyRadixKeys: consensusArray == null')
       return []
     }
     const parentKeys: Set<{ parentKey: string; nodeId: string }> = new Set()
@@ -2262,7 +2262,7 @@ class AccountPatcher {
         if (weHaveKey) {
           const theyHaveKey = goodKeys.has(childKey)
           if (theyHaveKey === false) {
-            extraBadRadixes.push({
+            extraLocalRadixes.push({
               radix: localLayerMap.get(childKey).radix,
               hash: localLayerMap.get(childKey).hash,
               nodeId: item.nodeId,
@@ -2271,14 +2271,14 @@ class AccountPatcher {
         }
       }
     }
-    let uniqueExtraBadRadixes = []
-    for (const item of extraBadRadixes) {
-      if (uniqueExtraBadRadixes.find((x) => x.radix === item.radix) == null) {
-        uniqueExtraBadRadixes.push(item)
+    let uniqueExtraLocalRadixes = []
+    for (const item of extraLocalRadixes) {
+      if (uniqueExtraLocalRadixes.find((x) => x.radix === item.radix) == null) {
+        uniqueExtraLocalRadixes.push(item)
       }
     }
 
-    return uniqueExtraBadRadixes
+    return uniqueExtraLocalRadixes
   }
 
   /***
@@ -2816,14 +2816,13 @@ class AccountPatcher {
   async findBadAccounts(cycle: number): Promise<BadAccountsInfo> {
     let badAccounts: AccountIDAndHash[] = []
     let accountsTheyNeedToRepair: AccountIdAndHashToRepair[] = []
-    let accountsWeNeedToRepair: AccountIDAndHash[] = []
     const hashesPerLevel: number[] = Array(this.treeMaxDepth + 1).fill(0)
     const checkedKeysPerLevel = Array(this.treeMaxDepth)
     const badHashesPerLevel: number[] = Array(this.treeMaxDepth + 1).fill(0)
     const requestedKeysPerLevel: number[] = Array(this.treeMaxDepth + 1).fill(0)
 
     let level = this.treeSyncDepth
-    let badLayerMap = this.shardTrie.layerMaps[level] // eslint-disable-line security/detect-object-injection
+    let localLayerMap = this.shardTrie.layerMaps[level] // eslint-disable-line security/detect-object-injection
     const syncTrackerRanges = this.getSyncTrackerRanges()
 
     const stats = {
@@ -2842,8 +2841,8 @@ class AccountPatcher {
       leafResponses: 0,
       getAccountHashStats: {},
     }
-    let extraBadKeys: RadixAndHashWithNodeId[] = []
-    let extraBadAccounts: AccountIdAndHashToRepair[] = []
+    let extraLocalRadixKeys: RadixAndHashWithNodeId[] = []
+    let extraLocalAccounts: AccountIdAndHashToRepair[] = []
 
     const minVotes = this.calculateMinVotes()
 
@@ -2897,7 +2896,7 @@ class AccountPatcher {
       goodVotes.push({ radix, hash: votesMap.bestHash })
     }
 
-    let toFix = this.diffConsenus(goodVotes, badLayerMap)
+    let toFix = this.diffConsenus(goodVotes, localLayerMap)
 
     stats.badSyncRadix = toFix.length
 
@@ -2963,8 +2962,8 @@ class AccountPatcher {
     //refine our query until we get to the lowest level
     while (level < this.treeMaxDepth && toFix.length > 0) {
       level++
-      stats.checkedLevel = level
-      badLayerMap = this.shardTrie.layerMaps[level] // eslint-disable-line security/detect-object-injection
+      stats.checkedLevel = level 
+      localLayerMap = this.shardTrie.layerMaps[level] // eslint-disable-line security/detect-object-injection
       const remoteChildrenToDiff: RadixAndHashWithNodeId[] = await this.getChildrenOf(toFix, cycle)
 
       if (remoteChildrenToDiff == null) {
@@ -2985,15 +2984,17 @@ class AccountPatcher {
       this.mainLogger.debug(
         `findBadAccounts ${cycle}: level: ${level}, toFix: ${toFix.length}, childrenToDiff: ${Utils.safeStringify(
           remoteChildrenToDiff
-        )}, badLayerMap: ${Utils.safeStringify(badLayerMap)}`
+        )}, badLayerMap: ${Utils.safeStringify(localLayerMap)}`
       )
-      toFix = this.diffConsenus(remoteChildrenToDiff, badLayerMap)
+      toFix = this.diffConsenus(remoteChildrenToDiff, localLayerMap)
 
       stats.subHashesTested += toFix.length
 
+      // I am not certain (toFix.length === 0) is the correct gate. what if we have some things to fix 
+      // and the remote side has some missing that we do have
       if (toFix.length === 0) {
         stats.trailColdLevel = level
-        extraBadKeys = this.findExtraBadKeys(remoteChildrenToDiff, badLayerMap)
+        extraLocalRadixKeys = this.findLocalOnlyRadixKeys(remoteChildrenToDiff, localLayerMap)
 
         let result = {
           nodeChildHashes: [],
@@ -3005,39 +3006,43 @@ class AccountPatcher {
           },
         } as HashTrieAccountsResp
 
-        let allLeafNodes: HashTrieNode[] = []
+        // iterate through the extra localRadixKeys and make a list of all local child accounts under them
+        // I think this is a failed attempt to get the accounts because it does not accumulate 
+        // the keys at middle levels.  it also only tries to fetch based on the top level radix and hash
+        // for (const radixAndHash of extraLocalRadixKeys) {
+        //   let level = radixAndHash.radix.length
+        //   while (level < this.treeMaxDepth) {
+        //     level++
+        //     const layerMap = this.shardTrie.layerMaps[level] // eslint-disable-line security/detect-object-injection
+        //     if (layerMap == null) {
+        //       /* prettier-ignore */ nestedCountersInstance.countEvent('accountPatcher', `get_trie_accountHashes badrange:${level}`)
+        //       break
+        //     }
+        //     const localHashTrieNode = layerMap.get(radixAndHash.radix)
+        //     if (localHashTrieNode != null && localHashTrieNode.accounts != null) {
+        //       result.stats.visisted++
+        //       const childAccounts = []
+        //       result.nodeChildHashes.push({ radix: radixAndHash.radix, childAccounts })
+        //       for (const account of localHashTrieNode.accounts) {
+        //         childAccounts.push({ accountID: account.accountID, hash: account.hash })
+        //         extraBadAccounts.push({
+        //           accountID: account.accountID,
+        //           hash: account.hash,
+        //           targetNodeId: radixAndHash.nodeId,
+        //         })
+        //         result.stats.childCount++
+        //       }
+        //       if (localHashTrieNode.accounts.length === 0) {
+        //         result.stats.empty++
+        //       }
+        //     }
+        //   }
+        // }
 
-        for (const radixAndHash of extraBadKeys) {
-          let level = radixAndHash.radix.length
-          while (level < this.treeMaxDepth) {
-            level++
-            const layerMap = this.shardTrie.layerMaps[level] // eslint-disable-line security/detect-object-injection
-            if (layerMap == null) {
-              /* prettier-ignore */ nestedCountersInstance.countEvent('accountPatcher', `get_trie_accountHashes badrange:${level}`)
-              break
-            }
-            const hashTrieNode = layerMap.get(radixAndHash.radix)
-            if (hashTrieNode != null && hashTrieNode.accounts != null) {
-              result.stats.visisted++
-              const childAccounts = []
-              result.nodeChildHashes.push({ radix: radixAndHash.radix, childAccounts })
-              for (const account of hashTrieNode.accounts) {
-                childAccounts.push({ accountID: account.accountID, hash: account.hash })
-                extraBadAccounts.push({
-                  accountID: account.accountID,
-                  hash: account.hash,
-                  targetNodeId: radixAndHash.nodeId,
-                })
-                result.stats.childCount++
-              }
-              if (hashTrieNode.accounts.length === 0) {
-                result.stats.empty++
-              }
-            }
-          }
-        }
-
-        for (const radixAndHash of extraBadKeys) {
+        //This seems to be the fixed version of the above code 
+        //however, I am concerned we could end up re-hashing this a this does walk deeper into the trie 
+        //todo add a set that would prevent duplicate effort.
+        for (const radixAndHash of extraLocalRadixKeys) {
           const radix = radixAndHash.radix
           result.stats.visisted++
           const level = radix.length
@@ -3053,10 +3058,11 @@ class AccountPatcher {
             if (leaf != null && leaf.accounts != null) {
               result.stats.matched++
               const childAccounts = []
+              //todo confirm this is correct to add to
               result.nodeChildHashes.push({ radix, childAccounts })
               for (const account of leaf.accounts) {
                 childAccounts.push({ accountID: account.accountID, hash: account.hash })
-                extraBadAccounts.push({
+                extraLocalAccounts.push({
                   accountID: account.accountID,
                   hash: account.hash,
                   targetNodeId: radixAndHash.nodeId,
@@ -3070,8 +3076,11 @@ class AccountPatcher {
           }
         }
 
-        if (extraBadKeys.length > 0) {
-          toFix = toFix.concat(extraBadKeys)
+        // add this to the too fix list, because we may need to eventually detect
+        // what accounts we have that the remote consenus does not have
+        if (extraLocalRadixKeys.length > 0) {
+          //TODO should probably only add unique here
+          toFix = toFix.concat(extraLocalRadixKeys)
           break
         }
       }
@@ -3086,51 +3095,60 @@ class AccountPatcher {
 
     stats.leafsChecked = toFix.length
     //get bad accounts from the leaf nodes
-    const { radixAndChildHashes, getAccountHashStats } = await this.getChildAccountHashes(toFix, cycle)
+    const { radixAndChildHashes: remoteRadixAndChildHashes, getAccountHashStats } = await this.getChildAccountHashes(toFix, cycle)
     stats.getAccountHashStats = getAccountHashStats
 
-    stats.leafResponses = radixAndChildHashes.length
+    stats.leafResponses = remoteRadixAndChildHashes.length
 
+    const localTimestampsByAccountID: Map<string, number> = new Map()
     let accountHashesChecked = 0
-    for (const radixAndChildHash of radixAndChildHashes) {
-      accountHashesChecked += radixAndChildHash.childAccounts.length
+    for (const remoteRadixAndChildHash of remoteRadixAndChildHashes) {
+      accountHashesChecked += remoteRadixAndChildHash.childAccounts.length
 
-      const badTreeNode = badLayerMap.get(radixAndChildHash.radix)
-      if (badTreeNode != null) {
+      const localTreeNode = localLayerMap.get(remoteRadixAndChildHash.radix)
+      if (localTreeNode != null) {
         const localAccountsMap = new Map()
         const remoteAccountsMap = new Map()
-        if (badTreeNode.accounts != null) {
-          for (let i = 0; i < badTreeNode.accounts.length; i++) {
-            if (badTreeNode.accounts[i] == null) continue
-            localAccountsMap.set(badTreeNode.accounts[i].accountID, badTreeNode.accounts[i]) // eslint-disable-line security/detect-object-injection
+        if (localTreeNode.accounts != null) {
+          for (let i = 0; i < localTreeNode.accounts.length; i++) {
+            if (localTreeNode.accounts[i] == null) continue
+            localAccountsMap.set(localTreeNode.accounts[i].accountID, localTreeNode.accounts[i]) // eslint-disable-line security/detect-object-injection
           }
         }
-        for (let account of radixAndChildHash.childAccounts) {
-          remoteAccountsMap.set(account.accountID, { account, nodeId: radixAndChildHash.nodeId })
+        for (let account of remoteRadixAndChildHash.childAccounts) {
+          remoteAccountsMap.set(account.accountID, { account, nodeId: remoteRadixAndChildHash.nodeId })
         }
-        if (radixAndChildHash.childAccounts.length > localAccountsMap.size) {
-          /* prettier-ignore */ if (this.config.debug.verboseNestedCounters) nestedCountersInstance.countEvent(`accountPatcher`, `remote trie node has more accounts, radix: ${radixAndChildHash.radix}`)
-        } else if (radixAndChildHash.childAccounts.length < localAccountsMap.size) {
-          /* prettier-ignore */ if (this.config.debug.verboseNestedCounters) nestedCountersInstance.countEvent(`accountPatcher`, `remote trie node has less accounts than local trie node, radix: ${radixAndChildHash.radix}`)
-        } else if (radixAndChildHash.childAccounts.length === localAccountsMap.size) {
-          /* prettier-ignore */ if (this.config.debug.verboseNestedCounters) nestedCountersInstance.countEvent(`accountPatcher`, `remote trie node has same number of accounts as local trie node, radix: ${radixAndChildHash.radix}`)
+        if (remoteRadixAndChildHash.childAccounts.length > localAccountsMap.size) {
+          /* prettier-ignore */ if (this.config.debug.verboseNestedCounters) nestedCountersInstance.countEvent(`accountPatcher`, `remote trie node has more accounts, radix: ${remoteRadixAndChildHash.radix}`)
+        } else if (remoteRadixAndChildHash.childAccounts.length < localAccountsMap.size) {
+          /* prettier-ignore */ if (this.config.debug.verboseNestedCounters) nestedCountersInstance.countEvent(`accountPatcher`, `remote trie node has less accounts than local trie node, radix: ${remoteRadixAndChildHash.radix}`)
+        } else if (remoteRadixAndChildHash.childAccounts.length === localAccountsMap.size) {
+          /* prettier-ignore */ if (this.config.debug.verboseNestedCounters) nestedCountersInstance.countEvent(`accountPatcher`, `remote trie node has same number of accounts as local trie node, radix: ${remoteRadixAndChildHash.radix}`)
         }
-        for (let i = 0; i < radixAndChildHash.childAccounts.length; i++) {
-          const potentalGoodAcc = radixAndChildHash.childAccounts[i] // eslint-disable-line security/detect-object-injection
-          const potentalBadAcc = localAccountsMap.get(potentalGoodAcc.accountID)
+        for (let i = 0; i < remoteRadixAndChildHash.childAccounts.length; i++) {
+          // note that potential good and bad  are really just remote an local.  
+          const remoteAccount = remoteRadixAndChildHash.childAccounts[i] // eslint-disable-line security/detect-object-injection
+          const localAccount = localAccountsMap.get(remoteAccount.accountID)
 
           //check if our cache value has matching hash already.  The trie can lag behind.
           //  todo would be nice to find a way to reduce this, possibly by better control of syncing ranges.
           //   (we are not supposed to test syncing ranges , but maybe that is out of phase?)
 
           //only do this check if the account is new.  It was skipping potential oos situations.
-          const accountMemData: AccountHashCache = this.stateManager.accountCache.getAccountHash(
-            potentalGoodAcc.accountID
+          const localAccountMemData: AccountHashCache = this.stateManager.accountCache.getAccountHash(
+            remoteAccount.accountID
           )
-          if (accountMemData != null && accountMemData.h === potentalGoodAcc.hash) {
-            if (accountMemData.c >= cycle - 1) {
-              if (potentalBadAcc != null) {
-                if (potentalBadAcc.hash != potentalGoodAcc.hash) {
+
+          // put this timestamp in a map before we proceed
+          if (localAccountMemData != null) {
+            localTimestampsByAccountID.set(remoteAccount.accountID, localAccountMemData.t)
+          }
+
+          if (localAccountMemData != null && localAccountMemData.h === remoteAccount.hash) {
+            //compare these stats later to : sameH
+            if (localAccountMemData.c >= cycle - 1) {
+              if (localAccount != null) {
+                if (localAccount.hash != remoteAccount.hash) {
                   stats.ok_trieHashBad++ // mem account is good but trie account is bad
                 }
               } else {
@@ -3139,7 +3157,7 @@ class AccountPatcher {
 
               //this was in cache, but stale so we can reinstate the cache since it still matches the group consensus
               const accountHashCacheHistory: AccountHashCacheHistory =
-                this.stateManager.accountCache.getAccountHashHistoryItem(potentalGoodAcc.accountID)
+                this.stateManager.accountCache.getAccountHashHistoryItem(remoteAccount.accountID)
               if (
                 accountHashCacheHistory != null &&
                 accountHashCacheHistory.lastStaleCycle >= accountHashCacheHistory.lastSeenCycle
@@ -3154,39 +3172,64 @@ class AccountPatcher {
               //cache matches but trie hash is bad
               stats.fix_butHashMatch++
               //actually we can repair trie here:
-              this.updateAccountHash(potentalGoodAcc.accountID, potentalGoodAcc.hash)
+              this.updateAccountHash(remoteAccount.accountID, remoteAccount.hash)
+              //this will take account on the next loop though
+              //a repair will still be attempted for this account
+              //that may be overkill but we should match against other stat counters when 
+              //attempting repairs
               continue
             }
           }
 
           //is the account missing or wrong hash?
-          if (potentalBadAcc != null) {
-            if (potentalBadAcc.hash != potentalGoodAcc.hash) {
-              badAccounts.push(potentalGoodAcc)
+          //These are the critical checks to figure out which local accounts are missing or do not
+          //match the majority consensus
+          if (localAccount != null) {
+            //account is present locally but has the wrong hash
+            if (localAccount.hash != remoteAccount.hash) {
+              badAccounts.push(remoteAccount)
             }
           } else {
-            badAccounts.push(potentalGoodAcc)
+            //account is missing locally
+            badAccounts.push(remoteAccount)
           }
         }
-        for (let i = 0; i < badTreeNode.accounts.length; i++) {
-          const localAccount = badTreeNode.accounts[i] // eslint-disable-line security/detect-object-injection
+
+        //check for cases where remote accounts are missing or do not match (and our timestamp is newer)
+        for (let i = 0; i < localTreeNode.accounts.length; i++) {
+          const localAccount = localTreeNode.accounts[i] // eslint-disable-line security/detect-object-injection
           if (localAccount == null) continue
           const remoteNodeItem = remoteAccountsMap.get(localAccount.accountID)
           if (remoteNodeItem == null) {
-            accountsWeNeedToRepair.push(localAccount)
+            //If we get here it means we have a local nodeItem that is not in the remote node
+            //This should be handled already with the extraLocalRadixKeys logic
             continue
           }
           const { account: remoteAccount, nodeId: targetNodeId } = remoteNodeItem
+          // We need to check if our account is newer than the remote account and
+          // before we actually push these requests to the majority consenus node(s)
+          // we will need to check if we have a receipt that links to this accounts current state
+          // upgrade: we may later add a route to query a receipt from the archive server
           if (remoteAccount == null) {
+            accountsTheyNeedToRepair.push({ ...localAccount, targetNodeId })
+            nestedCountersInstance.countEvent(`accountPatcher`, `findBadAccounts remoteNodeItem == null`)
+          }
+          const localTimestamp = localTimestampsByAccountID.get(localAccount.accountID) ?? 0
+          if (localAccount.hash != remoteAccount.hash && localTimestamp > remoteAccount.timestamp) {
+            //if our account is newer than the remote account, we can signal a potential repair.
             accountsTheyNeedToRepair.push({ ...localAccount, targetNodeId })
           }
         }
       } else {
-        badAccounts = badAccounts.concat(radixAndChildHash.childAccounts)
+        //if our local nodes is missing we will add all of the remote accounts to the bad list for repair
+        badAccounts = badAccounts.concat(remoteRadixAndChildHash.childAccounts)
       }
     }
     if (accountsTheyNeedToRepair.length > 0) {
       nestedCountersInstance.countEvent(`accountPatcher`, `accountsTheyNeedToRepair`, accountsTheyNeedToRepair.length)
+    }
+    if (extraLocalAccounts.length > 0) {
+      nestedCountersInstance.countEvent(`accountPatcher`, `extraLocalAccounts`, extraLocalAccounts.length)
     }
     return {
       badAccounts,
@@ -3196,8 +3239,8 @@ class AccountPatcher {
       badHashesPerLevel,
       accountHashesChecked,
       stats,
-      extraBadAccounts,
-      extraBadKeys,
+      extraBadAccounts: extraLocalAccounts,
+      extraBadKeys: extraLocalRadixKeys,
       accountsTheyNeedToRepair,
     }
   }
@@ -3581,6 +3624,10 @@ class AccountPatcher {
           nestedCountersInstance.countEvent(`accountPatcher`, `requestOtherNodesToRepair archivedQueueEntry == null`, 1)
           continue
         }
+        //TODO: this is where we could fetch the receipt from the archiver by account timestamp as and hash as a hint
+        //  i.e. it can grab all receipts with that timestamp then evaluate the after state hashes if the account is involved
+
+
         const repairInstruction: AccountRepairInstruction = {
           accountID: accountData.accountId,
           hash: accountData.stateId,
@@ -3704,8 +3751,12 @@ class AccountPatcher {
           }, ourBadAccounts: ${Utils.safeStringify(results.badAccounts)}`
         )
       }
+
+      // Build up a list of account that the remote node potentially needs to repair
       if (results.accountsTheyNeedToRepair.length > 0 || results.extraBadAccounts.length > 0) {
         let accountsTheyNeedToRepair = [...results.accountsTheyNeedToRepair]
+        // extra bad accounts are really accounts that were children of remote nodes that the remote
+        // node did not have in its tree, so we need to repair them
         if (results.extraBadAccounts.length > 0) {
           accountsTheyNeedToRepair = accountsTheyNeedToRepair.concat(results.extraBadAccounts)
         }
@@ -3762,6 +3813,7 @@ class AccountPatcher {
         sameTSFix: 0,
         tsFix2: 0,
         tsFix3: 0,
+        sameH: 0,
       }
 
       let tooOldAccountsMap: Map<string, TooOldAccountRecord> = new Map()
@@ -3849,13 +3901,20 @@ class AccountPatcher {
               noChange.add(wrappedData.accountId)
               // nestedCountersInstance.countEvent('accountPatcher', `checkAndSetAccountData updateSameTS c:${cycle}`)
               continue
-            }
+            } 
+            
             filterStats.sameTS++
+          }
+          //we can compare this to fix_butHashMatch and other stats where hashes matched.
+          //we dont skip this case because we are not checking hash from storage
+          if(accountMemData.h == wrappedData.stateId) {
+            filterStats.sameH++
           }
           filterStats.accepted++
           //we can proceed with the update
           wrappedDataListFiltered.push(wrappedData)
         } else {
+          //we dont have any record of this account
           filterStats.accepted++
           //this good account data to repair with
           wrappedDataListFiltered.push(wrappedData)
