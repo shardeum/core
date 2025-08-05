@@ -2772,7 +2772,7 @@ class AccountPatcher {
 
       // for non-wrapped ranges
       if (startRadix <= endRadix) {
-        for (let i = 0; i <= isInsyncResult.radixes.length; i++) {
+        for (let i = 0; i < isInsyncResult.radixes.length; i++) {
           const radixEntry = isInsyncResult.radixes[i]
           if (radixEntry.radix >= startRadix && radixEntry.radix <= endRadix) {
             radixEntry.recentRuntimeSync = true
@@ -2781,7 +2781,7 @@ class AccountPatcher {
         }
         // for wrapped ranges because we start at the end and wrap around to the beginning of 32 byte address space
       } else {
-        for (let i = 0; i <= isInsyncResult.radixes.length; i++) {
+        for (let i = 0; i < isInsyncResult.radixes.length; i++) {
           const radixEntry = isInsyncResult.radixes[i]
           if (radixEntry.radix >= startRadix || radixEntry.radix <= endRadix) {
             radixEntry.recentRuntimeSync = true
