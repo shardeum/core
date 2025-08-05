@@ -858,8 +858,7 @@ class TransactionQueue {
           }
 
           if (queueEntry == null) {
-            response.note = `failed to find queue entry: ${utils.stringifyReduce(req.txid)}  ${req.timestamp} dbg:${
-              this.stateManager.debugTXHistory[utils.stringifyReduce(req.txid)]
+            response.note = `failed to find queue entry: ${utils.stringifyReduce(req.txid)}  ${req.timestamp} dbg:${this.stateManager.debugTXHistory[utils.stringifyReduce(req.txid)]
             }`
             respond(response, serializeRequestStateForTxResp)
             // if a node cant get data it will have to get repaired by the patcher since we can only keep stuff en the archive queue for so long
@@ -1448,6 +1447,12 @@ class TransactionQueue {
    * @param queueEntry
    */
   async commitConsensedTransaction(queueEntry: QueueEntry): Promise<CommitConsensedTransactionResult> {
+    // Debug flag to intentionally skip committing account data
+    if (this.stateManager.debugFailToCommit) {
+      /* prettier-ignore */ if (logFlags.debug) this.mainLogger.debug(`debugFailToCommit active. Skipping commit for tx: ${queueEntry.logID}`)
+      queueEntry.accountDataSet = true
+      return { success: true }
+    }
     let ourLockID = -1
     let accountDataList: string | unknown[]
     let uniqueKeys = []
@@ -2732,10 +2737,8 @@ class TransactionQueue {
         fireAndForget(() => this.shareCompleteDataToNeighbours(queueEntry))
       if (logFlags.debug || this.stateManager.consensusLog) {
         this.mainLogger.debug(
-          `queueEntryAddData hasAll: true for txId ${queueEntry.logID} ${
-            queueEntry.acceptedTx.txId
-          } at timestamp: ${shardusGetTime()} nodeId: ${Self.id} collected ${
-            Object.keys(queueEntry.collectedData).length
+          `queueEntryAddData hasAll: true for txId ${queueEntry.logID} ${queueEntry.acceptedTx.txId
+          } at timestamp: ${shardusGetTime()} nodeId: ${Self.id} collected ${Object.keys(queueEntry.collectedData).length
           } uniqueKeys ${queueEntry.uniqueKeys.length}`
         )
       }
@@ -2785,8 +2788,7 @@ class TransactionQueue {
       )
       if (logFlags.debug || this.stateManager.consensusLog) {
         this.mainLogger.debug(
-          `shareCompleteDataToNeighbours: shared complete data for txId ${
-            queueEntry.logID
+          `shareCompleteDataToNeighbours: shared complete data for txId ${queueEntry.logID
           } at timestamp: ${shardusGetTime()} nodeId: ${Self.id} to neighbours: ${Utils.safeStringify(
             neighboursNodes.map((node) => node.id)
           )}`
