@@ -2801,15 +2801,18 @@ class StateManager {
 
     // If enabled, check the RI cache first
     if (opts.useRICache) {
+      /* prettier-ignore */ if (logFlags.dapp_verbose) console.log(`[getLocalOrRemoteAccount] Checking RI cache - addr:${address}`)
       const riCacheResult = await this.app.getCachedRIAccountData([address])
       if (riCacheResult != null) {
         if (riCacheResult.length > 0) {
+          /* prettier-ignore */ if (logFlags.dapp_verbose) console.log(`[getLocalOrRemoteAccount] RI cache HIT - addr:${address} data:${riCacheResult[0] != null}`)
           nestedCountersInstance.countEvent('stateManager', 'getLocalOrRemoteAccount: RI cache hit')
           if (logFlags.verbose) this.mainLogger.debug(`getLocalOrRemoteAccount: RI cache hit for ${address}`)
           wrappedAccount = riCacheResult[0] as ShardusTypes.WrappedDataFromQueue
           return wrappedAccount
         }
       } else {
+        /* prettier-ignore */ if (logFlags.dapp_verbose) console.log(`[getLocalOrRemoteAccount] RI cache MISS - addr:${address}`)
         nestedCountersInstance.countEvent('stateManager', 'getLocalOrRemoteAccount: RI cache miss')
       }
     }
@@ -2834,6 +2837,7 @@ class StateManager {
     }
 
     if (accountIsRemote) {
+      /* prettier-ignore */ if (logFlags.dapp_verbose) console.log(`[getLocalOrRemoteAccount] Account is REMOTE - addr:${address} useRICache:${opts.useRICache} canThrow:${opts.canThrowException}`)
       let randomConsensusNode: P2PTypes.NodeListTypes.Node
       const preCheckLimit = 5
       for (let i = 0; i < preCheckLimit; i++) {
@@ -2937,6 +2941,7 @@ class StateManager {
       }
     } else {
       // we are local!
+      /* prettier-ignore */ if (logFlags.dapp_verbose) console.log(`[getLocalOrRemoteAccount] Account is LOCAL - addr:${address} useRICache:${opts.useRICache}`)
       const accountData = await this.app.getAccountDataByList([address])
       if (accountData != null) {
         for (const wrappedAccountEntry of accountData) {
