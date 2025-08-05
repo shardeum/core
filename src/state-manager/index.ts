@@ -344,7 +344,6 @@ class StateManager {
     this.debugSkipPatcherRepair = config.debug.skipPatcherRepair
     this.debugFailToCommit = false
 
-
     this.feature_receiptMapResults = true
     this.feature_partitionHashes = true
     this.feature_generateStats = false
@@ -1415,7 +1414,8 @@ class StateManager {
           }
 
           if (queueEntry == null) {
-            response.note = `failed to find queue entry: ${utils.stringifyReduce(deserialized.txid)}  ${deserialized.timestamp
+            response.note = `failed to find queue entry: ${utils.stringifyReduce(deserialized.txid)}  ${
+              deserialized.timestamp
             } dbg:${this.debugTXHistory[utils.stringifyReduce(deserialized.txid)]}`
             respond(response, serializeRequestReceiptForTxResp)
             return
@@ -1434,7 +1434,8 @@ class StateManager {
           if (response.receipt != null) {
             response.success = true
           } else {
-            response.note = `found queueEntry but no receipt: ${utils.stringifyReduce(deserialized.txid)} ${deserialized.txid
+            response.note = `found queueEntry but no receipt: ${utils.stringifyReduce(deserialized.txid)} ${
+              deserialized.txid
             }  ${deserialized.timestamp}`
           }
           respond(response, serializeRequestReceiptForTxResp)
@@ -1573,14 +1574,16 @@ class StateManager {
             queueEntry = this.transactionQueue.getQueueEntryArchived(txId, route)
           }
           if (queueEntry == null) {
-            response.note = `failed to find queue entry: ${utils.stringifyReduce(txId)} dbg:${this.debugTXHistory[utils.stringifyReduce(txId)]
+            response.note = `failed to find queue entry: ${utils.stringifyReduce(txId)} dbg:${
+              this.debugTXHistory[utils.stringifyReduce(txId)]
             }`
             /* prettier-ignore */ nestedCountersInstance.countEvent('stateManager', `${route} cant find queue entry`)
             return respond(response, serializeRequestStateForTxPostResp)
           }
 
           if (queueEntry.hasValidFinalData === false) {
-            response.note = `has queue entry but not final data: ${utils.stringifyReduce(txId)} dbg:${this.debugTXHistory[utils.stringifyReduce(txId)]
+            response.note = `has queue entry but not final data: ${utils.stringifyReduce(txId)} dbg:${
+              this.debugTXHistory[utils.stringifyReduce(txId)]
             }`
 
             if (logFlags.error && logFlags.verbose) this.mainLogger.error(response.note)
@@ -1776,7 +1779,8 @@ class StateManager {
           }
 
           if (queueEntry == null) {
-            response.note = `failed to find queue entry: ${utils.stringifyReduce(txid)} dbg:${this.debugTXHistory[utils.stringifyReduce(txid)]
+            response.note = `failed to find queue entry: ${utils.stringifyReduce(txid)} dbg:${
+              this.debugTXHistory[utils.stringifyReduce(txid)]
             }`
 
             if (logFlags.error) this.mainLogger.error(`${route} ${response.note}`)
@@ -1878,7 +1882,8 @@ class StateManager {
           }
 
           if (queueEntry == null) {
-            response.note = `failed to find queue entry: ${utils.stringifyReduce(txid)} dbg:${this.debugTXHistory[utils.stringifyReduce(txid)]
+            response.note = `failed to find queue entry: ${utils.stringifyReduce(txid)} dbg:${
+              this.debugTXHistory[utils.stringifyReduce(txid)]
             }`
 
             if (logFlags.error) this.mainLogger.error(`${route} ${response.note}`)
@@ -1908,7 +1913,8 @@ class StateManager {
             if (beforeState && beforeState.stateId === receipt2.proposal.beforeStateHashes[index]) {
               response.stateList.push(queueEntry.collectedData[accountId])
             } else {
-              response.note = `has bad beforeStateAccount: ${utils.stringifyReduce(txid)} dbg:${this.debugTXHistory[utils.stringifyReduce(txid)]
+              response.note = `has bad beforeStateAccount: ${utils.stringifyReduce(txid)} dbg:${
+                this.debugTXHistory[utils.stringifyReduce(txid)]
               }`
               if (logFlags.error) this.mainLogger.error(`${route} ${response.note}`)
               respond(response, serializeRequestTxAndStateResp)
