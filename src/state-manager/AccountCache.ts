@@ -87,6 +87,11 @@ class AccountCache {
      *   if this is for a future cycle then the data goes into queue to get processed later in buildPartitionHashesForNode
         METHOD 3
         More simple than method 2, but higher perf and some critical feature advantages over method 1 like the history working list and queue
+     * 
+     * Debug parameters:
+     * - cacheUpdateRejectChance (0-1): Probability of randomly rejecting updates
+     *   Used to test cache inconsistency and repair mechanisms
+     *   0 = no rejections (default), 1 = reject all updates
      */
   ///////////////
 
@@ -101,6 +106,19 @@ class AccountCache {
     }
 
     nestedCountersInstance.countEvent('cache', 'updateAccountHash: start')
+    
+    // Debug feature: randomly reject cache updates
+    const rejectChance = this.config.debug.cacheUpdateRejectChance || 0
+    if (rejectChance > 0) {
+      // Validate probability is between 0 and 1
+      const validatedChance = Math.max(0, Math.min(1, rejectChance))
+      if (Math.random() < validatedChance) {
+        nestedCountersInstance.countEvent('cache', 'updateAccountHash: debug-rejected')
+        /* prettier-ignore */ if (logFlags.verbose) this.mainLogger.debug(`Cache update rejected by debug flag: account ${utils.makeShortHash(accountId)} cycle ${cycle} chance ${validatedChance}`)
+        return // Early exit - update is rejected
+      }
+    }
+    
     // See if we have a cache entry yet.  if not create a history entry for this account
     let accountHashCacheHistory: AccountHashCacheHistory
     if (this.accountsHashCache3.accountHashMap.has(accountId) === false) {
@@ -287,6 +305,11 @@ class AccountCache {
    * - 0 (default): Normal behavior, updates applied when ready
    * - 1-10: Delays cache updates by N additional cycles
    * This creates cache/trie divergence for testing repair mechanisms
+   * 
+   * Debug parameter interaction:
+   * - cacheUpdateDelayInCycles: Creates temporal divergence (updates arrive late)
+   * - cacheUpdateRejectChance: Creates data loss (updates never arrive)
+   * - Combined: More severe cache/trie inconsistency for stress testing
    */
   processCacheUpdates(cycleShardData: CycleShardData): void {
     //the line below is too slow.. needs to be in an ultra verbose categor that we dont have, so for now you have to uncomment it on manually

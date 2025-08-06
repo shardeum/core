@@ -1182,6 +1182,8 @@ export interface ServerConfiguration {
     debugNTPBogusDecrements: boolean
     /** Number of cycles to artificially delay cache updates for testing cache/trie divergence */
     cacheUpdateDelayInCycles?: number
+    /** Probability (0-1) of randomly rejecting account cache updates for testing cache inconsistency */
+    cacheUpdateRejectChance?: number
     /** config for the number of seconds we should delay sending the started syncing gossip */
     startedSyncingDelay: number
     /** config for the number of seconds we should delay sending the finished syncing gossip */

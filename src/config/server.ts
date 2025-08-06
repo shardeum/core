@@ -264,6 +264,7 @@ const SERVER_CONFIG: StrictServerConfiguration = {
     ignoreDataTellChance: 0,
     debugNTPBogusDecrements: false,
     cacheUpdateDelayInCycles: 0,
+    cacheUpdateRejectChance: 0,
     startedSyncingDelay: 0,
     finishedSyncingDelay: 0,
     readyNodeDelay: 0,
