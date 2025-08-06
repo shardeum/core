@@ -1180,6 +1180,8 @@ export interface ServerConfiguration {
     ignoreDataTellChance: number
     // flag to add bogus increments to NTP offset
     debugNTPBogusDecrements: boolean
+    /** Number of cycles to artificially delay cache updates for testing cache/trie divergence */
+    cacheUpdateDelayInCycles?: number
     /** config for the number of seconds we should delay sending the started syncing gossip */
     startedSyncingDelay: number
     /** config for the number of seconds we should delay sending the finished syncing gossip */

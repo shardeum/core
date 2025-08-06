@@ -90,22 +90,7 @@ class AccountCache {
      */
   ///////////////
 
-  updateAccountHash(accountId: string, accountHash: string, timestamp: number, cycle: number): void {
-    if (accountHash == null) {
-      const stack = new Error().stack
-      this.statemanager_fatal('updateAccountHash hash=null', 'updateAccountHash hash=null' + stack)
-    }
-    if (cycle < 0 || cycle == null) {
-      const stack = new Error().stack
-      this.statemanager_fatal(`updateAccountHash cycle == ${cycle}`, `updateAccountHash cycle == ${cycle} ${stack}`)
-    }
-
-    //do not leave this on!  spammy!
-    // let stack = new Error().stack
-    // this.mainLogger.debug(`updateAccountHash: ${utils.stringifyReduce({accountId, hash, timestamp, cycle})}  ${stack}`)
-
-    nestedCountersInstance.countEvent('cache', 'updateAccountHash: start')
-
+  updateAccountHash(accountId: string, accountHash: string, timestamp: number, cycle: number): void {    
     // See if we have a cache entry yet.  if not create a history entry for this account
     let accountHashCacheHistory: AccountHashCacheHistory
     if (this.accountsHashCache3.accountHashMap.has(accountId) === false) {
@@ -122,8 +107,6 @@ class AccountCache {
       accountHashCacheHistory = this.accountsHashCache3.accountHashMap.get(accountId)
     }
 
-    //update main cycle number if needed..  not sure this is perfect.. may be better as a function that can be smart?
-    //
     if (this.accountsHashCache3.currentCalculationCycle === -1) {
       if (this.stateManager?.currentCycleShardData != null) {
         this.accountsHashCache3.currentCalculationCycle = this.stateManager.currentCycleShardData.cycleNumber - 1
@@ -140,8 +123,6 @@ class AccountCache {
 
     let updateIsNewerHash = false
 
-    //last state cycle gets set if our node has an account that it no longer covers.  I am not sure we will be able to track this in the future.
-    //and that may not matter.
     if (
       accountHashCacheHistory.lastStaleCycle > 0 &&
       accountHashCacheHistory.lastStaleCycle > accountHashCacheHistory.lastSeenCycle
@@ -288,6 +269,15 @@ class AccountCache {
   }
 
   // currently a sync function, dont have correct buffers for async
+  /**
+   * processCacheUpdates
+   * Processes queued account hash updates and applies them to the trie
+   * 
+   * Debug parameter cacheUpdateDelayInCycles can artificially delay updates:
+   * - 0 (default): Normal behavior, updates applied when ready
+   * - 1-10: Delays cache updates by N additional cycles
+   * This creates cache/trie divergence for testing repair mechanisms
+   */
   processCacheUpdates(cycleShardData: CycleShardData): void {
     //the line below is too slow.. needs to be in an ultra verbose categor that we dont have, so for now you have to uncomment it on manually
     //if (logFlags.verbose) this.mainLogger.debug(`accountsHashCache3 ${cycleShardData.cycleNumber}: ${utils.stringifyReduce(this.accountsHashCache3)}`)
@@ -324,8 +314,23 @@ class AccountCache {
       }
 
       //if we cycle is too new then put in next list:
+      let delayInCycles = this.config.debug.cacheUpdateDelayInCycles || 0
+      
+      // Validate delay is reasonable
+      if (delayInCycles < 0) {
+        this.mainLogger.warn(`cacheUpdateDelayInCycles is negative (${delayInCycles}), setting to 0`)
+        delayInCycles = 0
+      } else if (delayInCycles > 10) {
+        this.mainLogger.warn(`cacheUpdateDelayInCycles is too high (${delayInCycles}), capping at 10`)
+        delayInCycles = 10
+      }
 
-      if (accountHashData.c > cycleToProcess) {
+      if (accountHashData.c > cycleToProcess - delayInCycles) {
+        // Log when delay is applied
+        if (delayInCycles > 0 && accountHashData.c <= cycleToProcess && accountHashData.c > cycleToProcess - delayInCycles) {
+          nestedCountersInstance.countEvent('cache', `debug-delay-applied cycle:${accountHashData.c} delay:${delayInCycles}`)
+          /* prettier-ignore */ if (logFlags.verbose) this.mainLogger.debug(`Cache update delayed by debug flag: account ${utils.makeShortHash(accountID)} cycle ${accountHashData.c} delayed to cycle ${cycleToProcess + 1}`)
+        }
         nextCacheUpdateQueue.accountHashesSorted.push(accountHashData)
         nextCacheUpdateQueue.accountIDs.push(accountID)
         continue
