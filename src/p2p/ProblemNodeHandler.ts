@@ -82,7 +82,7 @@ export function exportProblematicNodeCache(): string | null {
   }
 
   try {
-    return problematicNodeCache.toCompressedJSON()
+    return problematicNodeCache.toJSON()
   } catch (err) {
     error('Failed to export ProblematicNodeCache:', err)
     return null
