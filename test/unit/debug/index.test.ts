@@ -62,7 +62,7 @@ jest.mock('../../../src/p2p/CycleChain', () => ({
 jest.mock('../../../src/p2p/ProblemNodeHandler', () => ({
   getProblematicNodes: jest.fn().mockReturnValue([]),
   getRefutePercentage: jest.fn().mockReturnValue(0),
-  getConsecutiveRefutes: jest.fn().mockReturnValue(0),
+  getMaxConsecutiveRefutes: jest.fn().mockReturnValue(0),
   isNodeProblematic: jest.fn().mockReturnValue(false),
   exportProblematicNodeCache: jest.fn().mockReturnValue(null),
 }))

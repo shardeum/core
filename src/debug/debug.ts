@@ -198,7 +198,7 @@ class Debug {
               id: nodeId.substring(0, 8),
               fullId: nodeId,
               refuteCycles: node.refuteCycles || [],
-              consecutiveRefutes: ProblemNodeHandler.getConsecutiveRefutes(
+              consecutiveRefutes: ProblemNodeHandler.getMaxConsecutiveRefutes(
                 node.refuteCycles || [],
                 currentCycleRecord.counter
               ),

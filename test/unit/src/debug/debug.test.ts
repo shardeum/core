@@ -39,7 +39,7 @@ jest.mock('../../../../src/p2p/Context', () => ({
 }))
 jest.mock('../../../../src/p2p/ProblemNodeHandler', () => ({
   getRefutePercentage: jest.fn(),
-  getConsecutiveRefutes: jest.fn(),
+  getMaxConsecutiveRefutes: jest.fn(),
   isNodeProblematic: jest.fn(),
 }))
 jest.mock('../../../../src/utils/nestedCounters')

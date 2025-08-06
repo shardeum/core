@@ -104,9 +104,9 @@ export function getRefutePercentage(refuteCycles: number[], currentCycle: number
   return 0
 }
 
-export function getConsecutiveRefutes(refuteCycles: number[], currentCycle: number): number {
+export function getMaxConsecutiveRefutes(refuteCycles: number[], currentCycle: number): number {
   if (config.p2p.useProblematicNodeCacheV2 && problematicNodeCache) {
-    return problematicNodeCache.getConsecutiveRefutes(refuteCycles, currentCycle)
+    return problematicNodeCache.getMaxConsecutiveRefutes(refuteCycles, currentCycle)
   }
   return 0
 }

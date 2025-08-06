@@ -539,10 +539,10 @@ describe('ProblematicNodeCache', () => {
       expect(metrics.consecutiveRefutes).toBe(6) // cycles 95-100
     })
 
-    test('should reset consecutive count after gap', () => {
-      // node2 is refuted in 96-98, gap at 99, no refute at 100
+    test('should find maximum consecutive refutes in history', () => {
+      // node2 is refuted in 96-98, gap at 99-100, max consecutive is 3
       const metrics = cache.calculateNodeMetrics('node2', 100)
-      expect(metrics.consecutiveRefutes).toBe(0) // Gap breaks the consecutive count
+      expect(metrics.consecutiveRefutes).toBe(3) // Maximum consecutive refutes in history
     })
 
     test('should handle consecutive refutes at history boundary', () => {
