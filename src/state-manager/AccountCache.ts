@@ -91,6 +91,16 @@ class AccountCache {
   ///////////////
 
   updateAccountHash(accountId: string, accountHash: string, timestamp: number, cycle: number): void {    
+    if (accountHash == null) {
+      const stack = new Error().stack
+      this.statemanager_fatal('updateAccountHash hash=null', 'updateAccountHash hash=null' + stack)
+    }
+    if (cycle < 0 || cycle == null) {
+      const stack = new Error().stack
+      this.statemanager_fatal(`updateAccountHash cycle == ${cycle}`, `updateAccountHash cycle == ${cycle} ${stack}`)
+    }
+
+    nestedCountersInstance.countEvent('cache', 'updateAccountHash: start')
     // See if we have a cache entry yet.  if not create a history entry for this account
     let accountHashCacheHistory: AccountHashCacheHistory
     if (this.accountsHashCache3.accountHashMap.has(accountId) === false) {
