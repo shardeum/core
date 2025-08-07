@@ -1226,9 +1226,60 @@ class StateManager {
     }
     /* prettier-ignore */ if (logFlags.debug) this.mainLogger.debug(`setAccountData toAdd:${accountsToAdd.length}  failed:${failedHashes.length}`)
     /* prettier-ignore */ if (logFlags.verbose) console.log(`setAccountData toAdd:${accountsToAdd.length}  failed:${failedHashes.length}`)
-    /* prettier-ignore */ this.transactionQueue.setDebugLastAwaitedCallInner('ths.app.setAccountData')
-    await this.app.setAccountData(accountsToAdd)
-    /* prettier-ignore */ this.transactionQueue.setDebugLastAwaitedCallInner('ths.app.setAccountData', DebugComplete.Completed)
+    
+    // Log storage write start for batch
+    let timingLogger
+    try {
+      timingLogger = getTimingLogger()
+      for (const wrappedAccount of wrappedAccountsToAdd) {
+        timingLogger.log(
+          TimingOperation.STORAGE_WRITE_START,
+          wrappedAccount.accountId,
+          wrappedAccount.stateId,
+          undefined,
+          `app.setAccountData`,
+          { timestamp: wrappedAccount.timestamp, note }
+        )
+      }
+    } catch (e) {
+      // Timing logger not initialized
+    }
+    
+    try {
+      /* prettier-ignore */ this.transactionQueue.setDebugLastAwaitedCallInner('ths.app.setAccountData')
+      await this.app.setAccountData(accountsToAdd)
+      /* prettier-ignore */ this.transactionQueue.setDebugLastAwaitedCallInner('ths.app.setAccountData', DebugComplete.Completed)
+      
+      // Log storage write complete for batch
+      if (timingLogger) {
+        for (const wrappedAccount of wrappedAccountsToAdd) {
+          timingLogger.log(
+            TimingOperation.STORAGE_WRITE_COMPLETE,
+            wrappedAccount.accountId,
+            wrappedAccount.stateId,
+            undefined,
+            `app.setAccountData`,
+            { timestamp: wrappedAccount.timestamp }
+          )
+        }
+      }
+    } catch (e) {
+      // Log storage write error for batch
+      if (timingLogger) {
+        for (const wrappedAccount of wrappedAccountsToAdd) {
+          timingLogger.log(
+            TimingOperation.STORAGE_WRITE_ERROR,
+            wrappedAccount.accountId,
+            wrappedAccount.stateId,
+            undefined,
+            `app.setAccountData error: ${e.message}`,
+            { error: e.message }
+          )
+        }
+      }
+      throw e
+    }
+    
     fireAndForget(() => this.transactionQueue.processNonceQueue(wrappedAccountsToAdd))
     return failedHashes
   }
@@ -3260,16 +3311,60 @@ class StateManager {
       }
 
       /* prettier-ignore */ if (logFlags.verbose) this.mainLogger.debug(`${note} setAccount partial:${wrappedData.isPartial} key:${utils.makeShortHash(key)} hash:${utils.makeShortHash(wrappedData.stateId)} ts:${wrappedData.timestamp}`)
-      if (wrappedData.isPartial) {
-        /* prettier-ignore */ this.transactionQueue.setDebugLastAwaitedCallInner('this.app.updateAccountPartial')
-        // eslint-disable-next-line security/detect-object-injection
-        await this.app.updateAccountPartial(wrappedData, localCachedData[key], applyResponse)
-        /* prettier-ignore */ this.transactionQueue.setDebugLastAwaitedCallInner('this.app.updateAccountPartial', DebugComplete.Completed)
-      } else {
-        /* prettier-ignore */ this.transactionQueue.setDebugLastAwaitedCallInner('this.app.updateAccountFull')
-        // eslint-disable-next-line security/detect-object-injection
-        await this.app.updateAccountFull(wrappedData, localCachedData[key], applyResponse)
-        /* prettier-ignore */ this.transactionQueue.setDebugLastAwaitedCallInner('this.app.updateAccountFull', DebugComplete.Completed)
+      
+      // Log storage write start
+      let timingLogger
+      try {
+        timingLogger = getTimingLogger()
+        timingLogger.log(
+          TimingOperation.STORAGE_WRITE_START,
+          wrappedData.accountId,
+          wrappedData.stateId,
+          undefined,
+          `app.updateAccount${wrappedData.isPartial ? 'Partial' : 'Full'}`,
+          { timestamp: wrappedData.timestamp, isPartial: wrappedData.isPartial }
+        )
+      } catch (e) {
+        // Timing logger not initialized
+      }
+      
+      try {
+        if (wrappedData.isPartial) {
+          /* prettier-ignore */ this.transactionQueue.setDebugLastAwaitedCallInner('this.app.updateAccountPartial')
+          // eslint-disable-next-line security/detect-object-injection
+          await this.app.updateAccountPartial(wrappedData, localCachedData[key], applyResponse)
+          /* prettier-ignore */ this.transactionQueue.setDebugLastAwaitedCallInner('this.app.updateAccountPartial', DebugComplete.Completed)
+        } else {
+          /* prettier-ignore */ this.transactionQueue.setDebugLastAwaitedCallInner('this.app.updateAccountFull')
+          // eslint-disable-next-line security/detect-object-injection
+          await this.app.updateAccountFull(wrappedData, localCachedData[key], applyResponse)
+          /* prettier-ignore */ this.transactionQueue.setDebugLastAwaitedCallInner('this.app.updateAccountFull', DebugComplete.Completed)
+        }
+        
+        // Log storage write complete
+        if (timingLogger) {
+          timingLogger.log(
+            TimingOperation.STORAGE_WRITE_COMPLETE,
+            wrappedData.accountId,
+            wrappedData.stateId,
+            undefined,
+            `app.updateAccount${wrappedData.isPartial ? 'Partial' : 'Full'}`,
+            { timestamp: wrappedData.timestamp }
+          )
+        }
+      } catch (e) {
+        // Log storage write error
+        if (timingLogger) {
+          timingLogger.log(
+            TimingOperation.STORAGE_WRITE_ERROR,
+            wrappedData.accountId,
+            wrappedData.stateId,
+            undefined,
+            `app.updateAccount error: ${e.message}`,
+            { error: e.message }
+          )
+        }
+        throw e
       }
       savedSomething = true
       fireAndForget(() => this.transactionQueue.processNonceQueue([wrappedData]))
