@@ -109,17 +109,19 @@ export function getProblematicNodeInfoForSelf(nodeId: string): any | null {
     const metrics = problematicNodeCache.calculateNodeMetrics(nodeId, currentCycle)
     const refuteHistory = problematicNodeCache.refuteHistory.get(nodeId) || []
 
-    // Build cycle history for last 30 cycles
-    const cycleHistoryLength = 30
-    const startCycle = Math.max(1, currentCycle - cycleHistoryLength + 1)
-    const cycleRefuteHistory: boolean[] = []
+    // Get the cache's cycle range to determine what cycles we have data for
+    const cacheInfo = problematicNodeCache.getCycleCoverage()
+    let startCycle = cacheInfo.cycleRange ? cacheInfo.cycleRange.min : currentCycle
+    let endCycle = cacheInfo.cycleRange ? cacheInfo.cycleRange.max : currentCycle
 
-    for (let cycle = startCycle; cycle <= currentCycle; cycle++) {
+    // Build cycle history for all cycles in the cache
+    const cycleRefuteHistory: boolean[] = []
+    for (let cycle = startCycle; cycle <= endCycle; cycle++) {
       cycleRefuteHistory.push(refuteHistory.includes(cycle))
     }
 
-    // Calculate total refutes in the history window
-    const totalRefutes = refuteHistory.filter((cycle) => cycle >= startCycle && cycle <= currentCycle).length
+    // Calculate total refutes (all refutes in the cache)
+    const totalRefutes = refuteHistory.length
 
     const problematicNodeInfo = {
       isProblematic:
@@ -129,6 +131,8 @@ export function getProblematicNodeInfoForSelf(nodeId: string): any | null {
       maxConsecutiveRefutes: metrics.consecutiveRefutes,
       refutePercentage: metrics.refutePercentage,
       cycleRefuteHistory: cycleRefuteHistory,
+      oldestCycle: startCycle,  // The oldest cycle in cache
+      newestCycle: endCycle      // The newest cycle in cache
     }
 
     return problematicNodeInfo
