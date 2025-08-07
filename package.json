@@ -1,6 +1,6 @@
 {
   "name": "@shardeum-foundation/core",
-  "version": "2.16.0-prerelease.2",
+  "version": "2.16.0-prerelease.3",
   "engines": {
     "node": "20.19.3"
   },
