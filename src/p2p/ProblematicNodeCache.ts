@@ -222,7 +222,7 @@ export class ProblematicNodeCache {
 
     // Find the maximum consecutive refutes in the retained cycle history
     const sortedRefutes = [...relevantRefutes].sort((a, b) => a - b)
-    
+
     let maxConsecutive = 1 // At least 1 if we have any refutes
     let currentConsecutive = 1
 

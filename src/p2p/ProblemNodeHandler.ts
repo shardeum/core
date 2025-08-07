@@ -97,6 +97,47 @@ export function getProblematicNodes(prevRecord: P2P.CycleCreatorTypes.CycleRecor
   }
 }
 
+// Get problematic node info for reporting to monitor - info about self node only
+export function getProblematicNodeInfoForSelf(nodeId: string): any | null {
+  if (!problematicNodeCache || !config.p2p.enableProblematicNodeCacheBuilding) {
+    return null
+  }
+
+  try {
+    const currentCycle = CycleChain.newest?.counter || 0
+
+    const metrics = problematicNodeCache.calculateNodeMetrics(nodeId, currentCycle)
+    const refuteHistory = problematicNodeCache.refuteHistory.get(nodeId) || []
+
+    // Build cycle history for last 30 cycles
+    const cycleHistoryLength = 30
+    const startCycle = Math.max(1, currentCycle - cycleHistoryLength + 1)
+    const cycleRefuteHistory: boolean[] = []
+
+    for (let cycle = startCycle; cycle <= currentCycle; cycle++) {
+      cycleRefuteHistory.push(refuteHistory.includes(cycle))
+    }
+
+    // Calculate total refutes in the history window
+    const totalRefutes = refuteHistory.filter((cycle) => cycle >= startCycle && cycle <= currentCycle).length
+
+    const problematicNodeInfo = {
+      isProblematic:
+        metrics.consecutiveRefutes >= config.p2p.problematicNodeConsecutiveRefuteThreshold ||
+        metrics.refutePercentage >= config.p2p.problematicNodeRefutePercentageThreshold,
+      totalRefutes: totalRefutes,
+      maxConsecutiveRefutes: metrics.consecutiveRefutes,
+      refutePercentage: metrics.refutePercentage,
+      cycleRefuteHistory: cycleRefuteHistory,
+    }
+
+    return problematicNodeInfo
+  } catch (err) {
+    error('Failed to get problematic node info for self:', err)
+    return null
+  }
+}
+
 export function getRefutePercentage(refuteCycles: number[], currentCycle: number): number {
   if (config.p2p.useProblematicNodeCacheV2 && problematicNodeCache) {
     return problematicNodeCache.getRefutePercentage(refuteCycles, currentCycle)
