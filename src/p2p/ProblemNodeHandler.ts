@@ -95,6 +95,8 @@ export function getProblematicNodes(prevRecord: P2P.CycleCreatorTypes.CycleRecor
     const activeNodeIds = new Set(NodeList.activeByIdOrder.map((node) => node.id))
     return problematicNodeCache.getProblematicNodes(prevRecord.counter, activeNodeIds)
   }
+  // Return empty array when feature is disabled
+  return []
 }
 
 // Get problematic node info for reporting to monitor - info about self node only

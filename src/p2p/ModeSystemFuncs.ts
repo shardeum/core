@@ -637,16 +637,30 @@ export function getExpiredRemovedV3(
   // filter out apoptosized nodes from the problematic nodes
   const problematicNodes = problematicWithApoptosizedNodes.filter((id) => !apoptosizedNodesList.includes(id))
   const canRemoveProblematicNodesThisCycle = prevRecord.counter % config.p2p.problematicNodeRemovalCycleFrequency === 0
-  const numProblematicRemovals = Math.min(
-    problematicNodes.length,
-    canRemoveProblematicNodesThisCycle ? config.p2p.maxProblematicNodeRemovalsPerCycle || 1 : 0
-  )
 
   // we can remove `remove` nodes, but we *must* remove the number of apoptosized nodes,
   // the remainder is the number of expired nodes we can remove this cycle
   // if there are more nodes apopped than we can remove, we can't remove any expired nodes
   const numPotentiallyExpiredRemovals = Math.max(remove - numApoptosizedRemovals, 0)
   const numExpiredRemovals = Math.min(numPotentiallyExpiredRemovals, numExpiredNodes)
+
+  // Calculate the safety threshold for problematic node removal
+  const safetyThreshold = config.p2p.minNodes - config.p2p.problematicNodeRemovalSafetyDelta
+  const activeAfterOtherRemovals = active - numApoptosizedRemovals - numExpiredRemovals + add
+
+  // Check if we're below the safety threshold or would go below it
+  let numProblematicRemovals = 0
+  let problematicRemovalPrevented = false
+  if (activeAfterOtherRemovals > safetyThreshold && canRemoveProblematicNodesThisCycle) {
+    // Calculate how many problematic nodes we can safely remove without going below threshold
+    const maxSafeProblematicRemovals = Math.max(0, activeAfterOtherRemovals - safetyThreshold)
+    const maxConfiguredRemovals = config.p2p.maxProblematicNodeRemovalsPerCycle
+
+    numProblematicRemovals = Math.min(problematicNodes.length, maxConfiguredRemovals, maxSafeProblematicRemovals)
+  } else if (canRemoveProblematicNodesThisCycle && problematicNodes.length > 0) {
+    // We would have removed problematic nodes but safety threshold prevents it
+    problematicRemovalPrevented = true
+  }
 
   const cycle = CycleChain.newest.counter
 
@@ -675,14 +689,23 @@ export function getExpiredRemovedV3(
       canRemoveProblematicNodesThisCycle: canRemoveProblematicNodesThisCycle,
       numPotentiallyExpiredRemovals: numPotentiallyExpiredRemovals,
       numExpiredRemovals: numExpiredRemovals,
+      activeAfterOtherRemovals: activeAfterOtherRemovals,
+      safetyThreshold: safetyThreshold,
+      problematicRemovalPrevented: problematicRemovalPrevented,
     }
     nestedCountersInstance.countEvent('p2p', `results of getExpiredRemovedV3: ${JSON.stringify(counters)}`)
+
+    if (problematicRemovalPrevented) {
+      nestedCountersInstance.countEvent(
+        'p2p',
+        `problematic node removal prevented: active after removals (${activeAfterOtherRemovals}) <= safety threshold (${safetyThreshold})`
+      )
+    }
   }
 
-  const dangerousRemoval = remove === 0 && config.p2p.enableDangerousProblematicNodeRemoval === false
   const nodesNeverExpire = config.p2p.nodeExpiryAge < 0
-  // if its recommended that we dont remove any nodes, Or the nodes never expire, we MUST adhere to this.
-  if (dangerousRemoval || nodesNeverExpire) {
+  // if nodes never expire, we MUST adhere to this.
+  if (nodesNeverExpire) {
     return {
       problematic: 0,
       expired: 0,

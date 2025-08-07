@@ -272,7 +272,7 @@ export class ProblematicNodeCache {
     }
 
     // Sort by score and return top N based on maxProblematicNodeRemovalsPerCycle
-    const maxRemovals = this.config.p2p.maxProblematicNodeRemovalsPerCycle || 1
+    const maxRemovals = this.config.p2p.maxProblematicNodeRemovalsPerCycle
 
     return problematicNodes
       .sort((a, b) => b.score - a.score)
