@@ -1426,7 +1426,9 @@ export interface ServerConfiguration {
     // how many times can this destination address show up in the queue before we avoid sending to it
     checkDestLimitCount: number
     // timeout for global accounts receipt initiation
-    globalAccountsReceiptInitiationTimeout?: number
+    globalAccountsReceiptInitiationTimeout: number
+    /** Enable printing local state consistency report to exit log */
+    enableLocalStateConsistencyReportOnExit?: boolean
   }
   /** Options for sharding calculations */
   sharding?: {

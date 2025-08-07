@@ -446,6 +446,7 @@ describe('debugMiddleware', () => {
       // Use proper DevSecurityLevel values
       const mockPublicKeys = { owner1: DevSecurityLevel.High }
       mockGetDevPublicKeys.mockReturnValue(mockPublicKeys)
+      mockGetPublicKey.mockReturnValue('abcd1234') // Return full public key
       mockHash.mockReturnValue('hash-value')
       mockSafeStringify.mockReturnValue('{"stringified":"payload"}')
       mockVerify.mockReturnValue(false)
