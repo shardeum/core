@@ -131,7 +131,6 @@ export function getProblematicNodeInfoForSelf(nodeId: string): any | null {
       maxConsecutiveRefutes: metrics.consecutiveRefutes,
       refutePercentage: metrics.refutePercentage,
       cycleRefuteHistory: cycleRefuteHistory,
-      oldestCycle: startCycle, // The oldest cycle in cache
       newestCycle: endCycle, // The newest cycle in cache
     }
 
