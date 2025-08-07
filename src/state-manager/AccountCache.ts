@@ -14,6 +14,7 @@ import {
   AccountHashCacheList,
 } from './state-manager-types'
 import { Logger as Log4jsLogger } from 'log4js'
+import { getTimingLogger, TimingOperation } from './TimingLogger'
 
 class AccountCache {
   app: Shardus.App
@@ -105,6 +106,21 @@ class AccountCache {
     // this.mainLogger.debug(`updateAccountHash: ${utils.stringifyReduce({accountId, hash, timestamp, cycle})}  ${stack}`)
 
     nestedCountersInstance.countEvent('cache', 'updateAccountHash: start')
+
+    // Log cache update timing
+    try {
+      const timingLogger = getTimingLogger()
+      timingLogger.log(
+        TimingOperation.CACHE_UPDATE,
+        accountId,
+        accountHash,
+        undefined, // correlationId will be added later
+        `cycle:${cycle},ts:${timestamp}`,
+        { cycle, timestamp }
+      )
+    } catch (e) {
+      // Timing logger not initialized, continue without logging
+    }
 
     // See if we have a cache entry yet.  if not create a history entry for this account
     let accountHashCacheHistory: AccountHashCacheHistory

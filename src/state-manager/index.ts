@@ -117,6 +117,7 @@ import { RequestReceiptForTxRespSerialized, serializeRequestReceiptForTxResp } f
 import { deserializeRequestReceiptForTxReq } from '../types/RequestReceiptForTxReq'
 import { BadRequest, InternalError, ResponseError, serializeResponseError } from '../types/ResponseError'
 import { fireAndForget } from '../utils/functions/promises'
+import { initTimingLogger, getTimingLogger, TimingOperation } from './TimingLogger'
 
 export type Callback = (...args: unknown[]) => void
 
@@ -408,6 +409,9 @@ class StateManager {
     ShardFunctions.logger = logger
     ShardFunctions.fatalLogger = this.fatalLogger
     ShardFunctions.mainLogger = this.mainLogger
+
+    // Initialize timing logger for cache/storage debugging
+    initTimingLogger(this.mainLogger, true)
 
     //this.clearPartitionData()
 

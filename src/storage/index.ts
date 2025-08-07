@@ -10,6 +10,7 @@ import models from './models'
 // const utils = require('../utils')
 import Sqlite3Storage from './sqlite3storage'
 // const BetterSqlite3Storage = require('./betterSqlite3storage')
+import { getTimingLogger, TimingOperation } from '../state-manager/TimingLogger'
 
 import P2PApoptosis = require('../p2p/Apoptosis')
 
@@ -646,12 +647,59 @@ class Storage {
   async addAccountStates(accountStates) {
     if (this.serverConfig.debug.recordAccountStates != true) return
     this._checkInit()
+    
+    // Log timing for account state storage
+    let timingLogger
+    try {
+      timingLogger = getTimingLogger()
+      for (const state of accountStates) {
+        timingLogger.log(
+          TimingOperation.STORAGE_WRITE_START,
+          state.accountId,
+          state.accountStateHash,
+          state.txId,
+          `accountStateWrite`,
+          { timestamp: state.timestamp, cycleNumber: state.cycleNumber }
+        )
+      }
+    } catch (e) {
+      // Timing logger not initialized
+    }
+    
     try {
       // Adding { createOrReplace: true }  helps fix some issues we were having, but may make it hard to catch certain types of mistakes. (since it will suppress duped key issue)
       await this._create(this.storageModels.accountStates, accountStates, {
         createOrReplace: true,
       })
+      
+      // Log completion
+      if (timingLogger) {
+        for (const state of accountStates) {
+          timingLogger.log(
+            TimingOperation.STORAGE_WRITE_COMPLETE,
+            state.accountId,
+            state.accountStateHash,
+            state.txId,
+            `accountStateWrite`,
+            { timestamp: state.timestamp }
+          )
+        }
+      }
     } catch (e) {
+      // Log error
+      if (timingLogger) {
+        for (const state of accountStates) {
+          timingLogger.log(
+            TimingOperation.STORAGE_WRITE_ERROR,
+            state.accountId,
+            state.accountStateHash,
+            state.txId,
+            `accountStateWrite error: ${e.message}`,
+            { error: e.message }
+          )
+        }
+      }
+      
       this.fatalLogger.fatal(
         'addAccountStates db failure.  start apoptosis ' +
           Utils.safeStringify(e.message) +
@@ -925,12 +973,61 @@ class Storage {
     }
 
     this._checkInit()
+    
+    // Log timing for account copy storage
+    let timingLogger
+    try {
+      timingLogger = getTimingLogger()
+      const accounts = Array.isArray(accountCopy) ? accountCopy : [accountCopy]
+      for (const acc of accounts) {
+        timingLogger.log(
+          TimingOperation.ACCOUNT_COPY_WRITE_START,
+          acc.accountId,
+          acc.hash,
+          undefined, // correlationId will be added later
+          `accountCopyWrite`,
+          { timestamp: acc.timestamp, cycleNumber: acc.cycleNumber }
+        )
+      }
+    } catch (e) {
+      // Timing logger not initialized
+    }
+    
     try {
       // if (logFlags.console) console.log('createOrReplaceAccountCopy write: ' + JSON.stringify(accountCopy))
       await this._create(this.storageModels.accountsCopy, accountCopy, {
         createOrReplace: true,
       })
+      
+      // Log completion
+      if (timingLogger) {
+        const accounts = Array.isArray(accountCopy) ? accountCopy : [accountCopy]
+        for (const acc of accounts) {
+          timingLogger.log(
+            TimingOperation.ACCOUNT_COPY_WRITE_COMPLETE,
+            acc.accountId,
+            acc.hash,
+            undefined,
+            `accountCopyWrite`,
+            { timestamp: acc.timestamp }
+          )
+        }
+      }
     } catch (e) {
+      // Log error
+      if (timingLogger) {
+        const accounts = Array.isArray(accountCopy) ? accountCopy : [accountCopy]
+        for (const acc of accounts) {
+          timingLogger.log(
+            TimingOperation.STORAGE_WRITE_ERROR,
+            acc.accountId,
+            acc.hash,
+            undefined,
+            `accountCopyWrite error: ${e.message}`,
+            { error: e.message }
+          )
+        }
+      }
       throw new Error(e)
     }
   }
