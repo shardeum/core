@@ -3329,6 +3329,29 @@ class StateManager {
 
     let savedSomething = false
 
+    // OOS Debug: skip storage update entirely
+    if (this.config.debug?.oos?.skipStorageUpdate) {
+      const accountCount = Object.keys(wrappedStates).length
+      /* prettier-ignore */ if (logFlags.debug) this.mainLogger.debug(`OOS Debug: Skipping storage update in setAccount for ${accountCount} accounts`)
+      nestedCountersInstance.countEvent('oos-debug', 'storage-update-skipped-setAccount')
+      
+      // Still update cache for each account
+      for (const accountId of Object.keys(wrappedStates)) {
+        const wrappedData = wrappedStates[accountId]
+        if (wrappedData && !this.config.debug?.oos?.skipCacheUpdate) {
+          // Get the current cycle for cache update
+          const cycle = CycleChain.getCycleNumberFromTimestamp(wrappedData.timestamp)
+          this.accountCache.updateAccountHash(
+            wrappedData.accountId,
+            wrappedData.stateId,
+            wrappedData.timestamp,
+            cycle
+          )
+        }
+      }
+      return false // No storage was saved
+    }
+
     let keys = Object.keys(wrappedStates)
     keys.sort() // have to sort this because object.keys is non sorted and we always use the [0] index for hashset strings
 
@@ -3374,6 +3397,37 @@ class StateManager {
       }
 
       /* prettier-ignore */ if (logFlags.verbose) this.mainLogger.debug(`${note} setAccount partial:${wrappedData.isPartial} key:${utils.makeShortHash(key)} hash:${utils.makeShortHash(wrappedData.stateId)} ts:${wrappedData.timestamp}`)
+      
+      // OOS Debug: storage operation failures
+      if (this.config.debug?.oos?.storageWriteFailureRate > 0) {
+        if (Math.random() < this.config.debug.oos.storageWriteFailureRate) {
+          /* prettier-ignore */ if (logFlags.debug) this.mainLogger.debug(`OOS Debug: Simulating storage write failure in setAccount for account ${wrappedData.accountId}`)
+          nestedCountersInstance.countEvent('oos-debug', 'storage-write-failure-setAccount')
+          continue // Skip this account
+        }
+      }
+      
+      // OOS Debug: storage write delay
+      if (this.config.debug?.oos?.storageWriteDelayMs > 0) {
+        /* prettier-ignore */ if (logFlags.debug) this.mainLogger.debug(`OOS Debug: Delaying storage write by ${this.config.debug.oos.storageWriteDelayMs}ms for account ${wrappedData.accountId}`)
+        await utils.sleep(this.config.debug.oos.storageWriteDelayMs)
+      }
+      
+      // OOS Debug: handle cache/storage order based on race condition flags
+      const shouldUpdateCacheFirst = !this.config.debug?.oos?.reverseCacheStorageOrder && 
+        (!this.config.debug?.oos?.randomizeUpdateOrder || Math.random() >= 0.5)
+      
+      if (shouldUpdateCacheFirst && !this.config.debug?.oos?.skipCacheUpdate) {
+        // Update cache before storage (normal order)
+        const cycle = CycleChain.getCycleNumberFromTimestamp(wrappedData.timestamp)
+        this.accountCache.updateAccountHash(
+          wrappedData.accountId,
+          wrappedData.stateId,
+          wrappedData.timestamp,
+          cycle
+        )
+      }
+      
       if (wrappedData.isPartial) {
         /* prettier-ignore */ this.transactionQueue.setDebugLastAwaitedCallInner('this.app.updateAccountPartial')
         // eslint-disable-next-line security/detect-object-injection
@@ -3385,6 +3439,18 @@ class StateManager {
         await this.app.updateAccountFull(wrappedData, localCachedData[key], applyResponse)
         /* prettier-ignore */ this.transactionQueue.setDebugLastAwaitedCallInner('this.app.updateAccountFull', DebugComplete.Completed)
       }
+      
+      if (!shouldUpdateCacheFirst && !this.config.debug?.oos?.skipCacheUpdate) {
+        // Update cache after storage (reversed order)
+        const cycle = CycleChain.getCycleNumberFromTimestamp(wrappedData.timestamp)
+        this.accountCache.updateAccountHash(
+          wrappedData.accountId,
+          wrappedData.stateId,
+          wrappedData.timestamp,
+          cycle
+        )
+      }
+      
       savedSomething = true
       fireAndForget(() => this.transactionQueue.processNonceQueue([wrappedData]))
     }
