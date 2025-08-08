@@ -36,6 +36,8 @@ import PartitionObjects from './PartitionObjects'
 import Deprecated from './Deprecated'
 import AccountPatcher from './AccountPatcher'
 import CachedAppDataManager from './CachedAppDataManager'
+import { AtomicCacheStorage } from './AtomicCacheStorage'
+import { ConsistencyValidator } from './ConsistencyValidator'
 import {
   CycleShardData,
   PartitionReceipt,
@@ -178,6 +180,8 @@ class StateManager {
   ourPartitionReceiptsByCycleCounter: { [cycleKey: string]: PartitionReceipt } //Object.<string, PartitionReceipt> //a map of cycle keys to lists of partition receipts.
 
   fifoLocks: FifoLockObjectMap
+  atomicCacheStorage: AtomicCacheStorage
+  consistencyValidator: ConsistencyValidator
 
   lastSeenAccountsMap: { [accountId: string]: QueueEntry }
 
@@ -412,6 +416,10 @@ class StateManager {
 
     // Initialize timing logger for cache/storage debugging
     initTimingLogger(this.mainLogger, true)
+    
+    // Initialize atomic cache/storage and consistency validator
+    this.atomicCacheStorage = new AtomicCacheStorage(this)
+    this.consistencyValidator = new ConsistencyValidator(this)
 
     //this.clearPartitionData()
 
@@ -1112,6 +1120,21 @@ class StateManager {
     const accountsToAdd: unknown[] = []
     const wrappedAccountsToAdd: ShardusTypes.WrappedData[] = []
     const failedHashes: string[] = []
+    
+    // Import metrics tracker
+    const { cacheStorageMetrics } = await import('./CacheStorageMetrics')
+    const { generateCorrelationId } = await import('./TimingLogger')
+    
+    // Track accounts that need cache updates after storage
+    const pendingCacheUpdates: Array<{
+      accountId: string
+      stateId: string
+      timestamp: number
+      cycleToRecordOn: number
+      correlationId: string
+      needsStatsUpdate: boolean
+      existingAccountData?: unknown
+    }> = []
     for (const wrappedAccount of accountRecords) {
       const { accountId, stateId, data: recordData, timestamp } = wrappedAccount
       const hash = this.app.calculateAccountHash(recordData)
@@ -1129,17 +1152,11 @@ class StateManager {
       if (this.accountCache.hasAccount(accountId)) {
         const accountMemData: AccountHashCache = this.accountCache.getAccountHash(accountId)
         if (timestamp < accountMemData.t) {
-          //should update cache anyway (older value may be needed)
-
-          // I have doubts that cache should be able to roll a value back..
-          this.accountCache.updateAccountHash(
-            wrappedAccount.accountId,
-            wrappedAccount.stateId,
-            wrappedAccount.timestamp,
-            cycleToRecordOn
-          )
-
+          // Skip storage write for older data but log the issue
           /* prettier-ignore */ if (logFlags.error) this.mainLogger.error(`setAccountData: abort. checkAndSetAccountData older timestamp note:${note} acc: ${utils.makeShortHash(accountId)} timestamp:${timestamp} accountMemData.t:${accountMemData.t} hash: ${utils.makeShortHash(hash)} cache:${utils.stringifyReduce(accountMemData)}`)
+          
+          // Track this as a potential issue
+          cacheStorageMetrics.trackDivergence(accountId, accountMemData.h, hash)
           continue //this is a major error need to skip the writing.
         }
       }
@@ -1167,55 +1184,40 @@ class StateManager {
           )
         }
 
+        // Generate correlation ID for tracking
+        const correlationId = generateCorrelationId('checkAndSet')
+        
+        // Track that we're about to write to storage
+        cacheStorageMetrics.trackStorageOperationStart(accountId, correlationId)
+        
+        // Prepare cache update for after storage write succeeds
+        const cacheUpdateInfo = {
+          accountId: wrappedAccount.accountId,
+          stateId: wrappedAccount.stateId,
+          timestamp: wrappedAccount.timestamp,
+          cycleToRecordOn,
+          correlationId,
+          needsStatsUpdate: processStats,
+          existingAccountData: undefined as unknown
+        }
+        
         if (processStats) {
           if (this.accountCache.hasAccount(accountId)) {
-            //TODO STATS BUG..  this is what can cause one form of stats bug.
-            //we may have covered this account in the past, then not covered it, and now we cover it again.  Stats doesn't know how to repair
-            // this situation.
-            //TODO, need a way to re-init.. dang idk how to do that!
-            //this.partitionStats.statsDataSummaryUpdate2(cycleToRecordOn, null, wrapedAccount)
-
+            // Fetch account data for stats update
             const tryToCorrectStats = true
             if (tryToCorrectStats) {
               /* prettier-ignore */ this.transactionQueue.setDebugLastAwaitedCallInner('ths.app.getAccountDataByList')
               const accounts = await this.app.getAccountDataByList([wrappedAccount.accountId])
               /* prettier-ignore */ this.transactionQueue.setDebugLastAwaitedCallInner('ths.app.getAccountDataByList', DebugComplete.Completed)
               if (accounts != null && accounts.length === 1) {
-                this.partitionStats.statsDataSummaryUpdate(
-                  cycleToRecordOn,
-                  accounts[0].data,
-                  wrappedAccount,
-                  'checkAndSetAccountData-' + note
-                )
+                cacheUpdateInfo.existingAccountData = accounts[0].data
               }
-            } else {
-              //old way
-              this.accountCache.updateAccountHash(
-                wrappedAccount.accountId,
-                wrappedAccount.stateId,
-                wrappedAccount.timestamp,
-                cycleToRecordOn
-              )
             }
-          } else {
-            //I think some work was done to fix diverging stats, but how did it turn out?
-            this.partitionStats.statsDataSummaryInit(
-              cycleToRecordOn,
-              wrappedAccount.accountId,
-              wrappedAccount.data,
-              'checkAndSetAccountData-' + note
-            )
           }
-        } else {
-          //even if we do not process stats still need to update cache
-          //todo maybe even take the stats out of the pipeline for updating cache? (but that is kinda tricky)
-          this.accountCache.updateAccountHash(
-            wrappedAccount.accountId,
-            wrappedAccount.stateId,
-            wrappedAccount.timestamp,
-            cycleToRecordOn
-          )
         }
+        
+        // Queue cache update for after storage write
+        pendingCacheUpdates.push(cacheUpdateInfo)
       } else {
         /* prettier-ignore */ if (logFlags.error) this.mainLogger.error(`setAccountData hash test failed: setAccountData for account ${utils.makeShortHash(accountId)} expected account hash: ${utils.makeShortHash(stateId)} got ${utils.makeShortHash(hash)} `)
         /* prettier-ignore */ if (logFlags.error) this.mainLogger.error('setAccountData hash test failed: details: ' + utils.stringifyReduce(recordData))
@@ -1263,7 +1265,61 @@ class StateManager {
           )
         }
       }
+      
+      // Storage write succeeded - now update cache for all accounts
+      for (const cacheUpdate of pendingCacheUpdates) {
+        try {
+          // Track cache update after storage
+          cacheStorageMetrics.trackCacheAfterStorage(
+            cacheUpdate.accountId,
+            cacheUpdate.stateId,
+            cacheUpdate.correlationId
+          )
+          
+          // Update the cache
+          this.accountCache.updateAccountHash(
+            cacheUpdate.accountId,
+            cacheUpdate.stateId,
+            cacheUpdate.timestamp,
+            cacheUpdate.cycleToRecordOn
+          )
+          
+          // Update stats if needed
+          if (cacheUpdate.needsStatsUpdate) {
+            const wrappedAccount = wrappedAccountsToAdd.find(w => w.accountId === cacheUpdate.accountId)
+            if (wrappedAccount) {
+              if (cacheUpdate.existingAccountData) {
+                this.partitionStats.statsDataSummaryUpdate(
+                  cacheUpdate.cycleToRecordOn,
+                  cacheUpdate.existingAccountData,
+                  wrappedAccount,
+                  'checkAndSetAccountData-' + note
+                )
+              } else {
+                this.partitionStats.statsDataSummaryInit(
+                  cacheUpdate.cycleToRecordOn,
+                  wrappedAccount.accountId,
+                  wrappedAccount.data,
+                  'checkAndSetAccountData-' + note
+                )
+              }
+            }
+          }
+          
+          // Track successful completion
+          cacheStorageMetrics.trackStorageOperationComplete(
+            cacheUpdate.accountId,
+            true,
+            cacheUpdate.correlationId
+          )
+        } catch (cacheError) {
+          // Log cache update failure but don't fail the whole operation
+          /* prettier-ignore */ if (logFlags.error) this.mainLogger.error(`Failed to update cache after storage for ${utils.makeShortHash(cacheUpdate.accountId)}: ${cacheError.message}`)
+          cacheStorageMetrics.trackOrphanedCacheUpdate(cacheUpdate.accountId)
+        }
+      }
     } catch (e) {
+      // Storage write failed - do NOT update cache
       // Log storage write error for batch
       if (timingLogger) {
         for (const wrappedAccount of wrappedAccountsToAdd) {
@@ -1277,6 +1333,16 @@ class StateManager {
           )
         }
       }
+      
+      // Track storage failures
+      for (const cacheUpdate of pendingCacheUpdates) {
+        cacheStorageMetrics.trackStorageOperationComplete(
+          cacheUpdate.accountId,
+          false,
+          cacheUpdate.correlationId
+        )
+      }
+      
       throw e
     }
     
@@ -2448,6 +2514,82 @@ class StateManager {
       res.write(response)
       res.end()
     })
+    
+    // Cache/Storage consistency endpoints
+    Context.network.registerExternalGet('cache-storage-metrics', isDebugModeMiddleware, (_req, res) => {
+      const { cacheStorageMetrics } = require('./CacheStorageMetrics')
+      const metrics = cacheStorageMetrics.getMetrics()
+      const response = JSON.stringify(metrics, null, 2)
+      res.write(response)
+      res.end()
+    })
+    
+    Context.network.registerExternalGet('consistency-validate', isDebugModeMiddleware, async (req, res) => {
+      const sampleSize = parseInt(req.query.sampleSize as string) || 100
+      const autoRepair = req.query.autoRepair === 'true'
+      
+      const result = await this.consistencyValidator.validateRandomSample(sampleSize, autoRepair)
+      const response = JSON.stringify(result, null, 2)
+      res.write(response)
+      res.end()
+    })
+    
+    Context.network.registerExternalGet('consistency-stats', isDebugModeMiddleware, (_req, res) => {
+      const stats = this.consistencyValidator.getValidationStats()
+      const response = JSON.stringify(stats, null, 2)
+      res.write(response)
+      res.end()
+    })
+    
+    Context.network.registerExternalGet('consistency-history', isDebugModeMiddleware, (_req, res) => {
+      const history = this.consistencyValidator.getValidationHistory()
+      const response = JSON.stringify(history, null, 2)
+      res.write(response)
+      res.end()
+    })
+    
+    Context.network.registerExternalGet('consistency-validate-account', isDebugModeMiddleware, async (req, res) => {
+      const accountId = req.query.accountId as string
+      if (!accountId) {
+        res.status(400).json({ error: 'accountId required' })
+        return
+      }
+      
+      const result = await this.atomicCacheStorage.validateConsistency(accountId)
+      const response = JSON.stringify(result, null, 2)
+      res.write(response)
+      res.end()
+    })
+    
+    Context.network.registerExternalGet('consistency-repair-account', isDebugModeMiddleware, async (req, res) => {
+      const accountId = req.query.accountId as string
+      if (!accountId) {
+        res.status(400).json({ error: 'accountId required' })
+        return
+      }
+      
+      const result = await this.atomicCacheStorage.repairFromStorage(accountId)
+      const response = JSON.stringify(result, null, 2)
+      res.write(response)
+      res.end()
+    })
+    
+    Context.network.registerExternalGet('consistency-start-periodic', isDebugModeMiddleware, (req, res) => {
+      const intervalMs = parseInt(req.query.intervalMs as string) || 60000
+      const autoRepair = req.query.autoRepair === 'true'
+      
+      this.consistencyValidator.startPeriodicValidation(intervalMs, autoRepair)
+      const response = JSON.stringify({ started: true, intervalMs, autoRepair }, null, 2)
+      res.write(response)
+      res.end()
+    })
+    
+    Context.network.registerExternalGet('consistency-stop-periodic', isDebugModeMiddleware, (_req, res) => {
+      this.consistencyValidator.stopPeriodicValidation()
+      const response = JSON.stringify({ stopped: true }, null, 2)
+      res.write(response)
+      res.end()
+    })
   }
 
   _unregisterEndpoints() {
@@ -3264,6 +3406,10 @@ class StateManager {
     }
     // const { accountWrites } = applyResponse
 
+    // Import metrics tracker and correlation ID generator
+    const { cacheStorageMetrics } = await import('./CacheStorageMetrics')
+    const { generateCorrelationId } = await import('./TimingLogger')
+
     let savedSomething = false
 
     let keys = Object.keys(wrappedStates)
@@ -3312,6 +3458,13 @@ class StateManager {
 
       /* prettier-ignore */ if (logFlags.verbose) this.mainLogger.debug(`${note} setAccount partial:${wrappedData.isPartial} key:${utils.makeShortHash(key)} hash:${utils.makeShortHash(wrappedData.stateId)} ts:${wrappedData.timestamp}`)
       
+      // Generate correlation ID for tracking this operation
+      const correlationId = generateCorrelationId('setAccount')
+      const cycleToRecordOn = CycleChain.getCycleNumberFromTimestamp(wrappedData.timestamp)
+      
+      // Track storage operation start
+      cacheStorageMetrics.trackStorageOperationStart(wrappedData.accountId, correlationId)
+      
       // Log storage write start
       let timingLogger
       try {
@@ -3320,7 +3473,7 @@ class StateManager {
           TimingOperation.STORAGE_WRITE_START,
           wrappedData.accountId,
           wrappedData.stateId,
-          undefined,
+          correlationId,
           `app.updateAccount${wrappedData.isPartial ? 'Partial' : 'Full'}`,
           { timestamp: wrappedData.timestamp, isPartial: wrappedData.isPartial }
         )
@@ -3347,23 +3500,63 @@ class StateManager {
             TimingOperation.STORAGE_WRITE_COMPLETE,
             wrappedData.accountId,
             wrappedData.stateId,
-            undefined,
+            correlationId,
             `app.updateAccount${wrappedData.isPartial ? 'Partial' : 'Full'}`,
             { timestamp: wrappedData.timestamp }
           )
         }
+        
+        // Storage write succeeded - now update cache
+        try {
+          // Track cache update after storage
+          cacheStorageMetrics.trackCacheAfterStorage(
+            wrappedData.accountId,
+            wrappedData.stateId,
+            correlationId
+          )
+          
+          // Update the cache
+          if (cycleToRecordOn > -1) {
+            this.accountCache.updateAccountHash(
+              wrappedData.accountId,
+              wrappedData.stateId,
+              wrappedData.timestamp,
+              cycleToRecordOn
+            )
+          }
+          
+          // Track successful completion
+          cacheStorageMetrics.trackStorageOperationComplete(
+            wrappedData.accountId,
+            true,
+            correlationId
+          )
+        } catch (cacheError) {
+          // Log cache update failure but don't fail the whole operation
+          /* prettier-ignore */ if (logFlags.error) this.mainLogger.error(`Failed to update cache after storage for ${utils.makeShortHash(wrappedData.accountId)}: ${cacheError.message}`)
+          cacheStorageMetrics.trackOrphanedCacheUpdate(wrappedData.accountId)
+        }
       } catch (e) {
+        // Storage write failed - do NOT update cache
         // Log storage write error
         if (timingLogger) {
           timingLogger.log(
             TimingOperation.STORAGE_WRITE_ERROR,
             wrappedData.accountId,
             wrappedData.stateId,
-            undefined,
+            correlationId,
             `app.updateAccount error: ${e.message}`,
             { error: e.message }
           )
         }
+        
+        // Track storage failure
+        cacheStorageMetrics.trackStorageOperationComplete(
+          wrappedData.accountId,
+          false,
+          correlationId
+        )
+        
         throw e
       }
       savedSomething = true

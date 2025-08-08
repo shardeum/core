@@ -3,6 +3,9 @@ import { nestedCountersInstance } from '../utils/nestedCounters'
 
 export enum TimingOperation {
   CACHE_UPDATE = 'CACHE_UPDATE',
+  CACHE_UPDATE_BEFORE_STORAGE = 'CACHE_UPDATE_BEFORE_STORAGE',
+  CACHE_UPDATE_AFTER_STORAGE = 'CACHE_UPDATE_AFTER_STORAGE',
+  CACHE_ROLLBACK = 'CACHE_ROLLBACK',
   STORAGE_WRITE_START = 'STORAGE_WRITE_START',
   STORAGE_WRITE_COMPLETE = 'STORAGE_WRITE_COMPLETE',
   STORAGE_WRITE_ERROR = 'STORAGE_WRITE_ERROR',
@@ -12,6 +15,7 @@ export enum TimingOperation {
   SET_ACCOUNT_COMPLETE = 'SET_ACCOUNT_COMPLETE',
   CHECK_AND_SET_START = 'CHECK_AND_SET_START',
   CHECK_AND_SET_COMPLETE = 'CHECK_AND_SET_COMPLETE',
+  DIVERGENCE_DETECTED = 'DIVERGENCE_DETECTED',
 }
 
 export interface TimingLogEntry {
@@ -249,6 +253,106 @@ export class TimingLogger {
    */
   setEnabled(enabled: boolean): void {
     this.enabled = enabled
+  }
+
+  /**
+   * Track cache/storage divergence for an account
+   */
+  detectDivergence(accountId: string, cacheHash?: string, storageHash?: string): void {
+    if (!this.enabled) return
+
+    if (cacheHash && storageHash && cacheHash !== storageHash) {
+      this.log(
+        TimingOperation.DIVERGENCE_DETECTED,
+        accountId,
+        undefined,
+        undefined,
+        'cache_storage_hash_mismatch',
+        {
+          cacheHash,
+          storageHash,
+          mismatch: true
+        }
+      )
+      
+      // Count the divergence
+      nestedCountersInstance.countEvent('cache-storage-divergence', 'hash_mismatch')
+    }
+  }
+
+  /**
+   * Check for orphaned cache updates (cache updated but no storage write)
+   */
+  checkOrphanedCacheUpdates(windowMs = 1000): string[] {
+    const now = this.getMsTime()
+    const windowStart = now - windowMs
+    const orphanedAccounts: string[] = []
+
+    // Group operations by account
+    const accountOperations = new Map<string, {
+      cacheUpdates: TimingLogEntry[]
+      storageWrites: TimingLogEntry[]
+    }>()
+
+    for (const entry of this.logBuffer) {
+      if (entry.timestampMs < windowStart) continue
+      if (!entry.accountId) continue
+
+      if (!accountOperations.has(entry.accountId)) {
+        accountOperations.set(entry.accountId, {
+          cacheUpdates: [],
+          storageWrites: []
+        })
+      }
+
+      const ops = accountOperations.get(entry.accountId)!
+      
+      if (entry.operation === TimingOperation.CACHE_UPDATE ||
+          entry.operation === TimingOperation.CACHE_UPDATE_BEFORE_STORAGE) {
+        ops.cacheUpdates.push(entry)
+      } else if (entry.operation === TimingOperation.STORAGE_WRITE_COMPLETE) {
+        ops.storageWrites.push(entry)
+      }
+    }
+
+    // Check for orphaned cache updates
+    for (const [accountId, ops] of accountOperations) {
+      if (ops.cacheUpdates.length > 0 && ops.storageWrites.length === 0) {
+        orphanedAccounts.push(accountId)
+        this.log(
+          TimingOperation.DIVERGENCE_DETECTED,
+          accountId,
+          undefined,
+          undefined,
+          'orphaned_cache_update',
+          {
+            cacheUpdateCount: ops.cacheUpdates.length,
+            storageWriteCount: 0
+          }
+        )
+      }
+    }
+
+    return orphanedAccounts
+  }
+
+  /**
+   * Track operation pairs for correlation analysis
+   */
+  trackCorrelatedOperation(
+    operation: TimingOperation,
+    accountId: string,
+    hash?: string,
+    correlationId?: string,
+    context?: string,
+    metadata?: Record<string, unknown>
+  ): string {
+    // Generate correlation ID if not provided
+    const corrId = correlationId || generateCorrelationId('op')
+    
+    this.log(operation, accountId, hash, corrId, context, metadata)
+    
+    return corrId
   }
 }
 
