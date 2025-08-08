@@ -322,6 +322,91 @@ class Debug {
         res.json({ success: false, error: e.message })
       }
     })
+    
+    // OOS Debug flags endpoint
+    this.network.registerExternalGet('debug-oos-flags', isDebugModeMiddleware, (req, res) => {
+      try {
+        // Return current OOS flags
+        const currentFlags = Context.config.debug?.oos || {}
+        res.json({
+          success: true,
+          flags: currentFlags,
+          enabled: Object.values(currentFlags).some(v => v !== 0 && v !== false)
+        })
+      } catch (e) {
+        res.json({ success: false, error: e.message })
+      }
+    })
+    
+    this.network.registerExternalPost('debug-oos-flags', isDebugModeMiddleware, (req, res) => {
+      try {
+        // Ensure OOS config object exists
+        if (!Context.config.debug) {
+          Context.config.debug = {} as any
+        }
+        if (!Context.config.debug.oos) {
+          Context.config.debug.oos = {} as any
+        }
+        
+        const updates = req.body
+        if (!updates || typeof updates !== 'object') {
+          res.json({ success: false, error: 'Invalid request body' })
+          return
+        }
+        
+        // Validate and update each flag
+        const validFlags = [
+          'cacheUpdateFailureRate', 'cachePartialUpdateRate', 'cacheUpdateDelayMs',
+          'storageWriteFailureRate', 'storagePartialWriteRate', 'storageWriteDelayMs', 'storageTimeoutMs',
+          'reverseCacheStorageOrder', 'randomizeUpdateOrder', 'skipCacheUpdate', 'skipStorageUpdate',
+          'timestampDriftMs', 'forceStaleTimestamps', 'randomTimestampRejection',
+          'accountPatcherQueueDelay', 'dropAccountPatcherUpdates', 'reorderAccountPatcherQueue',
+          'skipFifoLocks', 'fifoLockTimeoutMs', 'allowConcurrentUpdates',
+          'corruptHashOnWrite', 'corruptDataOnWrite', 'truncateDataOnWrite',
+          'simulateAsyncFailures', 'asyncOperationTimeoutMs', 'duplicateAsyncOperations'
+        ]
+        
+        const updated = {}
+        for (const [key, value] of Object.entries(updates)) {
+          if (validFlags.includes(key)) {
+            // Validate value types
+            if (key.endsWith('Rate') || key.includes('Failure') || key.includes('Rejection') || key.includes('drop') || key.includes('corrupt') || key.includes('truncate')) {
+              // These should be numbers between 0 and 1
+              const numValue = parseFloat(value as string)
+              if (!isNaN(numValue) && numValue >= 0 && numValue <= 1) {
+                Context.config.debug.oos[key] = numValue
+                updated[key] = numValue
+              }
+            } else if (key.endsWith('Ms') || key.endsWith('Delay') || key.endsWith('Timeout') || key === 'timestampDriftMs' || key === 'accountPatcherQueueDelay') {
+              // These should be positive integers
+              const intValue = parseInt(value as string)
+              if (!isNaN(intValue) && intValue >= 0) {
+                Context.config.debug.oos[key] = intValue
+                updated[key] = intValue
+              }
+            } else if (typeof value === 'boolean') {
+              // Boolean flags
+              Context.config.debug.oos[key] = value
+              updated[key] = value
+            }
+          }
+        }
+        
+        nestedCountersInstance.countEvent('debug', 'oos-flags-updated')
+        if (logFlags.debug) {
+          console.log('OOS Debug flags updated:', updated)
+        }
+        
+        res.json({
+          success: true,
+          updated,
+          currentFlags: Context.config.debug.oos
+        })
+      } catch (e) {
+        res.json({ success: false, error: e.message })
+      }
+    })
+    
     //NEVER EVER RELEASE THIS... can only uncommment for test branches
     // this.network.registerExternalGet('unsafe_unlock', (req, res) => {
     //   try {

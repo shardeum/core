@@ -100,6 +100,25 @@ class AccountCache {
       this.statemanager_fatal(`updateAccountHash cycle == ${cycle}`, `updateAccountHash cycle == ${cycle} ${stack}`)
     }
 
+    // OOS Debug: simulate cache update failure
+    if (this.config.debug?.oos?.cacheUpdateFailureRate > 0) {
+      if (Math.random() < this.config.debug.oos.cacheUpdateFailureRate) {
+        /* prettier-ignore */ if (logFlags.debug) this.mainLogger.debug(`OOS Debug: Simulating cache update failure for account ${accountId}`)
+        nestedCountersInstance.countEvent('oos-debug', 'cache-update-failure')
+        return // Skip the update
+      }
+    }
+    
+    // OOS Debug: add artificial delay (NOTE: This is synchronous, which will block the thread)
+    // In production, this should only be used for testing purposes
+    if (this.config.debug?.oos?.cacheUpdateDelayMs > 0) {
+      /* prettier-ignore */ if (logFlags.debug) this.mainLogger.debug(`OOS Debug: Synchronous delay for cache update ${this.config.debug.oos.cacheUpdateDelayMs}ms for account ${accountId}`)
+      const start = Date.now()
+      while (Date.now() - start < this.config.debug.oos.cacheUpdateDelayMs) {
+        // Busy wait - only for debug purposes
+      }
+    }
+
     //do not leave this on!  spammy!
     // let stack = new Error().stack
     // this.mainLogger.debug(`updateAccountHash: ${utils.stringifyReduce({accountId, hash, timestamp, cycle})}  ${stack}`)
@@ -240,6 +259,16 @@ class AccountCache {
       }
     }
 
+    // OOS Debug: partial update simulation
+    if (this.config.debug?.oos?.cachePartialUpdateRate > 0) {
+      if (Math.random() < this.config.debug.oos.cachePartialUpdateRate) {
+        /* prettier-ignore */ if (logFlags.debug) this.mainLogger.debug(`OOS Debug: Simulating partial cache update for account ${accountId} - skipping queue update`)
+        nestedCountersInstance.countEvent('oos-debug', 'cache-partial-update')
+        // Update the hash but skip updating the queue (partial update)
+        return
+      }
+    }
+
     if (updateIsNewerHash) {
       this.cacheUpdateQueue.accountHashesSorted.push(accountHashData)
       this.cacheUpdateQueue.accountIDs.push(accountId)
@@ -271,7 +300,7 @@ class AccountCache {
     }
   }
 
-  sortByTimestampIdAsc(first, second): number {
+  sortByTimestampIdAsc(first: { t: number; id: string }, second: { t: number; id: string }): number {
     if (first.t < second.t) {
       return -1
     }
@@ -294,6 +323,15 @@ class AccountCache {
 
     const cycleToProcess = cycleShardData.cycleNumber
     const nextCycleToProcess = cycleToProcess + 1
+    
+    // OOS Debug: delay queue processing
+    if (this.config.debug?.oos?.accountPatcherQueueDelay > 0) {
+      if (cycleToProcess % this.config.debug.oos.accountPatcherQueueDelay !== 0) {
+        /* prettier-ignore */ if (logFlags.debug) this.mainLogger.debug(`OOS Debug: Delaying AccountPatcher queue processing for cycle ${cycleToProcess}`)
+        nestedCountersInstance.countEvent('oos-debug', 'account-patcher-queue-delayed')
+        return // Skip processing this cycle
+      }
+    }
 
     const nextCacheUpdateQueue: AccountHashCacheList = {
       accountHashesSorted: [],
@@ -304,8 +342,31 @@ class AccountCache {
     this.accountsHashCache3.workingHistoryList.accountHashesSorted = []
     this.accountsHashCache3.workingHistoryList.accountIDs = []
 
+    // OOS Debug: reorder queue if enabled
+    const queueIndices = Array.from({ length: this.cacheUpdateQueue.accountIDs.length }, (_, i) => i)
+    if (this.config.debug?.oos?.reorderAccountPatcherQueue) {
+      /* prettier-ignore */ if (logFlags.debug) this.mainLogger.debug(`OOS Debug: Reordering AccountPatcher queue with ${queueIndices.length} items`)
+      // Shuffle the indices array
+      for (let i = queueIndices.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [queueIndices[i], queueIndices[j]] = [queueIndices[j], queueIndices[i]]
+      }
+      nestedCountersInstance.countEvent('oos-debug', 'account-patcher-queue-reordered')
+    }
+    
     // process the working list.  split data into partitions and build a new list with nulled spots cleared out
-    for (let index = 0; index < this.cacheUpdateQueue.accountIDs.length; index++) {
+    for (let i = 0; i < queueIndices.length; i++) {
+      const index = queueIndices[i]
+      
+      // OOS Debug: drop queue items
+      if (this.config.debug?.oos?.dropAccountPatcherUpdates > 0) {
+        if (Math.random() < this.config.debug.oos.dropAccountPatcherUpdates) {
+          /* prettier-ignore */ if (logFlags.debug) this.mainLogger.debug(`OOS Debug: Dropping AccountPatcher queue item at index ${index}`)
+          nestedCountersInstance.countEvent('oos-debug', 'account-patcher-update-dropped')
+          continue
+        }
+      }
+      
       // eslint-disable-next-line security/detect-object-injection
       const accountHashData: AccountHashCache = this.cacheUpdateQueue.accountHashesSorted[index]
       if (accountHashData == null) {

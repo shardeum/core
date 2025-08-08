@@ -1207,6 +1207,50 @@ export interface ServerConfiguration {
     slowResponseChance?: number
     /** Delay in ms when responding slowly */
     slowResponseDelay?: number
+    /** OOS debug flags for testing cache/storage race conditions */
+    oos?: {
+      // Cache operation failures
+      cacheUpdateFailureRate?: number         // 0-1, probability of cache update failure
+      cachePartialUpdateRate?: number         // 0-1, probability of partial cache update
+      cacheUpdateDelayMs?: number             // Artificial delay for cache updates
+      
+      // Storage operation failures  
+      storageWriteFailureRate?: number        // 0-1, probability of storage write failure
+      storagePartialWriteRate?: number        // 0-1, probability of partial storage write
+      storageWriteDelayMs?: number            // Artificial delay for storage writes
+      storageTimeoutMs?: number               // Force storage operation timeout
+      
+      // Race condition simulations
+      reverseCacheStorageOrder?: boolean      // Update storage before cache (opposite of normal)
+      randomizeUpdateOrder?: boolean          // Randomly choose cache or storage first
+      skipCacheUpdate?: boolean              // Skip cache updates entirely
+      skipStorageUpdate?: boolean            // Skip storage updates entirely
+      
+      // Timestamp manipulations
+      timestampDriftMs?: number               // Add drift to timestamps (+/- random value)
+      forceStaleTimestamps?: boolean         // Force updates with old timestamps
+      randomTimestampRejection?: number      // 0-1, probability of timestamp validation failure
+      
+      // Queue processing issues
+      accountPatcherQueueDelay?: number      // Delay queue processing by N cycles
+      dropAccountPatcherUpdates?: number     // 0-1, probability of dropping queue items
+      reorderAccountPatcherQueue?: boolean   // Process queue out of order
+      
+      // Lock/concurrency issues
+      skipFifoLocks?: boolean                // Skip FIFO lock acquisition
+      fifoLockTimeoutMs?: number             // Force lock timeout after N ms
+      allowConcurrentUpdates?: boolean       // Disable lock protection
+      
+      // Data corruption
+      corruptHashOnWrite?: number            // 0-1, probability of corrupting hash
+      corruptDataOnWrite?: number            // 0-1, probability of corrupting account data
+      truncateDataOnWrite?: number           // 0-1, probability of truncating data
+      
+      // Network/async issues
+      simulateAsyncFailures?: boolean        // Random async operation failures
+      asyncOperationTimeoutMs?: number       // Force async timeouts
+      duplicateAsyncOperations?: boolean     // Execute storage operations multiple times
+    }
   }
   /** Options for the statistics module */
   statistics?: {

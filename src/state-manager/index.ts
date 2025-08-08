@@ -1108,8 +1108,29 @@ class StateManager {
     const accountsToAdd: unknown[] = []
     const wrappedAccountsToAdd: ShardusTypes.WrappedData[] = []
     const failedHashes: string[] = []
-    for (const wrappedAccount of accountRecords) {
-      const { accountId, stateId, data: recordData, timestamp } = wrappedAccount
+    const cacheUpdatesToDefer: Array<{ wrappedAccount: ShardusTypes.WrappedData; cycleToRecordOn: number }> = []
+    for (let wrappedAccount of accountRecords) {
+      let { accountId, stateId, data: recordData, timestamp } = wrappedAccount
+
+      // OOS Debug: timestamp manipulations
+      if (this.config.debug?.oos?.timestampDriftMs > 0) {
+        const drift =
+          Math.floor(Math.random() * this.config.debug.oos.timestampDriftMs * 2) -
+          this.config.debug.oos.timestampDriftMs
+        timestamp = timestamp + drift
+        wrappedAccount = { ...wrappedAccount, timestamp }
+        /* prettier-ignore */ if (logFlags.debug) this.mainLogger.debug(`OOS Debug: Added timestamp drift of ${drift}ms to account ${accountId}, new timestamp: ${timestamp}`)
+        nestedCountersInstance.countEvent('oos-debug', 'timestamp-drift-applied')
+      }
+
+      if (this.config.debug?.oos?.forceStaleTimestamps) {
+        // Force timestamp to be 1 hour old
+        timestamp = timestamp - 3600000
+        wrappedAccount = { ...wrappedAccount, timestamp }
+        /* prettier-ignore */ if (logFlags.debug) this.mainLogger.debug(`OOS Debug: Forced stale timestamp for account ${accountId}, new timestamp: ${timestamp}`)
+        nestedCountersInstance.countEvent('oos-debug', 'timestamp-forced-stale')
+      }
+
       const hash = this.app.calculateAccountHash(recordData)
       const cycleToRecordOn = CycleChain.getCycleNumberFromTimestamp(wrappedAccount.timestamp)
       if (cycleToRecordOn <= -1) {
@@ -1120,6 +1141,16 @@ class StateManager {
         failedHashes.push(accountId)
         return failedHashes
       }
+      // OOS Debug: random timestamp rejection
+      if (this.config.debug?.oos?.randomTimestampRejection > 0) {
+        if (Math.random() < this.config.debug.oos.randomTimestampRejection) {
+          /* prettier-ignore */ if (logFlags.debug) this.mainLogger.debug(`OOS Debug: Randomly rejecting timestamp for account ${accountId}`)
+          nestedCountersInstance.countEvent('oos-debug', 'timestamp-randomly-rejected')
+          failedHashes.push(accountId)
+          continue
+        }
+      }
+
       //TODO perf remove this when we are satisfied with the situation
       //Additional testing to cache if we try to overrite with older data
       if (this.accountCache.hasAccount(accountId)) {
@@ -1186,12 +1217,23 @@ class StateManager {
               }
             } else {
               //old way
-              this.accountCache.updateAccountHash(
-                wrappedAccount.accountId,
-                wrappedAccount.stateId,
-                wrappedAccount.timestamp,
-                cycleToRecordOn
-              )
+              // OOS Debug: handle cache update based on race condition flags
+              const shouldDeferCacheUpdate =
+                this.config.debug?.oos?.reverseCacheStorageOrder ||
+                (this.config.debug?.oos?.randomizeUpdateOrder && Math.random() < 0.5)
+
+              if (shouldDeferCacheUpdate) {
+                // Defer cache update until after storage
+                cacheUpdatesToDefer.push({ wrappedAccount, cycleToRecordOn })
+              } else if (!this.config.debug?.oos?.skipCacheUpdate) {
+                // Normal cache update (before storage)
+                this.accountCache.updateAccountHash(
+                  wrappedAccount.accountId,
+                  wrappedAccount.stateId,
+                  wrappedAccount.timestamp,
+                  cycleToRecordOn
+                )
+              }
             }
           } else {
             //I think some work was done to fix diverging stats, but how did it turn out?
@@ -1205,12 +1247,24 @@ class StateManager {
         } else {
           //even if we do not process stats still need to update cache
           //todo maybe even take the stats out of the pipeline for updating cache? (but that is kinda tricky)
-          this.accountCache.updateAccountHash(
-            wrappedAccount.accountId,
-            wrappedAccount.stateId,
-            wrappedAccount.timestamp,
-            cycleToRecordOn
-          )
+
+          // OOS Debug: handle cache update based on race condition flags
+          const shouldDeferCacheUpdate =
+            this.config.debug?.oos?.reverseCacheStorageOrder ||
+            (this.config.debug?.oos?.randomizeUpdateOrder && Math.random() < 0.5)
+
+          if (shouldDeferCacheUpdate) {
+            // Defer cache update until after storage
+            cacheUpdatesToDefer.push({ wrappedAccount, cycleToRecordOn })
+          } else if (!this.config.debug?.oos?.skipCacheUpdate) {
+            // Normal cache update (before storage)
+            this.accountCache.updateAccountHash(
+              wrappedAccount.accountId,
+              wrappedAccount.stateId,
+              wrappedAccount.timestamp,
+              cycleToRecordOn
+            )
+          }
         }
       } else {
         /* prettier-ignore */ if (logFlags.error) this.mainLogger.error(`setAccountData hash test failed: setAccountData for account ${utils.makeShortHash(accountId)} expected account hash: ${utils.makeShortHash(stateId)} got ${utils.makeShortHash(hash)} `)
@@ -1222,9 +1276,73 @@ class StateManager {
     }
     /* prettier-ignore */ if (logFlags.debug) this.mainLogger.debug(`setAccountData toAdd:${accountsToAdd.length}  failed:${failedHashes.length}`)
     /* prettier-ignore */ if (logFlags.verbose) console.log(`setAccountData toAdd:${accountsToAdd.length}  failed:${failedHashes.length}`)
+
+    // OOS Debug: skip storage update entirely
+    if (this.config.debug?.oos?.skipStorageUpdate) {
+      /* prettier-ignore */ if (logFlags.debug) this.mainLogger.debug(`OOS Debug: Skipping storage update entirely for ${accountsToAdd.length} accounts`)
+      nestedCountersInstance.countEvent('oos-debug', 'storage-update-skipped')
+      // Still process deferred cache updates if any
+      for (const { wrappedAccount, cycleToRecordOn } of cacheUpdatesToDefer) {
+        this.accountCache.updateAccountHash(
+          wrappedAccount.accountId,
+          wrappedAccount.stateId,
+          wrappedAccount.timestamp,
+          cycleToRecordOn
+        )
+      }
+      return failedHashes
+    }
+
+    // OOS Debug: storage operation failures
+    if (this.config.debug?.oos?.storageWriteFailureRate > 0) {
+      if (Math.random() < this.config.debug.oos.storageWriteFailureRate) {
+        /* prettier-ignore */ if (logFlags.debug) this.mainLogger.debug(`OOS Debug: Simulating storage write failure for ${accountsToAdd.length} accounts`)
+        nestedCountersInstance.countEvent('oos-debug', 'storage-write-failure')
+        // Skip the storage update entirely
+        return failedHashes
+      }
+    }
+
+    // OOS Debug: add artificial delay to storage writes
+    if (this.config.debug?.oos?.storageWriteDelayMs > 0) {
+      /* prettier-ignore */ if (logFlags.debug) this.mainLogger.debug(`OOS Debug: Delaying storage write by ${this.config.debug.oos.storageWriteDelayMs}ms for ${accountsToAdd.length} accounts`)
+      await utils.sleep(this.config.debug.oos.storageWriteDelayMs)
+    }
+
+    // OOS Debug: partial storage write
+    if (this.config.debug?.oos?.storagePartialWriteRate > 0) {
+      if (Math.random() < this.config.debug.oos.storagePartialWriteRate) {
+        /* prettier-ignore */ if (logFlags.debug) this.mainLogger.debug(`OOS Debug: Simulating partial storage write - writing only half of ${accountsToAdd.length} accounts`)
+        nestedCountersInstance.countEvent('oos-debug', 'storage-partial-write')
+        // Write only half of the accounts
+        const partialAccounts = accountsToAdd.slice(0, Math.floor(accountsToAdd.length / 2))
+        /* prettier-ignore */ this.transactionQueue.setDebugLastAwaitedCallInner('ths.app.setAccountData')
+        await this.app.setAccountData(partialAccounts)
+        /* prettier-ignore */ this.transactionQueue.setDebugLastAwaitedCallInner('ths.app.setAccountData', DebugComplete.Completed)
+        fireAndForget(() => this.transactionQueue.processNonceQueue(wrappedAccountsToAdd))
+        return failedHashes
+      }
+    }
+
     /* prettier-ignore */ this.transactionQueue.setDebugLastAwaitedCallInner('ths.app.setAccountData')
     await this.app.setAccountData(accountsToAdd)
     /* prettier-ignore */ this.transactionQueue.setDebugLastAwaitedCallInner('ths.app.setAccountData', DebugComplete.Completed)
+
+    // OOS Debug: process deferred cache updates after storage
+    if (cacheUpdatesToDefer.length > 0) {
+      /* prettier-ignore */ if (logFlags.debug) this.mainLogger.debug(`OOS Debug: Processing ${cacheUpdatesToDefer.length} deferred cache updates after storage`)
+      for (const { wrappedAccount, cycleToRecordOn } of cacheUpdatesToDefer) {
+        if (!this.config.debug?.oos?.skipCacheUpdate) {
+          this.accountCache.updateAccountHash(
+            wrappedAccount.accountId,
+            wrappedAccount.stateId,
+            wrappedAccount.timestamp,
+            cycleToRecordOn
+          )
+        }
+      }
+    }
+    
     fireAndForget(() => this.transactionQueue.processNonceQueue(wrappedAccountsToAdd))
     return failedHashes
   }

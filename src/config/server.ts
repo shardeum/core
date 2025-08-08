@@ -277,6 +277,49 @@ const SERVER_CONFIG: StrictServerConfiguration = {
     dropMessageChance: 0,
     slowResponseChance: 0,
     slowResponseDelay: 0,
+    oos: {
+      // Cache operation failures
+      cacheUpdateFailureRate: 0,
+      cachePartialUpdateRate: 0,
+      cacheUpdateDelayMs: 0,
+      
+      // Storage operation failures  
+      storageWriteFailureRate: 0,
+      storagePartialWriteRate: 0,
+      storageWriteDelayMs: 0,
+      storageTimeoutMs: 0,
+      
+      // Race condition simulations
+      reverseCacheStorageOrder: false,
+      randomizeUpdateOrder: false,
+      skipCacheUpdate: false,
+      skipStorageUpdate: false,
+      
+      // Timestamp manipulations
+      timestampDriftMs: 0,
+      forceStaleTimestamps: false,
+      randomTimestampRejection: 0,
+      
+      // Queue processing issues
+      accountPatcherQueueDelay: 0,
+      dropAccountPatcherUpdates: 0,
+      reorderAccountPatcherQueue: false,
+      
+      // Lock/concurrency issues
+      skipFifoLocks: false,
+      fifoLockTimeoutMs: 0,
+      allowConcurrentUpdates: false,
+      
+      // Data corruption
+      corruptHashOnWrite: 0,
+      corruptDataOnWrite: 0,
+      truncateDataOnWrite: 0,
+      
+      // Network/async issues
+      simulateAsyncFailures: false,
+      asyncOperationTimeoutMs: 0,
+      duplicateAsyncOperations: false,
+    },
   },
   statistics: { save: true, interval: 1 },
   loadDetection: {
