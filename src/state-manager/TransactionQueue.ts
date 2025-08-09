@@ -1598,7 +1598,8 @@ class TransactionQueue {
         applyResponse,
         isGlobalModifyingTX,
         filter,
-        note
+        note,
+        keysResponse
       )
       /* prettier-ignore */ this.setDebugLastAwaitedCallInner('this.stateManager.setAccount', DebugComplete.Completed)
       queueEntry.accountDataSet = true

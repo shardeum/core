@@ -1250,6 +1250,10 @@ export interface ServerConfiguration {
       simulateAsyncFailures?: boolean        // Random async operation failures
       asyncOperationTimeoutMs?: number       // Force async timeouts
       duplicateAsyncOperations?: boolean     // Execute storage operations multiple times
+      
+      // Destination-specific failures (per-account evaluation)
+      storageWriteFailureRateForDestination?: number  // 0-1, probability per destination account
+      skipStorageUpdateForDestination?: boolean       // Skip storage for destination accounts
     }
   }
   /** Options for the statistics module */

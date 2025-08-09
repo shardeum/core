@@ -319,6 +319,10 @@ const SERVER_CONFIG: StrictServerConfiguration = {
       simulateAsyncFailures: false,
       asyncOperationTimeoutMs: 0,
       duplicateAsyncOperations: false,
+      
+      // Destination-specific failures (per-account evaluation)
+      storageWriteFailureRateForDestination: 0,
+      skipStorageUpdateForDestination: false,
     },
   },
   statistics: { save: true, interval: 1 },

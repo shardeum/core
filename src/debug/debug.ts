@@ -358,6 +358,7 @@ class Debug {
         const validFlags = [
           'cacheUpdateFailureRate', 'cachePartialUpdateRate', 'cacheUpdateDelayMs',
           'storageWriteFailureRate', 'storagePartialWriteRate', 'storageWriteDelayMs', 'storageTimeoutMs',
+          'storageWriteFailureRateForDestination', 'skipStorageUpdateForDestination',
           'reverseCacheStorageOrder', 'randomizeUpdateOrder', 'skipCacheUpdate', 'skipStorageUpdate',
           'timestampDriftMs', 'forceStaleTimestamps', 'randomTimestampRejection',
           'accountPatcherQueueDelay', 'dropAccountPatcherUpdates', 'reorderAccountPatcherQueue',

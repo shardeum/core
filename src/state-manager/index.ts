@@ -3319,7 +3319,8 @@ class StateManager {
     applyResponse: ShardusTypes.ApplyResponse,
     isGlobalModifyingTX: boolean,
     accountFilter?: AccountFilter,
-    note?: string
+    note?: string,
+    txKeys?: ShardusTypes.TransactionKeys
   ) {
     const canWriteToAccount = function (accountId: string) {
       // eslint-disable-next-line security/detect-object-injection
@@ -3404,6 +3405,24 @@ class StateManager {
           /* prettier-ignore */ if (logFlags.debug) this.mainLogger.debug(`OOS Debug: Simulating storage write failure in setAccount for account ${wrappedData.accountId}`)
           nestedCountersInstance.countEvent('oos-debug', 'storage-write-failure-setAccount')
           continue // Skip this account
+        }
+      }
+      
+      // OOS Debug: Check if this is a destination account and apply destination-specific failures
+      if (txKeys?.targetKeys?.includes(key)) {
+        // This is a destination account
+        if (this.config.debug?.oos?.skipStorageUpdateForDestination) {
+          /* prettier-ignore */ if (logFlags.debug) this.mainLogger.debug(`OOS Debug: Skipping storage for destination account ${wrappedData.accountId}`)
+          nestedCountersInstance.countEvent('oos-debug', 'storage-update-skipped-destination')
+          continue
+        }
+        
+        if (this.config.debug?.oos?.storageWriteFailureRateForDestination > 0) {
+          if (Math.random() < this.config.debug.oos.storageWriteFailureRateForDestination) {
+            /* prettier-ignore */ if (logFlags.debug) this.mainLogger.debug(`OOS Debug: Storage write failure for destination account ${wrappedData.accountId}`)
+            nestedCountersInstance.countEvent('oos-debug', 'storage-write-failure-destination')
+            continue
+          }
         }
       }
       
