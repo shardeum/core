@@ -55,6 +55,7 @@ Detailed documentation on the following functionality can be found in these .md 
 1. **Shard Calculations**: `@docs/specs/shardCalculations.spec.md`
 2. **Shard Functions**: `@docs/specs/shardFunctions.spec.md`
 3. **Validator Lifecycle**: `@docs/specs/validator-lifecycle.md`
+4. **POQo Transaction Consensus**: `@docs/specs/POQo-consenus.spec.md`
 
 ### Key Design Patterns
 
