@@ -14,17 +14,15 @@ This is Shardus Core (`@shardeum-foundation/core`), the foundational technology 
 - `npm run clean` - Clean build artifacts
 
 ### Code Quality
-- `npm run lint` - Run ESLint on TypeScript files
 - `npm run format-check` - Check code formatting with Prettier
 - `npm run format-fix` - Fix code formatting with Prettier
 - `npm run depcheck` - Check for unused dependencies
 
 ### Testing
-- `npm test` - Run unit tests with Jest
-- `npm run test-watch` - Run tests in watch mode
+- `npm test test` - Run unit tests with Jest
 
 ### Requirements
-- Node.js version: 18.19.1 (exact version required)
+- Node.js version: 20.19.3 (exact version required)
 - Rust toolchain must be installed (cargo must be in PATH)
 
 ## Architecture Overview
@@ -49,6 +47,14 @@ This is Shardus Core (`@shardeum-foundation/core`), the foundational technology 
 4. **Storage** (`src/storage/`)
    - SQLite3 and Better-SQLite3 support for persistent storage
    - Database initialization and management
+
+### Detailed Spec Docs
+
+Detailed documentation on the following functionality can be found in these .md files if needed:
+
+1. **Shard Calculations**: `@docs/specs/shardCalculations.spec.md`
+2. **Shard Functions**: `@docs/specs/shardFunctions.spec.md`
+3. **Validator Lifecycle**: `@docs/specs/validator-lifecycle.md`
 
 ### Key Design Patterns
 
