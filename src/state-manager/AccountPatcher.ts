@@ -4028,7 +4028,7 @@ class AccountPatcher {
       }
       const appliedFixes = Math.max(0, wrappedDataListFiltered.length - failedHashes.length)
       /* prettier-ignore */ nestedCountersInstance.countEvent('accountPatcher', 'writeCombinedAccountDataToBackups', Math.max(0, wrappedDataListFiltered.length - failedHashes.length))
-      /* prettier-ignore */ nestedCountersInstance.countEvent('accountPatcher', `p.repair applied c:${cycle} bad:${results.badAccounts.length} received:${wrappedDataList.length} failedH: ${failedHashes.length} filtered:${utils.stringifyReduce(filterStats)} stats:${utils.stringifyReduce(results.stats)} getAccountStats: ${utils.stringifyReduce(getAccountStats)} extraBadKeys:${results.extraBadKeys.length}`, appliedFixes)
+      /* prettier-ignore */ nestedCountersInstance.countEvent('accountPatcher', `p.repair applied c:${cycle} bad:${results.badAccounts.length} received:${wrappedDataList.length} failedH: ${failedHashes.length} filtered:${utils.stringifyReduce(filterStats)} stats:${utils.stringifyReduce(results.stats)} getAccountStats: ${utils.stringifyReduce(getAccountStats)} extraBadKeys:${results.extraLocalRadixKeys.length}`, appliedFixes)
 
       this.stateManager.cycleDebugNotes.patchedAccounts = appliedFixes //per cycle debug info
 
