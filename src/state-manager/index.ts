@@ -1317,7 +1317,20 @@ class StateManager {
         // Write only half of the accounts
         const partialAccounts = accountsToAdd.slice(0, Math.floor(accountsToAdd.length / 2))
         /* prettier-ignore */ this.transactionQueue.setDebugLastAwaitedCallInner('ths.app.setAccountData')
-        await this.app.setAccountData(partialAccounts)
+        try {
+          await this.app.setAccountData(partialAccounts)
+        } catch (error) {
+          
+          nestedCountersInstance.countEvent('stateManager', 'oos.setAccountData.partial.failed.1')          
+          /* prettier-ignore */ if (logFlags.fatal) this.fatalLogger.fatal(`oos.setAccountData.partial.failed.1: ${error.message}`, {
+            accountCount: partialAccounts.length,
+            note: note,
+            error: error.stack
+          })
+          
+          // Rethrow to maintain existing behavior
+          throw error
+        }
         /* prettier-ignore */ this.transactionQueue.setDebugLastAwaitedCallInner('ths.app.setAccountData', DebugComplete.Completed)
         fireAndForget(() => this.transactionQueue.processNonceQueue(wrappedAccountsToAdd))
         return failedHashes
@@ -1325,7 +1338,20 @@ class StateManager {
     }
 
     /* prettier-ignore */ this.transactionQueue.setDebugLastAwaitedCallInner('ths.app.setAccountData')
-    await this.app.setAccountData(accountsToAdd)
+    try {
+      await this.app.setAccountData(accountsToAdd)
+    } catch (error) {
+
+      nestedCountersInstance.countEvent('stateManager', 'oos.setAccountData.full.failed.1')
+      /* prettier-ignore */ if (logFlags.fatal) this.fatalLogger.fatal(`oos.setAccountData.full.failed.1: ${error.message}`, {
+        accountCount: accountsToAdd.length,
+        note: note,
+        error: error.stack
+      })
+      
+      // Rethrow to maintain existing behavior
+      throw error
+    }
     /* prettier-ignore */ this.transactionQueue.setDebugLastAwaitedCallInner('ths.app.setAccountData', DebugComplete.Completed)
 
     // OOS Debug: process deferred cache updates after storage
@@ -3497,13 +3523,41 @@ class StateManager {
       
       if (wrappedData.isPartial) {
         /* prettier-ignore */ this.transactionQueue.setDebugLastAwaitedCallInner('this.app.updateAccountPartial')
-        // eslint-disable-next-line security/detect-object-injection
-        await this.app.updateAccountPartial(wrappedData, localCachedData[key], applyResponse)
+        try {
+          // eslint-disable-next-line security/detect-object-injection
+          await this.app.updateAccountPartial(wrappedData, localCachedData[key], applyResponse)
+        } catch (error) {
+
+          nestedCountersInstance.countEvent('stateManager', 'oos.updateAccountPartial.failed.1')          
+          /* prettier-ignore */ if (logFlags.important_as_fatal) this.fatalLogger.fatal(`oos.updateAccountPartial.failed.1 for account ${wrappedData.accountId}: ${error.message}`, {
+            accountId: wrappedData.accountId,
+            timestamp: wrappedData.timestamp,
+            note: note,
+            error: error.stack
+          })
+          
+          // Rethrow to maintain existing behavior
+          throw error
+        }
         /* prettier-ignore */ this.transactionQueue.setDebugLastAwaitedCallInner('this.app.updateAccountPartial', DebugComplete.Completed)
       } else {
         /* prettier-ignore */ this.transactionQueue.setDebugLastAwaitedCallInner('this.app.updateAccountFull')
-        // eslint-disable-next-line security/detect-object-injection
-        await this.app.updateAccountFull(wrappedData, localCachedData[key], applyResponse)
+        try {
+          // eslint-disable-next-line security/detect-object-injection
+          await this.app.updateAccountFull(wrappedData, localCachedData[key], applyResponse)
+        } catch (error) {
+
+          nestedCountersInstance.countEvent('stateManager', 'oos.updateAccountFull.failed.1')          
+          /* prettier-ignore */ if (logFlags.important_as_fatal) this.fatalLogger.fatal(`oos.updateAccountFull.failed.1 for account ${wrappedData.accountId}: ${error.message}`, {
+            accountId: wrappedData.accountId,
+            timestamp: wrappedData.timestamp,
+            note: note,
+            error: error.stack
+          })
+          
+          // Rethrow to maintain existing behavior
+          throw error
+        }
         /* prettier-ignore */ this.transactionQueue.setDebugLastAwaitedCallInner('this.app.updateAccountFull', DebugComplete.Completed)
       }
       

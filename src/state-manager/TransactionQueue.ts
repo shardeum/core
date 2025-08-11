@@ -7648,6 +7648,11 @@ class TransactionQueue {
                   this.app.transactionReceiptFail(queueEntry.acceptedTx.data, wrappedStates, applyReponse)
                 }
               } catch (ex) {
+
+                // Add counter for commit failures
+                nestedCountersInstance.countEvent('stateManager', 'oos.commitConsensedTransaction-failed.1')
+                /* prettier-ignore */ if (logFlags.important_as_fatal) this.fatalLogger.fatal(`oos.commitConsensedTransaction-failed.1: ${ex.name}: ${ex.message} at ${ex.stack}`)
+
                 /* prettier-ignore */ if (logFlags.debug) this.mainLogger.debug('processAcceptedTxQueue2 commiting Transaction:' + ex.name + ': ' + ex.message + ' at ' + ex.stack)
                 this.statemanager_fatal(
                   `processAcceptedTxQueue2b_ex`,
