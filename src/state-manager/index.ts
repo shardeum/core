@@ -3409,6 +3409,7 @@ class StateManager {
       const accountCount = Object.keys(wrappedStates).length
       /* prettier-ignore */ if (logFlags.debug) this.mainLogger.debug(`OOS Debug: Skipping storage update in setAccount for ${accountCount} accounts`)
       nestedCountersInstance.countEvent('oos-debug', 'storage-update-skipped-setAccount')
+      nestedCountersInstance.countEvent('stateManager', 'oos.setAccount-skipStorageUpdate-earlyReturn')
       
       // Still update cache for each account
       for (const accountId of Object.keys(wrappedStates)) {
@@ -3451,12 +3452,14 @@ class StateManager {
       if (wrappedData == null) {
         // TSConversion todo: harden this. throw exception?
         /* prettier-ignore */ if (logFlags.verbose) this.mainLogger.debug(`setAccount wrappedData == null :${utils.makeShortHash(wrappedData.accountId)}`)
+        nestedCountersInstance.countEvent('stateManager', 'oos.setAccount-skip-wrappedData-null')
         continue
       }
 
       // TODO: to discuss how to handle this
       if (canWriteToAccount(wrappedData.accountId) === false) {
         /* prettier-ignore */ if (logFlags.verbose) this.mainLogger.debug(`setAccount canWriteToAccount == false :${utils.makeShortHash(wrappedData.accountId)}`)
+        nestedCountersInstance.countEvent('stateManager', 'oos.setAccount-skip-canWriteToAccount-false')
         continue
       }
 
@@ -3466,6 +3469,7 @@ class StateManager {
         if (isGlobalModifyingTX === false) {
           if (logFlags.playback) this.logger.playbackLogNote('globalAccountMap', `setAccount - has`)
           /* prettier-ignore */ if (logFlags.verbose) this.mainLogger.debug('setAccount: Not writing global account: ' + utils.makeShortHash(key))
+          nestedCountersInstance.countEvent('stateManager', 'oos.setAccount-skip-global-account-not-modifying')
           continue
         }
         /* prettier-ignore */ if (logFlags.verbose) this.mainLogger.debug('setAccount: writing global account: ' + utils.makeShortHash(key))
@@ -3478,6 +3482,7 @@ class StateManager {
         if (Math.random() < this.config.debug.oos.storageWriteFailureRate) {
           /* prettier-ignore */ if (logFlags.debug) this.mainLogger.debug(`OOS Debug: Simulating storage write failure in setAccount for account ${wrappedData.accountId}`)
           nestedCountersInstance.countEvent('oos-debug', 'storage-write-failure-setAccount')
+          nestedCountersInstance.countEvent('stateManager', 'oos.setAccount-skip-oos-storageWriteFailure')
           continue // Skip this account
         }
       }
@@ -3488,6 +3493,7 @@ class StateManager {
         if (this.config.debug?.oos?.skipStorageUpdateForDestination) {
           /* prettier-ignore */ if (logFlags.debug) this.mainLogger.debug(`OOS Debug: Skipping storage for destination account ${wrappedData.accountId}`)
           nestedCountersInstance.countEvent('oos-debug', 'storage-update-skipped-destination')
+          nestedCountersInstance.countEvent('stateManager', 'oos.setAccount-skip-oos-destination')
           continue
         }
         
@@ -3495,6 +3501,7 @@ class StateManager {
           if (Math.random() < this.config.debug.oos.storageWriteFailureRateForDestination) {
             /* prettier-ignore */ if (logFlags.debug) this.mainLogger.debug(`OOS Debug: Storage write failure for destination account ${wrappedData.accountId}`)
             nestedCountersInstance.countEvent('oos-debug', 'storage-write-failure-destination')
+            nestedCountersInstance.countEvent('stateManager', 'oos.setAccount-skip-oos-destinationFailure')
             continue
           }
         }

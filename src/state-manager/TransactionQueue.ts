@@ -1486,12 +1486,31 @@ class TransactionQueue {
       /* prettier-ignore */ if (logFlags.verbose && this.stateManager.extendedRepairLogging) this.mainLogger.debug(`commitConsensedTransaction FIFO lock outer: ${utils.stringifyReduce(uniqueKeys)} `)
       // TODO Perf (for sharded networks).  consider if we can remove this lock
       /* prettier-ignore */ this.setDebugLastAwaitedCallInner('commit this.stateManager.bulkFifoLockAccounts')
-      ourAccountLocks = await this.stateManager.bulkFifoLockAccounts(uniqueKeys)
+      try {
+        ourAccountLocks = await this.stateManager.bulkFifoLockAccounts(uniqueKeys)
+      } catch (error) {
+        /* prettier-ignore */ if (logFlags.important_as_fatal) this.fatalLogger.fatal(`oos.bulkFifoLockAccounts failed: ${error.message}`, {
+          uniqueKeys: uniqueKeys,
+          txId: queueEntry.logID,
+          error: error.stack
+        })
+        nestedCountersInstance.countEvent('stateManager', 'oos.bulkFifoLockAccounts-failed')
+        throw error
+      }
       /* prettier-ignore */ this.setDebugLastAwaitedCallInner('commit this.stateManager.bulkFifoLockAccounts', DebugComplete.Completed)
       /* prettier-ignore */ if (logFlags.verbose && this.stateManager.extendedRepairLogging) this.mainLogger.debug(`commitConsensedTransaction FIFO lock inner: ${utils.stringifyReduce(uniqueKeys)} ourLocks: ${utils.stringifyReduce(ourAccountLocks)}`)
 
       /* prettier-ignore */ this.setDebugLastAwaitedCallInner('commit this.stateManager.fifoLock')
-      ourLockID = await this.stateManager.fifoLock('accountModification')
+      try {
+        ourLockID = await this.stateManager.fifoLock('accountModification')
+      } catch (error) {
+        /* prettier-ignore */ if (logFlags.important_as_fatal) this.fatalLogger.fatal(`oos.fifoLock failed: ${error.message}`, {
+          txId: queueEntry.logID,
+          error: error.stack
+        })
+        nestedCountersInstance.countEvent('stateManager', 'oos.fifoLock-failed')
+        throw error
+      }
       /* prettier-ignore */ this.setDebugLastAwaitedCallInner('commit this.stateManager.fifoLock', DebugComplete.Completed)
 
       /* prettier-ignore */ if (logFlags.verbose) if (logFlags.console) console.log(`commitConsensedTransaction tx:${queueEntry.logID} ts:${timestamp} Applying!`)
@@ -7444,11 +7463,21 @@ class TransactionQueue {
                   //await this.app.setAccountData(rawAccounts)
                   const awaitStart = shardusGetTime()
                   /* prettier-ignore */ this.setDebugLastAwaitedCall('this.stateManager.transactionConsensus.checkAndSetAccountData()')
-                  await this.stateManager.checkAndSetAccountData(
-                    accountRecords,
-                    `txId: ${queueEntry.logID} awaitFinalData_passed`,
-                    false
-                  )
+                  try {
+                    await this.stateManager.checkAndSetAccountData(
+                      accountRecords,
+                      `txId: ${queueEntry.logID} awaitFinalData_passed`,
+                      false
+                    )
+                  } catch (error) {
+                    /* prettier-ignore */ if (logFlags.important_as_fatal) this.fatalLogger.fatal(`oos.checkAndSetAccountData in awaitFinalData failed: ${error.message}`, {
+                      accountCount: accountRecords.length,
+                      txId: queueEntry.logID,
+                      error: error.stack
+                    })
+                    nestedCountersInstance.countEvent('stateManager', 'oos.checkAndSetAccountData-awaitFinalData-failed')
+                    throw error
+                  }
 
                   /* prettier-ignore */ this.setDebugLastAwaitedCall('this.stateManager.transactionConsensus.checkAndSetAccountData()', DebugComplete.Completed)
                   queueEntry.accountDataSet = true
@@ -7571,17 +7600,20 @@ class TransactionQueue {
                   // dont have a receipt for a non consensus TX. not even sure if we want to keep that!
                   if (queueEntry.preApplyTXResult.passed === false) {
                     canCommitTX = false
+                    nestedCountersInstance.countEvent('stateManager', 'oos.canCommitTX-false-noConsensus-failed')
                   }
                 } else if (queueEntry.signedReceipt != null) {
                   // the final state of the queue entry will be pass or fail based on the receipt
                   if (queueEntry.signedReceipt.proposal.applied === false) {
                     canCommitTX = false
                     hasReceiptFail = true
+                    nestedCountersInstance.countEvent('stateManager', 'oos.canCommitTX-false-signedReceipt-applied-false')
                   }
                 } else if (queueEntry.receivedSignedReceipt != null) {
                   // the final state of the queue entry will be pass or fail based on the receipt
                   if (queueEntry.receivedSignedReceipt.proposal.applied === false) {
                     canCommitTX = false
+                    nestedCountersInstance.countEvent('stateManager', 'oos.canCommitTX-false-receivedSignedReceipt-applied-false')
                     if (configContext.stateManager.receiptRemoveFix) {
                       hasReceiptFail = true
                     } else {
@@ -7590,6 +7622,7 @@ class TransactionQueue {
                   }
                 } else {
                   canCommitTX = false
+                  nestedCountersInstance.countEvent('stateManager', 'oos.canCommitTX-false-no-receipt')
                 }
 
                 nestedCountersInstance.countEvent(
