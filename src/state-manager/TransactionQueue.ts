@@ -11,7 +11,20 @@ import { nodes, byPubKey, potentiallyRemoved, activeByIdOrder } from '../p2p/Nod
 import * as Shardus from '../shardus/shardus-types'
 import Storage from '../storage'
 import * as utils from '../utils'
-import { getCorrespondingNodes, verifyCorrespondingSender } from '../utils/fastAggregatedCorrespondingTell'
+import { 
+  getCorrespondingNodes, 
+  verifyCorrespondingSender,
+  getCorrespondingNodesWithSecondary,
+  verifyCorrespondingSenderWithSecondary,
+  computeSecondaryOffset
+} from '../utils/fastAggregatedCorrespondingTell'
+import {
+  StateBeforeDissentMessage,
+  StateCorrectionMessage,
+  validateStateBeforeDissent,
+  validateStateCorrection
+} from '../types/StateDissentMessages'
+import { stateHardeningTelemetry } from './StateHardeningTelemetry'
 import { Signature, SignedObject } from '@shardeum-foundation/lib-crypto-utils'
 import { errorToStringFull, inRangeOfCurrentTime, withTimeout, XOR } from '../utils'
 import { Utils } from '@shardeum-foundation/lib-types'
@@ -160,6 +173,9 @@ class TransactionQueue {
   queueReads: Set<string>
   queueWrites: Set<string>
   queueReadWritesOld: Set<string>
+  
+  // State Hardening
+  stateDissentSeenSet: Map<string, number> // key -> timestamp for duplicate suppression
 
   /** is the processing queue currently considered stuck */
   isStuckProcessing: boolean
@@ -265,6 +281,9 @@ class TransactionQueue {
     this.debugLastAwaitedAppCallStack = {}
 
     this.debugRecentQueueEntry = null
+    
+    // State Hardening
+    this.stateDissentSeenSet = new Map()
   }
 
   /***
@@ -697,6 +716,135 @@ class TransactionQueue {
       }
     )
 
+    // State Hardening: Register gossip handlers for dissent messages
+    this.p2p.registerGossipHandler(
+      'state-before-dissent',
+      async (
+        payload: StateBeforeDissentMessage,
+        sender: Node,
+        tracker: string,
+        msgSize: number
+      ) => {
+        profilerInstance.scopedProfileSectionStart('state-before-dissent', false, msgSize)
+        let respondSize = cUninitializedSize
+        try {
+          if (!this.config.stateManager.enableBeforeStateDissentDetection) {
+            return
+          }
+          
+          // Validate message
+          if (!validateStateBeforeDissent(payload)) {
+            nestedCountersInstance.countEvent('stateManager', 'invalidStateBeforeDissentMessage')
+            return
+          }
+          
+          // Check if we've seen this dissent message recently
+          const dissentKey = `${payload.txid}|${payload.accountId}`
+          if (this.stateDissentSeenSet.has(dissentKey)) {
+            const lastSeen = this.stateDissentSeenSet.get(dissentKey)
+            if (Date.now() - lastSeen < 30000) { // 30 second duplicate suppression
+              return
+            }
+          }
+          this.stateDissentSeenSet.set(dissentKey, Date.now())
+          
+          // Find the queue entry for this transaction
+          const queueEntry = this.getQueueEntryByTxId(payload.txid)
+          if (!queueEntry) {
+            return
+          }
+          
+          // Check if we also observe conflicting before-states
+          let corroborated = false
+          if (queueEntry.beforeStateObservations) {
+            const observations = queueEntry.beforeStateObservations.get(payload.accountId)
+            if (observations && observations.hashes.size > 1) {
+              corroborated = true
+            }
+          }
+          
+          // If we corroborate the dissent OR there's a valid proof, forward the gossip
+          if (corroborated || payload.proofReceipt) {
+            if (!queueEntry.beforeStateConflict) {
+              queueEntry.beforeStateConflict = true
+              queueEntry.conflictResolutionStartTime = Date.now()
+            }
+            
+            // Extend timers for conflict resolution
+            if (queueEntry.dissentTimers) {
+              queueEntry.dissentTimers.lastExtendAt = Date.now()
+            } else {
+              queueEntry.dissentTimers = {
+                startedAt: Date.now(),
+                lastExtendAt: Date.now()
+              }
+            }
+            
+            nestedCountersInstance.countEvent('stateManager', 'stateBeforeDissentCorroborated')
+            stateHardeningTelemetry.recordDissentGossip('corroborated')
+            
+            // Forward to execution group with reduced gossip factor
+            const executionGroup = queueEntry.executionGroup || []
+            if (executionGroup.length > 1) {
+              respondSize = await this.p2p.sendGossipIn(
+                'state-before-dissent',
+                payload,
+                tracker,
+                sender,
+                executionGroup,
+                false,
+                this.config.p2p.dissentGossipFactor,
+                payload.txid
+              )
+            }
+          }
+        } finally {
+          profilerInstance.scopedProfileSectionEnd('state-before-dissent', respondSize)
+        }
+      }
+    )
+    
+    this.p2p.registerGossipHandler(
+      'state-correction',
+      async (
+        payload: StateCorrectionMessage,
+        sender: Node,
+        tracker: string,
+        msgSize: number
+      ) => {
+        profilerInstance.scopedProfileSectionStart('state-correction', false, msgSize)
+        let respondSize = cUninitializedSize
+        try {
+          if (!this.config.stateManager.stateCorrectionGossipEnabled) {
+            return
+          }
+          
+          // Validate message
+          if (!validateStateCorrection(payload)) {
+            nestedCountersInstance.countEvent('stateManager', 'invalidStateCorrectionMessage')
+            return
+          }
+          
+          // Check rate limits
+          const correctionKey = `correction|${payload.accountId}`
+          if (this.stateDissentSeenSet.has(correctionKey)) {
+            const lastSeen = this.stateDissentSeenSet.get(correctionKey)
+            if (Date.now() - lastSeen < 60000) { // 60 second rate limit per account
+              return
+            }
+          }
+          this.stateDissentSeenSet.set(correctionKey, Date.now())
+          
+          // TODO: Verify the receipt proof and apply correction if valid
+          // This will be implemented as part of conflict resolution logic
+          
+          nestedCountersInstance.countEvent('stateManager', 'stateCorrectionReceived')
+        } finally {
+          profilerInstance.scopedProfileSectionEnd('state-correction', respondSize)
+        }
+      }
+    )
+    
     // THIS HANDLER IS NOT USED ANYMORE
     // this.p2p.registerGossipHandler(
     //   'gossip-final-state',
@@ -2551,6 +2699,10 @@ class TransactionQueue {
    * get a queue entry from the queue or the pending queue (but not archive queue)
    * @param txid
    */
+  getQueueEntryByTxId(txid: string): QueueEntry | null {
+    return this.getQueueEntrySafe(txid)
+  }
+  
   getQueueEntrySafe(txid: string): QueueEntry | null {
     let queueEntry = this._transactionQueueByID.get(txid)
     if (queueEntry === undefined) {
@@ -2724,6 +2876,49 @@ class TransactionQueue {
     //make a deep copy of the data
     queueEntry.originalData[data.accountId] = Utils.safeJsonParse(Utils.safeStringify(data))
     queueEntry.beforeHashes[data.accountId] = data.stateId
+    
+    // State Hardening: Track before-state observations and detect conflicts
+    if (this.config.stateManager.enableBeforeStateDissentDetection) {
+      if (!queueEntry.beforeStateObservations) {
+        queueEntry.beforeStateObservations = new Map()
+      }
+      
+      let observations = queueEntry.beforeStateObservations.get(data.accountId)
+      if (!observations) {
+        observations = {
+          hashes: new Set<string>(),
+          samples: []
+        }
+        queueEntry.beforeStateObservations.set(data.accountId, observations)
+      }
+      
+      // Add this observation
+      observations.hashes.add(data.stateId)
+      observations.samples.push({
+        hash: data.stateId,
+        fromNodeId: signatureCheck && data.sign ? data.sign.owner : 'local',
+        ts: Date.now()
+      })
+      
+      // Detect conflict if multiple different hashes observed
+      if (observations.hashes.size > 1 && !queueEntry.beforeStateConflict) {
+        queueEntry.beforeStateConflict = true
+        queueEntry.conflictResolutionStartTime = Date.now()
+        
+        nestedCountersInstance.countEvent('stateManager', 'beforeStateConflictDetected')
+        stateHardeningTelemetry.recordConflictDetected('data-receipt')
+        
+        /* prettier-ignore */ if (logFlags.verbose) {
+          this.mainLogger.warn(
+            `Before-state conflict detected for tx ${queueEntry.logID} account ${data.accountId}: ` +
+            `observed ${observations.hashes.size} different hashes: ${Array.from(observations.hashes).join(', ')}`
+          )
+        }
+        
+        // Emit state-before-dissent gossip
+        this.emitStateBeforeDissent(queueEntry, data.accountId)
+      }
+    }
 
     if (queueEntry.dataCollected === queueEntry.uniqueKeys.length) {
       //  queueEntry.tx Keys.allKeys.length
@@ -2751,6 +2946,47 @@ class TransactionQueue {
     profilerInstance.profileSectionStart('queueEntryAddData', true)
   }
 
+  emitStateBeforeDissent(queueEntry: QueueEntry, accountId: string): void {
+    if (!this.config.stateManager.enableBeforeStateDissentDetection) {
+      return
+    }
+    
+    const observations = queueEntry.beforeStateObservations?.get(accountId)
+    if (!observations || observations.hashes.size <= 1) {
+      return
+    }
+    
+    const message: StateBeforeDissentMessage = {
+      txid: queueEntry.acceptedTx.txId,
+      accountId,
+      observed: Array.from(observations.samples).slice(0, 10).map(sample => ({
+        hash: sample.hash,
+        senderId: sample.fromNodeId
+      })), // Limit to first 10 observations
+      ts: Date.now()
+    }
+    
+    // Send to execution group with limited gossip factor
+    const executionGroup = queueEntry.executionGroup || []
+    if (executionGroup.length > 1) {
+      fireAndForget(async () => {
+        await this.p2p.sendGossipIn(
+          'state-before-dissent',
+          message,
+          '',
+          null,
+          executionGroup,
+          true, // isOrigin
+          this.config.p2p.dissentGossipFactor,
+          message.txid
+        )
+      })
+      
+      nestedCountersInstance.countEvent('stateManager', 'stateBeforeDissentEmitted')
+      stateHardeningTelemetry.recordDissentGossip('sent')
+    }
+  }
+  
   async shareCompleteDataToNeighbours(queueEntry: QueueEntry): Promise<void> {
     if (configContext.stateManager.shareCompleteData === false) {
       return
@@ -4459,6 +4695,12 @@ class TransactionQueue {
         this.mainLogger.debug(`factTellCorrespondingNodes: target group indices`, targetIndices)
       }
 
+      // Check if we're sending before-state data and if state hardening is enabled
+      const isBeforeStateData = payload.stateList.some(data => !data.accountCreated)
+      const useSecondarySpread = isBeforeStateData && 
+        this.config.stateManager.enableBeforeStateDissentDetection && 
+        this.config.stateManager.factBeforeSpreadFactor > 1
+
       let correspondingIndices = getCorrespondingNodes(
         ourIndexInTxGroup,
         targetIndices.startIndex,
@@ -4468,6 +4710,27 @@ class TransactionQueue {
         senderGroupSize,
         queueEntry.transactionGroup.length
       )
+      
+      // Add secondary indices for before-state data if state hardening is enabled
+      let secondaryIndices: number[] = []
+      if (useSecondarySpread && payload.stateList.length > 0) {
+        const firstAccountId = payload.stateList[0].accountId
+        const secondaryOffset = computeSecondaryOffset(
+          queueEntry.correspondingGlobalOffset,
+          firstAccountId,
+          queueEntry.acceptedTx.txId,
+          targetGroupSize
+        )
+        secondaryIndices = getCorrespondingNodes(
+          ourIndexInTxGroup,
+          targetIndices.startIndex,
+          targetIndices.endIndex,
+          secondaryOffset,
+          targetGroupSize,
+          senderGroupSize,
+          queueEntry.transactionGroup.length
+        )
+      }
       let oldCorrespondingIndices: number[] = undefined
       if (this.config.stateManager.correspondingTellUseUnwrapped) {
         // can just find if any home nodes for the accounts we cover would say that our node is wrapped
@@ -4562,6 +4825,19 @@ class TransactionQueue {
         //   const isValid = verifyCorrespondingSender(targetIndex, ourIndexInTxGroup, queueEntry.correspondingGlobalOffset, targetGroupSize, senderGroupSize, targetIndices.startIndex, targetIndices.endIndex, queueEntry.transactionGroup.length)
         //   if (logFlags.debug) this.mainLogger.debug(`factTellCorrespondingNodes: debug verifyCorrespondingSender`, ourIndexInTxGroup, '->', targetIndex, isValid);
         // }
+      }
+      
+      // Add secondary indices for state hardening 2x spread
+      if (useSecondarySpread && secondaryIndices.length > 0) {
+        const existingIndices = new Set(validCorrespondingIndices)
+        for (const targetIndex of secondaryIndices) {
+          if (!existingIndices.has(targetIndex)) {
+            validCorrespondingIndices.push(targetIndex)
+          }
+        }
+        if (logFlags.verbose) {
+          this.mainLogger.debug(`factTellCorrespondingNodes: added ${secondaryIndices.length} secondary indices for state hardening`)
+        }
       }
 
       const correspondingNodes = []
@@ -4746,6 +5022,10 @@ class TransactionQueue {
 
     /* prettier-ignore */ if (logFlags.verbose) this.mainLogger.debug(`factValidateCorrespondingTellSender: txId: ${queueEntry.acceptedTx.txId} sender node id: ${senderNodeId}, receiver id: ${Self.id} senderHasAddress: ${senderHasAddress} receivingNodeIndex: ${receivingNodeIndex} senderNodeIndex: ${senderNodeIndex} receiverGroupSize: ${receiverGroupSize} senderGroupSize: ${senderGroupSize} targetIndices: ${utils.stringifyReduce(targetIndices)}`)
 
+    // Check if state hardening is enabled and should check secondary mapping
+    const useSecondaryValidation = this.config.stateManager.enableBeforeStateDissentDetection && 
+      this.config.stateManager.factBeforeSpreadFactor > 1
+
     let isValidFactSender = verifyCorrespondingSender(
       receivingNodeIndex,
       senderNodeIndex,
@@ -4758,6 +5038,29 @@ class TransactionQueue {
       false,
       queueEntry.logID
     )
+    
+    // If primary validation fails and state hardening is enabled, check secondary mapping
+    if (isValidFactSender === false && useSecondaryValidation) {
+      const secondaryOffset = computeSecondaryOffset(
+        queueEntry.correspondingGlobalOffset,
+        dataKey,
+        queueEntry.acceptedTx.txId,
+        receiverGroupSize
+      )
+      isValidFactSender = verifyCorrespondingSender(
+        receivingNodeIndex,
+        senderNodeIndex,
+        secondaryOffset,
+        receiverGroupSize,
+        senderGroupSize,
+        targetIndices.startIndex,
+        targetIndices.endIndex,
+        queueEntry.transactionGroup.length,
+        false,
+        queueEntry.logID + '_secondary'
+      )
+    }
+    
     if (isValidFactSender === false && wrappedSenderNodeIndex != null && wrappedSenderNodeIndex >= 0) {
       // try again with wrapped sender index
       isValidFactSender = verifyCorrespondingSender(
@@ -4772,6 +5075,28 @@ class TransactionQueue {
         false,
         queueEntry.logID
       )
+      
+      // Also check secondary mapping with wrapped sender if still invalid
+      if (isValidFactSender === false && useSecondaryValidation) {
+        const secondaryOffset = computeSecondaryOffset(
+          queueEntry.correspondingGlobalOffset,
+          dataKey,
+          queueEntry.acceptedTx.txId,
+          receiverGroupSize
+        )
+        isValidFactSender = verifyCorrespondingSender(
+          receivingNodeIndex,
+          wrappedSenderNodeIndex,
+          secondaryOffset,
+          receiverGroupSize,
+          senderGroupSize,
+          targetIndices.startIndex,
+          targetIndices.endIndex,
+          queueEntry.transactionGroup.length,
+          false,
+          queueEntry.logID + '_secondary_wrapped'
+        )
+      }
     }
     // it maybe a FACT sender but sender does not cover the account
     if (senderHasAddress === false) {

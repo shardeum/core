@@ -4,6 +4,8 @@ import { Logger as log4jLogger } from 'log4js'
 import StateManager from '.'
 import Crypto from '../crypto'
 import Logger, { logFlags } from '../logger'
+import { RecentReceiptBuffer } from './RecentReceiptBuffer'
+import { stateHardeningTelemetry } from './StateHardeningTelemetry'
 import * as Comms from '../p2p/Comms'
 import * as Context from '../p2p/Context'
 import { P2PModuleContext as P2P } from '../p2p/Context'
@@ -90,6 +92,9 @@ class TransactionConsenus {
   produceBadVote: boolean
   produceBadChallenge: boolean
   debugFailPOQo: number
+  
+  // State Hardening
+  recentReceiptBuffer: RecentReceiptBuffer
 
   constructor(
     stateManager: StateManager,
@@ -123,6 +128,12 @@ class TransactionConsenus {
     this.produceBadVote = this.config.debug.produceBadVote
     this.produceBadChallenge = this.config.debug.produceBadChallenge
     this.debugFailPOQo = 0
+    
+    // State Hardening
+    this.recentReceiptBuffer = new RecentReceiptBuffer({
+      bufferSize: this.config.stateManager.recentReceiptBufferSize,
+      ttl: this.config.stateManager.recentReceiptTTL
+    })
   }
 
   /***
@@ -2167,6 +2178,78 @@ class TransactionConsenus {
         return null
       }
       queueEntry.newVotes = false
+      
+      // State Hardening: Check for before-state conflicts in votes
+      if (this.config.stateManager.enableBeforeStateDissentDetection) {
+        const beforeStateHashesInVotes = new Map<string, Set<string>>() // accountId -> set of observed hashes
+        
+        for (let i = 0; i < queueEntry.collectedVotes.length; i++) {
+          const vote = queueEntry.collectedVotes[i]
+          if (vote.account_id && vote.account_state_hash_before) {
+            for (let j = 0; j < vote.account_id.length; j++) {
+              const accountId = vote.account_id[j]
+              const beforeHash = vote.account_state_hash_before[j]
+              
+              if (!beforeStateHashesInVotes.has(accountId)) {
+                beforeStateHashesInVotes.set(accountId, new Set())
+              }
+              beforeStateHashesInVotes.get(accountId).add(beforeHash)
+            }
+          }
+        }
+        
+        // Check if any account has multiple different before-state hashes
+        for (const [accountId, hashes] of beforeStateHashesInVotes) {
+          if (hashes.size > 1) {
+            if (!queueEntry.beforeStateConflict) {
+              queueEntry.beforeStateConflict = true
+              queueEntry.conflictResolutionStartTime = Date.now()
+              
+              nestedCountersInstance.countEvent('consensus', 'beforeStateConflictDetectedInVotes')
+              stateHardeningTelemetry.recordConflictDetected('votes')
+              
+              /* prettier-ignore */ if (logFlags.verbose) {
+                this.mainLogger.warn(
+                  `Before-state conflict detected in votes for tx ${queueEntry.logID} account ${accountId}: ` +
+                  `${hashes.size} different hashes: ${Array.from(hashes).join(', ')}`
+                )
+              }
+            }
+            
+            // Check if we've exceeded the max dissent delay
+            const now = Date.now()
+            if (queueEntry.conflictResolutionStartTime && 
+                (now - queueEntry.conflictResolutionStartTime) > this.config.stateManager.maxDissentDelayMs) {
+              // Defer the transaction
+              nestedCountersInstance.countEvent('consensus', 'beforeStateConflictDeferredAfterTimeout')
+              stateHardeningTelemetry.recordConflictDeferred()
+              /* prettier-ignore */ if (logFlags.verbose) {
+                this.mainLogger.warn(
+                  `Deferring tx ${queueEntry.logID} due to unresolved before-state conflict after ${this.config.stateManager.maxDissentDelayMs}ms`
+                )
+              }
+              return null // Don't produce receipt, let transaction be retried
+            }
+            
+            // Attempt to resolve the conflict
+            const resolvedHash = await this.resolveBeforeStateConflict(queueEntry, accountId)
+            if (resolvedHash) {
+              // Resolution successful, we can continue
+              /* prettier-ignore */ if (logFlags.verbose) {
+                this.mainLogger.info(
+                  `Before-state conflict resolved for tx ${queueEntry.logID} account ${accountId} to hash ${resolvedHash}`
+                )
+              }
+            } else {
+              // Delay receipt production while conflict resolution is attempted
+              if ((now - queueEntry.conflictResolutionStartTime) < this.config.stateManager.beforeStateDissentDelayMs) {
+                return null // Wait for resolution
+              }
+            }
+          }
+        }
+      }
+      
       let winningVoteHash: string
       const hashCounts: Map<string, number> = new Map()
 
@@ -2222,6 +2305,11 @@ class TransactionConsenus {
         // }
 
         queueEntry.signedReceipt = signedReceipt
+        
+        // State Hardening: Add receipt to recent buffer for future conflict resolution
+        if (this.config.stateManager.enableBeforeStateDissentDetection) {
+          this.recentReceiptBuffer.addReceipt(signedReceipt)
+        }
 
         //this is a temporary hack to reduce the ammount of refactor needed.
         // const appliedReceipt: AppliedReceipt = {
@@ -4025,6 +4113,58 @@ class TransactionConsenus {
     // }
   }
 
+  async resolveBeforeStateConflict(queueEntry: QueueEntry, accountId: string): Promise<string | null> {
+    // First check local recent receipt cache
+    const recentReceipt = this.recentReceiptBuffer.getLatestForAccount(accountId)
+    if (recentReceipt) {
+      const accountIndex = recentReceipt.proposal.accountIDs.indexOf(accountId)
+      if (accountIndex >= 0) {
+        const afterHash = recentReceipt.proposal.afterStateHashes[accountIndex]
+        if (afterHash) {
+          if (!queueEntry.resolvedBeforeState) {
+            queueEntry.resolvedBeforeState = new Map()
+          }
+          queueEntry.resolvedBeforeState.set(accountId, {
+            hash: afterHash,
+            source: 'receipt-cache',
+            proof: {
+              receiptId: recentReceipt.proposal.txid,
+              txid: recentReceipt.proposal.txid,
+              cycle: 0, // We don't have cycle info in the proposal
+              timestamp: Date.now()
+            }
+          })
+          queueEntry.conflictResolutionEndTime = Date.now()
+          nestedCountersInstance.countEvent('consensus', 'beforeStateResolvedFromCache')
+          stateHardeningTelemetry.recordConflictResolved('cache')
+          if (queueEntry.conflictResolutionStartTime) {
+            const resolutionTime = Date.now() - queueEntry.conflictResolutionStartTime
+            stateHardeningTelemetry.recordResolutionTime(resolutionTime)
+          }
+          return afterHash
+        }
+      }
+    }
+    
+    // If archiver lookup is enabled and we haven't exceeded query limits
+    if (this.config.stateManager.enableArchiverLookupForDissent) {
+      if (!queueEntry.archiverReceiptQueries) {
+        queueEntry.archiverReceiptQueries = 0
+      }
+      
+      if (queueEntry.archiverReceiptQueries < this.config.stateManager.maxArchiverReceiptQueriesPerTx) {
+        queueEntry.archiverReceiptQueries++
+        
+        // TODO: Implement actual archiver query
+        // This would involve querying the archiver for the most recent receipt for this account
+        // For now, we'll just increment the counter and return null
+        nestedCountersInstance.countEvent('consensus', 'archiverQueryAttempted')
+      }
+    }
+    
+    return null
+  }
+  
   tryAppendVoteHash(queueEntry: QueueEntry, voteHash: AppliedVoteHash): boolean {
     // Check if sender is in execution group
     if (!queueEntry.executionGroup.some((node) => node.publicKey === voteHash.sign.owner)) {

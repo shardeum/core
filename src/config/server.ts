@@ -52,6 +52,7 @@ const SERVER_CONFIG: StrictServerConfiguration = {
     gossipStartSeed: 15,
     gossipSeedFallof: 15,
     gossipTimeout: 180,
+    dissentGossipFactor: 3, // State hardening dissent gossip factor
     maxSeedNodes: 10,
     minNodesToAllowTxs: 1,
     continueOnException: false,
@@ -429,6 +430,16 @@ const SERVER_CONFIG: StrictServerConfiguration = {
     checkDestLimits: true,
     checkDestLimitCount: 5,
     globalAccountsReceiptInitiationTimeout: 5000, // 5 seconds default timeout
+    // State Hardening Configuration
+    factBeforeSpreadFactor: 2,
+    enableBeforeStateDissentDetection: false, // Start disabled for phased rollout
+    beforeStateDissentDelayMs: 5000,
+    maxDissentDelayMs: 10000,
+    enableArchiverLookupForDissent: false, // Start disabled for phased rollout
+    maxArchiverReceiptQueriesPerTx: 2,
+    recentReceiptBufferSize: 1000,
+    recentReceiptTTL: 60000,
+    stateCorrectionGossipEnabled: false, // Start disabled for phased rollout
   },
   sharding: { nodesPerConsensusGroup: 5, nodesPerEdge: 2, executeInOneShard: false },
   mode: ServerMode.Release,

@@ -140,3 +140,126 @@ export function verifyCorrespondingSender(
     return false
   }
 }
+
+export function computeSecondaryOffset(
+  primaryOffset: number,
+  accountId: string,
+  txId: string,
+  receiverGroupSize: number
+): number {
+  const salt = 'secondary_mapping_v1'
+  const hashInput = `${accountId}_${txId}_${salt}`
+  
+  let hash = 0
+  for (let i = 0; i < hashInput.length; i++) {
+    const char = hashInput.charCodeAt(i)
+    hash = ((hash << 5) - hash) + char
+    hash = hash & hash
+  }
+  
+  const offsetShift = Math.abs(hash) % Math.floor(receiverGroupSize / 2)
+  const secondaryOffset = (primaryOffset + offsetShift + 1) % receiverGroupSize
+  
+  return secondaryOffset
+}
+
+export function getCorrespondingNodesWithSecondary(
+  ourIndex: number,
+  startTargetIndex: number,
+  endTargetIndex: number,
+  globalOffset: number,
+  receiverGroupSize: number,
+  sendGroupSize: number,
+  transactionGroupSize: number,
+  accountId: string,
+  txId: string,
+  note = ''
+): { primary: number[], secondary: number[] } {
+  const primaryNodes = getCorrespondingNodes(
+    ourIndex,
+    startTargetIndex,
+    endTargetIndex,
+    globalOffset,
+    receiverGroupSize,
+    sendGroupSize,
+    transactionGroupSize,
+    note + '_primary'
+  )
+  
+  const secondaryOffset = computeSecondaryOffset(
+    globalOffset,
+    accountId,
+    txId,
+    receiverGroupSize
+  )
+  
+  const secondaryNodes = getCorrespondingNodes(
+    ourIndex,
+    startTargetIndex,
+    endTargetIndex,
+    secondaryOffset,
+    receiverGroupSize,
+    sendGroupSize,
+    transactionGroupSize,
+    note + '_secondary'
+  )
+  
+  return {
+    primary: primaryNodes,
+    secondary: secondaryNodes
+  }
+}
+
+export function verifyCorrespondingSenderWithSecondary(
+  receivingNodeIndex: number,
+  sendingNodeIndex: number,
+  globalOffset: number,
+  receiverGroupSize: number,
+  sendGroupSize: number,
+  receiverStartIndex: number,
+  receiverEndIndex: number,
+  transactionGroupSize: number,
+  accountId: string,
+  txId: string,
+  shouldUnwrapSender = false,
+  note = ''
+): boolean {
+  const isPrimary = verifyCorrespondingSender(
+    receivingNodeIndex,
+    sendingNodeIndex,
+    globalOffset,
+    receiverGroupSize,
+    sendGroupSize,
+    receiverStartIndex,
+    receiverEndIndex,
+    transactionGroupSize,
+    shouldUnwrapSender,
+    note + '_primary'
+  )
+  
+  if (isPrimary) {
+    return true
+  }
+  
+  const secondaryOffset = computeSecondaryOffset(
+    globalOffset,
+    accountId,
+    txId,
+    receiverGroupSize
+  )
+  
+  const isSecondary = verifyCorrespondingSender(
+    receivingNodeIndex,
+    sendingNodeIndex,
+    secondaryOffset,
+    receiverGroupSize,
+    sendGroupSize,
+    receiverStartIndex,
+    receiverEndIndex,
+    transactionGroupSize,
+    shouldUnwrapSender,
+    note + '_secondary'
+  )
+  
+  return isSecondary
+}

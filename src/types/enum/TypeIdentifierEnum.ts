@@ -65,4 +65,6 @@ export enum TypeIdentifierEnum {
   cPoqoSendVoteReq,
   cSignedReceipt,
   cProposalVersion,
+  cStateBeforeDissent,
+  cStateCorrection,
 }

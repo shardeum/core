@@ -34,6 +34,13 @@ export type TxDebug = {
   }
 }
 
+export type SignedReceiptRef = {
+  receiptId: string
+  txid: string
+  cycle: number
+  timestamp: number
+}
+
 export type QueueEntry = {
   gossipedCompleteData: boolean
   sharedCompleteData: boolean
@@ -238,6 +245,29 @@ export type QueueEntry = {
   isSenderWrappedTxGroup: { [nodeId: string]: number }
 
   isNGT: boolean
+
+  // State Hardening fields
+  beforeStateObservations?: Map<string, {
+    hashes: Set<string>
+    samples: Array<{
+      hash: string
+      fromNodeId: string
+      ts: number
+    }>
+  }>
+  beforeStateConflict?: boolean
+  resolvedBeforeState?: Map<string, {
+    hash: string
+    source: 'receipt-cache' | 'archiver' | 'local'
+    proof?: SignedReceiptRef
+  }>
+  dissentTimers?: {
+    startedAt: number
+    lastExtendAt: number
+  }
+  archiverReceiptQueries?: number
+  conflictResolutionStartTime?: number
+  conflictResolutionEndTime?: number
 }
 
 // export type SyncTracker = {

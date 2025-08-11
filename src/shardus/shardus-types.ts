@@ -1030,6 +1030,8 @@ export interface ServerConfiguration {
     fixApplyReceiptType: boolean
     // Number of historical cycles to sync when joining the network
     syncV2HistoricalCyclesCount: number
+    // State hardening dissent gossip factor
+    dissentGossipFactor?: number
   }
   /** Server IP configuration */
   ip?: {
@@ -1475,6 +1477,16 @@ export interface ServerConfiguration {
     checkDestLimitCount: number
     // timeout for global accounts receipt initiation
     globalAccountsReceiptInitiationTimeout?: number
+    // State Hardening Configuration
+    factBeforeSpreadFactor?: number
+    enableBeforeStateDissentDetection?: boolean
+    beforeStateDissentDelayMs?: number
+    maxDissentDelayMs?: number
+    enableArchiverLookupForDissent?: boolean
+    maxArchiverReceiptQueriesPerTx?: number
+    recentReceiptBufferSize?: number
+    recentReceiptTTL?: number
+    stateCorrectionGossipEnabled?: boolean
   }
   /** Options for sharding calculations */
   sharding?: {

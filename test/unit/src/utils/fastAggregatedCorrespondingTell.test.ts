@@ -1,4 +1,10 @@
-import { getCorrespondingNodes, verifyCorrespondingSender } from '../../../../src/utils/fastAggregatedCorrespondingTell'
+import { 
+  getCorrespondingNodes, 
+  verifyCorrespondingSender,
+  computeSecondaryOffset,
+  getCorrespondingNodesWithSecondary,
+  verifyCorrespondingSenderWithSecondary
+} from '../../../../src/utils/fastAggregatedCorrespondingTell'
 
 const verbose = true
 
@@ -179,4 +185,70 @@ describe('FACT Tests', () => {
       })
     }
   )
+})
+
+describe('State Hardening - FACT Extensions', () => {
+  describe('computeSecondaryOffset', () => {
+    it('should generate deterministic secondary offsets', () => {
+      const primaryOffset = 5
+      const accountId = 'account123'
+      const txId = 'tx456'
+      const receiverGroupSize = 20
+      
+      const offset1 = computeSecondaryOffset(primaryOffset, accountId, txId, receiverGroupSize)
+      const offset2 = computeSecondaryOffset(primaryOffset, accountId, txId, receiverGroupSize)
+      
+      expect(offset1).toBe(offset2)
+      expect(offset1).toBeGreaterThanOrEqual(0)
+      expect(offset1).toBeLessThan(receiverGroupSize)
+    })
+    
+    it('should generate different offsets for different inputs', () => {
+      const primaryOffset = 5
+      const receiverGroupSize = 20
+      
+      const offset1 = computeSecondaryOffset(primaryOffset, 'account1', 'tx1', receiverGroupSize)
+      const offset2 = computeSecondaryOffset(primaryOffset, 'account2', 'tx1', receiverGroupSize)
+      const offset3 = computeSecondaryOffset(primaryOffset, 'account1', 'tx2', receiverGroupSize)
+      
+      // Not all should be the same (with high probability)
+      const allSame = offset1 === offset2 && offset2 === offset3
+      expect(allSame).toBe(false)
+    })
+    
+    it('should not return the same offset as primary', () => {
+      const primaryOffset = 5
+      const accountId = 'account123'
+      const txId = 'tx456'
+      const receiverGroupSize = 20
+      
+      const secondaryOffset = computeSecondaryOffset(primaryOffset, accountId, txId, receiverGroupSize)
+      
+      // Secondary should be different from primary (with high probability)
+      expect(secondaryOffset).not.toBe(primaryOffset)
+    })
+  })
+  
+  describe('getCorrespondingNodesWithSecondary', () => {
+    it('should return both primary and secondary nodes', () => {
+      const result = getCorrespondingNodesWithSecondary(
+        5, 0, 10, 3, 10, 10, 10, 'account123', 'tx456'
+      )
+      
+      expect(result).toHaveProperty('primary')
+      expect(result).toHaveProperty('secondary')
+      expect(Array.isArray(result.primary)).toBe(true)
+      expect(Array.isArray(result.secondary)).toBe(true)
+    })
+  })
+  
+  describe('verifyCorrespondingSenderWithSecondary', () => {
+    it('should verify sender with secondary mapping', () => {
+      const result = verifyCorrespondingSenderWithSecondary(
+        5, 8, 3, 10, 10, 0, 10, 10, 'account123', 'tx456'
+      )
+      
+      expect(typeof result).toBe('boolean')
+    })
+  })
 })
