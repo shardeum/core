@@ -429,6 +429,9 @@ const SERVER_CONFIG: StrictServerConfiguration = {
     checkDestLimits: true,
     checkDestLimitCount: 5,
     globalAccountsReceiptInitiationTimeout: 5000, // 5 seconds default timeout
+    // Phase 1 state hardening configuration
+    factBeforeSpreadFactor: 2, // Enable 2x spread
+    enableBeforeStateDissentDetection: true, // Enable detection
   },
   sharding: { nodesPerConsensusGroup: 5, nodesPerEdge: 2, executeInOneShard: false },
   mode: ServerMode.Release,

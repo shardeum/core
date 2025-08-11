@@ -12,6 +12,7 @@ import * as Shardus from '../shardus/shardus-types'
 import Storage from '../storage'
 import * as utils from '../utils'
 import { getCorrespondingNodes, verifyCorrespondingSender } from '../utils/fastAggregatedCorrespondingTell'
+import { verifyCorrespondingSenderWithSpread } from '../utils/stateHardeningUtils'
 import { Signature, SignedObject } from '@shardeum-foundation/lib-crypto-utils'
 import { errorToStringFull, inRangeOfCurrentTime, withTimeout, XOR } from '../utils'
 import { Utils } from '@shardeum-foundation/lib-types'
@@ -476,6 +477,13 @@ class TransactionQueue {
           for (let i = 0; i < req.stateList.length; i++) {
             // eslint-disable-next-line security/detect-object-injection
             const state = req.stateList[i]
+
+            // Track before-state data for conflict detection if enabled
+            if (configContext.stateManager.enableBeforeStateDissentDetection) {
+              this.handleBeforeStateData(queueEntry, state.accountId, state.stateId, senderNodeId)
+              // Track that we received a spread message
+              nestedCountersInstance.countEvent('stateManager', 'oos.spreadMessagesReceived')
+            }
 
             if (configContext.stateManager.collectedDataFix && configContext.stateManager.rejectSharedDataIfCovered) {
               const consensusNodes = this.stateManager.transactionQueue.getConsenusGroupForAccount(state.accountId)
@@ -4497,6 +4505,42 @@ class TransactionQueue {
           //correspondingIndices = extraCorrespondingIndices
         }
       }
+      // Add secondary senders if 2x spread is enabled for before-state dissent detection
+      if (Context.config.stateManager.enableBeforeStateDissentDetection && Context.config.stateManager.factBeforeSpreadFactor > 1) {
+        const additionalIndices: number[] = []
+        for (let spreadIndex = 1; spreadIndex < Context.config.stateManager.factBeforeSpreadFactor; spreadIndex++) {
+          const secondaryIndices = getCorrespondingNodes(
+            ourIndexInTxGroup,
+            targetIndices.startIndex,
+            targetIndices.endIndex,
+            queueEntry.correspondingGlobalOffset + spreadIndex, // Modified offset for secondary senders
+            targetGroupSize,
+            senderGroupSize,
+            queueEntry.transactionGroup.length,
+            `spread_${spreadIndex}`
+          )
+          
+          // Add unique indices
+          for (const idx of secondaryIndices) {
+            if (!correspondingIndices.includes(idx) && !additionalIndices.includes(idx)) {
+              additionalIndices.push(idx)
+            }
+          }
+        }
+        
+        // Merge with original corresponding indices
+        correspondingIndices = correspondingIndices.concat(additionalIndices)
+        
+        if (logFlags.verbose) {
+          this.mainLogger.debug(
+            `factTellCorrespondingNodes: 2x spread enabled, sending to ${correspondingIndices.length} nodes`,
+            correspondingIndices
+          )
+        }
+        
+        nestedCountersInstance.countEvent('stateManager', 'oos.spreadMessagesSent', correspondingIndices.length)
+      }
+
       // check if we should avoid our index in the corresponding nodes
       if (Context.config.stateManager.avoidOurIndexInFactTell && correspondingIndices.includes(ourIndexInTxGroup)) {
         if (logFlags.debug)
@@ -4746,23 +4790,26 @@ class TransactionQueue {
 
     /* prettier-ignore */ if (logFlags.verbose) this.mainLogger.debug(`factValidateCorrespondingTellSender: txId: ${queueEntry.acceptedTx.txId} sender node id: ${senderNodeId}, receiver id: ${Self.id} senderHasAddress: ${senderHasAddress} receivingNodeIndex: ${receivingNodeIndex} senderNodeIndex: ${senderNodeIndex} receiverGroupSize: ${receiverGroupSize} senderGroupSize: ${senderGroupSize} targetIndices: ${utils.stringifyReduce(targetIndices)}`)
 
-    let isValidFactSender = verifyCorrespondingSender(
-      receivingNodeIndex,
-      senderNodeIndex,
-      queueEntry.correspondingGlobalOffset,
-      receiverGroupSize,
-      senderGroupSize,
-      targetIndices.startIndex,
-      targetIndices.endIndex,
-      queueEntry.transactionGroup.length,
-      false,
-      queueEntry.logID
-    )
-    if (isValidFactSender === false && wrappedSenderNodeIndex != null && wrappedSenderNodeIndex >= 0) {
-      // try again with wrapped sender index
+    // Use spread-aware validation if before-state dissent detection is enabled
+    let isValidFactSender = false
+    if (Context.config.stateManager.enableBeforeStateDissentDetection && Context.config.stateManager.factBeforeSpreadFactor > 1) {
+      isValidFactSender = verifyCorrespondingSenderWithSpread(
+        receivingNodeIndex,
+        senderNodeIndex,
+        queueEntry.correspondingGlobalOffset,
+        receiverGroupSize,
+        senderGroupSize,
+        targetIndices.startIndex,
+        targetIndices.endIndex,
+        queueEntry.transactionGroup.length,
+        false,
+        Context.config.stateManager.factBeforeSpreadFactor,
+        queueEntry.logID
+      )
+    } else {
       isValidFactSender = verifyCorrespondingSender(
         receivingNodeIndex,
-        wrappedSenderNodeIndex,
+        senderNodeIndex,
         queueEntry.correspondingGlobalOffset,
         receiverGroupSize,
         senderGroupSize,
@@ -4772,6 +4819,37 @@ class TransactionQueue {
         false,
         queueEntry.logID
       )
+    }
+    if (isValidFactSender === false && wrappedSenderNodeIndex != null && wrappedSenderNodeIndex >= 0) {
+      // try again with wrapped sender index
+      if (Context.config.stateManager.enableBeforeStateDissentDetection && Context.config.stateManager.factBeforeSpreadFactor > 1) {
+        isValidFactSender = verifyCorrespondingSenderWithSpread(
+          receivingNodeIndex,
+          wrappedSenderNodeIndex,
+          queueEntry.correspondingGlobalOffset,
+          receiverGroupSize,
+          senderGroupSize,
+          targetIndices.startIndex,
+          targetIndices.endIndex,
+          queueEntry.transactionGroup.length,
+          true,
+          Context.config.stateManager.factBeforeSpreadFactor,
+          queueEntry.logID
+        )
+      } else {
+        isValidFactSender = verifyCorrespondingSender(
+          receivingNodeIndex,
+          wrappedSenderNodeIndex,
+          queueEntry.correspondingGlobalOffset,
+          receiverGroupSize,
+          senderGroupSize,
+          targetIndices.startIndex,
+          targetIndices.endIndex,
+          queueEntry.transactionGroup.length,
+          false,
+          queueEntry.logID
+        )
+      }
     }
     // it maybe a FACT sender but sender does not cover the account
     if (senderHasAddress === false) {
@@ -4797,6 +4875,102 @@ class TransactionQueue {
       return false
     }
     return true
+  }
+
+  /**
+   * Handle before-state data for conflict detection (Phase 1)
+   * Tracks observations and detects conflicts when multiple hashes are observed
+   */
+  handleBeforeStateData(
+    queueEntry: QueueEntry,
+    accountId: string,
+    beforeStateHash: string,
+    fromNodeId: string
+  ): void {
+    // Initialize tracking if needed
+    if (!queueEntry.beforeStateObservations) {
+      queueEntry.beforeStateObservations = new Map()
+    }
+    
+    let tracking = queueEntry.beforeStateObservations.get(accountId)
+    if (!tracking) {
+      tracking = {
+        hashes: new Set(),
+        samples: []
+      }
+      queueEntry.beforeStateObservations.set(accountId, tracking)
+    }
+    
+    // Record observation
+    tracking.hashes.add(beforeStateHash)
+    tracking.samples.push({
+      hash: beforeStateHash,
+      fromNodeId,
+      timestamp: Date.now()
+    })
+    
+    // Increment observation counter
+    nestedCountersInstance.countEvent('stateManager', 'oos.beforeStateObservationCount')
+    
+    // Detect conflict
+    if (tracking.hashes.size > 1 && !queueEntry.beforeStateConflict) {
+      queueEntry.beforeStateConflict = true
+      
+      // Emit metrics
+      nestedCountersInstance.countEvent('stateManager', 'oos.beforeStateConflictDetected')
+      
+      // Track unique hash distribution
+      nestedCountersInstance.countEvent('stateManager', `oos.uniqueHashesPerAccount.${tracking.hashes.size}`)
+      
+        this.mainLogger.warn('Before-state conflict detected', {
+          txId: queueEntry.acceptedTx.txId,
+          accountId,
+          observedHashes: Array.from(tracking.hashes),
+          sampleCount: tracking.samples.length,
+          samples: tracking.samples.slice(0, 5) // Log first 5 samples
+        })
+    }
+  }
+
+
+  /**
+   * Get active transaction conflict summary for debug endpoint
+   * Returns information about transactions with before-state conflicts
+   */
+  getActiveTransactionConflictSummary() {
+    const summary = []
+    
+    // Iterate through active queue entries
+    for (const [txId, queueEntry] of this._transactionQueueByID) {
+      if (queueEntry.beforeStateConflict) {
+        const conflictInfo = {
+          txId,
+          state: queueEntry.state,
+          acceptedTimestamp: queueEntry.acceptedTx.timestamp,
+          conflictDetectedAt: queueEntry.acceptedTx.timestamp, // Would need to track this separately for accuracy
+          accounts: []
+        }
+        
+        // Add details about conflicting accounts
+        if (queueEntry.beforeStateObservations) {
+          for (const [accountId, tracking] of queueEntry.beforeStateObservations) {
+            if (tracking.hashes.size > 1) {
+              conflictInfo.accounts.push({
+                accountId,
+                observedHashes: Array.from(tracking.hashes),
+                observationCount: tracking.samples.length,
+                firstObservation: tracking.samples[0]?.timestamp,
+                lastObservation: tracking.samples[tracking.samples.length - 1]?.timestamp
+              })
+            }
+          }
+        }
+        
+        summary.push(conflictInfo)
+      }
+    }
+    
+    return summary
   }
 
   getStartAndEndIndexOfTargetGroup(

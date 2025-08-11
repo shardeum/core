@@ -2511,6 +2511,54 @@ class StateManager {
       res.write(response)
       res.end()
     })
+
+    // Debug endpoint for OOS metrics (State Hardening Phase 1)
+    Context.network.registerExternalGet('debug-oos-metrics', isDebugModeMiddleware, (req, res) => {
+      try {
+        // Get all OOS-related counters from nestedCounters
+        const counters = this.getDebugOOSMetrics()
+        
+        // Filter and structure OOS metrics
+        const oosMetrics = {
+          timestamp: Date.now(),
+          node: {
+            id: Self.id,
+            ip: Context.config.ip.externalIp,
+            port: Context.config.ip.externalPort
+          },
+          detection: {
+            beforeStateConflictsDetected: counters['oos.beforeStateConflictDetected'] || 0,
+            totalObservations: counters['oos.beforeStateObservationCount'] || 0,
+            spreadMessagesSent: counters['oos.spreadMessagesSent'] || 0,
+            spreadMessagesReceived: counters['oos.spreadMessagesReceived'] || 0
+          },
+          conflicts: {
+            byAccountType: counters['oos.conflictsByAccountType'] || {},
+            byTxType: counters['oos.conflictsByTxType'] || {},
+            uniqueHashDistribution: this.extractHashDistribution(counters)
+          },
+          timing: {
+            avgConflictDetectionLatency: counters['oos.conflictDetectionLatency']?.avg || 0,
+            avgObservationSpread: counters['oos.observationSpread']?.avg || 0
+          },
+          // Include current queue state if requested
+          ...(req.query.includeQueueState && {
+            activeTransactions: this.transactionQueue.getActiveTransactionConflictSummary()
+          })
+        }
+        
+        // Return JSON response
+        res.json({
+          success: true,
+          metrics: oosMetrics
+        })
+      } catch (error) {
+        res.json({
+          success: false,
+          error: error.message
+        })
+      }
+    })
   }
 
   _unregisterEndpoints() {
@@ -3805,6 +3853,44 @@ class StateManager {
     } catch (err) {
       this.mainLogger.error(`clearStaleFifoLocks: ${err}`)
     }
+  }
+
+  /**
+   * Get OOS-related metrics from nestedCounters
+   * Used by the debug-oos-metrics endpoint
+   */
+  getDebugOOSMetrics() {
+    const result = {}
+    
+    // Access the eventCounters Map directly
+    const stateManagerCounter = nestedCountersInstance.eventCounters.get('stateManager')
+    if (stateManagerCounter && stateManagerCounter.subCounters) {
+      // Iterate through subcounters to find OOS metrics
+      for (const [key, counterNode] of stateManagerCounter.subCounters) {
+        if (typeof key === 'string' && key.startsWith('oos.')) {
+          result[key] = counterNode.count
+        }
+      }
+    }
+    
+    return result
+  }
+
+  /**
+   * Extract hash distribution from counters
+   * Converts oos.uniqueHashesPerAccount.N counters to a structured object
+   */
+  extractHashDistribution(counters: any) {
+    const distribution = {}
+    
+    for (const [key, value] of Object.entries(counters)) {
+      if (typeof key === 'string' && key.startsWith('oos.uniqueHashesPerAccount.')) {
+        const hashCount = key.replace('oos.uniqueHashesPerAccount.', '')
+        distribution[hashCount] = value
+      }
+    }
+    
+    return distribution
   }
 
   /***

@@ -1,5 +1,6 @@
 import { StateManager, P2P } from '@shardeum-foundation/lib-types'
 import * as Shardus from '../shardus/shardus-types'
+import { BeforeStateTracking } from '../types/state-manager'
 export { AcceptedTx, App, ApplyResponse, Cycle, Sign } from '../shardus/shardus-types'
 
 export type WrappedStateArray = Shardus.WrappedData[]
@@ -238,6 +239,10 @@ export type QueueEntry = {
   isSenderWrappedTxGroup: { [nodeId: string]: number }
 
   isNGT: boolean
+
+  // State hardening Phase 1 fields
+  beforeStateObservations?: Map<string, BeforeStateTracking> // accountId -> observations
+  beforeStateConflict?: boolean
 }
 
 // export type SyncTracker = {

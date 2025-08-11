@@ -1475,6 +1475,9 @@ export interface ServerConfiguration {
     checkDestLimitCount: number
     // timeout for global accounts receipt initiation
     globalAccountsReceiptInitiationTimeout?: number
+    // Phase 1 state hardening configuration
+    factBeforeSpreadFactor?: number // Enable 2x spread
+    enableBeforeStateDissentDetection?: boolean // Enable detection
   }
   /** Options for sharding calculations */
   sharding?: {
