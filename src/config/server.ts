@@ -428,6 +428,7 @@ const SERVER_CONFIG: StrictServerConfiguration = {
     avoidOurIndexInFactTell: false, //initial testing shows this may cause issues so leaving it off for now
     checkDestLimits: true,
     checkDestLimitCount: 5,
+    bypassAccountCache: false,
     globalAccountsReceiptInitiationTimeout: 5000, // 5 seconds default timeout
     // Phase 1 state hardening configuration
     factBeforeSpreadFactor: 2, // Enable 2x spread

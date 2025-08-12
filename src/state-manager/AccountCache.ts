@@ -284,12 +284,28 @@ class AccountCache {
   // at the end of buildPartitionHashesForNode gets set to the working/current cycle.
   // if TXs come in that are newer they get put in the future list and are not part of the parition hash report yet
 
-  hasAccount(accountId: string): boolean {
+  async hasAccount(accountId: string): Promise<boolean> {
+    if (this.config.stateManager.bypassAccountCache) {
+      const accountDataList = await this.app.getAccountDataByList([accountId])
+      return !!(accountDataList && accountDataList.length > 0 && accountDataList[0] != null)
+    }
     return this.accountsHashCache3.accountHashMap.has(accountId)
   }
 
   //just gets the newest seen hash.  does that cause issues?
-  getAccountHash(accountId: string): AccountHashCache {
+  async getAccountHash(accountId: string): Promise<AccountHashCache> {
+    if (this.config.stateManager.bypassAccountCache) {
+      const accountDataList = await this.app.getAccountDataByList([accountId])
+      if (accountDataList && accountDataList.length > 0 && accountDataList[0] != null) {
+        const accountData = accountDataList[0]
+        return {
+          h: accountData.stateId,
+          t: accountData.timestamp || Date.now(),
+          c: this.stateManager?.currentCycleShardData?.cycleNumber || 0
+        }
+      }
+      return null
+    }
     if (this.accountsHashCache3.accountHashMap.has(accountId) === false) {
       return null
     }
