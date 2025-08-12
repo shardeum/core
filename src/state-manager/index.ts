@@ -1123,8 +1123,8 @@ class StateManager {
       }
       //TODO perf remove this when we are satisfied with the situation
       //Additional testing to cache if we try to overrite with older data
-      if (this.accountCache.hasAccount(accountId)) {
-        const accountMemData: AccountHashCache = this.accountCache.getAccountHash(accountId)
+      if (await this.accountCache.hasAccount(accountId)) {
+        const accountMemData: AccountHashCache = await this.accountCache.getAccountHash(accountId)
         if (timestamp < accountMemData.t) {
           //should update cache anyway (older value may be needed)
 
@@ -1165,7 +1165,7 @@ class StateManager {
         }
 
         if (processStats) {
-          if (this.accountCache.hasAccount(accountId)) {
+          if (await this.accountCache.hasAccount(accountId)) {
             //TODO STATS BUG..  this is what can cause one form of stats bug.
             //we may have covered this account in the past, then not covered it, and now we cover it again.  Stats doesn't know how to repair
             // this situation.
@@ -2640,7 +2640,7 @@ class StateManager {
       partitionDump.globalAccountIDs = Array.from(this.accountGlobals.globalAccountSet.keys())
       partitionDump.globalAccountIDs.sort()
 
-      const { globalAccountSummary, globalStateHash } = this.accountGlobals.getGlobalDebugReport()
+      const { globalAccountSummary, globalStateHash } = await this.accountGlobals.getGlobalDebugReport()
       partitionDump.globalAccountSummary = globalAccountSummary
       partitionDump.globalStateHash = globalStateHash
     } else {

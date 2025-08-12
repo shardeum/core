@@ -233,7 +233,7 @@ class TransactionRepair {
               const shortKey = utils.stringifyReduce(key)
               const goalHash = voteHashMap.get(key)
               const data = writtenAccount.data
-              const hashObj = this.stateManager.accountCache.getAccountHash(key)
+              const hashObj = await this.stateManager.accountCache.getAccountHash(key)
 
               if (goalHash != null && goalHash === data.stateId) {
                 localReadyRepairs.set(key, data)
@@ -334,7 +334,7 @@ class TransactionRepair {
                 continue
               }
 
-              const hashObj = this.stateManager.accountCache.getAccountHash(key)
+              const hashObj = await this.stateManager.accountCache.getAccountHash(key)
               if (hashObj != null) {
                 // eslint-disable-next-line security/detect-possible-timing-attacks
                 if (hashObj.h === hash) {
@@ -548,8 +548,8 @@ class TransactionRepair {
               }
 
               // if our data is already good no need to ask for it again
-              if (this.stateManager.accountCache.hasAccount(requestObject.accountId)) {
-                const accountMemData: AccountHashCache = this.stateManager.accountCache.getAccountHash(
+              if (await this.stateManager.accountCache.hasAccount(requestObject.accountId)) {
+                const accountMemData: AccountHashCache = await this.stateManager.accountCache.getAccountHash(
                   requestObject.accountId
                 )
                 if (accountMemData.h === requestObject.accountHash) {
@@ -636,7 +636,7 @@ class TransactionRepair {
 
                   if (repairFix) {
                     //some temp checking.  A just in time check to see if we dont need to save this account.
-                    const hashObj = this.stateManager.accountCache.getAccountHash(key)
+                    const hashObj = await this.stateManager.accountCache.getAccountHash(key)
                     if (hashObj != null && hashObj.t > data.timestamp) {
                       /* prettier-ignore */ nestedCountersInstance.countEvent('repair1', 'skip account repair 2, we have a newer copy')
                       continue
@@ -751,7 +751,7 @@ class TransactionRepair {
                     let test4 = false
                     let branch4 = -1
                     if (isGlobal === false) {
-                      const hash = this.stateManager.accountCache.getAccountHash(data.accountId)
+                      const hash = await this.stateManager.accountCache.getAccountHash(data.accountId)
 
                       // eslint-disable-next-line security/detect-possible-timing-attacks
                       if (hash != null) {
@@ -833,7 +833,7 @@ class TransactionRepair {
         const badHashKeys = []
         const noHashKeys = []
         for (const key of keysList) {
-          const hashObj = this.stateManager.accountCache.getAccountHash(key)
+          const hashObj = await this.stateManager.accountCache.getAccountHash(key)
           if (hashObj == null) {
             noHashKeys.push(key)
             continue
