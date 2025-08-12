@@ -432,6 +432,17 @@ const SERVER_CONFIG: StrictServerConfiguration = {
     // Phase 1 state hardening configuration
     factBeforeSpreadFactor: 2, // Enable 2x spread
     enableBeforeStateDissentDetection: true, // Enable detection
+    // Phase 2 state hardening configuration
+    recentReceiptBufferSize: 1000, // Number of receipts to cache
+    recentReceiptTTL: 60000, // TTL for cached receipts in milliseconds (60 seconds)
+    enableArchiverLookupForDissent: false, // Enable archiver queries for conflict resolution
+    maxArchiverReceiptQueriesPerTx: 2, // Max archiver queries per transaction
+    // Phase 2 consensus delays configuration
+    beforeStateDissentDelayMs: 5000, // Initial delay on conflict detection (5 seconds)
+    maxDissentDelayMs: 10000, // Maximum total delay before requeue (10 seconds)
+    enableConflictResolutionDelays: false, // Start disabled, enable via gradual rollout
+    enableTransactionRequeue: false, // Start disabled, enable via gradual rollout
+    maxRequeueAttempts: 3, // Maximum 3 requeue attempts per transaction
   },
   sharding: { nodesPerConsensusGroup: 5, nodesPerEdge: 2, executeInOneShard: false },
   mode: ServerMode.Release,

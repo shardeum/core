@@ -1478,6 +1478,17 @@ export interface ServerConfiguration {
     // Phase 1 state hardening configuration
     factBeforeSpreadFactor?: number // Enable 2x spread
     enableBeforeStateDissentDetection?: boolean // Enable detection
+    // Phase 2 state hardening configuration
+    recentReceiptBufferSize?: number // Number of receipts to cache
+    recentReceiptTTL?: number // TTL for cached receipts in milliseconds
+    enableArchiverLookupForDissent?: boolean // Enable archiver queries for conflict resolution
+    maxArchiverReceiptQueriesPerTx?: number // Max archiver queries per transaction
+    // Phase 2 consensus delays configuration
+    beforeStateDissentDelayMs?: number // Initial delay on conflict detection (default: 5000ms)
+    maxDissentDelayMs?: number // Maximum total delay before requeue (default: 10000ms)
+    enableConflictResolutionDelays?: boolean // Enable delays when conflicts detected
+    enableTransactionRequeue?: boolean // Enable requeue on unresolved conflicts
+    maxRequeueAttempts?: number // Maximum requeue attempts per transaction
   }
   /** Options for sharding calculations */
   sharding?: {

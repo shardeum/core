@@ -45,6 +45,7 @@ import {
   Proposal,
   RequestFinalDataResp,
 } from './state-manager-types'
+import { ReceiptEntry } from './RecentReceiptBuffer'
 import { isInternalTxAllowed, networkMode } from '../p2p/Modes'
 import { Node } from '@shardeum-foundation/lib-types/build/src/p2p/NodeListTypes'
 import { Logger as L4jsLogger } from 'log4js'
@@ -3271,6 +3272,7 @@ class TransactionQueue {
         if (result.success === true && result.receipt != null) {
           //TODO implement this!!!
           queueEntry.receivedSignedReceipt = result.receipt
+          this.stateManager.recentReceiptBuffer.addReceipt(queueEntry.receivedSignedReceipt)
           keepTrying = false
           gotReceipt = true
 
@@ -4951,6 +4953,173 @@ class TransactionQueue {
     }
   }
 
+  /**
+   * Resolve before-state conflict using recent receipt buffer or archiver
+   * @returns Resolved state info if successful, null otherwise
+   */
+  async resolveBeforeStateConflict(
+    queueEntry: QueueEntry,
+    accountId: string,
+    conflictingHashes: Set<string>
+  ): Promise<{ hash: string; source: 'receipt-cache' | 'archiver' | 'local'; proof?: SignedReceipt } | null> {
+    // 1. Check recent receipt buffer first (fastest option)
+    const latestReceipt = this.stateManager.recentReceiptBuffer.getLatestForAccount(accountId)
+    if (latestReceipt && this.validateReceiptChain(latestReceipt, accountId, conflictingHashes)) {
+      nestedCountersInstance.countEvent('stateManager', 'oos.conflictResolved.receipt-cache')
+      return {
+        hash: latestReceipt.beforeStateHash || '',
+        source: 'receipt-cache',
+        proof: latestReceipt.receipt
+      }
+    }
+
+    // 2. Query archiver if enabled and within limits (Phase 2 optional)
+    if (this.canQueryArchiver(queueEntry)) {
+      try {
+        const archiverResult = await this.queryArchiverForReceipt(accountId, queueEntry.acceptedTx.txId)
+        if (archiverResult && this.validateArchiverReceipt(archiverResult, accountId, conflictingHashes)) {
+          nestedCountersInstance.countEvent('stateManager', 'oos.conflictResolved.archiver')
+          return {
+            hash: archiverResult.proposal.beforeStateHashes[archiverResult.proposal.accountIDs.indexOf(accountId)],
+            source: 'archiver',
+            proof: archiverResult
+          }
+        }
+      } catch (error) {
+        /* prettier-ignore */ if (logFlags.error) this.mainLogger.error(`resolveBeforeStateConflict: archiver query failed`, error)
+      }
+    }
+
+    // Unable to resolve
+    nestedCountersInstance.countEvent('stateManager', 'oos.conflictResolved.failed')
+    return null
+  }
+
+  /**
+   * Validate that a receipt from the buffer can resolve the conflict
+   */
+  validateReceiptChain(
+    receiptEntry: ReceiptEntry,
+    accountId: string,
+    conflictingHashes: Set<string>
+  ): boolean {
+    // Check if the receipt's before state matches one of our observed hashes
+    if (!receiptEntry.beforeStateHash) {
+      return false
+    }
+    
+    // The receipt's before state should match one of our conflicting hashes
+    if (!conflictingHashes.has(receiptEntry.beforeStateHash)) {
+      return false
+    }
+    
+    // Additional validation could include:
+    // - Checking receipt signatures
+    // - Verifying the receipt is from a valid cycle
+    // - Ensuring the receipt is for the same account
+    
+    return true
+  }
+
+  /**
+   * Check if we can query archiver for this transaction
+   */
+  canQueryArchiver(queueEntry: QueueEntry): boolean {
+    // Check if archiver lookup is enabled
+    if (!this.config.stateManager.enableArchiverLookupForDissent) {
+      return false
+    }
+    
+    // Check per-transaction query limit
+    // TODO: Track query count per transaction
+    // const queriesForTx = this.archiverQueryTracker?.getQueryCount(queueEntry.acceptedTx.txId) || 0
+    // return queriesForTx < (this.config.stateManager.maxArchiverReceiptQueriesPerTx || 2)
+    
+    // For now, return false as archiver integration is optional in Phase 2
+    return false
+  }
+
+  /**
+   * Query archiver for receipt (placeholder - to be implemented with archiver team)
+   */
+  async queryArchiverForReceipt(accountId: string, txId: string): Promise<SignedReceipt | null> {
+    // TODO: Implement archiver query
+    // This will be implemented when archiver API is ready
+    return null
+  }
+
+  /**
+   * Validate receipt from archiver
+   */
+  validateArchiverReceipt(
+    receipt: SignedReceipt,
+    accountId: string,
+    conflictingHashes: Set<string>
+  ): boolean {
+    // Find the account in the receipt
+    const accountIndex = receipt.proposal.accountIDs.indexOf(accountId)
+    if (accountIndex === -1) {
+      return false
+    }
+    
+    // Check if the before state hash matches one of our conflicts
+    const beforeHash = receipt.proposal.beforeStateHashes[accountIndex]
+    return conflictingHashes.has(beforeHash)
+  }
+
+  /**
+   * Attempt to resolve all conflicts for a queue entry
+   * @returns true if all conflicts resolved, false otherwise
+   */
+  async attemptConflictResolution(queueEntry: QueueEntry): Promise<boolean> {
+    if (!queueEntry.beforeStateObservations) {
+      return true // No conflicts to resolve
+    }
+
+    let allResolved = true
+    
+    // Initialize resolved state map if needed
+    if (!queueEntry.resolvedBeforeState) {
+      queueEntry.resolvedBeforeState = new Map()
+    }
+
+    // Process each account with conflicts
+    for (const [accountId, tracking] of queueEntry.beforeStateObservations) {
+      if (tracking.hashes.size <= 1) {
+        continue // No conflict for this account
+      }
+
+      // Skip if already resolved
+      if (queueEntry.resolvedBeforeState.has(accountId)) {
+        continue
+      }
+
+      // Try to resolve this account's conflict
+      const resolved = await this.resolveBeforeStateConflict(
+        queueEntry,
+        accountId,
+        tracking.hashes
+      )
+
+      if (resolved) {
+        // Store resolution
+        queueEntry.resolvedBeforeState.set(accountId, resolved)
+        
+        nestedCountersInstance.countEvent(
+          'stateManager',
+          `oos.conflictResolved.${resolved.source}`
+        )
+        
+        /* prettier-ignore */ if (logFlags.verbose) this.mainLogger.debug(`Resolved before-state conflict for account ${accountId} using ${resolved.source}`)
+      } else {
+        allResolved = false
+        /* prettier-ignore */ if (logFlags.verbose) this.mainLogger.debug(`Failed to resolve before-state conflict for account ${accountId}`)
+      }
+    }
+
+    return allResolved
+  }
+
 
   /**
    * Get active transaction conflict summary for debug endpoint
@@ -4967,7 +5136,10 @@ class TransactionQueue {
           state: queueEntry.state,
           acceptedTimestamp: queueEntry.acceptedTx.timestamp,
           conflictDetectedAt: queueEntry.acceptedTx.timestamp, // Would need to track this separately for accuracy
-          accounts: []
+          hasDissentTimers: !!queueEntry.dissentTimers,
+          delayApplied: queueEntry.dissentTimers?.delayApplied || 0,
+          accounts: [],
+          resolutions: []
         }
         
         // Add details about conflicting accounts
@@ -4982,6 +5154,18 @@ class TransactionQueue {
                 lastObservation: tracking.samples[tracking.samples.length - 1]?.timestamp
               })
             }
+          }
+        }
+        
+        // Add resolution information if available
+        if (queueEntry.resolvedBeforeState) {
+          for (const [accountId, resolution] of queueEntry.resolvedBeforeState) {
+            conflictInfo.resolutions.push({
+              accountId,
+              resolvedHash: resolution.hash,
+              source: resolution.source,
+              hasProof: !!resolution.proof
+            })
           }
         }
         
@@ -7138,6 +7322,8 @@ class TransactionQueue {
                   }
                   didNotMatchReceipt = true
                   queueEntry.signedReceiptForRepair = result
+                  // Add repair receipt to recent receipt buffer
+                  this.stateManager.recentReceiptBuffer.addReceipt(queueEntry.signedReceiptForRepair)
 
                   // queueEntry.appliedReceiptForRepair2 = this.stateManager.getReceipt2(queueEntry)
                   if (queueEntry.isInExecutionHome === false && queueEntry.signedReceipt != null) {
@@ -9355,6 +9541,156 @@ class TransactionQueue {
       return buckets
     } catch (e) {
       return {}
+    }
+  }
+
+  /**
+   * Requeue a transaction that couldn't be resolved
+   * This creates a new transaction with the same data but a new timestamp
+   * @param queueEntry - The queue entry to requeue
+   * @param reason - The reason for requeuing
+   */
+  async requeueTransaction(queueEntry: QueueEntry, reason: string): Promise<void> {
+    try {
+      if (!this.config.stateManager.enableTransactionRequeue) {
+        return
+      }
+
+      if (!queueEntry.requeueAttempts) {
+        queueEntry.requeueAttempts = 0
+      }
+      
+      queueEntry.requeueAttempts++
+      
+      if (queueEntry.requeueAttempts > this.config.stateManager.maxRequeueAttempts) {
+        /* prettier-ignore */ if (logFlags.verbose) this.mainLogger.warn(`Transaction ${queueEntry.logID} exceeded max requeue attempts (${this.config.stateManager.maxRequeueAttempts})`)
+        nestedCountersInstance.countEvent('stateManager', 'oos.requeueExceededMax')
+        return
+      }
+
+      nestedCountersInstance.countEvent('stateManager', 'oos.transactionRequeued')
+      nestedCountersInstance.countEvent('stateManager', `oos.requeueReason.${reason}`)
+      
+      /* prettier-ignore */ if (logFlags.verbose) this.mainLogger.debug(`Requeuing transaction ${queueEntry.logID} due to: ${reason} (attempt ${queueEntry.requeueAttempts})`)
+
+      const newAcceptedTx: AcceptedTx = {
+        ...queueEntry.acceptedTx,
+        timestamp: shardusGetTime()
+      }
+
+      const txIdData = {
+        timestamp: newAcceptedTx.timestamp,
+        keys: queueEntry.acceptedTx.keys,
+        shardusMemoryPatterns: queueEntry.acceptedTx.shardusMemoryPatterns
+      }
+      newAcceptedTx.txId = this.crypto.hash(txIdData)
+
+      this.removeTransactionFromQueue(queueEntry)
+
+      const newQueueEntry: QueueEntry = {
+        acceptedTx: newAcceptedTx,
+        txKeys: queueEntry.txKeys,
+        uniqueTags: queueEntry.uniqueTags,
+        collectedData: {},
+        originalData: {},
+        collectedFinalData: {},
+        beforeHashes: {},
+        homeNodes: {},
+        executionShardKey: queueEntry.executionShardKey,
+        isInExecutionHome: queueEntry.isInExecutionHome,
+        patchedOnNodes: new Map(),
+        hasShardInfo: false,
+        state: 'consensing',
+        dataCollected: 0,
+        hasAll: false,
+        entryID: ++this.queueEntryCounter,
+        localKeys: {},
+        involvedNodes: {},
+        consensusGroup: [],
+        transactionGroup: [],
+        executionGroup: [],
+        txGroupCycle: queueEntry.txGroupCycle,
+        logID: `${utils.makeShortHash(newAcceptedTx.txId)}`,
+        didWeVote: false,
+        didWeFail: false,
+        pendingNodeForReceipt: null,
+        requestingReceipt: false,
+        lastReceiptSentToNode: null,
+        requestReceiptTimestamp: 0,
+        receivedReceiptFromNode: null,
+        appliedReceiptForRepair: false,
+        receiptEarly: false,
+        appliedReceipt: null,
+        appliedVote: null,
+        receivedBestReceipt: null,
+        receivedBestVote: null,
+        receivedBestVoter: null,
+        receivedReceipt: null,
+        recievedAppliedReceipt2: null,
+        ourNodeRank: BigInt(-1),
+        eligibleNodeIdsToVote: new Set(),
+        eligibleNodeIdsToConfirm: new Set(),
+        collectedVotes: [],
+        collectedVoteHashes: [],
+        robustQueryVoteCompleted: false,
+        ourVoteHash: null,
+        ourProposal: null,
+        sharedCompleteData: false,
+        gossipedCompleteData: false,
+        ourVote: null,
+        almostExpired: false,
+        preApplyTXResult: null,
+        recievedAppliedReceipt: null,
+        signedReceipt: null,
+        poqoNextSendIndex: 0,
+        firstVoteReceivedTimestamp: 0,
+        lastVoteReceivedTimestamp: 0,
+        firstReceiptReceivedTimestamp: 0,
+        lastReceiptReceivedTimestamp: 0,
+        newVotes: false,
+        queryingRobustAccountData: false,
+        // Phase 1 state hardening fields
+        beforeStateObservations: queueEntry.beforeStateObservations,
+        beforeStateConflict: queueEntry.beforeStateConflict,
+        // Phase 2 state hardening fields
+        resolvedBeforeState: queueEntry.resolvedBeforeState,
+        dissentTimers: null,
+        requeueAttempts: queueEntry.requeueAttempts
+      }
+
+      this.pendingTransactionQueue.push(newQueueEntry)
+      this.pendingTransactionQueueByID.set(newAcceptedTx.txId, newQueueEntry)
+      
+      /* prettier-ignore */ if (logFlags.verbose) this.mainLogger.debug(`Successfully requeued transaction ${queueEntry.logID} as ${newAcceptedTx.txId}`)
+      
+    } catch (error) {
+      /* prettier-ignore */ if (logFlags.error) this.mainLogger.error(`Failed to requeue transaction ${queueEntry.logID}: ${error.message}`)
+      nestedCountersInstance.countEvent('stateManager', 'oos.requeueFailed')
+    }
+  }
+
+  /**
+   * Remove a transaction from the queue
+   * Helper method for requeueTransaction
+   */
+  private removeTransactionFromQueue(queueEntry: QueueEntry): void {
+    const index = this._transactionQueue.indexOf(queueEntry)
+    if (index !== -1) {
+      this._transactionQueue.splice(index, 1)
+    }
+
+    this._transactionQueueByID.delete(queueEntry.acceptedTx.txId)
+
+    if (!this.archivedQueueEntriesByID.has(queueEntry.acceptedTx.txId)) {
+      this.archivedQueueEntries.push(queueEntry)
+      this.archivedQueueEntriesByID.set(queueEntry.acceptedTx.txId, queueEntry)
+      
+      while (this.archivedQueueEntries.length > this.archivedQueueEntryMaxCount) {
+        const removed = this.archivedQueueEntries.shift()
+        if (removed) {
+          this.archivedQueueEntriesByID.delete(removed.acceptedTx.txId)
+        }
+      }
     }
   }
 }

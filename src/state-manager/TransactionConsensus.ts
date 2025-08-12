@@ -1033,6 +1033,7 @@ class TransactionConsenus {
         }
 
         queueEntry.signedReceipt = { ...payload }
+        this.stateManager.recentReceiptBuffer.addReceipt(queueEntry.signedReceipt)
         payload.txGroupCycle = queueEntry.txGroupCycle
         fireAndForget(() =>
           Comms.sendGossip(
@@ -1157,6 +1158,7 @@ class TransactionConsenus {
             if (logFlags.verbose)
               this.mainLogger.debug(`POQo: received data & receipt for ${queueEntry.logID} starting receipt gossip`)
             queueEntry.signedReceipt = readableReq.receipt
+            this.stateManager.recentReceiptBuffer.addReceipt(queueEntry.signedReceipt)
             const receiptToGossip = { ...readableReq.receipt, txGroupCycle: queueEntry.txGroupCycle }
             fireAndForget(() =>
               Comms.sendGossip(
@@ -1492,6 +1494,7 @@ class TransactionConsenus {
             )
           const receivedReceipt = readableReq as SignedReceipt
           queueEntry.signedReceipt = receivedReceipt
+          this.stateManager.recentReceiptBuffer.addReceipt(queueEntry.signedReceipt)
           queueEntry.hasSentFinalReceipt = true
           const receiptToGossip = { ...readableReq, txGroupCycle: queueEntry.txGroupCycle }
           fireAndForget(() =>
@@ -2222,6 +2225,7 @@ class TransactionConsenus {
         // }
 
         queueEntry.signedReceipt = signedReceipt
+        this.stateManager.recentReceiptBuffer.addReceipt(queueEntry.signedReceipt)
 
         //this is a temporary hack to reduce the ammount of refactor needed.
         // const appliedReceipt: AppliedReceipt = {
@@ -3349,6 +3353,37 @@ class TransactionConsenus {
     this.profiler.profileSectionStart('createAndShareVote', true)
 
     try {
+      if (this.config.stateManager.enableConflictResolutionDelays) {
+        if (queueEntry.beforeStateConflict || this.hasProposalConflicts(queueEntry)) {
+          if (!queueEntry.dissentTimers) {
+            queueEntry.dissentTimers = {
+              startedAt: shardusGetTime(),
+              lastExtendAt: shardusGetTime(),
+              delayApplied: 0
+            }
+          }
+
+          const delayMs = this.config.stateManager.beforeStateDissentDelayMs
+          await utils.sleep(delayMs)
+          queueEntry.dissentTimers.delayApplied += delayMs
+
+          const resolved = await this.stateManager.transactionQueue.attemptConflictResolution(queueEntry)
+          
+          if (!resolved) {
+            if (queueEntry.dissentTimers.delayApplied >= this.config.stateManager.maxDissentDelayMs) {
+              if (this.config.stateManager.enableTransactionRequeue) {
+                await this.stateManager.transactionQueue.requeueTransaction(queueEntry, 'before-state-conflict-unresolved')
+                return
+              }
+            }
+            
+            nestedCountersInstance.countEvent('stateManager', 'oos.votesAbstained')
+            if (logFlags.debug) this.mainLogger.debug(`createAndShareVote: ${queueEntry.logID} abstaining due to unresolved conflict`)
+            return
+          }
+        }
+      }
+
       const ourNodeId = Self.id
       const isEligibleToShareVote = queueEntry.eligibleNodeIdsToVote.has(ourNodeId)
 
@@ -4079,6 +4114,45 @@ class TransactionConsenus {
     queueEntry.newVotes = true
     queueEntry.lastVoteReceivedTimestamp = shardusGetTime()
     return true
+  }
+
+  /**
+   * Check for proposal conflicts in collected votes
+   * Returns true if multiple different before-state hashes are observed for any account
+   */
+  hasProposalConflicts(queueEntry: QueueEntry): boolean {
+    const beforeStatesByAccount = this.compareProposalBeforeStates(queueEntry)
+    
+    // Check if any account has multiple hashes
+    for (const hashes of beforeStatesByAccount.values()) {
+      if (hashes.size > 1) {
+        return true
+      }
+    }
+    
+    return false
+  }
+
+  /**
+   * Compare before-state hashes from all proposals in collected votes
+   * Returns a map of accountId -> Set of observed hashes
+   */
+  compareProposalBeforeStates(queueEntry: QueueEntry): Map<string, Set<string>> {
+    const beforeStatesByAccount = new Map<string, Set<string>>()
+    
+    // Collect all before-state hashes from proposals
+    for (const vote of queueEntry.collectedVotes.values()) {
+      if (vote.proposal?.beforeStateHashes) {
+        for (const [accountId, hash] of Object.entries(vote.proposal.beforeStateHashes)) {
+          if (!beforeStatesByAccount.has(accountId)) {
+            beforeStatesByAccount.set(accountId, new Set())
+          }
+          beforeStatesByAccount.get(accountId).add(hash)
+        }
+      }
+    }
+    
+    return beforeStatesByAccount
   }
 }
 

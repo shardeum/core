@@ -243,6 +243,19 @@ export type QueueEntry = {
   // State hardening Phase 1 fields
   beforeStateObservations?: Map<string, BeforeStateTracking> // accountId -> observations
   beforeStateConflict?: boolean
+  
+  // State hardening Phase 2 fields
+  resolvedBeforeState?: Map<string, {
+    hash: string
+    source: 'receipt-cache' | 'archiver' | 'local'
+    proof?: SignedReceipt
+  }>
+  dissentTimers?: {
+    startedAt: number
+    lastExtendAt: number
+    delayApplied: number
+  }
+  requeueAttempts?: number
 }
 
 // export type SyncTracker = {

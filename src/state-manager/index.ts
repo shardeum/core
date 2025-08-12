@@ -36,6 +36,7 @@ import PartitionObjects from './PartitionObjects'
 import Deprecated from './Deprecated'
 import AccountPatcher from './AccountPatcher'
 import CachedAppDataManager from './CachedAppDataManager'
+import { RecentReceiptBuffer } from './RecentReceiptBuffer'
 import {
   CycleShardData,
   PartitionReceipt,
@@ -163,6 +164,7 @@ class StateManager {
   accountPatcher: AccountPatcher
   cachedAppDataManager: CachedAppDataManager
   depricated: Deprecated
+  recentReceiptBuffer: RecentReceiptBuffer
 
   // syncTrackers:SyncTracker[];
   shardValuesByCycle: Map<number, CycleShardData>
@@ -333,6 +335,10 @@ class StateManager {
     this.depricated = new Deprecated(this, profiler, app, logger, storage, p2p, crypto, config)
     this.accountPatcher = new AccountPatcher(this, profiler, app, logger, p2p, crypto, config)
     this.cachedAppDataManager = new CachedAppDataManager(this, profiler, app, logger, crypto, p2p, config)
+
+    const bufferSize = config.stateManager.recentReceiptBufferSize || 1000
+    const ttl = config.stateManager.recentReceiptTTL || 60000 // 60 seconds
+    this.recentReceiptBuffer = new RecentReceiptBuffer(bufferSize, ttl)
 
     // feature controls.
     // this.oldFeature_TXHashsetTest = true
@@ -2466,6 +2472,20 @@ class StateManager {
       res.end()
     })
 
+    Context.network.registerExternalGet('debug-receipt-buffer-stats', isDebugModeMiddleware, (req, res) => {
+      const stats = this.recentReceiptBuffer.getStats()
+      const response = {
+        timestamp: Date.now(),
+        nodeId: Self.id,
+        bufferStats: stats,
+        config: {
+          bufferSize: this.config.stateManager.recentReceiptBufferSize || 1000,
+          ttl: this.config.stateManager.recentReceiptTTL || 60000
+        },
+      }
+      res.json(response)
+    })
+
     Context.network.registerExternalGet('debug-queue-item-by-txid', isDebugModeMiddlewareLow, (_req, res) => {
       const txId = _req.query.txId
       if (txId == null || typeof txId !== 'string' || txId.length !== 64) {
@@ -2557,6 +2577,19 @@ class StateManager {
             totalObservations: counters['oos.beforeStateObservationCount'] || 0,
             spreadMessagesSent: counters['oos.spreadMessagesSent'] || 0,
             spreadMessagesReceived: counters['oos.spreadMessagesReceived'] || 0
+          },
+          resolution: {
+            totalResolved: (counters['oos.conflictResolved.receipt-cache'] || 0) + 
+                          (counters['oos.conflictResolved.archiver'] || 0) + 
+                          (counters['oos.conflictResolved.local'] || 0),
+            bySource: {
+              receiptCache: counters['oos.conflictResolved.receipt-cache'] || 0,
+              archiver: counters['oos.conflictResolved.archiver'] || 0,
+              local: counters['oos.conflictResolved.local'] || 0
+            },
+            failed: counters['oos.conflictResolved.failed'] || 0,
+            receiptBufferHits: counters['recentReceiptBuffer.accountHit'] || 0,
+            receiptBufferMisses: counters['recentReceiptBuffer.accountMiss'] || 0
           },
           conflicts: {
             byAccountType: counters['oos.conflictsByAccountType'] || {},
@@ -3926,9 +3959,10 @@ class StateManager {
     // Access the eventCounters Map directly
     const stateManagerCounter = nestedCountersInstance.eventCounters.get('stateManager')
     if (stateManagerCounter && stateManagerCounter.subCounters) {
-      // Iterate through subcounters to find OOS metrics
+      // Iterate through subcounters to find OOS metrics and receipt buffer metrics
       for (const [key, counterNode] of stateManagerCounter.subCounters) {
-        if (typeof key === 'string' && key.startsWith('oos.')) {
+        if (typeof key === 'string' && 
+            (key.startsWith('oos.') || key.startsWith('recentReceiptBuffer.'))) {
           result[key] = counterNode.count
         }
       }
