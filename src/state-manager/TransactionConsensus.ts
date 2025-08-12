@@ -3381,6 +3381,20 @@ class TransactionConsenus {
             if (logFlags.debug) this.mainLogger.debug(`createAndShareVote: ${queueEntry.logID} abstaining due to unresolved conflict`)
             return
           }
+
+          if (this.stateManager.transactionQueue.shouldHaltDueToConflict(queueEntry)) {
+            nestedCountersInstance.countEvent('stateManager', 'oos.haltedDueToMajorityWrongState')
+            if (logFlags.error) this.mainLogger.error(`createAndShareVote: ${queueEntry.logID} halting - majority has wrong state proven by receipt`)
+            
+            // Requeue the transaction if enabled
+            if (this.config.stateManager.enableTransactionRequeue) {
+              await this.stateManager.transactionQueue.requeueTransaction(queueEntry, 'majority-wrong-state-with-proof')
+              return
+            }
+            
+            // Otherwise just halt processing
+            return
+          }
         }
       }
 

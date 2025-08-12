@@ -5120,6 +5120,55 @@ class TransactionQueue {
     return allResolved
   }
 
+  shouldHaltDueToConflict(queueEntry: QueueEntry): boolean {
+    if (!queueEntry.beforeStateConflict || !queueEntry.resolvedBeforeState) {
+      return false // No conflict or no resolution attempted
+    }
+
+    // Check each resolved conflict
+    for (const [accountId, resolution] of queueEntry.resolvedBeforeState) {
+      // Only consider halting if we have proof (receipt) that shows a different state
+      if (!resolution.proof) {
+        continue
+      }
+
+      // Get the tracking data for this account
+      const tracking = queueEntry.beforeStateObservations?.get(accountId)
+      if (!tracking) {
+        continue
+      }
+
+      // Find which hash has the majority
+      const hashCounts = new Map<string, number>()
+      for (const sample of tracking.samples) {
+        const count = hashCounts.get(sample.hash) || 0
+        hashCounts.set(sample.hash, count + 1)
+      }
+
+      // Find the majority hash
+      let majorityHash = ''
+      let maxCount = 0
+      for (const [hash, count] of hashCounts) {
+        if (count > maxCount) {
+          maxCount = count
+          majorityHash = hash
+        }
+      }
+
+      // Check if majority has the wrong state AND receipt proves a newer state
+      if (majorityHash && majorityHash !== resolution.hash && resolution.proof) {
+        // The majority vote has a different state than what the receipt proves
+        // This is the condition where we should halt
+        nestedCountersInstance.countEvent('stateManager', 'oos.haltDueToMajorityWrongState')
+        
+        /* prettier-ignore */ if (logFlags.error) this.mainLogger.error(`Halting transaction ${queueEntry.logID}: majority vote has wrong state for account ${accountId}. Majority: ${majorityHash}, Receipt proves: ${resolution.hash}`)
+        
+        return true
+      }
+    }
+
+    return false
+  }
 
   /**
    * Get active transaction conflict summary for debug endpoint
