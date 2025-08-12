@@ -1753,7 +1753,8 @@ class AccountPatcher {
         for (const chunk of report.summary.chunks) {
           if (chunk.recordsProcessed > 0) {
             res.write(
-              `Chunk ${chunk.chunkIndex}: ${chunk.recordsProcessed} records in ${chunk.timeSpentMs
+              `Chunk ${chunk.chunkIndex}: ${chunk.recordsProcessed} records in ${
+                chunk.timeSpentMs
               }ms (${chunk.low.substring(0, 4)}...)\n`
             )
           }
@@ -1784,9 +1785,7 @@ class AccountPatcher {
                 res.write(`  Cache: [missing]\n`)
               }
               if (account.trie) {
-                res.write(
-                  `  Trie:  hash=${account.trie.hash.substring(0, 8)}...\n`
-                )
+                res.write(`  Trie:  hash=${account.trie.hash.substring(0, 8)}...\n`)
               } else {
                 res.write(`  Trie:  [missing]\n`)
               }
@@ -1797,9 +1796,7 @@ class AccountPatcher {
               } else {
                 res.write(`  Storage: [missing]\n`)
               }
-              res.write(
-                `  Matches: cth=${account.cth} cst=${account.cst} csh=${account.csh} tsh=${account.tsh}\n\n`
-              )
+              res.write(`  Matches: cth=${account.cth} cst=${account.cst} csh=${account.csh} tsh=${account.tsh}\n\n`)
             }
           }
         }
@@ -2451,7 +2448,8 @@ class AccountPatcher {
     if (coverageEntry == null || coverageEntry.firstChoice == null) {
       const numActiveNodes = this.stateManager.currentCycleShardData.nodes.length
       this.statemanager_fatal(
-        `getNodeForQuery null ${coverageEntry == null} ${coverageEntry?.firstChoice == null
+        `getNodeForQuery null ${coverageEntry == null} ${
+          coverageEntry?.firstChoice == null
         } numActiveNodes:${numActiveNodes}`,
         `getNodeForQuery null ${coverageEntry == null} ${coverageEntry?.firstChoice == null}`
       )
@@ -2969,7 +2967,8 @@ class AccountPatcher {
           /* prettier-ignore */ nestedCountersInstance.countEvent(`accountPatcher`, `not enough votes ${radix} ${utils.makeShortHash(votesMap.bestHash)} uniqueVotes: ${votesMap.allVotes.size}`, 1)
           this.statemanager_fatal(
             'debug findBadAccounts',
-            `debug findBadAccounts ${cycle}: ${radix} bestVotes${votesMap.bestVotes
+            `debug findBadAccounts ${cycle}: ${radix} bestVotes${
+              votesMap.bestVotes
             } < minVotes:${minVotes} uniqueVotes: ${votesMap.allVotes.size} ${utils.stringifyReduce(simpleMap)}`
           )
         }
@@ -3037,8 +3036,10 @@ class AccountPatcher {
         }
         this.statemanager_fatal(
           'debug findBadAccounts',
-          `debug findBadAccounts ${cycle}: ${radixToFix.radix
-          } isInNonConsensusRange: ${hasNonConsensusRange} isInNonStorageRange: ${hasNonStorageRange} bestVotes ${votesMap.bestVotes
+          `debug findBadAccounts ${cycle}: ${
+            radixToFix.radix
+          } isInNonConsensusRange: ${hasNonConsensusRange} isInNonStorageRange: ${hasNonStorageRange} bestVotes ${
+            votesMap.bestVotes
           } minVotes:${minVotes} uniqueVotes: ${votesMap.allVotes.size} ${utils.stringifyReduce(simpleMap)}`
         )
       }
@@ -3792,7 +3793,8 @@ class AccountPatcher {
 
       if (logFlags.debug) {
         this.mainLogger.debug(
-          `badAccounts cycle: ${cycle}, ourBadAccounts: ${results.badAccounts.length
+          `badAccounts cycle: ${cycle}, ourBadAccounts: ${
+            results.badAccounts.length
           }, ourBadAccounts: ${Utils.safeStringify(results.badAccounts)}`
         )
       }
@@ -3802,7 +3804,8 @@ class AccountPatcher {
           accountsTheyNeedToRepair = accountsTheyNeedToRepair.concat(results.extraBadAccounts)
         }
         this.mainLogger.debug(
-          `badAccounts cycle: ${cycle}, accountsTheyNeedToRepair: ${accountsTheyNeedToRepair.length
+          `badAccounts cycle: ${cycle}, accountsTheyNeedToRepair: ${
+            accountsTheyNeedToRepair.length
           }, accountsTheyNeedToRepair: ${Utils.safeStringify(accountsTheyNeedToRepair)}`
         )
         fireAndForget(() => this.requestOtherNodesToRepair(accountsTheyNeedToRepair))
@@ -3874,7 +3877,8 @@ class AccountPatcher {
               'checkAndSetAccountData updateTooOld',
               `checkAndSetAccountData updateTooOld ${cycle}: acc:${utils.stringifyReduce(
                 wrappedData.accountId
-              )} updateTS:${wrappedData.timestamp} updateHash:${utils.stringifyReduce(wrappedData.stateId)}  cacheTS:${accountMemData.t
+              )} updateTS:${wrappedData.timestamp} updateHash:${utils.stringifyReduce(wrappedData.stateId)}  cacheTS:${
+                accountMemData.t
               } cacheHash:${utils.stringifyReduce(accountMemData.h)}`
             )
             filterStats.tooOld++
@@ -4091,7 +4095,8 @@ class AccountPatcher {
       )
       this.statemanager_fatal(
         'isInSync = false',
-        `bad accounts cycle:${cycle} bad:${results.badAccounts.length} received:${wrappedDataList.length} failedH: ${failedHashes.length
+        `bad accounts cycle:${cycle} bad:${results.badAccounts.length} received:${wrappedDataList.length} failedH: ${
+          failedHashes.length
         } filtered:${utils.stringifyReduce(filterStats)} stats:${utils.stringifyReduce(
           results.stats
         )} getAccountStats: ${utils.stringifyReduce(getAccountStats)} details: ${utils.stringifyReduceLimit(
@@ -4677,7 +4682,8 @@ class AccountPatcher {
       }
 
       stream.write(
-        `node: ${nodesCovered.id} ${nodesCovered.ipPort}\tgraph: ${partitionGraph}\thome: ${nodesCovered.hP
+        `node: ${nodesCovered.id} ${nodesCovered.ipPort}\tgraph: ${partitionGraph}\thome: ${
+          nodesCovered.hP
         } data:${Utils.safeStringify(nodesCovered)}\n`
       )
     }
