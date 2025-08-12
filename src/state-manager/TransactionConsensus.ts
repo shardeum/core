@@ -4139,19 +4139,12 @@ class TransactionConsenus {
    */
   compareProposalBeforeStates(queueEntry: QueueEntry): Map<string, Set<string>> {
     const beforeStatesByAccount = new Map<string, Set<string>>()
-    
-    // Collect all before-state hashes from proposals
-    for (const vote of queueEntry.collectedVotes.values()) {
-      if (vote.proposal?.beforeStateHashes) {
-        for (const [accountId, hash] of Object.entries(vote.proposal.beforeStateHashes)) {
-          if (!beforeStatesByAccount.has(accountId)) {
-            beforeStatesByAccount.set(accountId, new Set())
-          }
-          beforeStatesByAccount.get(accountId).add(hash)
-        }
-      }
+
+    // Get before-state hashes directly from queueEntry
+    for (const [accountId, hash] of Object.entries(queueEntry.beforeHashes)) {
+      beforeStatesByAccount.set(accountId, new Set([hash]))
     }
-    
+
     return beforeStatesByAccount
   }
 }
