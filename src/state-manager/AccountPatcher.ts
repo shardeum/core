@@ -1609,11 +1609,9 @@ class AccountPatcher {
 
         const trieAccount = this.getAccountTreeInfo(id)
         const accountHash = await this.stateManager.accountCache.getAccountHash(id)
-        const accountHashFull = this.stateManager.accountCache.getAccountDebugObject(id) //this.stateManager.accountCache.accountsHashCache3.accountHashMap.get(id)
         const accountData = await this.app.getAccountDataByList([id])
         res.write(`trieAccount: ${Utils.safeStringify(trieAccount)} \n`)
         res.write(`accountHash: ${Utils.safeStringify(accountHash)} \n`)
-        res.write(`accountHashFull: ${Utils.safeStringify(accountHashFull)} \n`)
         res.write(`accountData: ${JSON.stringify(accountData, appdata_replacer)} \n\n`)
         res.write(`tests: \n`)
         if (accountData != null && accountData.length === 1 && accountHash != null) {
@@ -3123,37 +3121,6 @@ class AccountPatcher {
           const accountMemData: AccountHashCache = await this.stateManager.accountCache.getAccountHash(
             potentalGoodAcc.accountID
           )
-          if (accountMemData != null && accountMemData.h === potentalGoodAcc.hash) {
-            if (accountMemData.c >= cycle - 1) {
-              if (potentalBadAcc != null) {
-                if (potentalBadAcc.hash != potentalGoodAcc.hash) {
-                  stats.ok_trieHashBad++ // mem account is good but trie account is bad
-                }
-              } else {
-                stats.ok_noTrieAcc++ // no trie account at all
-              }
-
-              //this was in cache, but stale so we can reinstate the cache since it still matches the group consensus
-              const accountHashCacheHistory: AccountHashCacheHistory =
-                this.stateManager.accountCache.getAccountHashHistoryItem(potentalGoodAcc.accountID)
-              if (
-                accountHashCacheHistory != null &&
-                accountHashCacheHistory.lastStaleCycle >= accountHashCacheHistory.lastSeenCycle
-              ) {
-                stats.fixLastSeen++
-                accountHashCacheHistory.lastSeenCycle = cycle
-              }
-              //skip out
-              continue
-            } else {
-              //dont skip out!
-              //cache matches but trie hash is bad
-              stats.fix_butHashMatch++
-              //actually we can repair trie here:
-              this.updateAccountHash(potentalGoodAcc.accountID, potentalGoodAcc.hash)
-              continue
-            }
-          }
 
           //is the account missing or wrong hash?
           if (potentalBadAcc != null) {
@@ -3789,62 +3756,15 @@ class AccountPatcher {
             continue
           }
           //This is less likely to be hit here now that similar logic checking the hash happens upstream in findBadAccounts()
-          if (wrappedData.timestamp === accountMemData.t) {
-            let allowPatch = false
-            // if we got here make sure to update the last seen cycle in case the cache needs to know it has current enough data
-            const accountHashCacheHistory: AccountHashCacheHistory =
-              this.stateManager.accountCache.getAccountHashHistoryItem(wrappedData.accountId)
-            if (
-              accountHashCacheHistory != null &&
-              accountHashCacheHistory.lastStaleCycle >= accountHashCacheHistory.lastSeenCycle
-            ) {
-              // /* prettier-ignore */ nestedCountersInstance.countEvent('accountPatcher', `checkAndSetAccountData updateSameTS update lastSeenCycle c:${cycle}`)
-              filterStats.sameTSFix++
-              accountHashCacheHistory.lastSeenCycle = cycle
-            } else if (
-              accountHashCacheHistory != null &&
-              accountHashCacheHistory.accountHashList.length > 0 &&
-              wrappedData.stateId != accountHashCacheHistory.accountHashList[0].h
-            ) {
-              // not sure if this is the correct fix but testing will let us know more
-              nestedCountersInstance.countRareEvent('accountPatcher', `tsFix2`)
-              nestedCountersInstance.countEvent('accountPatcher', `tsFix2 c:${cycle}`)
-              //not really fatal. but want to validate info
-              this.statemanager_fatal(
-                'accountPatcher_tsFix2',
-                `tsFix2 c:${cycle} wrappedData:${utils.stringifyReduce(
-                  wrappedData
-                )} accountHashCacheHistory:${utils.stringifyReduce(accountHashCacheHistory)}`
-              )
-              filterStats.tsFix2++
-              accountHashCacheHistory.lastSeenCycle = cycle
-              allowPatch = true
-
-              //this.stateManager.accountCache.updateAccountHash()
-
-              //We need to patch the hash value to what it will be..  TODO think more if there is a better way to do this.
-              accountMemData.h = wrappedData.stateId
-            } else {
-              //just dont even care and bump the last seen cycle up.. this might do nothing
-              nestedCountersInstance.countRareEvent('accountPatcher', `tsFix3`)
-              //not really fatal. but want to validate info
-              this.statemanager_fatal(
-                'accountPatcher_tsFix3',
-                `tsFix3 c:${cycle} wrappedData:${utils.stringifyReduce(
-                  wrappedData
-                )} accountHashCacheHistory:${utils.stringifyReduce(accountHashCacheHistory)}`
-              )
-              filterStats.tsFix3++
-              accountHashCacheHistory.lastSeenCycle = cycle
-            }
-
-            if (allowPatch === false) {
-              noChange.add(wrappedData.accountId)
-              // nestedCountersInstance.countEvent('accountPatcher', `checkAndSetAccountData updateSameTS c:${cycle}`)
-              continue
-            }
-            filterStats.sameTS++
-          }
+          //if (wrappedData.timestamp === accountMemData.t) {
+          //  let allowPatch = false
+          //if (allowPatch === false) {
+          //    noChange.add(wrappedData.accountId)
+          //    // nestedCountersInstance.countEvent('accountPatcher', `checkAndSetAccountData updateSameTS c:${cycle}`)
+          //    continue
+          //  }
+          //  filterStats.sameTS++
+          //}
           filterStats.accepted++
           //we can proceed with the update
           wrappedDataListFiltered.push(wrappedData)

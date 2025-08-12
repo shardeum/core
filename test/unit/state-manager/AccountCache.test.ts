@@ -263,31 +263,6 @@ describe('AccountCache', () => {
     })
   })
 
-  describe('sortByTimestampIdAsc', () => {
-    it('should sort by timestamp ascending', () => {
-      const result = accountCache.sortByTimestampIdAsc({ t: 1000, id: 'a' }, { t: 2000, id: 'b' })
-      expect(result).toBe(-1)
-    })
-
-    it('should sort by timestamp descending', () => {
-      const result = accountCache.sortByTimestampIdAsc({ t: 2000, id: 'a' }, { t: 1000, id: 'b' })
-      expect(result).toBe(1)
-    })
-
-    it('should sort by id when timestamps are equal', () => {
-      const result1 = accountCache.sortByTimestampIdAsc({ t: 1000, id: 'a' }, { t: 1000, id: 'b' })
-      expect(result1).toBe(-1)
-
-      const result2 = accountCache.sortByTimestampIdAsc({ t: 1000, id: 'b' }, { t: 1000, id: 'a' })
-      expect(result2).toBe(1)
-    })
-
-    it('should return 0 for equal items', () => {
-      const result = accountCache.sortByTimestampIdAsc({ t: 1000, id: 'a' }, { t: 1000, id: 'a' })
-      expect(result).toBe(0)
-    })
-  })
-
   describe('processCacheUpdates', () => {
     it('should process cache updates for current cycle', () => {
       const cycleShardData: CycleShardData = {
@@ -391,62 +366,6 @@ describe('AccountCache', () => {
         'buildPartitionHashesForNode: accountID==null unexpected',
         expect.stringContaining('buildPartitionHashesForNode: accountID==null unexpected')
       )
-    })
-  })
-
-  describe('getAccountDebugObject', () => {
-    it('should return account hash cache history', () => {
-      // Add accountCache to mockStateManager
-      mockStateManager.accountCache = accountCache
-
-      accountCache.updateAccountHash('account1', 'hash1', 1000, 5)
-
-      const result = accountCache.getAccountDebugObject('account1')
-      expect(result).toBeDefined()
-      expect(result.accountHashList).toHaveLength(1)
-      expect(result.accountHashList[0]).toEqual({ t: 1000, h: 'hash1', c: 5 })
-    })
-
-    it('should return undefined for non-existent account', () => {
-      // Add accountCache to mockStateManager
-      mockStateManager.accountCache = accountCache
-
-      const result = accountCache.getAccountDebugObject('nonexistent')
-      expect(result).toBeUndefined()
-    })
-  })
-
-  describe('getDebugStats', () => {
-    it('should return correct stats', () => {
-      accountCache.updateAccountHash('account1', 'hash1', 1000, 5)
-      accountCache.updateAccountHash('account2', 'hash2', 2000, 6)
-
-      const [workingAccounts, mainMap] = accountCache.getDebugStats()
-
-      expect(workingAccounts).toBe(0) // Working list is populated during processCacheUpdates
-      expect(mainMap).toBe(2) // Two accounts in the map
-    })
-  })
-
-  describe('getAccountHashHistoryItem', () => {
-    it('should return account hash cache history', () => {
-      // Add accountCache to mockStateManager
-      mockStateManager.accountCache = accountCache
-
-      accountCache.updateAccountHash('account1', 'hash1', 1000, 5)
-
-      const result = accountCache.getAccountHashHistoryItem('account1')
-      expect(result).toBeDefined()
-      expect(result.accountHashList).toHaveLength(1)
-      expect(result.accountHashList[0]).toEqual({ t: 1000, h: 'hash1', c: 5 })
-    })
-
-    it('should return undefined for non-existent account', () => {
-      // Add accountCache to mockStateManager
-      mockStateManager.accountCache = accountCache
-
-      const result = accountCache.getAccountHashHistoryItem('nonexistent')
-      expect(result).toBeUndefined()
     })
   })
 })

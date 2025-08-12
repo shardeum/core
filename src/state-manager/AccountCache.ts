@@ -1,16 +1,13 @@
 import * as Shardus from '../shardus/shardus-types'
-import * as utils from '../utils'
 
 import Profiler from '../utils/profiler'
 import Crypto from '../crypto'
-import Logger, { logFlags } from '../logger'
+import Logger from '../logger'
 import StateManager from '.'
-import { nestedCountersInstance } from '../utils/nestedCounters'
 import {
   AccountHashCache,
   AccountHashCacheMain3,
   CycleShardData,
-  AccountHashCacheHistory,
   AccountHashCacheList,
 } from './state-manager-types'
 import { Logger as Log4jsLogger } from 'log4js'
@@ -91,188 +88,7 @@ class AccountCache {
   ///////////////
 
   updateAccountHash(accountId: string, accountHash: string, timestamp: number, cycle: number): void {
-    if (accountHash == null) {
-      const stack = new Error().stack
-      this.statemanager_fatal('updateAccountHash hash=null', 'updateAccountHash hash=null' + stack)
-    }
-    if (cycle < 0 || cycle == null) {
-      const stack = new Error().stack
-      this.statemanager_fatal(`updateAccountHash cycle == ${cycle}`, `updateAccountHash cycle == ${cycle} ${stack}`)
-    }
-
-    // OOS Debug: simulate cache update failure
-    if (this.config.debug?.oos?.cacheUpdateFailureRate > 0) {
-      if (Math.random() < this.config.debug.oos.cacheUpdateFailureRate) {
-        /* prettier-ignore */ if (logFlags.debug) this.mainLogger.debug(`OOS Debug: Simulating cache update failure for account ${accountId}`)
-        nestedCountersInstance.countEvent('oos-debug', 'cache-update-failure')
-        return // Skip the update
-      }
-    }
-    
-    // OOS Debug: add artificial delay (NOTE: This is synchronous, which will block the thread)
-    // In production, this should only be used for testing purposes
-    if (this.config.debug?.oos?.cacheUpdateDelayMs > 0) {
-      /* prettier-ignore */ if (logFlags.debug) this.mainLogger.debug(`OOS Debug: Synchronous delay for cache update ${this.config.debug.oos.cacheUpdateDelayMs}ms for account ${accountId}`)
-      const start = Date.now()
-      while (Date.now() - start < this.config.debug.oos.cacheUpdateDelayMs) {
-        // Busy wait - only for debug purposes
-      }
-    }
-
-    //do not leave this on!  spammy!
-    // let stack = new Error().stack
-    // this.mainLogger.debug(`updateAccountHash: ${utils.stringifyReduce({accountId, hash, timestamp, cycle})}  ${stack}`)
-
-    nestedCountersInstance.countEvent('cache', 'updateAccountHash: start')
-
-    // See if we have a cache entry yet.  if not create a history entry for this account
-    let accountHashCacheHistory: AccountHashCacheHistory
-    if (this.accountsHashCache3.accountHashMap.has(accountId) === false) {
-      accountHashCacheHistory = {
-        lastSeenCycle: -1,
-        lastSeenSortIndex: -1,
-        queueIndex: { id: -1, idx: -1 },
-        accountHashList: [],
-        lastStaleCycle: -1,
-        lastUpdateCycle: -1,
-      }
-      this.accountsHashCache3.accountHashMap.set(accountId, accountHashCacheHistory)
-    } else {
-      accountHashCacheHistory = this.accountsHashCache3.accountHashMap.get(accountId)
-    }
-
-    //update main cycle number if needed..  not sure this is perfect.. may be better as a function that can be smart?
-    //
-    if (this.accountsHashCache3.currentCalculationCycle === -1) {
-      if (this.stateManager?.currentCycleShardData != null) {
-        this.accountsHashCache3.currentCalculationCycle = this.stateManager.currentCycleShardData.cycleNumber - 1
-        if (this.accountsHashCache3.currentCalculationCycle < 0) {
-          this.accountsHashCache3.currentCalculationCycle = 0
-        }
-      } else {
-        this.statemanager_fatal(
-          `updateAccountHash: error getting cycle number ${this.stateManager.currentCycleShardData.cycleNumber}`,
-          `updateAccountHash: error getting cycle number c:${this.stateManager.currentCycleShardData.cycleNumber} `
-        )
-      }
-    }
-
-    let updateIsNewerHash = false
-
-    //last state cycle gets set if our node has an account that it no longer covers.  I am not sure we will be able to track this in the future.
-    //and that may not matter.
-    if (
-      accountHashCacheHistory.lastStaleCycle > 0 &&
-      accountHashCacheHistory.lastStaleCycle > accountHashCacheHistory.lastSeenCycle
-    ) {
-      /* prettier-ignore */ if (logFlags.verbose) this.mainLogger.debug(`Reinstate account c:${this.stateManager.currentCycleShardData.cycleNumber} acc:${utils.stringifyReduce(accountId)} lastStale:${accountHashCacheHistory.lastStaleCycle}`)
-    }
-
-    //gets compared with lastStaleCycle here and in the patcher.  here it stops the data from being in the report.
-    accountHashCacheHistory.lastSeenCycle = this.accountsHashCache3.currentCalculationCycle
-    //I think this doesnt do anything:  (maybe for debu only)
-    if (cycle > accountHashCacheHistory.lastUpdateCycle) {
-      accountHashCacheHistory.lastUpdateCycle = cycle
-    }
-
-    const accountHashList: AccountHashCache[] = accountHashCacheHistory.accountHashList
-
-    //accountHashList is a small history list for just this account.
-    // this next section determines if we just insert to an empty list or adding to the head
-    // this also keeps the list from growing by popping the tail when it is too long
-    const accountHashData: AccountHashCache = { t: timestamp, h: accountHash, c: cycle }
-
-    if (accountHashList.length === 0) {
-      accountHashList.push(accountHashData)
-      nestedCountersInstance.countEvent('cache', 'updateAccountHash: push as first entry')
-      updateIsNewerHash = true
-    } else {
-      if (accountHashList.length > 0) {
-        //0 is the most current entry, older entries for older cycles are after that
-        const current = accountHashList[0]
-
-        // the latest update is for the same cycle
-        if (current.c === cycle) {
-          if (timestamp > current.t) {
-            //update current
-            current.h = accountHash
-            current.t = timestamp
-
-            updateIsNewerHash = true
-            nestedCountersInstance.countEvent('cache', 'updateAccountHash: same cycle update')
-          } else {
-            nestedCountersInstance.countEvent('cache', 'updateAccountHash: same cycle older timestamp')
-          }
-        } else if (cycle > current.c || timestamp > current.t) {
-          //push new entry to head
-          accountHashList.unshift(accountHashData)
-          //clean up list if is too long
-          while (
-            accountHashList.length > 3 &&
-            accountHashList[accountHashList.length - 1].c < this.accountsHashCache3.currentCalculationCycle
-          ) {
-            //remove from end.  but only if the data older than the current working cycle
-            accountHashList.pop() //hmm could this axe data too soon? i.e. push out cache entries before they get put in a report.
-          }
-          nestedCountersInstance.countEvent('cache', 'updateAccountHash: new cycle update')
-
-          if (cycle < current.c && timestamp > current.t) {
-            /* prettier-ignore */ nestedCountersInstance.countEvent('cache', 'updateAccountHash: older cycle but newer timestamp')
-            this.statemanager_fatal(
-              'updateAccountHash: cycleCalcOff',
-              `updateAccountHash: older cycle but newer timestamp :${cycle} < ${current.c} && ${timestamp} > ${current.t} `
-            )
-          }
-
-          updateIsNewerHash = true
-        } else {
-          // if the cycle is older?
-          // need to find the right spot to insert it!
-          let idx = 0
-          let doInsert = true
-          for (let i = 0; i < accountHashList.length; i++) {
-            // eslint-disable-next-line security/detect-object-injection
-            const hashCacheEntry = accountHashList[i]
-            //if we found and entry for this cycle then update it
-            if (hashCacheEntry.c === cycle) {
-              hashCacheEntry.h = accountHash
-              hashCacheEntry.t = timestamp
-              doInsert = false
-              break
-            }
-            //assume we splice after this hashCacheEntry because have an older cycle
-            idx++
-            // if we see a cycle that we are older than, stop iteration and insert before it
-            if (cycle > hashCacheEntry.c) {
-              //insert before it
-              idx = i
-              break
-            }
-          }
-          if (doInsert) {
-            accountHashList.splice(idx, 0, accountHashData)
-            nestedCountersInstance.countEvent('cache', 'updateAccountHash: old cycle update')
-          } else {
-            nestedCountersInstance.countEvent('cache', 'updateAccountHash: old cycle no update')
-          }
-        }
-      }
-    }
-
-    // OOS Debug: partial update simulation
-    if (this.config.debug?.oos?.cachePartialUpdateRate > 0) {
-      if (Math.random() < this.config.debug.oos.cachePartialUpdateRate) {
-        /* prettier-ignore */ if (logFlags.debug) this.mainLogger.debug(`OOS Debug: Simulating partial cache update for account ${accountId} - skipping queue update`)
-        nestedCountersInstance.countEvent('oos-debug', 'cache-partial-update')
-        // Update the hash but skip updating the queue (partial update)
-        return
-      }
-    }
-
-    if (updateIsNewerHash) {
-      this.cacheUpdateQueue.accountHashesSorted.push(accountHashData)
-      this.cacheUpdateQueue.accountIDs.push(accountId)
-    }
+    return // no-op
   }
 
   //question: when how does the future list avoid immediate data update?  the map seems to get updated right away?
@@ -285,233 +101,41 @@ class AccountCache {
   // if TXs come in that are newer they get put in the future list and are not part of the parition hash report yet
 
   async hasAccount(accountId: string): Promise<boolean> {
-    if (this.config.stateManager.bypassAccountCache) {
-      const accountDataList = await this.app.getAccountDataByList([accountId])
-      const storageResult = !!(accountDataList && accountDataList.length > 0 && accountDataList[0] != null)
-      
-      // Also check cache to compare results
-      const cacheResult = this.accountsHashCache3.accountHashMap.has(accountId)
-      
-      // Compare and log if different
-      if (storageResult !== cacheResult) {
-        nestedCountersInstance.countEvent('cache-storage-mismatch', 'oos.hasAccount.mismatch')
-        /* prettier-ignore */ if (logFlags.fatal) this.fatalLogger.fatal(`oos.hasAccount.mismatch: Cache-Storage mismatch in hasAccount for ${accountId}: cache=${cacheResult}, storage=${storageResult}`)
-      }
-      
-      return storageResult
-    }
-    return this.accountsHashCache3.accountHashMap.has(accountId)
+    const accountDataList = await this.app.getAccountDataByList([accountId])
+    const storageResult = !!(accountDataList && accountDataList.length > 0 && accountDataList[0] != null)
+    return storageResult
   }
 
   //just gets the newest seen hash.  does that cause issues?
   async getAccountHash(accountId: string): Promise<AccountHashCache> {
-    if (this.config.stateManager.bypassAccountCache) {
-      const accountDataList = await this.app.getAccountDataByList([accountId])
-      let storageResult: AccountHashCache = null
-      if (accountDataList && accountDataList.length > 0 && accountDataList[0] != null) {
-        const accountData = accountDataList[0]
-        storageResult = {
-          h: accountData.stateId,
-          t: accountData.timestamp || Date.now(),
-          c: this.stateManager?.currentCycleShardData?.cycleNumber || 0
-        }
+    const accountDataList = await this.app.getAccountDataByList([accountId])
+    let storageResult: AccountHashCache = null
+    if (accountDataList && accountDataList.length > 0 && accountDataList[0] != null) {
+      const accountData = accountDataList[0]
+      storageResult = {
+        h: accountData.stateId,
+        t: accountData.timestamp || Date.now(),
+        c: this.stateManager?.currentCycleShardData?.cycleNumber || 0
       }
-      
-      // Also get cache result to compare
-      let cacheResult: AccountHashCache = null
-      if (this.accountsHashCache3.accountHashMap.has(accountId)) {
-        const accountHashCacheHistory: AccountHashCacheHistory = this.accountsHashCache3.accountHashMap.get(accountId)
-        if (accountHashCacheHistory.accountHashList.length > 0) {
-          cacheResult = accountHashCacheHistory.accountHashList[0]
-        }
-      }
-      
-      // Compare results
-      this.compareAccountHashResults(accountId, cacheResult, storageResult)
-      
-      return storageResult
     }
-    if (this.accountsHashCache3.accountHashMap.has(accountId) === false) {
-      return null
-    }
-    const accountHashCacheHistory: AccountHashCacheHistory = this.accountsHashCache3.accountHashMap.get(accountId)
-    if (accountHashCacheHistory.accountHashList.length > 0) {
-      //0 is the newest?
-      return accountHashCacheHistory.accountHashList[0]
-    }
+    return storageResult
   }
 
-  private compareAccountHashResults(accountId: string, cacheResult: AccountHashCache | null, storageResult: AccountHashCache | null): void {
-    // Check if one exists and the other doesn't
-    if ((cacheResult === null) !== (storageResult === null)) {
-      nestedCountersInstance.countEvent('cache-storage-mismatch', 'oos.getAccountHash.existence.mismatch')
-      /* prettier-ignore */ if (logFlags.fatal) this.fatalLogger.fatal(`oos.getAccountHash.existence.mismatch: Cache-Storage existence mismatch in getAccountHash for ${accountId}: cache=${cacheResult ? 'exists' : 'null'}, storage=${storageResult ? 'exists' : 'null'}`)
-      /* prettier-ignore */ if (logFlags.fatal) this.fatalLogger.fatal(`  Cache data: ${cacheResult ? utils.stringifyReduce(cacheResult) : 'null'}`)
-      /* prettier-ignore */ if (logFlags.fatal) this.fatalLogger.fatal(`  Storage data: ${storageResult ? utils.stringifyReduce(storageResult) : 'null'}`)
-      return
-    }
-    
-    // If both are null, they match
-    if (cacheResult === null && storageResult === null) {
-      return
-    }
-    
-    // Compare the actual values
-    let mismatchDetails = []
-    if (cacheResult.h !== storageResult.h) {
-      mismatchDetails.push(`hash: cache=${cacheResult.h}, storage=${storageResult.h}`)
-      nestedCountersInstance.countEvent('cache-storage-mismatch', 'oos.getAccountHash.hash.mismatch')
-    }
-    if (cacheResult.t !== storageResult.t) {
-      mismatchDetails.push(`timestamp: cache=${cacheResult.t}, storage=${storageResult.t}`)
-      nestedCountersInstance.countEvent('cache-storage-mismatch', 'oos.getAccountHash.timestamp.mismatch')
-    }
-    if (cacheResult.c !== storageResult.c) {
-      mismatchDetails.push(`cycle: cache=${cacheResult.c}, storage=${storageResult.c}`)
-      nestedCountersInstance.countEvent('cache-storage-mismatch', 'oos.getAccountHash.cycle.mismatch')
-    }
-    
-    if (mismatchDetails.length > 0) {
-      /* prettier-ignore */ if (logFlags.fatal) this.fatalLogger.fatal(`oos.getAccountHash.hash.mismatch: Cache-Storage value mismatch in getAccountHash for ${accountId}: ${mismatchDetails.join(', ')}`)
-      /* prettier-ignore */ if (logFlags.fatal) this.fatalLogger.fatal(`  Full cache data: ${utils.stringifyReduce(cacheResult)}`)
-      /* prettier-ignore */ if (logFlags.fatal) this.fatalLogger.fatal(`  Full storage data: ${utils.stringifyReduce(storageResult)}`)
-    }
-  }
 
-  sortByTimestampIdAsc(first: { t: number; id: string }, second: { t: number; id: string }): number {
-    if (first.t < second.t) {
-      return -1
-    }
-    if (first.t > second.t) {
-      return 1
-    }
-    if (first.id < second.id) {
-      return -1
-    }
-    if (first.id > second.id) {
-      return 1
-    }
-    return 0
-  }
+  // The IMPORTANT part of the old processCacheUpdates which updates the trie.
+  //if we cycle is too new then put in next list:
+  //if (accountHashData.c > cycleToProcess) {
+  //  nextCacheUpdateQueue.accountHashesSorted.push(accountHashData)
+  //  nextCacheUpdateQueue.accountIDs.push(accountID)
+  //  continue
+  //}
+  //this.stateManager.accountPatcher.updateAccountHash(accountID, accountHashData.h)  //very important call in the data pipeline.
+  //this.cacheUpdateQueue = nextCacheUpdateQueue
+  // END of IMPORTANT part of old processCacheUpdates.
 
   // currently a sync function, dont have correct buffers for async
   processCacheUpdates(cycleShardData: CycleShardData): void {
-    //the line below is too slow.. needs to be in an ultra verbose categor that we dont have, so for now you have to uncomment it on manually
-    //if (logFlags.verbose) this.mainLogger.debug(`accountsHashCache3 ${cycleShardData.cycleNumber}: ${utils.stringifyReduce(this.accountsHashCache3)}`)
-
-    const cycleToProcess = cycleShardData.cycleNumber
-    const nextCycleToProcess = cycleToProcess + 1
-    
-    // OOS Debug: delay queue processing
-    if (this.config.debug?.oos?.accountPatcherQueueDelay > 0) {
-      if (cycleToProcess % this.config.debug.oos.accountPatcherQueueDelay !== 0) {
-        /* prettier-ignore */ if (logFlags.debug) this.mainLogger.debug(`OOS Debug: Delaying AccountPatcher queue processing for cycle ${cycleToProcess}`)
-        nestedCountersInstance.countEvent('oos-debug', 'account-patcher-queue-delayed')
-        return // Skip processing this cycle
-      }
-    }
-
-    const nextCacheUpdateQueue: AccountHashCacheList = {
-      accountHashesSorted: [],
-      accountIDs: [],
-    }
-
-    //rebuild the working list with out selected data from the map
-    this.accountsHashCache3.workingHistoryList.accountHashesSorted = []
-    this.accountsHashCache3.workingHistoryList.accountIDs = []
-
-    // OOS Debug: reorder queue if enabled
-    const queueIndices = Array.from({ length: this.cacheUpdateQueue.accountIDs.length }, (_, i) => i)
-    if (this.config.debug?.oos?.reorderAccountPatcherQueue) {
-      /* prettier-ignore */ if (logFlags.debug) this.mainLogger.debug(`OOS Debug: Reordering AccountPatcher queue with ${queueIndices.length} items`)
-      // Shuffle the indices array
-      for (let i = queueIndices.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [queueIndices[i], queueIndices[j]] = [queueIndices[j], queueIndices[i]]
-      }
-      nestedCountersInstance.countEvent('oos-debug', 'account-patcher-queue-reordered')
-    }
-    
-    // process the working list.  split data into partitions and build a new list with nulled spots cleared out
-    for (let i = 0; i < queueIndices.length; i++) {
-      const index = queueIndices[i]
-      
-      // OOS Debug: drop queue items
-      if (this.config.debug?.oos?.dropAccountPatcherUpdates > 0) {
-        if (Math.random() < this.config.debug.oos.dropAccountPatcherUpdates) {
-          /* prettier-ignore */ if (logFlags.debug) this.mainLogger.debug(`OOS Debug: Dropping AccountPatcher queue item at index ${index}`)
-          nestedCountersInstance.countEvent('oos-debug', 'account-patcher-update-dropped')
-          continue
-        }
-      }
-      
-      // eslint-disable-next-line security/detect-object-injection
-      const accountHashData: AccountHashCache = this.cacheUpdateQueue.accountHashesSorted[index]
-      if (accountHashData == null) {
-        //if this is null then it is blank entry (by design how we remove from the array at run time and retain perf)
-        continue
-      }
-      // eslint-disable-next-line security/detect-object-injection
-      const accountID = this.cacheUpdateQueue.accountIDs[index]
-      if (accountID == null) {
-        //should never be null if accountHashData was not null
-        this.statemanager_fatal(
-          'buildPartitionHashesForNode: accountID==null unexpected',
-          `buildPartitionHashesForNode: accountID==null unexpected:${utils.stringifyReduce(accountHashData)} `
-        )
-        continue
-      }
-
-      //if we cycle is too new then put in next list:
-
-      if (accountHashData.c > cycleToProcess) {
-        nextCacheUpdateQueue.accountHashesSorted.push(accountHashData)
-        nextCacheUpdateQueue.accountIDs.push(accountID)
-        continue
-      }
-
-      //DONT TEST IN RANGE!!  because it may be in range later
-      // let { homePartition: partition } = ShardFunctions.addressToPartition(cycleShardData.shardGlobals, accountID)
-      // //if we do not store this partition then dont put it in a report.  tell the trie to remove it.
-      // //TODO perf, will need something more efficient.
-      // if(ShardFunctions.testInRange(partition, cycleShardData.nodeShardData.storedPartitions) === false){
-      //   this.stateManager.accountPatcher.removeAccountHash(accountID)
-      //   let accountHashCacheHistory: AccountHashCacheHistory = this.accountsHashCache3.accountHashMap.get(accountID)
-      //   if(cycleToProcess > accountHashCacheHistory.lastStaleCycle){
-      //     accountHashCacheHistory.lastStaleCycle = cycleToProcess
-      //   }
-      //   continue
-      // }
-
-      //very important call in the data pipeline.
-      this.stateManager.accountPatcher.updateAccountHash(accountID, accountHashData.h)
-    }
-
-    this.cacheUpdateQueue = nextCacheUpdateQueue
-
-    // update the cycle we are tracking now
-    this.accountsHashCache3.currentCalculationCycle = nextCycleToProcess
-  }
-
-  getAccountDebugObject(id: string): AccountHashCacheHistory {
-    const accountHashFull = this.stateManager.accountCache.accountsHashCache3.accountHashMap.get(id)
-    return accountHashFull
-  }
-
-  //temp to hide some internal fields
-  getDebugStats(): [number, number] {
-    const workingAccounts = this.accountsHashCache3.workingHistoryList.accountIDs.length
-    //this.addToReport('StateManager','AccountsCache', 'workingAccounts', cacheCount )
-    const mainMap = this.accountsHashCache3.accountHashMap.size
-    //this.addToReport('StateManager','AccountsCache', 'mainMap', cacheCount2 )
-
-    return [workingAccounts, mainMap]
-  }
-
-  getAccountHashHistoryItem(accountID: string): AccountHashCacheHistory {
-    const accountHashCacheHistory: AccountHashCacheHistory =
-      this.stateManager.accountCache.accountsHashCache3.accountHashMap.get(accountID)
-    return accountHashCacheHistory
+    return // no-op
   }
 }
 
