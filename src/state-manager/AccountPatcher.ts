@@ -37,6 +37,7 @@ import {
   IsInsyncResult,
   CycleShardData,
   SignedReceipt,
+  AccountUpdate,
 } from './state-manager-types'
 import {
   isDebugModeMiddleware,
@@ -163,6 +164,8 @@ class AccountPatcher {
 
   totalAccounts: number
 
+  externalAccountUpdateQueue: AccountUpdate[]
+
   accountUpdateQueue: TrieAccount[]
   accountUpdateQueueFuture: TrieAccount[]
 
@@ -240,6 +243,7 @@ class AccountPatcher {
     this.accountUpdateQueue = []
     this.accountUpdateQueueFuture = []
     this.accountRemovalQueue = []
+    this.externalAccountUpdateQueue = []
 
     this.debug_ignoreUpdates = false
 
@@ -3200,6 +3204,37 @@ class AccountPatcher {
    *    ##     ## ##        ##     ## ##     ##    ##    ##       ##     ## ##    ## ##    ## ##     ## ##     ## ##   ###    ##    ##     ## ##     ## ##    ## ##     ##
    *     #######  ##        ########  ##     ##    ##    ######## ##     ##  ######   ######   #######   #######  ##    ##    ##    ##     ## ##     ##  ######  ##     ##
    */
+
+  onAccountUpdated(accountID: string, hash: string, cycle:number, timestamp: number): void {
+
+    this.externalAccountUpdateQueue.push({
+      accountID,
+      hash,
+      cycle,
+      timestamp
+    })
+
+  }
+
+  processAccountUpdates(cycleToProcess: number): void {
+    let nextExternalAccountUpdateQueue = []
+
+    //todo... possibly sort by timestamp cycle and then account ID..
+    // but we can study code to see if that matters. 
+    // old cache system may have done something like that
+
+    for (const accountData of this.externalAccountUpdateQueue) {
+      if (accountData.cycle > cycleToProcess) {
+        nextExternalAccountUpdateQueue.push(accountData)
+        continue
+      }
+      this._updateAccountHash(accountData.accountID, accountData.hash)
+    }
+
+    this.externalAccountUpdateQueue = nextExternalAccountUpdateQueue
+  }
+
+
   /**
    * updateAccountHash
    * This is the main function called externally to tell the hash trie what the hash value is for a given accountID
@@ -3208,7 +3243,7 @@ class AccountPatcher {
    * @param hash
    *
    */
-  updateAccountHash(accountID: string, hash: string): void {
+  _updateAccountHash(accountID: string, hash: string): void {
     //todo do we need to look at cycle or timestamp and have a future vs. next queue?
     if (this.debug_ignoreUpdates) {
       this.statemanager_fatal(`patcher ignored: tx`, `patcher ignored: ${accountID} hash:${hash}`)

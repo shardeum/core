@@ -320,7 +320,7 @@ describe('AccountPatcher', () => {
       const accountID = 'account123'
       const hash = 'hash123'
 
-      accountPatcher.updateAccountHash(accountID, hash)
+      accountPatcher._updateAccountHash(accountID, hash)
 
       expect(accountPatcher.accountUpdateQueue).toHaveLength(1)
       expect(accountPatcher.accountUpdateQueue[0]).toEqual({
@@ -334,15 +334,15 @@ describe('AccountPatcher', () => {
       const accountID = 'account123'
       const hash = 'hash123'
 
-      accountPatcher.updateAccountHash(accountID, hash)
+      accountPatcher._updateAccountHash(accountID, hash)
 
       expect(accountPatcher.accountUpdateQueue).toHaveLength(0)
     })
 
     it('should handle multiple updates', () => {
-      accountPatcher.updateAccountHash('acc1', 'hash1')
-      accountPatcher.updateAccountHash('acc2', 'hash2')
-      accountPatcher.updateAccountHash('acc3', 'hash3')
+      accountPatcher._updateAccountHash('acc1', 'hash1')
+      accountPatcher._updateAccountHash('acc2', 'hash2')
+      accountPatcher._updateAccountHash('acc3', 'hash3')
 
       expect(accountPatcher.accountUpdateQueue).toHaveLength(3)
       expect(accountPatcher.accountUpdateQueue[0].accountID).toBe('acc1')
@@ -351,8 +351,8 @@ describe('AccountPatcher', () => {
     })
 
     it('should allow duplicate account IDs with different hashes', () => {
-      accountPatcher.updateAccountHash('acc1', 'hash1')
-      accountPatcher.updateAccountHash('acc1', 'hash2')
+      accountPatcher._updateAccountHash('acc1', 'hash1')
+      accountPatcher._updateAccountHash('acc1', 'hash2')
 
       expect(accountPatcher.accountUpdateQueue).toHaveLength(2)
       expect(accountPatcher.accountUpdateQueue[0].hash).toBe('hash1')

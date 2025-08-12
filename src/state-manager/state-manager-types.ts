@@ -1151,6 +1151,13 @@ export type TrieAccount = {
   //todo merge with cache structures at some point
 }
 
+export type AccountUpdate = {
+  accountID: string
+  hash: string
+  cycle:number;
+  timestamp:number
+}
+
 export type HashTrieNode = {
   radix: string //node key.  The root value is and empty string.  Radix is depth characters long.
   //accounts are under this node if radix is a prefix of their address

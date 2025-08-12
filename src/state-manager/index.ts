@@ -1319,6 +1319,10 @@ class StateManager {
         /* prettier-ignore */ this.transactionQueue.setDebugLastAwaitedCallInner('ths.app.setAccountData')
         try {
           await this.app.setAccountData(partialAccounts)
+          //THIS is bad we nee our wrappers to make the right calls here..
+          for(const account of partialAccounts) {
+            this.accountPatcher.onAccountUpdated(account.accountId,account.stateId, account.timestamp)
+          }
         } catch (error) {
           
           nestedCountersInstance.countEvent('stateManager', 'oos.setAccountData.partial.failed.1')          
@@ -1340,6 +1344,12 @@ class StateManager {
     /* prettier-ignore */ this.transactionQueue.setDebugLastAwaitedCallInner('ths.app.setAccountData')
     try {
       await this.app.setAccountData(accountsToAdd)
+
+      //THIS is bad we nee our wrappers to make the right calls here..
+      for(const account of accountsToAdd) {
+        this.accountPatcher.onAccountUpdated(account.accountId,account.stateId, account.timestamp)
+      }
+
     } catch (error) {
 
       nestedCountersInstance.countEvent('stateManager', 'oos.setAccountData.full.failed.1')
@@ -3533,6 +3543,10 @@ class StateManager {
         try {
           // eslint-disable-next-line security/detect-object-injection
           await this.app.updateAccountPartial(wrappedData, localCachedData[key], applyResponse)
+          
+           //todo get cycle in deterministic way
+          this.accountPatcher.onAccountUpdated(wrappedData.accountId,wrappedData.stateId, wrappedData.cycle, wrappedData.timestamp)
+         
         } catch (error) {
 
           nestedCountersInstance.countEvent('stateManager', 'oos.updateAccountPartial.failed.1')          
@@ -3552,6 +3566,10 @@ class StateManager {
         try {
           // eslint-disable-next-line security/detect-object-injection
           await this.app.updateAccountFull(wrappedData, localCachedData[key], applyResponse)
+                   //todo get cycle in deterministic way
+          this.accountPatcher.onAccountUpdated(wrappedData.accountId,wrappedData.stateId, wrappedData.cycle, wrappedData.timestamp)
+         
+        
         } catch (error) {
 
           nestedCountersInstance.countEvent('stateManager', 'oos.updateAccountFull.failed.1')          
@@ -3661,6 +3679,10 @@ class StateManager {
       }
       // tell the app to replace the account data
       await this.app.setAccountData(rawDataList)
+      //THIS is bad we nee our wrappers to make the right calls here..
+      for(const account of rawDataList) {
+        this.accountPatcher.onAccountUpdated(account.accountId,account.stateId, account.timestamp)
+      }
 
       const globalAccountKeyMap: { [key: string]: boolean } = {}
 
@@ -4291,7 +4313,9 @@ class StateManager {
     if (this.feature_partitionHashes === true) {
       if (cycleShardValues && cycleShardValues.ourNode.status === 'active') {
         this.profiler.profileSectionStart('stateManager_processPreviousCycleSummaries_buildPartitionHashesForNode')
-        this.accountCache.processCacheUpdates(cycleShardValues)
+        //this.accountCache.processCacheUpdates(cycleShardValues)
+
+        this.accountPatcher.processAccountUpdates(cycleShardValues.cycleNumber)
 
         this.profiler.profileSectionEnd('stateManager_processPreviousCycleSummaries_buildPartitionHashesForNode')
 
