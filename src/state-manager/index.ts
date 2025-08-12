@@ -24,6 +24,7 @@ import * as Self from '../p2p/Self'
 import * as NodeList from '../p2p/NodeList'
 import * as CycleChain from '../p2p/CycleChain'
 import * as Comms from '../p2p/Comms'
+import * as StateDissentHandlers from '../p2p/gossipHandlers/stateDissentHandlers'
 import { nestedCountersInstance } from '../utils/nestedCounters'
 import PartitionStats from './PartitionStats'
 import AccountCache from './AccountCache'
@@ -1441,6 +1442,10 @@ class StateManager {
     this.cachedAppDataManager.setupHandlers()
 
     this.partitionStats.setupHandlers()
+
+    // Initialize Phase 3 gossip handlers (always enabled, rate limiting removed)
+    StateDissentHandlers.init(this, this.transactionQueue, this.transactionConsensus)
+    StateDissentHandlers.registerStateDissentHandlers(Context)
 
     // p2p ASK
     // this.p2p.registerInternal(

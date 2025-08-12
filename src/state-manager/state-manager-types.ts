@@ -256,6 +256,13 @@ export type QueueEntry = {
     delayApplied: number
   }
   requeueAttempts?: number
+  archiverQueryCount?: number
+  gossipedCorrections?: Map<string, {
+    correctStateHash: string
+    correctData?: unknown
+    receiptRef: unknown // SignedReceiptRef
+    receivedAt: number
+  }>
 }
 
 // export type SyncTracker = {

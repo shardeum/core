@@ -282,44 +282,44 @@ const SERVER_CONFIG: StrictServerConfiguration = {
       cacheUpdateFailureRate: 0,
       cachePartialUpdateRate: 0,
       cacheUpdateDelayMs: 0,
-      
-      // Storage operation failures  
+
+      // Storage operation failures
       storageWriteFailureRate: 0,
       storagePartialWriteRate: 0,
       storageWriteDelayMs: 0,
       storageTimeoutMs: 0,
-      
+
       // Race condition simulations
       reverseCacheStorageOrder: false,
       randomizeUpdateOrder: false,
       skipCacheUpdate: false,
       skipStorageUpdate: false,
-      
+
       // Timestamp manipulations
       timestampDriftMs: 0,
       forceStaleTimestamps: false,
       randomTimestampRejection: 0,
-      
+
       // Queue processing issues
       accountPatcherQueueDelay: 0,
       dropAccountPatcherUpdates: 0,
       reorderAccountPatcherQueue: false,
-      
+
       // Lock/concurrency issues
       skipFifoLocks: false,
       fifoLockTimeoutMs: 0,
       allowConcurrentUpdates: false,
-      
+
       // Data corruption
       corruptHashOnWrite: 0,
       corruptDataOnWrite: 0,
       truncateDataOnWrite: 0,
-      
+
       // Network/async issues
       simulateAsyncFailures: false,
       asyncOperationTimeoutMs: 0,
       duplicateAsyncOperations: false,
-      
+
       // Destination-specific failures (per-account evaluation)
       storageWriteFailureRateForDestination: 0,
       skipStorageUpdateForDestination: false,
@@ -435,14 +435,24 @@ const SERVER_CONFIG: StrictServerConfiguration = {
     // Phase 2 state hardening configuration
     recentReceiptBufferSize: 1000, // Number of receipts to cache
     recentReceiptTTL: 60000, // TTL for cached receipts in milliseconds (60 seconds)
-    enableArchiverLookupForDissent: false, // Enable archiver queries for conflict resolution
+    enableArchiverLookupForDissent: true, // Enable archiver queries for conflict resolution
     maxArchiverReceiptQueriesPerTx: 2, // Max archiver queries per transaction
     // Phase 2 consensus delays configuration
     beforeStateDissentDelayMs: 5000, // Initial delay on conflict detection (5 seconds)
     maxDissentDelayMs: 10000, // Maximum total delay before requeue (10 seconds)
-    enableConflictResolutionDelays: false, // Start disabled, enable via gradual rollout
-    enableTransactionRequeue: false, // Start disabled, enable via gradual rollout
+    enableConflictResolutionDelays: true, // Start disabled, enable via gradual rollout
+    enableTransactionRequeue: true, // Start disabled, enable via gradual rollout
     maxRequeueAttempts: 3, // Maximum 3 requeue attempts per transaction
+    // Phase 3 gossip configuration
+    stateCorrectionGossipEnabled: true, // Enable correction gossip (start disabled)
+    dissentGossipMaxPerTx: 0, // Set to 0 to disable rate limiting (was 3)
+    dissentGossipGlobalRate: 999999, // Set very high to effectively disable (was 10)
+    correctionGossipMaxPerAccount: 999999, // Set very high to effectively disable (was 1)
+    correctionGossipWindow: 1, // Set very low to effectively disable (was 60000)
+    gossipMessageTTL: 30000, // TTL for gossip messages (30 seconds)
+    gossipCacheSize: 999999, // Set very high to effectively disable (was 10000)
+    // Dissent processing configuration
+    minDissentObservers: 2, // Minimum unique observers required in dissent message
   },
   sharding: { nodesPerConsensusGroup: 5, nodesPerEdge: 2, executeInOneShard: false },
   mode: ServerMode.Release,

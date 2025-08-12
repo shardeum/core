@@ -35,6 +35,8 @@ import {
 import { shardusGetTime } from '../network'
 import { robustQuery } from '../p2p/Utils'
 import { SignedObject } from '@shardeum-foundation/lib-crypto-utils'
+import * as StateDissentHandlers from '../p2p/gossipHandlers/stateDissentHandlers'
+import { SignedReceiptRef } from '../types/gossip/state-dissent'
 import { isDebugModeMiddleware } from '../network/debugMiddleware'
 import { GetAccountDataReqSerializable, serializeGetAccountDataReq } from '../types/GetAccountDataReq'
 import { GetAccountDataRespSerializable, deserializeGetAccountDataResp } from '../types/GetAccountDataResp'
@@ -1034,6 +1036,10 @@ class TransactionConsenus {
 
         queueEntry.signedReceipt = { ...payload }
         this.stateManager.recentReceiptBuffer.addReceipt(queueEntry.signedReceipt)
+        
+        // Emit correction gossip if we had conflicts (Phase 3)
+        this.checkAndEmitCorrectionGossip(queueEntry)
+        
         payload.txGroupCycle = queueEntry.txGroupCycle
         fireAndForget(() =>
           Comms.sendGossip(
@@ -1159,6 +1165,10 @@ class TransactionConsenus {
               this.mainLogger.debug(`POQo: received data & receipt for ${queueEntry.logID} starting receipt gossip`)
             queueEntry.signedReceipt = readableReq.receipt
             this.stateManager.recentReceiptBuffer.addReceipt(queueEntry.signedReceipt)
+            
+            // Emit correction gossip if we had conflicts (Phase 3)
+            this.checkAndEmitCorrectionGossip(queueEntry)
+            
             const receiptToGossip = { ...readableReq.receipt, txGroupCycle: queueEntry.txGroupCycle }
             fireAndForget(() =>
               Comms.sendGossip(
@@ -1495,6 +1505,10 @@ class TransactionConsenus {
           const receivedReceipt = readableReq as SignedReceipt
           queueEntry.signedReceipt = receivedReceipt
           this.stateManager.recentReceiptBuffer.addReceipt(queueEntry.signedReceipt)
+          
+          // Emit correction gossip if we had conflicts (Phase 3)
+          this.checkAndEmitCorrectionGossip(queueEntry)
+          
           queueEntry.hasSentFinalReceipt = true
           const receiptToGossip = { ...readableReq, txGroupCycle: queueEntry.txGroupCycle }
           fireAndForget(() =>
@@ -2253,6 +2267,9 @@ class TransactionConsenus {
 
         queueEntry.signedReceipt = signedReceipt
         this.stateManager.recentReceiptBuffer.addReceipt(queueEntry.signedReceipt)
+        
+        // Emit correction gossip if we had conflicts (Phase 3)
+        this.checkAndEmitCorrectionGossip(queueEntry)
 
         //this is a temporary hack to reduce the ammount of refactor needed.
         // const appliedReceipt: AppliedReceipt = {
@@ -2748,6 +2765,153 @@ class TransactionConsenus {
     } finally {
       if (logFlags.profiling_verbose) this.profiler.scopedProfileSectionEnd('tryProduceReceipt')
       this.profiler.profileSectionEnd('tryProduceReceipt')
+    }
+  }
+
+  /**
+   * Handle gossip notification about a state correction (Phase 3)
+   * Called when we receive a correction gossip message with proof
+   */
+  handleGossipedCorrection(
+    txId: string,
+    accountId: string,
+    correctStateHash: string,
+    correctData: unknown,
+    receiptRef: SignedReceiptRef
+  ): void {
+    // Find the queue entry
+    const queueEntry = this.stateManager.transactionQueue._transactionQueueByID.get(txId)
+    if (!queueEntry) {
+      nestedCountersInstance.countEvent('consensus', 'gossipCorrection.noQueueEntry')
+      return
+    }
+
+    // Only process if we're still in consensus phase
+    if (queueEntry.state !== 'consensing' && queueEntry.state !== 'applying') {
+      nestedCountersInstance.countEvent('consensus', 'gossipCorrection.wrongState')
+      return
+    }
+
+    // Validate the receipt reference
+    if (!this.validateReceiptRef(receiptRef, queueEntry)) {
+      nestedCountersInstance.countEvent('consensus', 'gossipCorrection.invalidProof')
+      return
+    }
+
+    // Store the correction for use in consensus
+    if (!queueEntry.gossipedCorrections) {
+      queueEntry.gossipedCorrections = new Map()
+    }
+    
+    queueEntry.gossipedCorrections.set(accountId, {
+      correctStateHash,
+      correctData,
+      receiptRef,
+      receivedAt: shardusGetTime()
+    })
+
+    nestedCountersInstance.countEvent('consensus', 'gossipCorrection.stored')
+    
+    // If we have a conflict for this account, this correction might help resolve it
+    if (queueEntry.beforeStateConflict && queueEntry.beforeStateObservations?.has(accountId)) {
+      this.mainLogger.info('Received gossip correction for conflicted account', {
+        txId,
+        accountId,
+        correctHash: correctStateHash
+      })
+      
+      // Mark that we have a potential resolution
+      if (!queueEntry.resolvedBeforeState) {
+        queueEntry.resolvedBeforeState = new Map()
+      }
+      
+      queueEntry.resolvedBeforeState.set(accountId, {
+        hash: correctStateHash,
+        source: 'gossip-correction' as any, // Phase 3 addition
+        proof: receiptRef as any // Phase 3: Different proof type for gossip
+      })
+      
+      nestedCountersInstance.countEvent('consensus', 'gossipCorrection.resolvedConflict')
+    }
+  }
+
+  /**
+   * Validate a receipt reference from gossip
+   */
+  validateReceiptRef(receiptRef: SignedReceiptRef, queueEntry: QueueEntry): boolean {
+    // TODO: Implement proper validation
+    // Should check:
+    // 1. Signatures are from valid consensus nodes
+    // 2. Sufficient signatures for supermajority
+    // 3. Receipt is for a related transaction
+    // 4. Cycle is recent enough
+    
+    // For now, basic validation
+    if (!receiptRef.txid || !receiptRef.cycle || !receiptRef.signatures) {
+      return false
+    }
+    
+    // Check minimum signatures based on consensus group size
+    const minSigs = Math.ceil(this.config.sharding.nodesPerConsensusGroup * 0.67) // 2/3 majority
+    if (receiptRef.signatures.length < minSigs) {
+      return false
+    }
+    
+    return true
+  }
+
+  /**
+   * Check if we should emit correction gossip after creating a receipt (Phase 3)
+   */
+  checkAndEmitCorrectionGossip(queueEntry: QueueEntry): void {
+    // Only emit if correction gossip is enabled
+    if (!this.config.stateManager.stateCorrectionGossipEnabled) {
+      return
+    }
+
+    // Only emit if we had before-state conflicts
+    if (!queueEntry.beforeStateConflict || !queueEntry.beforeStateObservations) {
+      return
+    }
+
+    // Only emit if we have a valid receipt
+    if (!queueEntry.signedReceipt) {
+      return
+    }
+
+    // For each account that had conflicts, emit correction gossip
+    for (const [accountId, tracking] of queueEntry.beforeStateObservations) {
+      if (tracking.hashes.size > 1) {
+        // Find the correct state hash from the receipt
+        const accountIndex = queueEntry.signedReceipt.proposal.accountIDs.indexOf(accountId)
+        if (accountIndex === -1) {
+          continue
+        }
+
+        const correctStateHash = queueEntry.signedReceipt.proposal.beforeStateHashes[accountIndex]
+        
+        // Create receipt reference for gossip
+        const receiptRef: SignedReceiptRef = {
+          txid: queueEntry.signedReceipt.proposal.txid,
+          cycle: queueEntry.cycleToRecordOn,
+          receiptHash: queueEntry.signedReceipt.proposalHash,
+          signatures: queueEntry.signedReceipt.signaturePack.map((sig, idx) => ({
+            nodeId: queueEntry.executionGroup[idx]?.id || '',
+            sig: sig
+          }))
+        }
+
+        // Emit correction gossip asynchronously
+        StateDissentHandlers.emitStateCorrectionGossip(
+          accountId,
+          correctStateHash,
+          receiptRef
+        ).catch(error => {
+          /* prettier-ignore */ if (logFlags.error) this.mainLogger.error('Failed to emit correction gossip', error)
+        })
+
+        nestedCountersInstance.countEvent('consensus', 'correctionGossip.emitted')
+      }
     }
   }
 

@@ -1489,6 +1489,16 @@ export interface ServerConfiguration {
     enableConflictResolutionDelays?: boolean // Enable delays when conflicts detected
     enableTransactionRequeue?: boolean // Enable requeue on unresolved conflicts
     maxRequeueAttempts?: number // Maximum requeue attempts per transaction
+    // Phase 3 gossip configuration
+    stateCorrectionGossipEnabled?: boolean // Enable correction gossip
+    dissentGossipMaxPerTx?: number // Max dissent messages per transaction
+    dissentGossipGlobalRate?: number // Max dissent messages per second globally
+    correctionGossipMaxPerAccount?: number // Max corrections per account
+    correctionGossipWindow?: number // Time window for corrections in milliseconds
+    gossipMessageTTL?: number // TTL for gossip messages in milliseconds
+    gossipCacheSize?: number // Max messages in seen cache
+    // Dissent processing configuration
+    minDissentObservers?: number // Minimum unique observers required in dissent message
   }
   /** Options for sharding calculations */
   sharding?: {
