@@ -1744,19 +1744,16 @@ class AccountPatcher {
         res.write(`Total execution time: ${totalTimeMs}ms\n`)
         res.write(`Total accounts processed: ${report.summary.totalAccounts}\n`)
         res.write(`Fully matching accounts: ${report.summary.fullyMatching}\n`)
-        res.write(`Cache-Trie timestamp matches: ${report.summary.ctt}\n`)
         res.write(`Cache-Trie hash matches: ${report.summary.cth}\n`)
         res.write(`Cache-Storage timestamp matches: ${report.summary.cst}\n`)
         res.write(`Cache-Storage hash matches: ${report.summary.csh}\n`)
-        res.write(`Trie-Storage timestamp matches: ${report.summary.tst}\n`)
         res.write(`Trie-Storage hash matches: ${report.summary.tsh}\n\n`)
 
         res.write('=== CHUNK PERFORMANCE ===\n')
         for (const chunk of report.summary.chunks) {
           if (chunk.recordsProcessed > 0) {
             res.write(
-              `Chunk ${chunk.chunkIndex}: ${chunk.recordsProcessed} records in ${
-                chunk.timeSpentMs
+              `Chunk ${chunk.chunkIndex}: ${chunk.recordsProcessed} records in ${chunk.timeSpentMs
               }ms (${chunk.low.substring(0, 4)}...)\n`
             )
           }
@@ -1769,7 +1766,7 @@ class AccountPatcher {
           let accountsToShow = report.accounts
           if (onlyMismatch) {
             accountsToShow = report.accounts.filter(
-              (account) => !account.ctt || !account.cth || !account.cst || !account.csh || !account.tst || !account.tsh
+              (account) => !account.cth || !account.cst || !account.csh || !account.tsh
             )
           }
 
@@ -1788,7 +1785,7 @@ class AccountPatcher {
               }
               if (account.trie) {
                 res.write(
-                  `  Trie:  hash=${account.trie.hash.substring(0, 8)}... timestamp=${account.trie.timestamp || 'N/A'}\n`
+                  `  Trie:  hash=${account.trie.hash.substring(0, 8)}...\n`
                 )
               } else {
                 res.write(`  Trie:  [missing]\n`)
@@ -1801,7 +1798,7 @@ class AccountPatcher {
                 res.write(`  Storage: [missing]\n`)
               }
               res.write(
-                `  Matches: ctt=${account.ctt} cth=${account.cth} cst=${account.cst} csh=${account.csh} tst=${account.tst} tsh=${account.tsh}\n\n`
+                `  Matches: cth=${account.cth} cst=${account.cst} csh=${account.csh} tsh=${account.tsh}\n\n`
               )
             }
           }
@@ -2454,8 +2451,7 @@ class AccountPatcher {
     if (coverageEntry == null || coverageEntry.firstChoice == null) {
       const numActiveNodes = this.stateManager.currentCycleShardData.nodes.length
       this.statemanager_fatal(
-        `getNodeForQuery null ${coverageEntry == null} ${
-          coverageEntry?.firstChoice == null
+        `getNodeForQuery null ${coverageEntry == null} ${coverageEntry?.firstChoice == null
         } numActiveNodes:${numActiveNodes}`,
         `getNodeForQuery null ${coverageEntry == null} ${coverageEntry?.firstChoice == null}`
       )
@@ -2973,8 +2969,7 @@ class AccountPatcher {
           /* prettier-ignore */ nestedCountersInstance.countEvent(`accountPatcher`, `not enough votes ${radix} ${utils.makeShortHash(votesMap.bestHash)} uniqueVotes: ${votesMap.allVotes.size}`, 1)
           this.statemanager_fatal(
             'debug findBadAccounts',
-            `debug findBadAccounts ${cycle}: ${radix} bestVotes${
-              votesMap.bestVotes
+            `debug findBadAccounts ${cycle}: ${radix} bestVotes${votesMap.bestVotes
             } < minVotes:${minVotes} uniqueVotes: ${votesMap.allVotes.size} ${utils.stringifyReduce(simpleMap)}`
           )
         }
@@ -3042,10 +3037,8 @@ class AccountPatcher {
         }
         this.statemanager_fatal(
           'debug findBadAccounts',
-          `debug findBadAccounts ${cycle}: ${
-            radixToFix.radix
-          } isInNonConsensusRange: ${hasNonConsensusRange} isInNonStorageRange: ${hasNonStorageRange} bestVotes ${
-            votesMap.bestVotes
+          `debug findBadAccounts ${cycle}: ${radixToFix.radix
+          } isInNonConsensusRange: ${hasNonConsensusRange} isInNonStorageRange: ${hasNonStorageRange} bestVotes ${votesMap.bestVotes
           } minVotes:${minVotes} uniqueVotes: ${votesMap.allVotes.size} ${utils.stringifyReduce(simpleMap)}`
         )
       }
@@ -3799,8 +3792,7 @@ class AccountPatcher {
 
       if (logFlags.debug) {
         this.mainLogger.debug(
-          `badAccounts cycle: ${cycle}, ourBadAccounts: ${
-            results.badAccounts.length
+          `badAccounts cycle: ${cycle}, ourBadAccounts: ${results.badAccounts.length
           }, ourBadAccounts: ${Utils.safeStringify(results.badAccounts)}`
         )
       }
@@ -3810,8 +3802,7 @@ class AccountPatcher {
           accountsTheyNeedToRepair = accountsTheyNeedToRepair.concat(results.extraBadAccounts)
         }
         this.mainLogger.debug(
-          `badAccounts cycle: ${cycle}, accountsTheyNeedToRepair: ${
-            accountsTheyNeedToRepair.length
+          `badAccounts cycle: ${cycle}, accountsTheyNeedToRepair: ${accountsTheyNeedToRepair.length
           }, accountsTheyNeedToRepair: ${Utils.safeStringify(accountsTheyNeedToRepair)}`
         )
         fireAndForget(() => this.requestOtherNodesToRepair(accountsTheyNeedToRepair))
@@ -3883,8 +3874,7 @@ class AccountPatcher {
               'checkAndSetAccountData updateTooOld',
               `checkAndSetAccountData updateTooOld ${cycle}: acc:${utils.stringifyReduce(
                 wrappedData.accountId
-              )} updateTS:${wrappedData.timestamp} updateHash:${utils.stringifyReduce(wrappedData.stateId)}  cacheTS:${
-                accountMemData.t
+              )} updateTS:${wrappedData.timestamp} updateHash:${utils.stringifyReduce(wrappedData.stateId)}  cacheTS:${accountMemData.t
               } cacheHash:${utils.stringifyReduce(accountMemData.h)}`
             )
             filterStats.tooOld++
@@ -4101,8 +4091,7 @@ class AccountPatcher {
       )
       this.statemanager_fatal(
         'isInSync = false',
-        `bad accounts cycle:${cycle} bad:${results.badAccounts.length} received:${wrappedDataList.length} failedH: ${
-          failedHashes.length
+        `bad accounts cycle:${cycle} bad:${results.badAccounts.length} received:${wrappedDataList.length} failedH: ${failedHashes.length
         } filtered:${utils.stringifyReduce(filterStats)} stats:${utils.stringifyReduce(
           results.stats
         )} getAccountStats: ${utils.stringifyReduce(getAccountStats)} details: ${utils.stringifyReduceLimit(
@@ -4688,8 +4677,7 @@ class AccountPatcher {
       }
 
       stream.write(
-        `node: ${nodesCovered.id} ${nodesCovered.ipPort}\tgraph: ${partitionGraph}\thome: ${
-          nodesCovered.hP
+        `node: ${nodesCovered.id} ${nodesCovered.ipPort}\tgraph: ${partitionGraph}\thome: ${nodesCovered.hP
         } data:${Utils.safeStringify(nodesCovered)}\n`
       )
     }
@@ -4737,11 +4725,9 @@ class AccountPatcher {
     summary: {
       totalAccounts: number
       fullyMatching: number
-      ctt: number // cache-trie timestamp matches
       cth: number // cache-trie hash matches
       cst: number // cache-storage timestamp matches
       csh: number // cache-storage hash matches
-      tst: number // trie-storage timestamp matches
       tsh: number // trie-storage hash matches
       chunks: Array<{
         chunkIndex: number
@@ -4754,13 +4740,11 @@ class AccountPatcher {
     accounts?: Array<{
       accountId: string
       cache?: { hash: string; timestamp: number }
-      trie?: { hash: string; timestamp?: number }
+      trie?: { hash: string }
       storage?: { hash: string; timestamp: number }
-      ctt: boolean
       cth: boolean
       cst: boolean
       csh: boolean
-      tst: boolean
       tsh: boolean
     }>
   }> {
@@ -4770,11 +4754,9 @@ class AccountPatcher {
     const summary = {
       totalAccounts: 0,
       fullyMatching: 0,
-      ctt: 0, // cache-trie timestamp matches
       cth: 0, // cache-trie hash matches
       cst: 0, // cache-storage timestamp matches
       csh: 0, // cache-storage hash matches
-      tst: 0, // trie-storage timestamp matches
       tsh: 0, // trie-storage hash matches
       chunks: [] as Array<{
         chunkIndex: number
@@ -4788,13 +4770,11 @@ class AccountPatcher {
     const allAccountResults: Array<{
       accountId: string
       cache?: { hash: string; timestamp: number }
-      trie?: { hash: string; timestamp?: number }
+      trie?: { hash: string }
       storage?: { hash: string; timestamp: number }
-      ctt: boolean
       cth: boolean
       cst: boolean
       csh: boolean
-      tst: boolean
       tsh: boolean
     }> = []
 
@@ -4807,7 +4787,7 @@ class AccountPatcher {
 
       // Maps to store data from each structure for this chunk
       const cacheData = new Map<string, { hash: string; timestamp: number }>()
-      const trieData = new Map<string, { hash: string; timestamp?: number }>()
+      const trieData = new Map<string, { hash: string }>()
       const storageData = new Map<string, { hash: string; timestamp: number }>()
       const allAccountIds = new Set<string>()
 
@@ -4914,24 +4894,20 @@ class AccountPatcher {
         const storage = storageData.get(accountId)
 
         // Calculate comparison flags
-        const ctt = cache && trie ? cache.timestamp === (trie.timestamp || 0) : false
         const cth = cache && trie ? cache.hash === trie.hash : false
         const cst = cache && storage ? cache.timestamp === storage.timestamp : false
         const csh = cache && storage ? cache.hash === storage.hash : false
-        const tst = trie && storage ? (trie.timestamp || 0) === storage.timestamp : false
         const tsh = trie && storage ? trie.hash === storage.hash : false
 
         // Update summary counters
         summary.totalAccounts++
-        if (ctt) summary.ctt++
         if (cth) summary.cth++
         if (cst) summary.cst++
         if (csh) summary.csh++
-        if (tst) summary.tst++
         if (tsh) summary.tsh++
 
-        // Check if fully matching (all present and all match)
-        if (cache && trie && storage && ctt && cth && cst && csh && tst && tsh) {
+        // Check if fully matching (all present and all hash matches)
+        if (cache && trie && storage && cth && cst && csh && tsh) {
           summary.fullyMatching++
         }
 
@@ -4941,11 +4917,9 @@ class AccountPatcher {
           cache,
           trie,
           storage,
-          ctt,
           cth,
           cst,
           csh,
-          tst,
           tsh,
         })
 

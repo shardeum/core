@@ -174,17 +174,11 @@ class ExitHandler {
             const totalMismatches = report.summary.totalAccounts - report.summary.fullyMatching
             if (totalMismatches > 0) {
               this.exitLogger.fatal(`Total mismatches found: ${totalMismatches}`)
-              this.exitLogger.fatal(
-                `Cache-Trie timestamp matches: ${report.summary.ctt}/${report.summary.totalAccounts}`
-              )
               this.exitLogger.fatal(`Cache-Trie hash matches: ${report.summary.cth}/${report.summary.totalAccounts}`)
               this.exitLogger.fatal(
                 `Cache-Storage timestamp matches: ${report.summary.cst}/${report.summary.totalAccounts}`
               )
               this.exitLogger.fatal(`Cache-Storage hash matches: ${report.summary.csh}/${report.summary.totalAccounts}`)
-              this.exitLogger.fatal(
-                `Trie-Storage timestamp matches: ${report.summary.tst}/${report.summary.totalAccounts}`
-              )
               this.exitLogger.fatal(`Trie-Storage hash matches: ${report.summary.tsh}/${report.summary.totalAccounts}`)
             } else {
               this.exitLogger.fatal('All accounts are fully consistent across cache, trie, and storage!')
