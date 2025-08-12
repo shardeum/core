@@ -287,7 +287,18 @@ class AccountCache {
   async hasAccount(accountId: string): Promise<boolean> {
     if (this.config.stateManager.bypassAccountCache) {
       const accountDataList = await this.app.getAccountDataByList([accountId])
-      return !!(accountDataList && accountDataList.length > 0 && accountDataList[0] != null)
+      const storageResult = !!(accountDataList && accountDataList.length > 0 && accountDataList[0] != null)
+      
+      // Also check cache to compare results
+      const cacheResult = this.accountsHashCache3.accountHashMap.has(accountId)
+      
+      // Compare and log if different
+      if (storageResult !== cacheResult) {
+        nestedCountersInstance.countEvent('cache-storage-mismatch', 'oos.hasAccount.mismatch')
+        /* prettier-ignore */ if (logFlags.fatal) this.fatalLogger.fatal(`oos.hasAccount.mismatch: Cache-Storage mismatch in hasAccount for ${accountId}: cache=${cacheResult}, storage=${storageResult}`)
+      }
+      
+      return storageResult
     }
     return this.accountsHashCache3.accountHashMap.has(accountId)
   }
@@ -296,15 +307,29 @@ class AccountCache {
   async getAccountHash(accountId: string): Promise<AccountHashCache> {
     if (this.config.stateManager.bypassAccountCache) {
       const accountDataList = await this.app.getAccountDataByList([accountId])
+      let storageResult: AccountHashCache = null
       if (accountDataList && accountDataList.length > 0 && accountDataList[0] != null) {
         const accountData = accountDataList[0]
-        return {
+        storageResult = {
           h: accountData.stateId,
           t: accountData.timestamp || Date.now(),
           c: this.stateManager?.currentCycleShardData?.cycleNumber || 0
         }
       }
-      return null
+      
+      // Also get cache result to compare
+      let cacheResult: AccountHashCache = null
+      if (this.accountsHashCache3.accountHashMap.has(accountId)) {
+        const accountHashCacheHistory: AccountHashCacheHistory = this.accountsHashCache3.accountHashMap.get(accountId)
+        if (accountHashCacheHistory.accountHashList.length > 0) {
+          cacheResult = accountHashCacheHistory.accountHashList[0]
+        }
+      }
+      
+      // Compare results
+      this.compareAccountHashResults(accountId, cacheResult, storageResult)
+      
+      return storageResult
     }
     if (this.accountsHashCache3.accountHashMap.has(accountId) === false) {
       return null
@@ -313,6 +338,43 @@ class AccountCache {
     if (accountHashCacheHistory.accountHashList.length > 0) {
       //0 is the newest?
       return accountHashCacheHistory.accountHashList[0]
+    }
+  }
+
+  private compareAccountHashResults(accountId: string, cacheResult: AccountHashCache | null, storageResult: AccountHashCache | null): void {
+    // Check if one exists and the other doesn't
+    if ((cacheResult === null) !== (storageResult === null)) {
+      nestedCountersInstance.countEvent('cache-storage-mismatch', 'oos.getAccountHash.existence.mismatch')
+      /* prettier-ignore */ if (logFlags.fatal) this.fatalLogger.fatal(`oos.getAccountHash.existence.mismatch: Cache-Storage existence mismatch in getAccountHash for ${accountId}: cache=${cacheResult ? 'exists' : 'null'}, storage=${storageResult ? 'exists' : 'null'}`)
+      /* prettier-ignore */ if (logFlags.fatal) this.fatalLogger.fatal(`  Cache data: ${cacheResult ? utils.stringifyReduce(cacheResult) : 'null'}`)
+      /* prettier-ignore */ if (logFlags.fatal) this.fatalLogger.fatal(`  Storage data: ${storageResult ? utils.stringifyReduce(storageResult) : 'null'}`)
+      return
+    }
+    
+    // If both are null, they match
+    if (cacheResult === null && storageResult === null) {
+      return
+    }
+    
+    // Compare the actual values
+    let mismatchDetails = []
+    if (cacheResult.h !== storageResult.h) {
+      mismatchDetails.push(`hash: cache=${cacheResult.h}, storage=${storageResult.h}`)
+      nestedCountersInstance.countEvent('cache-storage-mismatch', 'oos.getAccountHash.hash.mismatch')
+    }
+    if (cacheResult.t !== storageResult.t) {
+      mismatchDetails.push(`timestamp: cache=${cacheResult.t}, storage=${storageResult.t}`)
+      nestedCountersInstance.countEvent('cache-storage-mismatch', 'oos.getAccountHash.timestamp.mismatch')
+    }
+    if (cacheResult.c !== storageResult.c) {
+      mismatchDetails.push(`cycle: cache=${cacheResult.c}, storage=${storageResult.c}`)
+      nestedCountersInstance.countEvent('cache-storage-mismatch', 'oos.getAccountHash.cycle.mismatch')
+    }
+    
+    if (mismatchDetails.length > 0) {
+      /* prettier-ignore */ if (logFlags.fatal) this.fatalLogger.fatal(`oos.getAccountHash.hash.mismatch: Cache-Storage value mismatch in getAccountHash for ${accountId}: ${mismatchDetails.join(', ')}`)
+      /* prettier-ignore */ if (logFlags.fatal) this.fatalLogger.fatal(`  Full cache data: ${utils.stringifyReduce(cacheResult)}`)
+      /* prettier-ignore */ if (logFlags.fatal) this.fatalLogger.fatal(`  Full storage data: ${utils.stringifyReduce(storageResult)}`)
     }
   }
 
