@@ -1673,6 +1673,33 @@ class TransactionConsenus {
   }
 
   async poqoVoteSendLoop(queueEntry: QueueEntry, appliedVoteHash: AppliedVoteHash): Promise<void> {
+    if (queueEntry.beforeStateConflict || this.hasProposalConflicts(queueEntry)) {
+      if (!queueEntry.dissentTimers) {
+        queueEntry.dissentTimers = {
+          startedAt: Date.now(),
+          lastExtendAt: Date.now(),
+          delayApplied: 0
+        }
+      }
+
+      const delayMs = Context.config.stateManager.beforeStateDissentDelayMs
+      await utils.sleep(delayMs)
+      queueEntry.dissentTimers.delayApplied += delayMs
+
+      const resolved = await this.stateManager.transactionQueue.attemptConflictResolution(queueEntry)
+      
+      if (!resolved) {
+        if (queueEntry.dissentTimers.delayApplied >= Context.config.stateManager.maxDissentDelayMs) {
+          this.requeueTransaction(queueEntry, 'before-state-conflict-unresolved')
+          return
+        }
+        
+        // Abstain from voting
+        nestedCountersInstance.countEvent('stateManager', 'oos.votesAbstained')
+        return
+      }
+    }
+    
     queueEntry.poqoNextSendIndex = 0
     const aggregatorList = queueEntry.executionGroup
     while (!queueEntry.signedReceipt) {
@@ -3700,6 +3727,39 @@ class TransactionConsenus {
       queueEntry.pendingConfirmOrChallenge.set(confirmOrChallenge.nodeId, confirmOrChallenge)
     }
   }
+  
+  /**
+   * Requeue a transaction due to unresolved conflicts
+   * Phase 2 State Hardening
+   */
+  requeueTransaction(queueEntry: QueueEntry, reason: string): void {
+    // Increment requeue attempts
+    queueEntry.requeueAttempts = (queueEntry.requeueAttempts || 0) + 1
+    
+    // Check if we've exceeded max requeue attempts
+    const maxRequeueAttempts = 3
+    if (queueEntry.requeueAttempts > maxRequeueAttempts) {
+      /* prettier-ignore */ if (logFlags.error) this.mainLogger.error(`requeueTransaction: Max requeue attempts exceeded for ${queueEntry.logID}`)
+      nestedCountersInstance.countEvent('stateManager', 'oos.txsDroppedMaxRequeue')
+      return
+    }
+    
+    // Reset state for requeue
+    queueEntry.state = 'consensing'
+    queueEntry.beforeStateConflict = false
+    queueEntry.beforeStateObservations = undefined
+    queueEntry.resolvedBeforeState = undefined
+    queueEntry.dissentTimers = undefined
+    
+    // Add back to queue
+    this.stateManager.transactionQueue.requeueQueueEntry(queueEntry)
+    
+    // Emit metrics
+    nestedCountersInstance.countEvent('stateManager', 'oos.txsDeferred')
+    nestedCountersInstance.countEvent('stateManager', `oos.requeueReason.${reason}`)
+    
+    /* prettier-ignore */ if (logFlags.verbose) this.mainLogger.debug(`requeueTransaction: Requeued ${queueEntry.logID} due to ${reason}`)
+  }
 
   // DEPRECATED AFTER POQO
   // /**
@@ -4154,9 +4214,34 @@ class TransactionConsenus {
   compareProposalBeforeStates(queueEntry: QueueEntry): Map<string, Set<string>> {
     const beforeStatesByAccount = new Map<string, Set<string>>()
 
-    // Get before-state hashes directly from queueEntry
-    for (const [accountId, hash] of Object.entries(queueEntry.beforeHashes)) {
-      beforeStatesByAccount.set(accountId, new Set([hash]))
+    // Check if we have collected votes with proposals
+    if (queueEntry.collectedVotes && queueEntry.collectedVotes.length > 0) {
+      // Look for before-state hashes in collected votes/proposals
+      for (const vote of queueEntry.collectedVotes) {
+        // Check if vote has beforeHashes (different vote structures might exist)
+        if (vote && typeof vote === 'object') {
+          // Try different possible locations for before-state hashes
+          const beforeHashes = (vote as any).beforeHashes || 
+                              (vote as any).beforeStateHashes || 
+                              (vote as any).proposal?.beforeStateHashes
+          
+          if (beforeHashes && typeof beforeHashes === 'object') {
+            for (const [accountId, hash] of Object.entries(beforeHashes)) {
+              if (!beforeStatesByAccount.has(accountId)) {
+                beforeStatesByAccount.set(accountId, new Set())
+              }
+              beforeStatesByAccount.get(accountId).add(hash as string)
+            }
+          }
+        }
+      }
+    }
+    
+    // Fallback to direct beforeHashes on queueEntry if no votes
+    if (beforeStatesByAccount.size === 0 && queueEntry.beforeHashes) {
+      for (const [accountId, hash] of Object.entries(queueEntry.beforeHashes)) {
+        beforeStatesByAccount.set(accountId, new Set([hash]))
+      }
     }
 
     return beforeStatesByAccount

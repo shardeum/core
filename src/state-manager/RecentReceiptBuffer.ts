@@ -1,6 +1,7 @@
 import { SignedReceipt } from './state-manager-types'
+import { FIFOCache } from '../utils/fifoCache'
 import { nestedCountersInstance } from '../utils/nestedCounters'
-import * as utils from '../utils'
+import * as Context from '../p2p/Context'
 
 export interface ReceiptEntry {
   receipt: SignedReceipt
@@ -9,293 +10,226 @@ export interface ReceiptEntry {
   beforeStateHash?: string
 }
 
-interface AccountReceiptData {
-  receipts: ReceiptEntry[]
-  lastCleanup: number
-}
-
+/**
+ * Recent Receipt Buffer for Phase 2 State Hardening
+ * Maintains a bounded cache of recent receipts for quick conflict resolution
+ */
 export class RecentReceiptBuffer {
-  private receiptsByAccount: Map<string, AccountReceiptData>
-  private receiptsByTxId: Map<string, SignedReceipt>
-  private insertionOrder: Array<{ key: string, type: 'account' | 'txId', timestamp: number }>
+  private receiptsByAccount: FIFOCache<string, ReceiptEntry[]>
+  private receiptsByTxId: FIFOCache<string, SignedReceipt>
   private bufferSize: number
   private ttl: number
-  private cleanupInterval: number
-  private lastGlobalCleanup: number
+  private cleanupInterval: NodeJS.Timeout | null = null
 
-  constructor(bufferSize: number = 1000, ttl: number = 60000) {
+  constructor(bufferSize: number, ttl: number) {
     this.bufferSize = bufferSize
     this.ttl = ttl
-    this.cleanupInterval = ttl / 2 // Cleanup every 30s if TTL is 60s
-    this.receiptsByAccount = new Map()
-    this.receiptsByTxId = new Map()
-    this.insertionOrder = []
-    this.lastGlobalCleanup = Date.now()
-  }
-
-  addReceipt(receipt: SignedReceipt): void {
-    if (!receipt || !receipt.proposal || !receipt.proposal.txid) {
-      return
-    }
-
-    const timestamp = Date.now()
-    const txId = receipt.proposal.txid
-
-    // Check if we need to evict old entries to make room
-    this.enforceBufferSize()
-
-    // Store by txId
-    if (!this.receiptsByTxId.has(txId)) {
-      this.receiptsByTxId.set(txId, receipt)
-      this.insertionOrder.push({ key: txId, type: 'txId', timestamp })
-    }
-
-    // Extract account IDs and state hashes from the receipt
-    const accountsData = this.extractAccountData(receipt)
+    this.receiptsByAccount = new FIFOCache<string, ReceiptEntry[]>(bufferSize)
+    this.receiptsByTxId = new FIFOCache<string, SignedReceipt>(bufferSize)
     
-    for (const accData of accountsData) {
-      const { accountId, afterStateHash, beforeStateHash } = accData
-      
-      const entry: ReceiptEntry = {
-        receipt,
-        timestamp,
-        afterStateHash,
-        beforeStateHash
-      }
-
-      // Store by account
-      let accountData = this.receiptsByAccount.get(accountId)
-      if (!accountData) {
-        accountData = {
-          receipts: [],
-          lastCleanup: timestamp
-        }
-        this.receiptsByAccount.set(accountId, accountData)
-        this.insertionOrder.push({ key: accountId, type: 'account', timestamp })
-      }
-
-      // Add to front for easy access to latest
-      accountData.receipts.unshift(entry)
-
-      // Limit receipts per account to prevent unbounded growth
-      if (accountData.receipts.length > 10) {
-        accountData.receipts = accountData.receipts.slice(0, 10)
-      }
-    }
-
-    // Track metrics
-    nestedCountersInstance.countEvent('stateManager', 'recentReceiptBuffer.receiptsAdded')
-
-    // Periodic cleanup
-    this.maybeCleanup()
+    // Start cleanup interval
+    this.startCleanupInterval()
   }
 
+  /**
+   * Add a receipt to the buffer
+   */
+  addReceipt(receipt: SignedReceipt): void {
+    try {
+      // Extract state information from receipt
+      const proposal = receipt.proposal
+      if (!proposal || !proposal.accountIDs || !proposal.afterStateHashes) {
+        throw new Error('Invalid receipt structure')
+      }
+      
+      const timestamp = Date.now()
+
+      // Store by txId
+      this.receiptsByTxId.set(proposal.txid, receipt)
+
+      // Store by each account involved
+      for (let i = 0; i < proposal.accountIDs.length; i++) {
+        const accountId = proposal.accountIDs[i]
+        const entry: ReceiptEntry = {
+          receipt,
+          timestamp,
+          afterStateHash: proposal.afterStateHashes[i],
+          beforeStateHash: proposal.beforeStateHashes[i]
+        }
+
+        // Get or create account receipt list
+        let accountReceipts = this.receiptsByAccount.get(accountId)
+        if (!accountReceipts) {
+          accountReceipts = []
+        }
+
+        // Add to beginning for most recent first
+        accountReceipts.unshift(entry)
+
+        // Limit per-account storage to prevent memory bloat
+        if (accountReceipts.length > 10) {
+          accountReceipts.pop()
+        }
+
+        this.receiptsByAccount.set(accountId, accountReceipts)
+      }
+
+      // Update metrics
+      nestedCountersInstance.countEvent('stateManager', 'recentReceiptBuffer.added')
+    } catch (error) {
+      if (Context.logger && Context.logger.getLogger) {
+        Context.logger.getLogger('recentReceiptBuffer').error('RecentReceiptBuffer: Failed to add receipt', error)
+      }
+      nestedCountersInstance.countEvent('stateManager', 'recentReceiptBuffer.addError')
+    }
+  }
+
+  /**
+   * Get the most recent receipt for an account
+   */
   getLatestForAccount(accountId: string): ReceiptEntry | null {
-    const accountData = this.receiptsByAccount.get(accountId)
-    if (!accountData || accountData.receipts.length === 0) {
+    const receipts = this.receiptsByAccount.get(accountId)
+    if (!receipts || receipts.length === 0) {
       return null
     }
 
-    // Clean up expired entries for this account
-    this.cleanupAccountEntries(accountId, accountData)
-
-    // Return the most recent non-expired entry
-    const now = Date.now()
-    for (const entry of accountData.receipts) {
-      if (now - entry.timestamp <= this.ttl) {
-        nestedCountersInstance.countEvent('stateManager', 'recentReceiptBuffer.accountHit')
-        return entry
-      }
+    // Check TTL on the most recent receipt
+    const latest = receipts[0]
+    const age = Date.now() - latest.timestamp
+    if (age > this.ttl) {
+      // Expired, trigger cleanup for this account
+      this.cleanupAccountReceipts(accountId)
+      return null
     }
 
-    nestedCountersInstance.countEvent('stateManager', 'recentReceiptBuffer.accountMiss')
-    return null
+    nestedCountersInstance.countEvent('stateManager', 'recentReceiptBuffer.hit')
+    return latest
   }
 
+  /**
+   * Get receipt by transaction ID
+   */
   getReceiptByTxId(txId: string): SignedReceipt | null {
     const receipt = this.receiptsByTxId.get(txId)
-    if (!receipt) {
-      nestedCountersInstance.countEvent('stateManager', 'recentReceiptBuffer.txIdMiss')
-      return null
+    if (receipt) {
+      nestedCountersInstance.countEvent('stateManager', 'recentReceiptBuffer.txIdHit')
     }
-
-    // Check if expired by finding in insertion order
-    const now = Date.now()
-    const orderEntry = this.insertionOrder.find(e => e.key === txId && e.type === 'txId')
-    if (orderEntry && now - orderEntry.timestamp > this.ttl) {
-      // Expired, remove it
-      this.receiptsByTxId.delete(txId)
-      nestedCountersInstance.countEvent('stateManager', 'recentReceiptBuffer.txIdExpired')
-      return null
-    }
-
-    nestedCountersInstance.countEvent('stateManager', 'recentReceiptBuffer.txIdHit')
-    return receipt
+    return receipt || null
   }
 
-  cleanup(): void {
+  /**
+   * Get all recent receipts for an account (for debugging/analysis)
+   */
+  getReceiptsForAccount(accountId: string): ReceiptEntry[] {
+    const receipts = this.receiptsByAccount.get(accountId)
+    if (!receipts) {
+      return []
+    }
+
+    // Filter out expired entries
     const now = Date.now()
-    let expiredCount = 0
-
-    // Clean up expired entries from txId map
-    for (const [txId, receipt] of this.receiptsByTxId.entries()) {
-      const orderEntry = this.insertionOrder.find(e => e.key === txId && e.type === 'txId')
-      if (orderEntry && now - orderEntry.timestamp > this.ttl) {
-        this.receiptsByTxId.delete(txId)
-        expiredCount++
-      }
-    }
-
-    // Clean up expired entries from account map and their receipts
-    for (const [accountId, accountData] of this.receiptsByAccount.entries()) {
-      this.cleanupAccountEntries(accountId, accountData)
-      if (accountData.receipts.length === 0) {
-        this.receiptsByAccount.delete(accountId)
-      }
-    }
-
-    // Clean up insertion order
-    this.insertionOrder = this.insertionOrder.filter(entry => {
-      if (now - entry.timestamp > this.ttl) {
-        return false
-      }
-      // Also check if the entry still exists in the maps
-      if (entry.type === 'txId') {
-        return this.receiptsByTxId.has(entry.key)
-      } else {
-        return this.receiptsByAccount.has(entry.key)
-      }
-    })
-
-    if (expiredCount > 0) {
-      nestedCountersInstance.countEvent('stateManager', 'recentReceiptBuffer.entriesExpired', expiredCount)
-    }
-
-    this.lastGlobalCleanup = now
+    return receipts.filter(entry => (now - entry.timestamp) <= this.ttl)
   }
 
-  private enforceBufferSize(): void {
-    // Count actual unique entries (by txId)
-    const uniqueEntries = this.receiptsByTxId.size
-    
-    // Only evict if we exceed buffer size
-    while (uniqueEntries >= this.bufferSize && this.insertionOrder.length > 0) {
-      const oldest = this.insertionOrder.shift()
-      if (!oldest) break
-
-      if (oldest.type === 'txId') {
-        const txId = oldest.key
-        this.receiptsByTxId.delete(txId)
-        
-        // Also remove associated account entries for this receipt
-        for (const [accountId, accountData] of this.receiptsByAccount.entries()) {
-          accountData.receipts = accountData.receipts.filter(entry => 
-            entry.receipt.proposal.txid !== txId
-          )
-          if (accountData.receipts.length === 0) {
-            this.receiptsByAccount.delete(accountId)
-            // Remove from insertion order
-            const index = this.insertionOrder.findIndex(e => 
-              e.type === 'account' && e.key === accountId
-            )
-            if (index >= 0) {
-              this.insertionOrder.splice(index, 1)
-            }
-          }
-        }
-        
-        nestedCountersInstance.countEvent('stateManager', 'recentReceiptBuffer.lruEviction')
-        break // We removed one receipt, check size again
-      }
-    }
-  }
-
-  private cleanupAccountEntries(accountId: string, accountData: AccountReceiptData): void {
-    const now = Date.now()
-    
-    // Only cleanup if enough time has passed since last cleanup for this account
-    if (now - accountData.lastCleanup < this.cleanupInterval) {
+  /**
+   * Clean up expired entries for a specific account
+   */
+  private cleanupAccountReceipts(accountId: string): void {
+    const receipts = this.receiptsByAccount.get(accountId)
+    if (!receipts) {
       return
     }
 
-    const validReceipts = accountData.receipts.filter(entry => 
-      now - entry.timestamp <= this.ttl
-    )
-
-    accountData.receipts = validReceipts
-    accountData.lastCleanup = now
-  }
-
-  private maybeCleanup(): void {
     const now = Date.now()
-    if (now - this.lastGlobalCleanup >= this.cleanupInterval) {
-      this.cleanup()
+    const validReceipts = receipts.filter(entry => (now - entry.timestamp) <= this.ttl)
+
+    if (validReceipts.length === 0) {
+      this.receiptsByAccount.delete(accountId)
+    } else if (validReceipts.length < receipts.length) {
+      this.receiptsByAccount.set(accountId, validReceipts)
     }
   }
 
-  private extractAccountData(receipt: SignedReceipt): Array<{
-    accountId: string
-    afterStateHash: string
-    beforeStateHash?: string
-  }> {
-    const accountsData: Array<{
-      accountId: string
-      afterStateHash: string
-      beforeStateHash?: string
-    }> = []
+  /**
+   * Start periodic cleanup interval
+   */
+  private startCleanupInterval(): void {
+    // Run cleanup every 30 seconds
+    this.cleanupInterval = setInterval(() => {
+      this.cleanup()
+    }, 30000)
+  }
 
-    // Extract from proposal
-    if (receipt.proposal) {
-      const { accountIDs, beforeStateHashes, afterStateHashes } = receipt.proposal
-      
-      // Process each account
-      for (let i = 0; i < accountIDs.length; i++) {
-        const accountId = accountIDs[i]
-        const beforeStateHash = beforeStateHashes[i]
-        const afterStateHash = afterStateHashes[i]
+  /**
+   * Clean up all expired entries
+   */
+  cleanup(): void {
+    try {
+      const now = Date.now()
+      let cleanedAccounts = 0
+      let cleanedTxIds = 0
+
+      // Clean up account receipts
+      for (const [accountId, receipts] of this.receiptsByAccount.entries()) {
+        const validReceipts = receipts.filter(entry => (now - entry.timestamp) <= this.ttl)
         
-        accountsData.push({
-          accountId,
-          afterStateHash,
-          beforeStateHash
-        })
+        if (validReceipts.length === 0) {
+          this.receiptsByAccount.delete(accountId)
+          cleanedAccounts++
+        } else if (validReceipts.length < receipts.length) {
+          this.receiptsByAccount.set(accountId, validReceipts)
+          cleanedAccounts++
+        }
+      }
+
+      // Note: FIFOCache handles its own eviction, but we can track metrics
+      const previousSize = this.receiptsByTxId.size()
+      
+      // Force FIFO eviction if needed
+      if (this.receiptsByTxId.size() > this.bufferSize) {
+        cleanedTxIds = this.receiptsByTxId.size() - this.bufferSize
+      }
+
+      if (cleanedAccounts > 0 || cleanedTxIds > 0) {
+        nestedCountersInstance.countEvent('stateManager', 'recentReceiptBuffer.cleanup', cleanedAccounts + cleanedTxIds)
+      }
+    } catch (error) {
+      if (Context.logger && Context.logger.getLogger) {
+        Context.logger.getLogger('recentReceiptBuffer').error('RecentReceiptBuffer: Cleanup failed', error)
       }
     }
-
-    return accountsData
   }
 
-  // Debug methods
+  /**
+   * Get buffer statistics
+   */
   getStats(): {
-    accountEntries: number
-    txIdEntries: number
-    totalReceipts: number
-    oldestEntryAge: number | null
-    bufferUtilization: number
+    accountCount: number
+    txIdCount: number
+    totalReceiptEntries: number
   } {
-    const now = Date.now()
-    let totalReceipts = 0
-    
-    for (const accountData of this.receiptsByAccount.values()) {
-      totalReceipts += accountData.receipts.length
+    let totalEntries = 0
+    for (const receipts of this.receiptsByAccount.values()) {
+      totalEntries += receipts.length
     }
-
-    const oldestEntry = this.insertionOrder[0]
-    const oldestAge = oldestEntry ? now - oldestEntry.timestamp : null
 
     return {
-      accountEntries: this.receiptsByAccount.size,
-      txIdEntries: this.receiptsByTxId.size,
-      totalReceipts,
-      oldestEntryAge: oldestAge,
-      bufferUtilization: this.insertionOrder.length / this.bufferSize
+      accountCount: this.receiptsByAccount.size(),
+      txIdCount: this.receiptsByTxId.size(),
+      totalReceiptEntries: totalEntries
     }
   }
 
+  /**
+   * Clear the buffer and stop cleanup
+   */
   clear(): void {
     this.receiptsByAccount.clear()
     this.receiptsByTxId.clear()
-    this.insertionOrder = []
-    this.lastGlobalCleanup = Date.now()
+    
+    if (this.cleanupInterval) {
+      clearInterval(this.cleanupInterval)
+      this.cleanupInterval = null
+    }
   }
 }

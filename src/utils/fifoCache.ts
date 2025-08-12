@@ -35,4 +35,16 @@ export class FIFOCache<K, V> {
   entries(): IterableIterator<[K, V]> {
     return this.map.entries()
   }
+
+  values(): IterableIterator<V> {
+    return this.map.values()
+  }
+
+  keys(): IterableIterator<K> {
+    return this.map.keys()
+  }
+
+  has(key: K): boolean {
+    return this.map.has(key)
+  }
 }

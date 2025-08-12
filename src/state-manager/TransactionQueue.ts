@@ -22,6 +22,7 @@ import { nestedCountersInstance } from '../utils/nestedCounters'
 import Profiler, { cUninitializedSize, profilerInstance } from '../utils/profiler'
 import ShardFunctions from './shardFunctions'
 import * as NodeList from '../p2p/NodeList'
+import { RecentReceiptBuffer } from './RecentReceiptBuffer'
 import {
   AcceptedTx,
   AccountFilter,
@@ -184,6 +185,7 @@ class TransactionQueue {
 
   debugRecentQueueEntry: QueueEntry
   nonceQueue: Map<string, NonceQueueItem[]>
+  recentReceiptBuffer: RecentReceiptBuffer
 
   constructor(
     stateManager: StateManager,
@@ -230,6 +232,11 @@ class TransactionQueue {
     this._transactionQueueByID = new Map()
     this.pendingTransactionQueueByID = new Map()
     this.archivedQueueEntriesByID = new Map()
+    
+    this.recentReceiptBuffer = new RecentReceiptBuffer(
+      this.config.stateManager.recentReceiptBufferSize,
+      this.config.stateManager.recentReceiptTTL
+    )
 
     this.archivedQueueEntryMaxCount = 5000 // was 50000 but this too high
     // 10k will fit into memory and should persist long enough at desired loads
@@ -3272,7 +3279,7 @@ class TransactionQueue {
         if (result.success === true && result.receipt != null) {
           //TODO implement this!!!
           queueEntry.receivedSignedReceipt = result.receipt
-          this.stateManager.recentReceiptBuffer.addReceipt(queueEntry.receivedSignedReceipt)
+          this.recentReceiptBuffer.addReceipt(queueEntry.receivedSignedReceipt)
           keepTrying = false
           gotReceipt = true
 
@@ -4963,7 +4970,7 @@ class TransactionQueue {
     conflictingHashes: Set<string>
   ): Promise<{ hash: string; source: 'receipt-cache' | 'archiver' | 'local'; proof?: SignedReceipt } | null> {
     // 1. Check recent receipt buffer first (fastest option)
-    const latestReceipt = this.stateManager.recentReceiptBuffer.getLatestForAccount(accountId)
+    const latestReceipt = this.recentReceiptBuffer.getLatestForAccount(accountId)
     if (latestReceipt && this.validateReceiptChain(latestReceipt, accountId, conflictingHashes)) {
       nestedCountersInstance.countEvent('stateManager', 'oos.conflictResolved.receipt-cache')
       return {
@@ -5118,6 +5125,23 @@ class TransactionQueue {
     }
 
     return allResolved
+  }
+
+  /**
+   * Requeue a queue entry for retry
+   */
+  requeueQueueEntry(queueEntry: QueueEntry): void {
+    // Remove from current queue
+    const index = this._transactionQueue.indexOf(queueEntry)
+    if (index > -1) {
+      this._transactionQueue.splice(index, 1)
+    }
+    
+    // Add to pending queue for reprocessing
+    this.pendingTransactionQueue.push(queueEntry)
+    this.pendingTransactionQueueByID.set(queueEntry.acceptedTx.txId, queueEntry)
+    
+    nestedCountersInstance.countEvent('stateManager', 'queueEntryRequeued')
   }
 
   shouldHaltDueToConflict(queueEntry: QueueEntry): boolean {
@@ -7372,7 +7396,7 @@ class TransactionQueue {
                   didNotMatchReceipt = true
                   queueEntry.signedReceiptForRepair = result
                   // Add repair receipt to recent receipt buffer
-                  this.stateManager.recentReceiptBuffer.addReceipt(queueEntry.signedReceiptForRepair)
+                  this.recentReceiptBuffer.addReceipt(queueEntry.signedReceiptForRepair)
 
                   // queueEntry.appliedReceiptForRepair2 = this.stateManager.getReceipt2(queueEntry)
                   if (queueEntry.isInExecutionHome === false && queueEntry.signedReceipt != null) {
