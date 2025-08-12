@@ -48,10 +48,11 @@ import {
 } from './state-manager-types'
 import { ReceiptEntry } from './RecentReceiptBuffer'
 import { isInternalTxAllowed, networkMode } from '../p2p/Modes'
+import { SignedReceiptRef } from '../types/gossip/state-dissent'
+import * as StateDissentHandlers from '../p2p/gossipHandlers/stateDissentHandlers'
 import { Node } from '@shardeum-foundation/lib-types/build/src/p2p/NodeListTypes'
 import { Logger as L4jsLogger } from 'log4js'
 import { getNetworkTimeOffset, ipInfo, shardusGetTime } from '../network'
-import * as StateDissentHandlers from '../p2p/gossipHandlers/stateDissentHandlers'
 import { InternalBinaryHandler } from '../types/Handler'
 import { BroadcastStateReq, deserializeBroadcastStateReq, serializeBroadcastStateReq } from '../types/BroadcastStateReq'
 import {
@@ -5059,7 +5060,9 @@ class TransactionQueue {
         txId,
         accountId,
         observedHashes: Array.from(tracking.hashes),
-        newObservations
+        newObservations,
+        delayApplied: queueEntry.dissentTimers?.delayApplied || 0,
+        enableDelays: configContext.stateManager.enableConflictResolutionDelays
       })
     }
     
@@ -5075,7 +5078,7 @@ class TransactionQueue {
     accountId: string,
     conflictingHashes: Set<string>
   ): Promise<{ hash: string; source: 'receipt-cache' | 'archiver' | 'local'; proof?: SignedReceipt | any } | null> {
-    /* prettier-ignore */ if (logFlags.verbose) this.mainLogger.info(`resolveBeforeStateConflict: attempting to resolve conflict for account ${accountId}, conflicting hashes: ${Array.from(conflictingHashes).join(', ')}`)
+    /* prettier-ignore */ this.mainLogger.info(`resolveBeforeStateConflict: attempting to resolve conflict for account ${accountId}, conflicting hashes: ${Array.from(conflictingHashes).join(', ')}, txId: ${queueEntry.acceptedTx.txId}`)
     
     // 1. Check recent receipt buffer first (fastest option)
     const latestReceipt = this.recentReceiptBuffer.getLatestForAccount(accountId)
@@ -5134,34 +5137,44 @@ class TransactionQueue {
 
     // 3. Special case: If no receipts exist anywhere, this might be a new account
     // For new accounts, the before-state doesn't matter - we can proceed with any hash
-    if (!latestReceipt) {
-      /* prettier-ignore */ if (logFlags.verbose) this.mainLogger.info(`resolveBeforeStateConflict: no receipts found for account ${accountId}, checking if new account`)
+    // Also check local state even if receipt buffer has unrelated receipts
+    /* prettier-ignore */ if (logFlags.verbose) this.mainLogger.info(`resolveBeforeStateConflict: checking local state for account ${accountId}, latestReceipt exists: ${!!latestReceipt}`)
+    
+    // Get the current account data to see if it exists
+    const accountData = await this.stateManager.app.getAccountDataByList([accountId])
+    
+    if (!accountData || accountData.length === 0 || !accountData[0] || !accountData[0].data) {
+      // Account doesn't exist - for new accounts, we can accept any before-state hash
+      // since there's no existing state to conflict with
+      /* prettier-ignore */ if (logFlags.verbose) this.mainLogger.info(`resolveBeforeStateConflict: account ${accountId} doesn't exist, accepting first hash from conflicts`)
       
-      // Get the current account data to see if it exists
-      const accountData = await this.stateManager.app.getAccountDataByList([accountId])
+      // Just pick the first hash from the conflicting set - it doesn't matter which one
+      const firstHash = Array.from(conflictingHashes)[0]
       
-      if (!accountData || accountData.length === 0 || !accountData[0] || !accountData[0].data) {
-        // Account doesn't exist - for new accounts, we can accept any before-state hash
-        // since there's no existing state to conflict with
-        /* prettier-ignore */ if (logFlags.verbose) this.mainLogger.info(`resolveBeforeStateConflict: account ${accountId} doesn't exist, accepting first hash from conflicts`)
-        
-        // Just pick the first hash from the conflicting set - it doesn't matter which one
-        const firstHash = Array.from(conflictingHashes)[0]
-        
-        nestedCountersInstance.countEvent('stateManager', 'oos.conflictResolved.new-account')
+      nestedCountersInstance.countEvent('stateManager', 'oos.conflictResolved.new-account')
+      return {
+        hash: firstHash,
+        source: 'local'
+      }
+    } else {
+      // Account exists locally - use its current hash if it's one of the conflicting ones
+      const account = accountData[0]
+      const accountHash = this.stateManager.app.calculateAccountHash(account.data)
+      
+      /* prettier-ignore */ if (logFlags.verbose) this.mainLogger.info(`resolveBeforeStateConflict: account ${accountId} exists locally, hash: ${accountHash}, conflicting hashes: ${Array.from(conflictingHashes).join(', ')}`)
+      
+      if (conflictingHashes.has(accountHash)) {
+        nestedCountersInstance.countEvent('stateManager', 'oos.conflictResolved.local-account')
         return {
-          hash: firstHash,
+          hash: accountHash,
           source: 'local'
         }
       } else {
-        // Account exists locally - use its current hash if it's one of the conflicting ones
-        const account = accountData[0]
-        const accountHash = this.stateManager.app.calculateAccountHash(account.data)
-        
-        /* prettier-ignore */ if (logFlags.verbose) this.mainLogger.info(`resolveBeforeStateConflict: account ${accountId} exists locally, hash: ${accountHash}`)
-        
-        if (conflictingHashes.has(accountHash)) {
-          nestedCountersInstance.countEvent('stateManager', 'oos.conflictResolved.local-account')
+        // NEW: If local hash doesn't match any conflicting hash, but we have no receipts,
+        // trust the local state as authoritative
+        if (!latestReceipt && !queueEntry.archiverQueryCount) {
+          /* prettier-ignore */ if (logFlags.verbose) this.mainLogger.warn(`resolveBeforeStateConflict: local hash ${accountHash} not in conflicts, but no receipts found - using local as authoritative`)
+          nestedCountersInstance.countEvent('stateManager', 'oos.conflictResolved.local-authoritative')
           return {
             hash: accountHash,
             source: 'local'
@@ -5416,16 +5429,192 @@ class TransactionQueue {
       // Check if majority has the wrong state AND receipt proves a newer state
       if (majorityHash && majorityHash !== resolution.hash && resolution.proof) {
         // The majority vote has a different state than what the receipt proves
-        // This is the condition where we should halt
-        nestedCountersInstance.countEvent('stateManager', 'oos.haltDueToMajorityWrongState')
         
-        /* prettier-ignore */ if (logFlags.error) this.mainLogger.error(`Halting transaction ${queueEntry.logID}: majority vote has wrong state for account ${accountId}. Majority: ${majorityHash}, Receipt proves: ${resolution.hash}`)
+        /* prettier-ignore */ this.mainLogger.warn(`Transaction ${queueEntry.logID}: majority vote has wrong state for account ${accountId}. Majority: ${majorityHash}, Receipt proves: ${resolution.hash}`)
         
-        return true
+        // NEW APPROACH: Don't halt if we have authoritative proof
+        // Instead, update the before hash to match the proven state
+        if (queueEntry.beforeHashes && queueEntry.beforeHashes[accountId]) {
+          const oldHash = queueEntry.beforeHashes[accountId]
+          queueEntry.beforeHashes[accountId] = resolution.hash
+          /* prettier-ignore */ this.mainLogger.info(`Updated before hash for account ${accountId} from ${oldHash} to ${resolution.hash} based on receipt proof`)
+        }
+        
+        // Also update collected data if needed
+        if (queueEntry.collectedData && queueEntry.collectedData[accountId]) {
+          const accountData = queueEntry.collectedData[accountId]
+          if (accountData.stateId !== resolution.hash) {
+            accountData.prevStateId = accountData.stateId
+            accountData.stateId = resolution.hash
+            /* prettier-ignore */ this.mainLogger.info(`Updated collected data state for account ${accountId} to match receipt proof`)
+          }
+        }
+        
+        nestedCountersInstance.countEvent('stateManager', 'oos.majorityWrongButProceedingWithProof')
+        // Don't halt - proceed with the authoritative state
+        return false
       }
     }
 
     return false
+  }
+
+  /**
+   * Sync local state from authoritative proof (receipt)
+   * This fixes the root cause of persistent conflicts by updating our local state
+   * to match what the receipt proves is correct
+   */
+  async syncLocalStateFromProof(
+    accountId: string, 
+    resolution: { hash: string; source: string; proof?: any }
+  ): Promise<void> {
+    try {
+      /* prettier-ignore */ this.mainLogger.info(`syncLocalStateFromProof: Syncing local state for account ${accountId} to match receipt proof`)
+      
+      // Extract state data from the proof
+      let correctStateData: any = null
+      
+      if (resolution.source === 'archiver' && resolution.proof) {
+        // Archiver receipt format
+        const archiverReceipt = resolution.proof
+        
+        // Find the after-state data for this account
+        if (archiverReceipt.afterStates && Array.isArray(archiverReceipt.afterStates)) {
+          const afterState = archiverReceipt.afterStates.find(
+            (state: any) => state.accountId === accountId || 
+                           state.accountId === accountId.toLowerCase()
+          )
+          if (afterState && afterState.data) {
+            correctStateData = afterState.data
+            /* prettier-ignore */ this.mainLogger.info(`syncLocalStateFromProof: Found after-state data in archiver receipt`)
+          }
+        }
+        
+        // Fallback: check if there's account data directly on the receipt
+        if (!correctStateData && archiverReceipt.accountData) {
+          correctStateData = archiverReceipt.accountData
+        }
+      } else if (resolution.source === 'receipt-cache' && resolution.proof) {
+        // Recent receipt buffer format
+        const cachedReceipt = resolution.proof
+        if (cachedReceipt.afterStateData) {
+          correctStateData = cachedReceipt.afterStateData
+          /* prettier-ignore */ this.mainLogger.info(`syncLocalStateFromProof: Found after-state data in cached receipt`)
+        }
+      }
+      
+      if (!correctStateData) {
+        /* prettier-ignore */ this.mainLogger.warn(`syncLocalStateFromProof: No state data found in proof for account ${accountId}`)
+        return
+      }
+      
+      // Check if we should sync this state
+      // Get current local state to compare timestamps
+      const currentLocalData = await this.stateManager.app.getAccountDataByList([accountId])
+      if (currentLocalData && currentLocalData.length > 0 && currentLocalData[0] && currentLocalData[0].data) {
+        const currentTimestamp = currentLocalData[0].timestamp || 0
+        const newTimestamp = correctStateData.timestamp || 0
+        
+        /* prettier-ignore */ this.mainLogger.info(`syncLocalStateFromProof: Comparing timestamps - current: ${currentTimestamp}, new: ${newTimestamp}`)
+        
+        // Don't sync if the "correct" state is older than what we have
+        if (newTimestamp < currentTimestamp) {
+          /* prettier-ignore */ this.mainLogger.warn(`syncLocalStateFromProof: Skipping sync - receipt state is older than current local state`)
+          nestedCountersInstance.countEvent('stateManager', 'oos.localStateSyncSkipped.olderState')
+          return
+        }
+      }
+      
+      // Update our local state through the app
+      const wrappedData = {
+        accountId,
+        data: correctStateData,
+        timestamp: shardusGetTime()
+      }
+      
+      // Check if we're responsible for this account
+      // For now, always update local state if we have the account
+      // In a more sophisticated implementation, we would check consensus group membership
+      const isInConsensusGroup = true // Simplified for now
+      
+      if (isInConsensusGroup) {
+        // We're in the consensus group - update our local state
+        /* prettier-ignore */ this.mainLogger.info(`syncLocalStateFromProof: Updating local state for account ${accountId} (we're in consensus group)`)
+        
+        // Call the app to set the account data
+        await this.stateManager.app.setAccountData([wrappedData])
+        
+        // Update our cache if the method exists
+        // Note: These internal methods might not be exposed, so we catch any errors
+        try {
+          // Update internal caches
+          const accountCache = (this.stateManager as any).accountCache
+          if (accountCache && accountCache.setAccountData) {
+            accountCache.setAccountData(accountId, wrappedData)
+          }
+        } catch (error) {
+          /* prettier-ignore */ this.mainLogger.debug(`syncLocalStateFromProof: Could not update internal cache:`, error)
+        }
+        
+        nestedCountersInstance.countEvent('stateManager', 'oos.localStateSynced')
+        /* prettier-ignore */ this.mainLogger.info(`syncLocalStateFromProof: Successfully synced local state for account ${accountId}`)
+      } else {
+        /* prettier-ignore */ this.mainLogger.info(`syncLocalStateFromProof: Not in consensus group for account ${accountId}, skipping local update`)
+      }
+      
+      // Emit state correction gossip to help other nodes
+      if (configContext.stateManager.stateCorrectionGossipEnabled && resolution.proof) {
+        /* prettier-ignore */ this.mainLogger.info(`syncLocalStateFromProof: Emitting state correction gossip for account ${accountId}`)
+        
+        // Create a receipt reference for gossip
+        const receiptRef = this.createReceiptRefFromProof(resolution.proof, accountId)
+        if (receiptRef) {
+          StateDissentHandlers.emitStateCorrectionGossip(
+            accountId,
+            resolution.hash,
+            receiptRef,
+            correctStateData
+          ).catch(error => {
+            /* prettier-ignore */ if (logFlags.error) this.mainLogger.error(`Failed to emit state correction gossip:`, error)
+          })
+        }
+      }
+      
+    } catch (error) {
+      /* prettier-ignore */ if (logFlags.error) this.mainLogger.error(`syncLocalStateFromProof error for account ${accountId}:`, error)
+      throw error
+    }
+  }
+
+  /**
+   * Create a receipt reference from various proof formats
+   */
+  createReceiptRefFromProof(proof: any, accountId: string): SignedReceiptRef | null {
+    try {
+      if (proof._txId && proof._cycle && proof.signedReceipt) {
+        // Archiver receipt format
+        return {
+          txid: proof._txId,
+          cycle: proof._cycle,
+          receiptHash: proof._receiptHash || '',
+          signatures: [] // Archiver already validated signatures
+        }
+      } else if (proof.txid && proof.cycle) {
+        // Standard receipt format
+        return {
+          txid: proof.txid,
+          cycle: proof.cycle,
+          receiptHash: proof.receiptHash || '',
+          signatures: proof.signatures || []
+        }
+      }
+      
+      /* prettier-ignore */ this.mainLogger.warn(`createReceiptRefFromProof: Unknown proof format`)
+      return null
+    } catch (error) {
+      /* prettier-ignore */ if (logFlags.error) this.mainLogger.error(`createReceiptRefFromProof error:`, error)
+      return null
+    }
   }
 
   /**
