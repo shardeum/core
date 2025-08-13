@@ -131,12 +131,6 @@ interface TooOldAccountRecord {
   accountMemData: AccountHashCache
   node: Shardus.Node
 }
-interface TooOldAccountUpdateRequest {
-  accountID: string
-  txId: string
-  signedReceipt: SignedReceipt
-  updatedAccountData: Shardus.WrappedData
-}
 
 type RequestEntry = { node: Shardus.Node; request: { cycle: number; accounts: AccountIDAndHash[] } }
 
@@ -3781,25 +3775,54 @@ class AccountPatcher {
       let tooOldAccountsMap: Map<string, TooOldAccountRecord> = new Map()
       let wrappedDataList = repairDataResponse.wrappedDataList
 
+      // Log start of filtering
+      nestedCountersInstance.countEvent('repair', `filter.start c:${cycle}`, wrappedDataList.length)
+      if (logFlags.debug) this.mainLogger.debug(`Starting repair filter: cycle ${cycle}, ${wrappedDataList.length} accounts to evaluate`)
+
       // build a list of data that is good to use in this repair operation
       // Also, there is a section where cache accountHashCacheHistory.lastSeenCycle may get repaired.
       for (let i = 0; i < wrappedDataList.length; i++) {
         let wrappedData: Shardus.WrappedData = wrappedDataList[i]
         let nodeWeAsked = repairDataResponse.nodes[i]
+        
+        // Log each account being evaluated
+        if (logFlags.debug) {
+          this.mainLogger.debug(`Evaluating account ${i}/${wrappedDataList.length}: ${utils.stringifyReduce(wrappedData.accountId)}, ` +
+            `wrappedTS:${wrappedData.timestamp}, wrappedHash:${utils.stringifyReduce(wrappedData.stateId)}`)
+        }
+
         if (await this.stateManager.accountCache.hasAccount(wrappedData.accountId)) {
           const accountMemData: AccountHashCache = await this.stateManager.accountCache.getAccountHash(wrappedData.accountId)
+          
+          // Log the comparison values
+          nestedCountersInstance.countEvent('repair', `filter.hasAccount c:${cycle}`)
+          if (logFlags.debug) {
+            this.mainLogger.debug(`Account ${utils.stringifyReduce(wrappedData.accountId)} exists in cache/storage: ` +
+              `storageTS:${accountMemData.t}, storageHash:${utils.stringifyReduce(accountMemData.h)}, ` +
+              `wrappedTS:${wrappedData.timestamp}, wrappedHash:${utils.stringifyReduce(wrappedData.stateId)}`)
+          }
+
           // dont allow an older timestamp to overwrite a newer copy of data we have.
           // we may need to do more work to make sure this can not cause an un repairable situation
           if (wrappedData.timestamp < accountMemData.t) {
             updateTooOld.add(wrappedData.accountId)
-            // nestedCountersInstance.countEvent('accountPatcher', `checkAndSetAccountData updateTooOld c:${cycle}`)
+            nestedCountersInstance.countEvent('repair', `filter.rejected.tooOld c:${cycle}`)
+            
+            // Enhanced logging with timestamp difference
+            const tsDiff = accountMemData.t - wrappedData.timestamp
             this.statemanager_fatal(
               'checkAndSetAccountData updateTooOld',
               `checkAndSetAccountData updateTooOld ${cycle}: acc:${utils.stringifyReduce(
                 wrappedData.accountId
-              )} updateTS:${wrappedData.timestamp} updateHash:${utils.stringifyReduce(wrappedData.stateId)}  cacheTS:${accountMemData.t
-              } cacheHash:${utils.stringifyReduce(accountMemData.h)}`
+              )} updateTS:${wrappedData.timestamp} updateHash:${utils.stringifyReduce(wrappedData.stateId)}  storageTS:${accountMemData.t
+              } storageHash:${utils.stringifyReduce(accountMemData.h)} tsDiff:${tsDiff}ms`
             )
+            
+            if (logFlags.debug) {
+              this.mainLogger.debug(`REJECTED (too old): Account ${utils.stringifyReduce(wrappedData.accountId)}, ` +
+                `repair timestamp ${wrappedData.timestamp} is ${tsDiff}ms older than storage ${accountMemData.t}`)
+            }
+            
             filterStats.tooOld++
             tooOldAccountsMap.set(wrappedData.accountId, {
               wrappedData,
@@ -3808,6 +3831,14 @@ class AccountPatcher {
             })
             continue
           }
+          
+          // Log acceptance for existing account
+          nestedCountersInstance.countEvent('repair', `filter.accepted.existing c:${cycle}`)
+          if (logFlags.debug) {
+            this.mainLogger.debug(`ACCEPTED (existing): Account ${utils.stringifyReduce(wrappedData.accountId)}, ` +
+              `repair timestamp ${wrappedData.timestamp} >= storage ${accountMemData.t}`)
+          }
+          
           //This is less likely to be hit here now that similar logic checking the hash happens upstream in findBadAccounts()
           //if (wrappedData.timestamp === accountMemData.t) {
           //  let allowPatch = false
@@ -3822,10 +3853,25 @@ class AccountPatcher {
           //we can proceed with the update
           wrappedDataListFiltered.push(wrappedData)
         } else {
+          // Log acceptance for new account
+          nestedCountersInstance.countEvent('repair', `filter.accepted.new c:${cycle}`)
+          if (logFlags.debug) {
+            this.mainLogger.debug(`ACCEPTED (new): Account ${utils.stringifyReduce(wrappedData.accountId)} not in storage, ` +
+              `will create with timestamp ${wrappedData.timestamp}`)
+          }
+          
           filterStats.accepted++
           //this good account data to repair with
           wrappedDataListFiltered.push(wrappedData)
         }
+      }
+
+      // Log filter summary
+      nestedCountersInstance.countEvent('repair', `filter.complete c:${cycle}`, wrappedDataListFiltered.length)
+      if (logFlags.debug) {
+        this.mainLogger.debug(`Repair filter complete: cycle ${cycle}, ` +
+          `accepted ${wrappedDataListFiltered.length}/${wrappedDataList.length}, ` +
+          `rejected ${filterStats.tooOld} as too old`)
       }
 
       if (tooOldAccountsMap.size > 0) {
@@ -3887,12 +3933,7 @@ class AccountPatcher {
             )
             continue
           }
-          const accountDataRequest: TooOldAccountUpdateRequest = {
-            accountID: accountId,
-            txId: archivedQueueEntry.acceptedTx.txId,
-            signedReceipt: this.stateManager.getSignedReceipt(archivedQueueEntry),
-            updatedAccountData: updatedAccountData,
-          }
+          // Note: accountDataRequest was previously created here but not used
           const message: RepairOOSAccountsReq = {
             repairInstructions: [
               {
@@ -3933,6 +3974,13 @@ class AccountPatcher {
       }
 
       const updatedAccounts: string[] = []
+      
+      // Log before attempting repair
+      nestedCountersInstance.countEvent('repair', `checkAndSetAccountData.start c:${cycle}`, wrappedDataListFiltered.length)
+      if (logFlags.debug) {
+        this.mainLogger.debug(`Attempting to repair ${wrappedDataListFiltered.length} accounts in cycle ${cycle}`)
+      }
+      
       //save the account data.  note this will make sure account hashes match the wrappers and return failed hashes  that dont match
       const failedHashes = await this.stateManager.checkAndSetAccountData(
         wrappedDataListFiltered,
@@ -3942,15 +3990,34 @@ class AccountPatcher {
       )
 
       if (failedHashes.length != 0) {
-        /* prettier-ignore */ nestedCountersInstance.countEvent('accountPatcher', 'checkAndSetAccountData failed hashes', failedHashes.length)
+        /* prettier-ignore */ nestedCountersInstance.countEvent('repair', `checkAndSetAccountData.failedHashes c:${cycle}`, failedHashes.length)
+        
+        // Log details about each failed hash
+        if (logFlags.debug) {
+          for (const failedAccountId of failedHashes) {
+            this.mainLogger.debug(`Failed hash for account: ${utils.stringifyReduce(failedAccountId)}`)
+          }
+        }
+        
         this.statemanager_fatal(
           'isInSync = false, failed hashes',
-          `isInSync = false cycle:${cycle}:  failed hashes:${failedHashes.length}`
+          `isInSync = false cycle:${cycle}:  failed hashes:${failedHashes.length}, accounts: ${utils.stringifyReduce(failedHashes)}`
         )
       }
       const appliedFixes = Math.max(0, wrappedDataListFiltered.length - failedHashes.length)
       /* prettier-ignore */ nestedCountersInstance.countEvent('accountPatcher', 'writeCombinedAccountDataToBackups', Math.max(0, wrappedDataListFiltered.length - failedHashes.length))
       /* prettier-ignore */ nestedCountersInstance.countEvent('accountPatcher', `p.repair applied c:${cycle} bad:${results.badAccounts.length} received:${wrappedDataList.length} failedH: ${failedHashes.length} filtered:${utils.stringifyReduce(filterStats)} stats:${utils.stringifyReduce(results.stats)} getAccountStats: ${utils.stringifyReduce(getAccountStats)} extraBadKeys:${results.extraBadKeys.length}`, appliedFixes)
+
+      // Log final repair outcome
+      nestedCountersInstance.countEvent('repair', `complete c:${cycle}`, appliedFixes)
+      nestedCountersInstance.countEvent('repair', `complete.success c:${cycle}`, appliedFixes)
+      nestedCountersInstance.countEvent('repair', `complete.failed c:${cycle}`, failedHashes.length)
+      
+      if (logFlags.debug) {
+        this.mainLogger.debug(`Repair complete for cycle ${cycle}: ` +
+          `${appliedFixes} accounts successfully repaired, ${failedHashes.length} failed, ` +
+          `${filterStats.tooOld} rejected as too old`)
+      }
 
       this.stateManager.cycleDebugNotes.patchedAccounts = appliedFixes //per cycle debug info
 
@@ -4111,6 +4178,10 @@ class AccountPatcher {
     stateTableDataMap: Map<string, Shardus.StateTableObject>
     getAccountStats: AccountStats
   }> {
+    // Log entry point
+    nestedCountersInstance.countEvent('repair', `getAccountRepairData.entry c:${cycle}`, badAccounts.length)
+    if (logFlags.debug) this.mainLogger.debug(`getAccountRepairData: cycle ${cycle}, requesting repair for ${badAccounts.length} accounts`)
+    
     //pick which nodes to ask! /    //build up requests
     const nodesBySyncRadix: Map<string, RequestEntry> = new Map()
     const accountHashMap = new Map()
@@ -4126,6 +4197,7 @@ class AccountPatcher {
     }
     let repairDataResponse: AccountRepairDataResponse
     let allRequestEntries: Map<string, RequestEntry> = new Map()
+    let noNodeAvailCount = 0
 
     try {
       for (const accountEntry of badAccounts) {
@@ -4143,7 +4215,9 @@ class AccountPatcher {
           //minor layer of security, we will ask a different node for the account than the one that gave us the hash
           const nodeToAsk = this.getNodeForQuery(accountEntry.accountID, cycle, true)
           if (nodeToAsk == null) {
-            this.statemanager_fatal('getAccountRepairData no node avail', `getAccountRepairData no node avail ${cycle}`)
+            noNodeAvailCount++
+            nestedCountersInstance.countEvent('repair', `getAccountRepairData.noNodeAvail c:${cycle}`)
+            this.statemanager_fatal('getAccountRepairData no node avail', `getAccountRepairData no node avail ${cycle} for account ${utils.makeShortHash(accountEntry.accountID)}`)
             continue
           }
           requestEntry = { node: nodeToAsk, request: { cycle, accounts: [] } }
@@ -4215,12 +4289,30 @@ class AccountPatcher {
       }
 
       const promiseResults = await Promise.allSettled(promises) //as HashTrieAccountDataResponse[]
+      let rejectedCount = 0
+      let nullResultCount = 0
+      let emptyResultCount = 0
+      let wrongHashCount = 0
+      
       for (const promiseResult of promiseResults) {
         if (promiseResult.status === 'rejected') {
+          rejectedCount++
+          nestedCountersInstance.countEvent('repair', `getAccountRepairData.promiseRejected c:${cycle}`)
+          if (logFlags.debug) this.mainLogger.debug(`getAccountRepairData: promise rejected for cycle ${cycle}: ${promiseResult.reason}`)
           continue
         }
         const result = promiseResult.value as HashTrieAccountDataResponse
         //HashTrieAccountDataResponse
+        if (result == null) {
+          nullResultCount++
+          nestedCountersInstance.countEvent('repair', `getAccountRepairData.nullResult c:${cycle}`)
+          continue
+        }
+        if (result.accounts == null || result.accounts.length === 0) {
+          emptyResultCount++
+          nestedCountersInstance.countEvent('repair', `getAccountRepairData.emptyResult c:${cycle}`)
+          continue
+        }
         if (result != null && result.accounts != null && result.accounts.length > 0) {
           if (result.stateTableData != null && result.stateTableData.length > 0) {
             for (const stateTableData of result.stateTableData) {
@@ -4233,10 +4325,11 @@ class AccountPatcher {
             const desiredHash = accountHashMap.get(wrappedAccount.accountId)
             if (desiredHash != wrappedAccount.stateId) {
               //got account back but has the wrong stateID
-              //nestedCountersInstance.countEvent('accountPatcher', 'getAccountRepairData wrong hash')
+              wrongHashCount++
+              nestedCountersInstance.countEvent('repair', `getAccountRepairData.wrongHash c:${cycle}`)
               this.statemanager_fatal(
                 'getAccountRepairData wrong hash',
-                `getAccountRepairData wrong hash ${utils.stringifyReduce(wrappedAccount.accountId)}`
+                `getAccountRepairData wrong hash ${utils.stringifyReduce(wrappedAccount.accountId)} desired: ${utils.makeShortHash(desiredHash)} got: ${utils.makeShortHash(wrappedAccount.stateId)}`
               )
               continue
             }
@@ -4262,7 +4355,20 @@ class AccountPatcher {
         }
       }
       repairDataResponse = { wrappedDataList, nodes: nodesWeAsked }
+      
+      // Log summary
+      nestedCountersInstance.countEvent('repair', `getAccountRepairData.received c:${cycle}`, wrappedDataList.length)
+      nestedCountersInstance.countEvent('repair', `getAccountRepairData.rejected c:${cycle}`, rejectedCount)
+      nestedCountersInstance.countEvent('repair', `getAccountRepairData.nullResults c:${cycle}`, nullResultCount)
+      nestedCountersInstance.countEvent('repair', `getAccountRepairData.emptyResults c:${cycle}`, emptyResultCount)
+      nestedCountersInstance.countEvent('repair', `getAccountRepairData.wrongHash c:${cycle}`, wrongHashCount)
+      nestedCountersInstance.countEvent('repair', `getAccountRepairData.noNodeAvail c:${cycle}`, noNodeAvailCount)
+      
+      if (logFlags.debug) {
+        this.mainLogger.debug(`getAccountRepairData summary: cycle ${cycle}, requested: ${badAccounts.length}, received: ${wrappedDataList.length}, rejected: ${rejectedCount}, null: ${nullResultCount}, empty: ${emptyResultCount}, wrongHash: ${wrongHashCount}, noNode: ${noNodeAvailCount}`)
+      }
     } catch (error) {
+      nestedCountersInstance.countEvent('repair', `getAccountRepairData.exception c:${cycle}`)
       this.statemanager_fatal(
         'getAccountRepairData fatal ' + wrappedDataList.length,
         'getAccountRepairData fatal ' + wrappedDataList.length + ' ' + errorToStringFull(error)
