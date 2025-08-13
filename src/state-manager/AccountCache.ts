@@ -284,61 +284,51 @@ class AccountCache {
   // at the end of buildPartitionHashesForNode gets set to the working/current cycle.
   // if TXs come in that are newer they get put in the future list and are not part of the parition hash report yet
 
-  async hasAccount(accountId: string): Promise<boolean> {
-    if (this.config.stateManager.bypassAccountCache) {
-      const accountDataList = await this.app.getAccountDataByList([accountId])
-      const storageResult = !!(accountDataList && accountDataList.length > 0 && accountDataList[0] != null)
+  async hasAccount(accountId: string): Promise<boolean> {   
+    // Get storage result.
+    const accountDataList = await this.app.getAccountDataByList([accountId])
+    const storageResult = !!(accountDataList && accountDataList.length > 0 && accountDataList[0] != null)
+    
+    // Get cache result.
+    const cacheResult = this.accountsHashCache3.accountHashMap.has(accountId)
       
-      // Also check cache to compare results
-      const cacheResult = this.accountsHashCache3.accountHashMap.has(accountId)
-      
-      // Compare and log if different
-      if (storageResult !== cacheResult) {
-        nestedCountersInstance.countEvent('cache-storage-mismatch', 'oos.hasAccount.mismatch')
-        /* prettier-ignore */ if (logFlags.fatal) this.fatalLogger.fatal(`oos.hasAccount.mismatch: Cache-Storage mismatch in hasAccount for ${accountId}: cache=${cacheResult}, storage=${storageResult}`)
-      }
-      
-      return storageResult
+    // Debug / compare storage & cache.
+    if (storageResult !== cacheResult) {
+      nestedCountersInstance.countEvent('cache-storage-mismatch', 'oos.hasAccount.mismatch')
+      /* prettier-ignore */ if (logFlags.fatal) this.fatalLogger.fatal(`oos.hasAccount.mismatch: Cache-Storage mismatch in hasAccount for ${accountId}: cache=${cacheResult}, storage=${storageResult}`)
     }
-    return this.accountsHashCache3.accountHashMap.has(accountId)
+  
+    // Return whichever one we requested.
+    return this.config.stateManager.bypassAccountCache ? storageResult : cacheResult
   }
 
-  //just gets the newest seen hash.  does that cause issues?
   async getAccountHash(accountId: string): Promise<AccountHashCache> {
-    if (this.config.stateManager.bypassAccountCache) {
-      const accountDataList = await this.app.getAccountDataByList([accountId])
-      let storageResult: AccountHashCache = null
-      if (accountDataList && accountDataList.length > 0 && accountDataList[0] != null) {
-        const accountData = accountDataList[0]
-        storageResult = {
-          h: accountData.stateId,
-          t: accountData.timestamp || Date.now(),
-          c: this.stateManager?.currentCycleShardData?.cycleNumber || 0
-        }
+    // Get storage result.
+    const accountDataList = await this.app.getAccountDataByList([accountId])
+    let storageResult: AccountHashCache = null
+    if (accountDataList && accountDataList.length > 0 && accountDataList[0] != null) {
+      const accountData = accountDataList[0]
+      storageResult = {
+        h: accountData.stateId,
+        t: accountData.timestamp || Date.now(),
+        c: this.stateManager?.currentCycleShardData?.cycleNumber || 0
       }
-      
-      // Also get cache result to compare
-      let cacheResult: AccountHashCache = null
-      if (this.accountsHashCache3.accountHashMap.has(accountId)) {
-        const accountHashCacheHistory: AccountHashCacheHistory = this.accountsHashCache3.accountHashMap.get(accountId)
-        if (accountHashCacheHistory.accountHashList.length > 0) {
-          cacheResult = accountHashCacheHistory.accountHashList[0]
-        }
+    }
+    
+    // Get cache result.
+    let cacheResult: AccountHashCache = null
+    if (this.accountsHashCache3.accountHashMap.has(accountId)) {
+      const accountHashCacheHistory: AccountHashCacheHistory = this.accountsHashCache3.accountHashMap.get(accountId)
+      if (accountHashCacheHistory.accountHashList.length > 0) {
+        cacheResult = accountHashCacheHistory.accountHashList[0]
       }
-      
-      // Compare results
-      this.compareAccountHashResults(accountId, cacheResult, storageResult)
-      
-      return storageResult
     }
-    if (this.accountsHashCache3.accountHashMap.has(accountId) === false) {
-      return null
-    }
-    const accountHashCacheHistory: AccountHashCacheHistory = this.accountsHashCache3.accountHashMap.get(accountId)
-    if (accountHashCacheHistory.accountHashList.length > 0) {
-      //0 is the newest?
-      return accountHashCacheHistory.accountHashList[0]
-    }
+    
+    // Debug / compare storage & cache
+    this.compareAccountHashResults(accountId, cacheResult, storageResult)
+
+    // Return whichever one we requested.
+    return this.config.stateManager.bypassAccountCache ? storageResult : cacheResult
   }
 
   private compareAccountHashResults(accountId: string, cacheResult: AccountHashCache | null, storageResult: AccountHashCache | null): void {
