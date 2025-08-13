@@ -3205,7 +3205,7 @@ class AccountPatcher {
    *     #######  ##        ########  ##     ##    ##    ######## ##     ##  ######   ######   #######   #######  ##    ##    ##    ##     ## ##     ##  ######  ##     ##
    */
 
-  onAccountUpdated(accountID: string, hash: string, cycle:number, timestamp: number): void {
+  accountUpdated(accountID: string, hash: string, cycle:number, timestamp: number): void {
 
     this.externalAccountUpdateQueue.push({
       accountID,

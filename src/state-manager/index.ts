@@ -1315,13 +1315,18 @@ class StateManager {
         /* prettier-ignore */ if (logFlags.debug) this.mainLogger.debug(`OOS Debug: Simulating partial storage write - writing only half of ${accountsToAdd.length} accounts`)
         nestedCountersInstance.countEvent('oos-debug', 'storage-partial-write')
         // Write only half of the accounts
-        const partialAccounts = accountsToAdd.slice(0, Math.floor(accountsToAdd.length / 2))
+        const sliceIndex = Math.floor(accountsToAdd.length / 2)
+        const partialAccounts = accountsToAdd.slice(0, sliceIndex)
+        const parallelWrappedAccountsToAdd = wrappedAccountsToAdd.slice(0, sliceIndex)
+
         /* prettier-ignore */ this.transactionQueue.setDebugLastAwaitedCallInner('ths.app.setAccountData')
         try {
           await this.app.setAccountData(partialAccounts)
-          //THIS is bad we nee our wrappers to make the right calls here..
-          for(const account of partialAccounts) {
-            this.accountPatcher.onAccountUpdated(account.accountId,account.stateId, account.timestamp)
+
+          for(let i = 0; i < parallelWrappedAccountsToAdd.length; i++) {
+            const wrappedData = parallelWrappedAccountsToAdd[i]
+            const cycleToRecordOn = CycleChain.getCycleNumberFromTimestamp(wrappedData.timestamp)
+            this.accountPatcher.accountUpdated(wrappedData.accountId, wrappedData.stateId, cycleToRecordOn, wrappedData.timestamp)
           }
         } catch (error) {
           
@@ -1344,10 +1349,12 @@ class StateManager {
     /* prettier-ignore */ this.transactionQueue.setDebugLastAwaitedCallInner('ths.app.setAccountData')
     try {
       await this.app.setAccountData(accountsToAdd)
-
-      //THIS is bad we nee our wrappers to make the right calls here..
-      for(const account of accountsToAdd) {
-        this.accountPatcher.onAccountUpdated(account.accountId,account.stateId, account.timestamp)
+      //just being really explicit that this list is parallel to accountsToAdd
+      const parallelWrappedAccountsToAdd = wrappedAccountsToAdd
+      for(let i = 0; i < parallelWrappedAccountsToAdd.length; i++) {
+        const wrappedData = parallelWrappedAccountsToAdd[i]
+        const cycleToRecordOn = CycleChain.getCycleNumberFromTimestamp(wrappedData.timestamp)
+        this.accountPatcher.accountUpdated(wrappedData.accountId, wrappedData.stateId, cycleToRecordOn, wrappedData.timestamp)
       }
 
     } catch (error) {
@@ -3544,8 +3551,8 @@ class StateManager {
           // eslint-disable-next-line security/detect-object-injection
           await this.app.updateAccountPartial(wrappedData, localCachedData[key], applyResponse)
           
-           //todo get cycle in deterministic way
-          this.accountPatcher.onAccountUpdated(wrappedData.accountId,wrappedData.stateId, wrappedData.cycle, wrappedData.timestamp)
+          const cycleToRecordOn = CycleChain.getCycleNumberFromTimestamp(wrappedData.timestamp)
+          this.accountPatcher.accountUpdated(wrappedData.accountId, wrappedData.stateId, cycleToRecordOn, wrappedData.timestamp)
          
         } catch (error) {
 
@@ -3566,8 +3573,9 @@ class StateManager {
         try {
           // eslint-disable-next-line security/detect-object-injection
           await this.app.updateAccountFull(wrappedData, localCachedData[key], applyResponse)
-                   //todo get cycle in deterministic way
-          this.accountPatcher.onAccountUpdated(wrappedData.accountId,wrappedData.stateId, wrappedData.cycle, wrappedData.timestamp)
+
+          const cycleToRecordOn = CycleChain.getCycleNumberFromTimestamp(wrappedData.timestamp)
+          this.accountPatcher.accountUpdated(wrappedData.accountId, wrappedData.stateId, cycleToRecordOn, wrappedData.timestamp)
          
         
         } catch (error) {
@@ -3657,6 +3665,7 @@ class StateManager {
    */
   async _commitAccountCopies(accountCopies: ShardusTypes.AccountsCopy[]) {
     const rawDataList: unknown[] = []
+    const parallelAccountsCopyList: ShardusTypes.AccountsCopy[] = []
     if (accountCopies.length > 0) {
       for (const accountData of accountCopies) {
         // make sure the data is not a json string
@@ -3676,12 +3685,17 @@ class StateManager {
         }
 
         rawDataList.push(accountData.data)
+        parallelAccountsCopyList.push(accountData)
+
       }
       // tell the app to replace the account data
       await this.app.setAccountData(rawDataList)
-      //THIS is bad we nee our wrappers to make the right calls here..
-      for(const account of rawDataList) {
-        this.accountPatcher.onAccountUpdated(account.accountId,account.stateId, account.timestamp)
+
+      // use the parallel list to update the account patcher 
+      for(let i = 0; i < parallelAccountsCopyList.length; i++) {
+        const wrappedData = parallelAccountsCopyList[i]
+        const cycleToRecordOn = CycleChain.getCycleNumberFromTimestamp(wrappedData.timestamp)
+        this.accountPatcher.accountUpdated(wrappedData.accountId, wrappedData.hash, cycleToRecordOn, wrappedData.timestamp)
       }
 
       const globalAccountKeyMap: { [key: string]: boolean } = {}
