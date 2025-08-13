@@ -201,7 +201,7 @@ class Logger {
     const conf = this.log4Conf
     for (const key in conf.appenders) {
       const appender = conf.appenders[key]
-      if (appender.type !== 'file') continue
+      if (appender.type !== 'file' && appender.type !== 'dateFile') continue
       appender.filename = `${this.logDir}/${key}.log`
     }
   }

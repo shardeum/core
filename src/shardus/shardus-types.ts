@@ -1467,6 +1467,11 @@ export interface LogsConfiguration {
         type?: string
         maxLogSize?: number
         backups?: number
+        pattern?: string
+        keepFileExt?: boolean
+        numBackups?: number
+        compress?: boolean
+        alwaysIncludePattern?: boolean
       }
       seq?: {
         type?: string
@@ -1477,11 +1482,21 @@ export interface LogsConfiguration {
         type?: string
         maxLogSize?: number
         backups?: number
+        pattern?: string
+        keepFileExt?: boolean
+        numBackups?: number
+        compress?: boolean
+        alwaysIncludePattern?: boolean
       }
       p2p?: {
         type?: string
         maxLogSize?: number
         backups?: number
+        pattern?: string
+        keepFileExt?: boolean
+        numBackups?: number
+        compress?: boolean
+        alwaysIncludePattern?: boolean
       }
       snapshot?: {
         type?: string
