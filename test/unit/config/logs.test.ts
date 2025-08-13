@@ -46,9 +46,6 @@ describe('logs config', () => {
 
     it('should have correct file appender configurations', () => {
       const fileAppenders = [
-        'main',
-        'app',
-        'p2p',
         'snapshot',
         'cycle',
         'fatal',
@@ -69,6 +66,21 @@ describe('logs config', () => {
       // seq has different maxLogSize
       expect(LOGS_CONFIG.options.appenders.seq).toHaveProperty('type', 'file')
       expect(LOGS_CONFIG.options.appenders.seq).toHaveProperty('backups', 10)
+    })
+
+    it('should have correct dateFile appender configurations', () => {
+      const dateFileAppenders = ['main', 'app', 'p2p']
+
+      dateFileAppenders.forEach((appender) => {
+        expect(LOGS_CONFIG.options.appenders[appender]).toHaveProperty('type', 'dateFile')
+        expect(LOGS_CONFIG.options.appenders[appender]).toHaveProperty('pattern')
+        expect(LOGS_CONFIG.options.appenders[appender]).toHaveProperty('keepFileExt', true)
+        expect(LOGS_CONFIG.options.appenders[appender]).toHaveProperty('maxLogSize', 10000000)
+        expect(LOGS_CONFIG.options.appenders[appender]).toHaveProperty('backups', 10)
+        expect(LOGS_CONFIG.options.appenders[appender]).toHaveProperty('numBackups')
+        expect(LOGS_CONFIG.options.appenders[appender]).toHaveProperty('compress', false)
+        expect(LOGS_CONFIG.options.appenders[appender]).toHaveProperty('alwaysIncludePattern', false)
+      })
     })
 
     it('should have correct console appender configuration', () => {
