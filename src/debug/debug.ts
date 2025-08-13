@@ -37,10 +37,20 @@ class Debug {
     this.files[src] = dest
   }
 
-  createArchiveStream() {
+  /**
+   * Build a tar pack stream containing the files previously registered via addToArchive.
+   * @param ignoreDBFiles If true, any file whose path contains a folder named "db" will be skipped.
+   */
+  createArchiveStream(ignroreDBFiles: boolean = false) { // note: ignroreDBFiles name kept to match external specification
+    const ignoreDBFiles = ignroreDBFiles // internal canonical name
     const cwd = process.cwd()
     const filesRel = {}
     for (const src in this.files) {
+      if (ignoreDBFiles) {
+        // Detect a path segment named 'db'. Normalize to forward slashes for consistent matching.
+        const normalized = src.replace(/\\/g, '/')
+        if (/(^|\/)db(\/|$)/.test(normalized)) continue
+      }
       const srcRel = path.relative(cwd, src).replace(/\\/g, '/')
       const dest = this.files[src]
       filesRel[srcRel] = dest
@@ -83,7 +93,9 @@ class Debug {
 
   _registerRoutes() {
     this.network.registerExternalGet('debug', isDebugModeMiddlewareMedium, (req, res) => {
-      const archive = this.createArchiveStream()
+      const logsOnlyRaw = req.query.logsOnly
+      const logsOnly = typeof logsOnlyRaw === 'string' ? logsOnlyRaw === 'true' : false
+      const archive = this.createArchiveStream(logsOnly)
       const gzip = zlib.createGzip()
       res.set('content-disposition', `attachment; filename="${this.archiveName}"`)
       res.set('content-type', 'application/gzip')
