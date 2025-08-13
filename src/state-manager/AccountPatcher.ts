@@ -4182,6 +4182,9 @@ class AccountPatcher {
     nestedCountersInstance.countEvent('repair', `getAccountRepairData.entry c:${cycle}`, badAccounts.length)
     if (logFlags.debug) this.mainLogger.debug(`getAccountRepairData: cycle ${cycle}, requesting repair for ${badAccounts.length} accounts`)
     
+    // Enhanced logging for debugging
+    this.mainLogger.info(`getAccountRepairData START: c:${cycle} badAccounts:${badAccounts.length}`)
+    
     //pick which nodes to ask! /    //build up requests
     const nodesBySyncRadix: Map<string, RequestEntry> = new Map()
     const accountHashMap = new Map()
@@ -4230,16 +4233,38 @@ class AccountPatcher {
       const promises = []
       const accountPerRequest = this.config.stateManager.patcherAccountsPerRequest
       const maxAskCount = this.config.stateManager.patcherAccountsPerUpdate
+      let totalRequestEntriesProcessed = 0
+      
+      // Log request configuration
+      this.mainLogger.info(`Request config: c:${cycle} nodesBySyncRadix:${nodesBySyncRadix.size} accountPerRequest:${accountPerRequest} maxAskCount:${maxAskCount}`)
+      
       for (const requestEntry of nodesBySyncRadix.values()) {
+        totalRequestEntriesProcessed++
+        const nodeId = utils.makeShortHash(requestEntry.node.id)
+        
         if (requestEntry.request.accounts.length > accountPerRequest) {
+          this.mainLogger.info(`BRANCH: Large batch c:${cycle} node:${nodeId} accounts:${requestEntry.request.accounts.length} (>${accountPerRequest})`)
+          
           let offset = 0
           const allAccounts = requestEntry.request.accounts
           let thisAskCount = 0
+          let totalAskedSoFar = 0
+          
+          // Check if old logic would have failed
+          const oldConditionWouldFail = Math.min(accountPerRequest, allAccounts.length) < maxAskCount
+          
           while (
             offset < allAccounts.length &&
-            Math.min(offset + accountPerRequest, allAccounts.length) < maxAskCount
+            totalAskedSoFar < maxAskCount
           ) {
-            requestEntry.request.accounts = allAccounts.slice(offset, offset + accountPerRequest)
+            const batchSize = Math.min(accountPerRequest, allAccounts.length - offset, maxAskCount - totalAskedSoFar)
+            requestEntry.request.accounts = allAccounts.slice(offset, offset + batchSize)
+            
+            // Track if this request would have been skipped with old logic
+            if (oldConditionWouldFail && promises.length === 0) {
+              nestedCountersInstance.countEvent('repair', `whileLoopFixed c:${cycle}`, allAccounts.length)
+            }
+            
             let promise = null
             // if (
             //   this.stateManager.config.p2p.useBinarySerializedEndpoints &&
@@ -4257,16 +4282,29 @@ class AccountPatcher {
             // promise = this.p2p.ask(requestEntry.node, 'get_account_data_by_hashes', requestEntry.request)
             // }
             promises.push(promise)
-            offset = offset + accountPerRequest
+            offset = offset + batchSize
+            totalAskedSoFar += batchSize
             getAccountStats.multiRequests++
-            thisAskCount = requestEntry.request.accounts.length
+            thisAskCount += batchSize
+          }
+          
+          // Track if thisAskCount would have been wrong
+          if (thisAskCount > 0 && oldConditionWouldFail) {
+            nestedCountersInstance.countEvent('repair', `thisAskCountFixed c:${cycle}`, thisAskCount)
           }
 
-          getAccountStats.skipping += Math.max(0, allAccounts.length - thisAskCount)
+          const skippedCount = Math.max(0, allAccounts.length - thisAskCount)
+          if (skippedCount > 0 && thisAskCount > 0) {
+            // We requested some but not all - track this
+            nestedCountersInstance.countEvent('repair', `partialSkip c:${cycle}`, skippedCount)
+          }
+          getAccountStats.skipping += skippedCount
           getAccountStats.requested += thisAskCount
 
           //would it be better to resync if we have a high number of errors?  not easy to answer this.
         } else {
+          this.mainLogger.info(`BRANCH: Small batch c:${cycle} node:${nodeId} accounts:${requestEntry.request.accounts.length} (<=${accountPerRequest})`)
+          
           let promise = null
           // if (
           //   this.stateManager.config.p2p.useBinarySerializedEndpoints &&
@@ -4284,10 +4322,34 @@ class AccountPatcher {
           // promise = this.p2p.ask(requestEntry.node, 'get_account_data_by_hashes', requestEntry.request)
           // }
           promises.push(promise)
-          getAccountStats.requested = requestEntry.request.accounts.length
+          // Fix: use += instead of = to accumulate across multiple nodes
+          if (totalRequestEntriesProcessed > 1 && getAccountStats.requested > 0) {
+            // This would have overwritten previous counts
+            nestedCountersInstance.countEvent('repair', `multiNodeRequestFixed c:${cycle}`, requestEntry.request.accounts.length)
+          }
+          getAccountStats.requested += requestEntry.request.accounts.length
         }
       }
 
+      // Validation: check if we created promises for all bad accounts
+      if (promises.length === 0 && badAccounts.length > 0) {
+        nestedCountersInstance.countEvent('repair', `noPromisesCreated c:${cycle}`, badAccounts.length)
+        this.mainLogger.error(`No promises created for ${badAccounts.length} bad accounts in cycle ${cycle}`)
+      } else {
+        nestedCountersInstance.countEvent('repair', `promisesCreated c:${cycle}`, promises.length)
+      }
+      
+      // Check if total requested matches bad accounts
+      if (getAccountStats.requested !== badAccounts.length) {
+        nestedCountersInstance.countEvent('repair', `totalBadVsRequested.mismatch c:${cycle}`, Math.abs(badAccounts.length - getAccountStats.requested))
+        this.mainLogger.warn(`Mismatch: ${badAccounts.length} bad accounts but requested ${getAccountStats.requested} in cycle ${cycle}`)
+      } else {
+        nestedCountersInstance.countEvent('repair', `totalBadVsRequested.matched c:${cycle}`, badAccounts.length)
+      }
+      
+      // Log request summary before sending
+      this.mainLogger.info(`Request summary: c:${cycle} promises:${promises.length} requested:${getAccountStats.requested} skipping:${getAccountStats.skipping} multiRequests:${getAccountStats.multiRequests}`)
+      
       const promiseResults = await Promise.allSettled(promises) //as HashTrieAccountDataResponse[]
       let rejectedCount = 0
       let nullResultCount = 0
@@ -4363,6 +4425,9 @@ class AccountPatcher {
       nestedCountersInstance.countEvent('repair', `getAccountRepairData.emptyResults c:${cycle}`, emptyResultCount)
       nestedCountersInstance.countEvent('repair', `getAccountRepairData.wrongHash c:${cycle}`, wrongHashCount)
       nestedCountersInstance.countEvent('repair', `getAccountRepairData.noNodeAvail c:${cycle}`, noNodeAvailCount)
+      
+      // Final summary log
+      this.mainLogger.info(`getAccountRepairData COMPLETE: c:${cycle} bad:${badAccounts.length} received:${wrappedDataList.length} rejected:${rejectedCount} null:${nullResultCount} empty:${emptyResultCount} wrongHash:${wrongHashCount}`)
       
       if (logFlags.debug) {
         this.mainLogger.debug(`getAccountRepairData summary: cycle ${cycle}, requested: ${badAccounts.length}, received: ${wrappedDataList.length}, rejected: ${rejectedCount}, null: ${nullResultCount}, empty: ${emptyResultCount}, wrongHash: ${wrongHashCount}, noNode: ${noNodeAvailCount}`)
