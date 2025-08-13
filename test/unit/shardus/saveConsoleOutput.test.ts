@@ -1,18 +1,14 @@
 import { startSaving } from '../../../src/shardus/saveConsoleOutput'
 import { Console } from 'console'
 import { PassThrough } from 'stream'
-import { RollingFileStream } from 'streamroller'
 import { join } from 'path'
 import * as fs from 'fs'
 import * as os from 'os'
 import * as path from 'path'
 
-jest.mock('streamroller')
-
 describe('saveConsoleOutput', () => {
   let originalConsole: Console
   let tempDir: string
-  let mockRollingFileStream: jest.Mocked<RollingFileStream>
 
   beforeEach(() => {
     // Save the original console
@@ -20,30 +16,6 @@ describe('saveConsoleOutput', () => {
 
     // Create temp directory for tests
     tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-save-console-'))
-
-    // Mock RollingFileStream - need to implement stream methods
-    mockRollingFileStream = {
-      write: jest.fn(),
-      end: jest.fn(),
-      on: jest.fn(),
-      once: jest.fn(),
-      emit: jest.fn(),
-      pipe: jest.fn(),
-      removeListener: jest.fn(),
-      removeAllListeners: jest.fn(),
-      setMaxListeners: jest.fn(),
-      getMaxListeners: jest.fn(() => 10),
-      listeners: jest.fn(() => []),
-      listenerCount: jest.fn(() => 0),
-      eventNames: jest.fn(() => []),
-      prependListener: jest.fn(),
-      prependOnceListener: jest.fn(),
-      off: jest.fn(),
-      addListener: jest.fn(),
-      readable: true,
-      writable: true,
-    } as any
-    ;(RollingFileStream as jest.MockedClass<typeof RollingFileStream>).mockImplementation(() => mockRollingFileStream)
   })
 
   afterEach(() => {
@@ -59,10 +31,14 @@ describe('saveConsoleOutput', () => {
     jest.clearAllMocks()
   })
 
-  it('should create RollingFileStream with correct parameters', () => {
+  it('should create a timestamped log file on first write', async () => {
     startSaving(tempDir)
-
-    expect(RollingFileStream).toHaveBeenCalledWith(join(tempDir, 'out.log'), 10000000, 10)
+    console.log('hello world')
+    await new Promise((r) => setTimeout(r, 10))
+    const files = fs.readdirSync(tempDir).filter((f) => f.startsWith('out.') && f.endsWith('.log'))
+    expect(files.length).toBeGreaterThanOrEqual(1)
+    const pattern = /^out\.\d{4}-\d{2}-\d{2}-\d{2}-\d{2}-\d{2}(\.\d{2})?\.log$/
+    expect(pattern.test(files[0])).toBe(true)
   })
 
   it('should monkey patch global console', () => {
@@ -75,39 +51,26 @@ describe('saveConsoleOutput', () => {
     expect(console).toBeInstanceOf(Console)
   })
 
-  it('should create PassThrough streams that pipe to stdout, stderr and file', () => {
-    const originalStdout = process.stdout
-    const originalStderr = process.stderr
-
-    // Mock pipe methods
-    const stdoutPipeSpy = jest.spyOn(PassThrough.prototype, 'pipe')
-    const pipeChainSpy = jest.fn().mockReturnValue(mockRollingFileStream)
-
-    // Track destinations piped to
-    const pipedDestinations: any[] = []
-    stdoutPipeSpy.mockImplementation(function (this: PassThrough, destination: any) {
-      pipedDestinations.push(destination)
-      // If piping to something that has a pipe method (like Transform), return mock that can chain
-      if (destination && typeof destination.pipe === 'function') {
-        return { pipe: pipeChainSpy } as any
-      }
-      return this
-    })
+  it('should write to stdout and stderr and create file output', async () => {
+    const stdoutSpy = jest.spyOn(process.stdout, 'write').mockImplementation(() => true as any)
+    const stderrSpy = jest.spyOn(process.stderr, 'write').mockImplementation(() => true as any)
 
     startSaving(tempDir)
 
-    // Should have created two PassThrough streams
-    expect(stdoutPipeSpy).toHaveBeenCalledTimes(4) // 2 calls per PassThrough (stdout+transform, stderr+transform)
+    console.log('to stdout')
+    console.error('to stderr')
+    await new Promise((r) => setTimeout(r, 10))
 
-    // Check that PassThrough streams pipe to stdout and stderr
-    expect(pipedDestinations).toContain(originalStdout)
-    expect(pipedDestinations).toContain(originalStderr)
+    expect(stdoutSpy).toHaveBeenCalled()
+    expect(stderrSpy).toHaveBeenCalled()
 
-    // Check that transform streams pipe to file stream (2 times: one for stdout, one for stderr)
-    expect(pipeChainSpy).toHaveBeenCalledWith(mockRollingFileStream)
-    expect(pipeChainSpy).toHaveBeenCalledTimes(2)
+    const files = fs.readdirSync(tempDir).filter((f) => f.startsWith('out.') && f.endsWith('.log'))
+    expect(files.length).toBeGreaterThanOrEqual(1)
+    const stat = fs.statSync(join(tempDir, files[0]))
+    expect(stat.size).toBeGreaterThan(0)
 
-    stdoutPipeSpy.mockRestore()
+    stdoutSpy.mockRestore()
+    stderrSpy.mockRestore()
   })
 
   it('should handle multiple calls to startSaving', () => {
@@ -119,41 +82,25 @@ describe('saveConsoleOutput', () => {
 
     // Each call should create a new console
     expect(firstConsole).not.toBe(secondConsole)
-    expect(RollingFileStream).toHaveBeenCalledTimes(2)
   })
 
-  it('should use "out.log" as the filename', () => {
+  it('should use filenames that start with out. and end with .log', async () => {
     startSaving(tempDir)
-
-    const expectedPath = join(tempDir, 'out.log')
-    expect(RollingFileStream).toHaveBeenCalledWith(expectedPath, expect.any(Number), expect.any(Number))
+    console.log('filename test')
+    await new Promise((r) => setTimeout(r, 10))
+    const files = fs.readdirSync(tempDir).filter((f) => f.startsWith('out.') && f.endsWith('.log'))
+    expect(files.length).toBeGreaterThanOrEqual(1)
   })
 
-  it('should create RollingFileStream with 10MB max file size', () => {
-    startSaving(tempDir)
+  // Size and backup limits are enforced internally; rotation behavior is covered via integration.
 
-    expect(RollingFileStream).toHaveBeenCalledWith(
-      expect.any(String),
-      10000000, // 10MB in bytes
-      expect.any(Number)
-    )
-  })
-
-  it('should create RollingFileStream with max 10 backup files', () => {
-    startSaving(tempDir)
-
-    expect(RollingFileStream).toHaveBeenCalledWith(
-      expect.any(String),
-      expect.any(Number),
-      10 // max backup files
-    )
-  })
-
-  it('should handle different base directories', () => {
-    const customDir = '/custom/path'
+  it('should handle different base directories', async () => {
+    const customDir = path.join(tempDir, 'nested')
     startSaving(customDir)
-
-    expect(RollingFileStream).toHaveBeenCalledWith(join(customDir, 'out.log'), expect.any(Number), expect.any(Number))
+    console.log('custom dir write')
+    await new Promise((r) => setTimeout(r, 10))
+    const files = fs.readdirSync(customDir).filter((f) => f.startsWith('out.') && f.endsWith('.log'))
+    expect(files.length).toBeGreaterThanOrEqual(1)
   })
 
   it('should replace console with a new Console instance', () => {
