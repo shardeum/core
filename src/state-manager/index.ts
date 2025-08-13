@@ -1151,13 +1151,12 @@ class StateManager {
         }
       }
 
-      //TODO perf remove this when we are satisfied with the situation
-      //Additional testing to cache if we try to overrite with older data
+      //check timestamp before we save the data.
+      //if the account is older we will skip saving it
       if (await this.accountCache.hasAccount(accountId)) {
         const accountMemData: AccountHashCache = await this.accountCache.getAccountHash(accountId)
         if (timestamp < accountMemData.t) {
           //should update cache anyway (older value may be needed)
-
           // I have doubts that cache should be able to roll a value back..
           this.accountCache.updateAccountHash(
             wrappedAccount.accountId,
@@ -1165,8 +1164,8 @@ class StateManager {
             wrappedAccount.timestamp,
             cycleToRecordOn
           )
-
-          /* prettier-ignore */ if (logFlags.error) this.mainLogger.error(`setAccountData: abort. checkAndSetAccountData older timestamp note:${note} acc: ${utils.makeShortHash(accountId)} timestamp:${timestamp} accountMemData.t:${accountMemData.t} hash: ${utils.makeShortHash(hash)} cache:${utils.stringifyReduce(accountMemData)}`)
+          /* prettier-ignore */ nestedCountersInstance.countEvent( 'stateManager', `checkAndSetAccountData: skip older timestamp acc:${utils.makeShortHash( accountId )} timestamp: ${timestamp} accountMemData.t:${accountMemData.t} hash: ${utils.makeShortHash(hash)}`)
+          /* prettier-ignore */ if (logFlags.important_as_fatal) this.mainLogger.error(`setAccountData: abort. checkAndSetAccountData older timestamp note:${note} acc: ${utils.makeShortHash(accountId)} timestamp:${timestamp} accountMemData.t:${accountMemData.t} hash: ${utils.makeShortHash(hash)} cache:${utils.stringifyReduce(accountMemData)}`)
           continue //this is a major error need to skip the writing.
         }
       }
@@ -3478,6 +3477,17 @@ class StateManager {
         /* prettier-ignore */ if (logFlags.verbose) this.mainLogger.debug(`setAccount canWriteToAccount == false :${utils.makeShortHash(wrappedData.accountId)}`)
         nestedCountersInstance.countEvent('stateManager', 'oos.setAccount-skip-canWriteToAccount-false')
         continue
+      }
+
+      //check timestamp before we save the data.
+      //if the account is older we will skip saving it
+      if (await this.accountCache.hasAccount(wrappedData.accountId)) {
+        const accountMemData: AccountHashCache = await this.accountCache.getAccountHash(wrappedData.accountId)
+        if (wrappedData.timestamp < accountMemData.t) {
+          /* prettier-ignore */ nestedCountersInstance.countEvent( 'stateManager', `setAccount: skip older timestamp acc:${utils.makeShortHash( wrappedData.accountId )} timestamp: ${wrappedData.timestamp} accountMemData.t:${accountMemData.t} hash: ${utils.makeShortHash(wrappedData.stateId)}`)
+          /* prettier-ignore */ if (logFlags.important_as_fatal) this.mainLogger.error(`setAccount: abort. setAccount older timestamp note:${note} acc: ${utils.makeShortHash(wrappedData.accountId)} timestamp:${wrappedData.timestamp} accountMemData.t:${accountMemData.t} hash: ${utils.makeShortHash(wrappedData.stateId)} cache:${utils.stringifyReduce(accountMemData)}`)
+          continue //this is a major error need to skip the writing.
+        }
       }
 
       //intercept that we have this data rather than requesting it.

@@ -1797,6 +1797,7 @@ class AccountPatcher {
       if (leafNode.accountTempMap.has(tx.accountID) === false) {
         this.totalAccounts++
       }
+
       leafNode.accountTempMap.set(tx.accountID, tx)
       if (leafNode.updated === false) {
         treeNodeQueue.push(leafNode)
@@ -3219,9 +3220,26 @@ class AccountPatcher {
   processAccountUpdates(cycleToProcess: number): void {
     let nextExternalAccountUpdateQueue = []
 
-    //todo... possibly sort by timestamp cycle and then account ID..
-    // but we can study code to see if that matters. 
-    // old cache system may have done something like that
+    //We need to de-duplicate by account ID (newest timestamp wins)
+    //Then sort by ID
+    this.externalAccountUpdateQueue.sort((a, b) => {
+      if (a.accountID < b.accountID) return -1
+      if (a.accountID > b.accountID) return 1
+      //if account IDs are equal, sort by timestamp, newest first
+      return b.timestamp - a.timestamp
+    })
+
+    //remove duplicates, keeping the newest timestamp (because of the earlier sort)
+    const seenAccounts = new Set<string>()
+    for (const accountData of this.externalAccountUpdateQueue) {
+      if (!seenAccounts.has(accountData.accountID)) {
+        seenAccounts.add(accountData.accountID)
+        nextExternalAccountUpdateQueue.push(accountData)
+      }
+    }
+    
+    this.externalAccountUpdateQueue = nextExternalAccountUpdateQueue
+    nextExternalAccountUpdateQueue = []
 
     for (const accountData of this.externalAccountUpdateQueue) {
       if (accountData.cycle > cycleToProcess) {
