@@ -20,11 +20,15 @@ import * as CycleChain from '../CycleChain'
 import { nestedCountersInstance } from '../../utils/nestedCounters'
 import { shardusGetTime } from '../../network'
 import * as ShardusTypes from '../../shardus/shardus-types'
+import { StateHardeningValidator } from '../../utils/stateHardeningValidation'
+import { DissentGossipRateLimiter } from '../../state-manager/DissentGossipRateLimiter'
+import { StateHardeningConfig } from '../../config/stateHardeningConfig'
 
 let p2pLogger: Logger
 let stateManager: StateManager // Will be injected during init
 let transactionQueue: TransactionQueue // Will be injected during init
 let transactionConsensus: TransactionConsenus // Will be injected during init
+let rateLimiter: DissentGossipRateLimiter // Rate limiter instance
 
 // Track seen messages to prevent loops
 const seenMessages = new Map<string, number>() // messageId -> timestamp
@@ -38,6 +42,9 @@ export function init(sm: StateManager, tq: TransactionQueue, tc: TransactionCons
   stateManager = sm
   transactionQueue = tq
   transactionConsensus = tc
+  
+  // Initialize rate limiter with config
+  rateLimiter = new DissentGossipRateLimiter(StateHardeningConfig.getGossipConfig())
   
   // Clear seen messages periodically
   setInterval(() => {
@@ -94,81 +101,25 @@ async function handleStateBeforeDissentGossip(
   const startTime = Date.now()
   
   try {
-    p2pLogger.info('Received state-before-dissent gossip', {
-      sender,
-      tracker,
-      msgSize,
-      payloadType: payload.type
-    })
-
-    if (payload.type !== 'state-before-dissent') {
-      p2pLogger.warn('Invalid payload type for dissent handler', { type: payload.type })
+    // Step 1: Validate incoming dissent
+    const validation = await validateIncomingDissent(payload, sender, tracker, msgSize)
+    if (!validation.valid) {
       return false
     }
 
-    const message = payload.data as StateBeforeDissentMessage
-    const messageId = getMessageId(message)
+    const { message, messageId } = validation
+
+    // Step 2: Check local corroboration
+    const corroboration = await checkLocalCorroboration(message)
     
-    p2pLogger.info('Processing dissent message', {
-      messageId,
-      txId: message.txid,
-      accountId: message.accountId,
-      observedCount: message.observed.length,
-      hasProof: !!message.proofReceipt
-    })
-
-    // Check if we've seen this message before
-    if (seenMessages.has(messageId)) {
-      p2pLogger.info('Already seen dissent message', { messageId })
-      return false
+    // Step 3: Process the dissent message if appropriate
+    if (corroboration.shouldProcess) {
+      await processDissentMessage(message)
     }
 
-    // Validate message
-    if (!validateDissentMessage(message, payload.sign)) {
-      p2pLogger.warn('Dissent message validation failed', {
-        messageId,
-        hasSign: !!payload.sign,
-        timestamp: message.timestamp
-      })
-      nestedCountersInstance.countEvent('gossip-validation', 'dissent-invalid')
-      return false
-    }
-
-    // Check if we corroborate this conflict
-    const corroborates = await corroborateConflict(message)
-    const hasValidProof = message.proofReceipt && validateReceiptProof(message.proofReceipt)
-    
-    // New: Also check if this is new conflict information we should learn about
-    const isNewConflictInfo = await isNewConflictInformation(message)
-    
-    p2pLogger.info('Dissent processing decision', {
-      messageId,
-      corroborates,
-      hasValidProof,
-      isNewConflictInfo,
-      willProcess: corroborates || hasValidProof || isNewConflictInfo
-    })
-
-    if (!corroborates && !hasValidProof && !isNewConflictInfo) {
-      p2pLogger.info('Cannot process dissent, dropping', { messageId })
-      nestedCountersInstance.countEvent('gossip-validation', 'dissent-no-grounds')
-      return false
-    }
-
-    // Record that we've seen this message
-    seenMessages.set(messageId, shardusGetTime())
-    p2pLogger.info('Recorded message as seen', { messageId })
-
-    // Process the dissent
-    await processDissentMessage(message)
-
-    // Forward if appropriate
-    const shouldForward = shouldForwardDissent(message, corroborates, hasValidProof)
-    if (shouldForward) {
-      p2pLogger.info('Forwarding dissent gossip', { messageId, corroborates, hasValidProof })
-      forwardDissentGossip(payload, sender, tracker)
-    } else {
-      p2pLogger.info('Not forwarding dissent gossip', { messageId })
+    // Step 4: Propagate if needed
+    if (corroboration.shouldForward) {
+      await propagateDissent(payload, sender, tracker, messageId, corroboration)
     }
 
     const duration = Date.now() - startTime
@@ -185,6 +136,124 @@ async function handleStateBeforeDissentGossip(
 }
 
 /**
+ * Validate incoming dissent message
+ */
+async function validateIncomingDissent(
+  payload: StateDissentGossipPayload,
+  sender: string,
+  tracker: string,
+  msgSize: number
+): Promise<{ valid: boolean; message?: StateBeforeDissentMessage; messageId?: string }> {
+  p2pLogger.info('Received state-before-dissent gossip', {
+    sender,
+    tracker,
+    msgSize,
+    payloadType: payload.type
+  })
+
+  if (payload.type !== 'state-before-dissent') {
+    p2pLogger.warn('Invalid payload type for dissent handler', { type: payload.type })
+    return { valid: false }
+  }
+
+  const message = payload.data as StateBeforeDissentMessage
+  const messageId = getMessageId(message)
+  
+  p2pLogger.info('Processing dissent message', {
+    messageId,
+    txId: message.txid,
+    accountId: message.accountId,
+    observedCount: message.observed.length,
+    hasProof: !!message.proofReceipt
+  })
+
+  // Check if we've seen this message before
+  if (seenMessages.has(messageId)) {
+    p2pLogger.info('Already seen dissent message', { messageId })
+    return { valid: false }
+  }
+
+  // Validate message
+  if (!validateDissentMessage(message, payload.sign)) {
+    p2pLogger.warn('Dissent message validation failed', {
+      messageId,
+      hasSign: !!payload.sign,
+      timestamp: message.timestamp
+    })
+    nestedCountersInstance.countEvent('gossip-validation', 'dissent-invalid')
+    return { valid: false }
+  }
+
+  // Record that we've seen this message
+  seenMessages.set(messageId, shardusGetTime())
+  p2pLogger.info('Recorded message as seen', { messageId })
+
+  return { valid: true, message, messageId }
+}
+
+/**
+ * Check if we corroborate the conflict locally
+ */
+async function checkLocalCorroboration(
+  message: StateBeforeDissentMessage
+): Promise<{
+  corroborates: boolean
+  hasValidProof: boolean
+  isNewConflictInfo: boolean
+  shouldProcess: boolean
+  shouldForward: boolean
+}> {
+  // Check if we corroborate this conflict
+  const corroborates = await corroborateConflict(message)
+  const hasValidProof = message.proofReceipt && validateReceiptProof(message.proofReceipt)
+  
+  // Also check if this is new conflict information we should learn about
+  const isNewConflictInfo = await isNewConflictInformation(message)
+  
+  p2pLogger.info('Dissent processing decision', {
+    messageId: getMessageId(message),
+    corroborates,
+    hasValidProof,
+    isNewConflictInfo,
+    willProcess: corroborates || hasValidProof || isNewConflictInfo
+  })
+
+  const shouldProcess = corroborates || hasValidProof || isNewConflictInfo
+  if (!shouldProcess) {
+    p2pLogger.info('Cannot process dissent, dropping', { messageId: getMessageId(message) })
+    nestedCountersInstance.countEvent('gossip-validation', 'dissent-no-grounds')
+  }
+
+  const shouldForward = shouldProcess && shouldForwardDissent(message, corroborates, hasValidProof)
+
+  return {
+    corroborates,
+    hasValidProof,
+    isNewConflictInfo,
+    shouldProcess,
+    shouldForward
+  }
+}
+
+/**
+ * Propagate dissent gossip to other nodes
+ */
+async function propagateDissent(
+  payload: StateDissentGossipPayload,
+  sender: string,
+  tracker: string,
+  messageId: string,
+  corroboration: { corroborates: boolean; hasValidProof: boolean }
+): Promise<void> {
+  p2pLogger.info('Forwarding dissent gossip', {
+    messageId,
+    corroborates: corroboration.corroborates,
+    hasValidProof: corroboration.hasValidProof
+  })
+  forwardDissentGossip(payload, sender, tracker)
+}
+
+/**
  * Handle incoming state correction gossip
  */
 async function handleStateCorrectionGossip(
@@ -196,75 +265,20 @@ async function handleStateCorrectionGossip(
   const startTime = Date.now()
   
   try {
-    p2pLogger.info('Received state-correction gossip', {
-      sender,
-      tracker,
-      msgSize,
-      payloadType: payload.type
-    })
-
-    if (payload.type !== 'state-correction') {
-      p2pLogger.warn('Invalid payload type for correction handler', { type: payload.type })
+    // Step 1: Validate incoming correction
+    const validation = await validateIncomingCorrection(payload, sender, tracker, msgSize)
+    if (!validation.valid) {
       return false
     }
 
-    const message = payload.data as StateCorrectionMessage
-    const messageId = getCorrectionMessageId(message)
-    
-    p2pLogger.info('Processing correction message', {
-      messageId,
-      accountId: message.accountId,
-      correctHash: message.correctStateHash,
-      hasData: !!message.correctData,
-      receiptTxId: message.receiptRef?.txid,
-      receiptCycle: message.receiptRef?.cycle,
-      signatureCount: message.receiptRef?.signatures?.length || 0
-    })
+    const { message, messageId } = validation
 
-    // Check if we've seen this message before
-    if (seenMessages.has(messageId)) {
-      p2pLogger.info('Already seen correction message', { messageId })
-      return false
-    }
-
-    // Validate message and proof
-    if (!validateCorrectionMessage(message, payload.sign)) {
-      p2pLogger.warn('Correction message validation failed', {
-        messageId,
-        hasSign: !!payload.sign,
-        timestamp: message.timestamp,
-        accountId: message.accountId
-      })
-      nestedCountersInstance.countEvent('gossip-validation', 'correction-invalid')
-      return false
-    }
-
-    // Validate the receipt proof
-    if (!validateReceiptProof(message.receiptRef)) {
-      p2pLogger.warn('Receipt proof validation failed', {
-        messageId,
-        receiptTxId: message.receiptRef?.txid,
-        receiptCycle: message.receiptRef?.cycle,
-        signatureCount: message.receiptRef?.signatures?.length || 0
-      })
-      nestedCountersInstance.countEvent('gossip-validation', 'correction-invalid-proof')
-      return false
-    }
-
-    // Record that we've seen this message
-    seenMessages.set(messageId, shardusGetTime())
-    p2pLogger.info('Recorded correction message as seen', { messageId })
-
-    // Process the correction
+    // Step 2: Process the correction
     await processCorrectionMessage(message)
 
-    // Forward if appropriate
-    const shouldForward = shouldForwardCorrection(message)
-    if (shouldForward) {
-      p2pLogger.info('Forwarding correction gossip', { messageId })
-      forwardCorrectionGossip(payload, sender, tracker)
-    } else {
-      p2pLogger.info('Not forwarding correction gossip', { messageId })
+    // Step 3: Propagate if needed
+    if (shouldForwardCorrection(message)) {
+      await propagateCorrection(payload, sender, tracker, messageId)
     }
 
     const duration = Date.now() - startTime
@@ -278,6 +292,90 @@ async function handleStateCorrectionGossip(
     })
     return false
   }
+}
+
+/**
+ * Validate incoming correction message
+ */
+async function validateIncomingCorrection(
+  payload: StateDissentGossipPayload,
+  sender: string,
+  tracker: string,
+  msgSize: number
+): Promise<{ valid: boolean; message?: StateCorrectionMessage; messageId?: string }> {
+  p2pLogger.info('Received state-correction gossip', {
+    sender,
+    tracker,
+    msgSize,
+    payloadType: payload.type
+  })
+
+  if (payload.type !== 'state-correction') {
+    p2pLogger.warn('Invalid payload type for correction handler', { type: payload.type })
+    return { valid: false }
+  }
+
+  const message = payload.data as StateCorrectionMessage
+  const messageId = getCorrectionMessageId(message)
+  
+  p2pLogger.info('Processing correction message', {
+    messageId,
+    accountId: message.accountId,
+    correctHash: message.correctStateHash,
+    hasData: !!message.correctData,
+    receiptTxId: message.receiptRef?.txid,
+    receiptCycle: message.receiptRef?.cycle,
+    signatureCount: message.receiptRef?.signatures?.length || 0
+  })
+
+  // Check if we've seen this message before
+  if (seenMessages.has(messageId)) {
+    p2pLogger.info('Already seen correction message', { messageId })
+    return { valid: false }
+  }
+
+  // Validate message and proof
+  if (!validateCorrectionMessage(message, payload.sign)) {
+    p2pLogger.warn('Correction message validation failed', {
+      messageId,
+      hasSign: !!payload.sign,
+      timestamp: message.timestamp,
+      accountId: message.accountId
+    })
+    nestedCountersInstance.countEvent('gossip-validation', 'correction-invalid')
+    return { valid: false }
+  }
+
+  // Validate the receipt proof
+  if (!validateReceiptProof(message.receiptRef)) {
+    p2pLogger.warn('Receipt proof validation failed', {
+      messageId,
+      receiptTxId: message.receiptRef?.txid,
+      receiptCycle: message.receiptRef?.cycle,
+      signatureCount: message.receiptRef?.signatures?.length || 0
+    })
+    nestedCountersInstance.countEvent('gossip-validation', 'correction-invalid-proof')
+    return { valid: false }
+  }
+
+  // Record that we've seen this message
+  seenMessages.set(messageId, shardusGetTime())
+  p2pLogger.info('Recorded correction message as seen', { messageId })
+
+  return { valid: true, message, messageId }
+}
+
+/**
+ * Propagate correction gossip to other nodes
+ */
+async function propagateCorrection(
+  payload: StateDissentGossipPayload,
+  sender: string,
+  tracker: string,
+  messageId: string
+): Promise<void> {
+  p2pLogger.info('Forwarding correction gossip', { messageId })
+  forwardCorrectionGossip(payload, sender, tracker)
 }
 
 /**

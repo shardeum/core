@@ -54,7 +54,7 @@ export interface SignedReceiptRef {
   /** Signatures from consensus nodes */
   signatures: Array<{
     nodeId: string
-    sig: Signature
+    sig: string | Signature
   }>
 }
 
