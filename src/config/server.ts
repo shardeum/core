@@ -310,6 +310,7 @@ const SERVER_CONFIG: StrictServerConfiguration = {
     maxTrackerRestarts: 5,
     syncWithAccountOffset: true,
     useAccountCopiesTable: false,
+    syncToProcessingDelay: 500, // Delay in ms between sync completion and starting transaction processing
     stuckProcessingLimit: 300,
     autoUnstickProcessing: false,
     apopFromStuckProcessing: false,
