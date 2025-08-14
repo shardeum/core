@@ -1499,6 +1499,14 @@ export interface ServerConfiguration {
     gossipCacheSize?: number // Max messages in seen cache
     // Dissent processing configuration
     minDissentObservers?: number // Minimum unique observers required in dissent message
+    // Aggressive state hardening fixes
+    waitForStateResolution?: boolean // Wait for conflicts to resolve before applying tx
+    stateConflictResolutionTimeout?: number // Timeout for resolution in milliseconds
+    aggressiveStateSync?: boolean // Aggressively sync conflicted states
+    validateStatesBeforeReceipt?: boolean // Validate all account states before finalizing receipt
+    maxStateValidationRetries?: number // Retry state validation up to N times
+    stateValidationRetryDelay?: number // Delay between validation retries in milliseconds
+    allowMismatchInConflictScenarios?: boolean // Allow state mismatches when conflicts exist (for testing)
   }
   /** Options for sharding calculations */
   sharding?: {

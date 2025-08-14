@@ -19,8 +19,10 @@ import * as NodeList from '../NodeList'
 import * as CycleChain from '../CycleChain'
 import { nestedCountersInstance } from '../../utils/nestedCounters'
 import { shardusGetTime } from '../../network'
+import * as ShardusTypes from '../../shardus/shardus-types'
 
 let p2pLogger: Logger
+let stateManager: StateManager // Will be injected during init
 let transactionQueue: TransactionQueue // Will be injected during init
 let transactionConsensus: TransactionConsenus // Will be injected during init
 
@@ -31,8 +33,9 @@ const MESSAGE_CACHE_TTL = 60000 // 1 minute
 /**
  * Initialize the state dissent handlers
  */
-export function init(_sm: StateManager, tq: TransactionQueue, tc: TransactionConsenus): void {
+export function init(sm: StateManager, tq: TransactionQueue, tc: TransactionConsenus): void {
   p2pLogger = logger.getLogger('p2p')
+  stateManager = sm
   transactionQueue = tq
   transactionConsensus = tc
   
@@ -596,6 +599,11 @@ async function processCorrectionMessage(message: StateCorrectionMessage): Promis
       })
     }
     
+    // CRITICAL FIX: Update local state if we have the corrected data
+    if (message.correctData && stateManager) {
+      await updateLocalStateFromCorrection(message)
+    }
+    
     nestedCountersInstance.countEvent('gossip-processed', 'correction')
   } catch (error) {
     p2pLogger.error('Error processing correction message:', {
@@ -752,6 +760,107 @@ function validateCorrectionMessage(message: StateCorrectionMessage, sign?: any):
       stack: error.stack
     })
     return false
+  }
+}
+
+/**
+ * Update local state from correction message
+ */
+async function updateLocalStateFromCorrection(message: StateCorrectionMessage): Promise<void> {
+  try {
+    p2pLogger.info('Attempting to update local state from correction', {
+      accountId: message.accountId,
+      correctHash: message.correctStateHash,
+      hasData: !!message.correctData,
+      receiptTxId: message.receiptRef.txid,
+      receiptCycle: message.receiptRef.cycle
+    })
+
+    // Safety check: Only update if we're a storage node for this account
+    if (!stateManager.accountCache.hasAccount(message.accountId)) {
+      p2pLogger.info('Not a storage node for this account, skipping local update', {
+        accountId: message.accountId
+      })
+      return
+    }
+
+    // Get current local state
+    const currentHash = stateManager.accountCache.getAccountHash(message.accountId)
+    if (!currentHash) {
+      p2pLogger.warn('Could not get current hash for account', {
+        accountId: message.accountId
+      })
+      return
+    }
+
+    // Check if our local state differs from the correct state
+    if (currentHash.h === message.correctStateHash) {
+      p2pLogger.info('Local state already matches correct state', {
+        accountId: message.accountId,
+        hash: message.correctStateHash
+      })
+      nestedCountersInstance.countEvent('state-correction', 'already-correct')
+      return
+    }
+
+    p2pLogger.warn('Local state differs from correct state', {
+      accountId: message.accountId,
+      localHash: currentHash.h,
+      correctHash: message.correctStateHash,
+      localCycle: currentHash.c,
+      localTimestamp: currentHash.t
+    })
+
+    // Validate that the correction is newer than our local state
+    const correctionCycle = message.receiptRef.cycle
+    if (correctionCycle < currentHash.c) {
+      p2pLogger.warn('Correction is from older cycle than local state', {
+        accountId: message.accountId,
+        correctionCycle,
+        localCycle: currentHash.c
+      })
+      nestedCountersInstance.countEvent('state-correction', 'older-cycle-rejected')
+      return
+    }
+
+    // Apply the corrected state
+    const wrappedAccount: ShardusTypes.WrappedData = {
+      accountId: message.accountId,
+      stateId: message.correctStateHash,
+      data: message.correctData,
+      timestamp: shardusGetTime() // Use current time for the update
+    }
+
+    const updatedAccounts: string[] = []
+    const failedHashes = await stateManager.checkAndSetAccountData(
+      [wrappedAccount],
+      `state-correction-gossip:${message.receiptRef.txid}`,
+      true,
+      updatedAccounts
+    )
+
+    if (failedHashes.length > 0) {
+      p2pLogger.error('Failed to update account from correction', {
+        accountId: message.accountId,
+        failedHashes,
+        correctHash: message.correctStateHash
+      })
+      nestedCountersInstance.countEvent('state-correction', 'update-failed')
+    } else if (updatedAccounts.length > 0) {
+      p2pLogger.info('Successfully updated account from correction', {
+        accountId: message.accountId,
+        correctHash: message.correctStateHash,
+        updatedCount: updatedAccounts.length
+      })
+      nestedCountersInstance.countEvent('state-correction', 'update-success')
+    }
+  } catch (error) {
+    p2pLogger.error('Error updating local state from correction:', {
+      error: error.message,
+      stack: error.stack,
+      accountId: message.accountId
+    })
+    nestedCountersInstance.countEvent('state-correction', 'update-error')
   }
 }
 

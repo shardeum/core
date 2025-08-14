@@ -7457,6 +7457,15 @@ class TransactionQueue {
                   const awaitStart = shardusGetTime()
                   /* prettier-ignore */ this.setDebugLastAwaitedCall('this.stateManager.transactionQueue.preApplyTransaction(queueEntry)')
                   let txResult = undefined
+                  // Check for state conflicts before applying transaction
+                  if (queueEntry.beforeStateConflict && this.config.stateManager.waitForStateResolution) {
+                    const resolved = await this.waitForStateResolution(queueEntry)
+                    if (!resolved) {
+                      /* prettier-ignore */ if (logFlags.verbose) this.mainLogger.warn(`State conflict not resolved for tx ${queueEntry.logID}, proceeding anyway`)
+                      nestedCountersInstance.countEvent('stateManager', 'stateConflictNotResolved')
+                    }
+                  }
+
                   if (this.config.stateManager.transactionApplyTimeout > 0) {
                     //use the withTimeout from util/promises to call preApplyTransaction with a timeout
                     txResult = await withTimeout<PreApplyAcceptedTransactionResult>(
@@ -10059,7 +10068,7 @@ class TransactionQueue {
       queueEntry.requeueAttempts++
       
       if (queueEntry.requeueAttempts > this.config.stateManager.maxRequeueAttempts) {
-        /* prettier-ignore */ if (logFlags.verbose) this.mainLogger.warn(`Transaction ${queueEntry.logID} exceeded max requeue attempts (${this.config.stateManager.maxRequeueAttempts})`)
+        /* prettier-ignore */ this.mainLogger.warn(`Transaction FAILED - exceeded max requeue attempts: txId: ${queueEntry.acceptedTx.txId}, reason: ${reason}, attempts: ${queueEntry.requeueAttempts}/${this.config.stateManager.maxRequeueAttempts}`)
         nestedCountersInstance.countEvent('stateManager', 'oos.requeueExceededMax')
         return
       }
@@ -10067,7 +10076,7 @@ class TransactionQueue {
       nestedCountersInstance.countEvent('stateManager', 'oos.transactionRequeued')
       nestedCountersInstance.countEvent('stateManager', `oos.requeueReason.${reason}`)
       
-      /* prettier-ignore */ if (logFlags.verbose) this.mainLogger.debug(`Requeuing transaction ${queueEntry.logID} due to: ${reason} (attempt ${queueEntry.requeueAttempts})`)
+      /* prettier-ignore */ this.mainLogger.info(`Requeuing transaction due to: ${reason}, txId: ${queueEntry.acceptedTx.txId}, attempt: ${queueEntry.requeueAttempts}/${this.config.stateManager.maxRequeueAttempts}`)
 
       const newAcceptedTx: AcceptedTx = {
         ...queueEntry.acceptedTx,
@@ -10153,6 +10162,71 @@ class TransactionQueue {
         }
       }
     }
+  }
+
+  /**
+   * Wait for state conflicts to be resolved before proceeding with transaction
+   * @param queueEntry The queue entry with potential state conflicts
+   * @returns true if resolved, false if timeout
+   */
+  async waitForStateResolution(queueEntry: QueueEntry): Promise<boolean> {
+    const startTime = shardusGetTime()
+    const timeout = this.config.stateManager.stateConflictResolutionTimeout || 5000
+    const txId = queueEntry.acceptedTx.txId
+
+    /* prettier-ignore */ if (logFlags.verbose) this.mainLogger.debug(`Waiting for state resolution for tx ${txId}`)
+
+    while (shardusGetTime() - startTime < timeout) {
+      // Check if all conflicts have been resolved
+      let allResolved = true
+      
+      if (queueEntry.beforeStateObservations) {
+        for (const [accountId, tracking] of queueEntry.beforeStateObservations) {
+          if (tracking.hashes && tracking.hashes.size > 1) {
+            // Still have conflicts
+            allResolved = false
+            
+            // Check if we've received correction gossip for this account
+            const correctionReceived = this.hasCorrectionBeenApplied(accountId, queueEntry)
+            if (correctionReceived) {
+              /* prettier-ignore */ if (logFlags.verbose) this.mainLogger.debug(`Correction applied for account ${accountId} in tx ${txId}`)
+              nestedCountersInstance.countEvent('stateManager', 'correctionAppliedDuringWait')
+            }
+          }
+        }
+      }
+
+      if (allResolved) {
+        /* prettier-ignore */ if (logFlags.verbose) this.mainLogger.debug(`State conflicts resolved for tx ${txId}`)
+        nestedCountersInstance.countEvent('stateManager', 'stateConflictResolved')
+        return true
+      }
+
+      // Wait a bit before checking again
+      await utils.sleep(100)
+    }
+
+    /* prettier-ignore */ if (logFlags.verbose) this.mainLogger.warn(`State resolution timeout for tx ${txId}`)
+    nestedCountersInstance.countEvent('stateManager', 'stateResolutionTimeout')
+    return false
+  }
+
+  /**
+   * Check if correction has been applied for a conflicted account
+   */
+  hasCorrectionBeenApplied(accountId: string, queueEntry: QueueEntry): boolean {
+    // Check if the account now has a single consistent state
+    const wrappedAccount = queueEntry.collectedData[accountId]
+    if (!wrappedAccount) return false
+
+    // Check if we have fresh data that resolves the conflict
+    const tracking = queueEntry.beforeStateObservations?.get(accountId)
+    if (!tracking || tracking.hashes.size <= 1) {
+      return true // No conflict or already resolved
+    }
+
+    // TODO: Check correction gossip receipt tracking when available
+    return false
   }
 }
 

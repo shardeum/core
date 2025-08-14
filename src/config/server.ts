@@ -438,8 +438,8 @@ const SERVER_CONFIG: StrictServerConfiguration = {
     enableArchiverLookupForDissent: true, // Enable archiver queries for conflict resolution
     maxArchiverReceiptQueriesPerTx: 2, // Max archiver queries per transaction
     // Phase 2 consensus delays configuration
-    beforeStateDissentDelayMs: 5000, // Initial delay on conflict detection (5 seconds)
-    maxDissentDelayMs: 10000, // Maximum total delay before requeue (10 seconds)
+    beforeStateDissentDelayMs: 1000, // Initial delay on conflict detection (1 second)
+    maxDissentDelayMs: 3000, // Maximum total delay before requeue (3 seconds)
     enableConflictResolutionDelays: true, // Start disabled, enable via gradual rollout
     enableTransactionRequeue: true, // Start disabled, enable via gradual rollout
     maxRequeueAttempts: 3, // Maximum 3 requeue attempts per transaction
@@ -453,6 +453,14 @@ const SERVER_CONFIG: StrictServerConfiguration = {
     gossipCacheSize: 999999, // Set very high to effectively disable (was 10000)
     // Dissent processing configuration
     minDissentObservers: 2, // Minimum unique observers required in dissent message
+    // Aggressive state hardening fixes
+    waitForStateResolution: false, // Wait for conflicts to resolve before applying tx (disabled for now)
+    stateConflictResolutionTimeout: 5000, // 5 second timeout for resolution
+    aggressiveStateSync: true, // Aggressively sync conflicted states
+    validateStatesBeforeReceipt: false, // Validate all account states before finalizing receipt (disabled for now)
+    maxStateValidationRetries: 3, // Retry state validation up to 3 times
+    stateValidationRetryDelay: 500, // 500ms delay between validation retries
+    allowMismatchInConflictScenarios: true, // Allow state mismatches when conflicts exist (for testing)
   },
   sharding: { nodesPerConsensusGroup: 5, nodesPerEdge: 2, executeInOneShard: false },
   mode: ServerMode.Release,
