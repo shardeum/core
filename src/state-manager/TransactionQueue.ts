@@ -2114,8 +2114,14 @@ class TransactionQueue {
           txQueueEntry.txGroupCycle = cycleNumber
           cycleShardData = this.stateManager.shardValuesByCycle.get(cycleNumber)
         }
-        txQueueEntry.txDebug.cycleSinceActivated =
-          cycleNumber - activeByIdOrder.find((node) => node.id === Self.id).activeCycle
+        const selfNode = activeByIdOrder.find((node) => node.id === Self.id)
+        if (selfNode) {
+          txQueueEntry.txDebug.cycleSinceActivated = cycleNumber - selfNode.activeCycle
+        } else {
+          // Node not found in active list - could be syncing or in another state
+          /* prettier-ignore */ if (logFlags.verbose) this.mainLogger.warn(`routeAndQueueAcceptedTransaction: Node ${Self.id} not found in activeByIdOrder list. Setting cycleSinceActivated to 0`)
+          txQueueEntry.txDebug.cycleSinceActivated = 0
+        }
 
         if (cycleShardData == null) {
           /* prettier-ignore */ if (logFlags.error) this.mainLogger.error(`routeAndQueueAcceptedTransaction logID:${txQueueEntry.logID} cycleShardData == null cycle:${cycleNumber} not putting tx in queue.`)
