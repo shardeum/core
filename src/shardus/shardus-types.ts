@@ -1330,6 +1330,8 @@ export interface ServerConfiguration {
     syncWithAccountOffset: boolean
     /** this will control if the account copies table functions */
     useAccountCopiesTable: boolean
+    /** Delay in ms between sync completion and starting transaction processing */
+    syncToProcessingDelay: number
     /** How long before we decide that processingn is stuck */
     stuckProcessingLimit: number
     //** auto fix stuck processing.  this is a stopgap method */

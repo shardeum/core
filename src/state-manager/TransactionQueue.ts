@@ -5723,6 +5723,12 @@ class TransactionQueue {
       this.isStuckProcessing = false
       this.debugLastProcessingQueueStartTime = shardusGetTime()
 
+      // Initialize processingLastRunTime if starting fresh after sync to prevent false stuck detection
+      if (this.processingLastRunTime === 0) {
+        this.processingLastRunTime = startTime - this.processingMinRunBreak
+        /* prettier-ignore */ this.mainLogger.debug(`PROCESSING: Initializing processingLastRunTime to ${this.processingLastRunTime} (startTime: ${startTime})`)
+      }
+
       // ensure there is some rest between processing loops
       const timeSinceLastRun = startTime - this.processingLastRunTime
       if (timeSinceLastRun < this.processingMinRunBreak) {
