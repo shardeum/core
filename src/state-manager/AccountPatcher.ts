@@ -1287,11 +1287,21 @@ class AccountPatcher {
 
           const req = deserializeGetAccountDataByHashesReq(stream)
 
+          // Enhanced server-side tracking
+          const requestCycle = req.cycle
+          const currentCycle = this.stateManager.currentCycleShardData?.cycleNumber || -1
+          const cycleDiff = currentCycle - requestCycle
+          
+          nestedCountersInstance.countEvent('repair-server', `request.cycle.${requestCycle}`)
+          nestedCountersInstance.countEvent('repair-server', `cycleDiff.${cycleDiff}`)
+          
           const queryStats = {
             fix1: 0,
             fix2: 0,
             skip_localHashMismatch: 0,
             skip_requestHashMismatch: 0,
+            skip_notInStorage: 0,
+            skip_notCovered: 0,
             returned: 0,
             missingResp: false,
             noResp: false,
@@ -1313,6 +1323,23 @@ class AccountPatcher {
             accountIDs.push(accountHashEntry.accountID)
           }
 
+          // Track storage group membership for requested accounts
+          let inStorageCount = 0
+          let notInStorageCount = 0
+          for (const accountId of accountIDs) {
+            const storageGroup = this.stateManager.transactionQueue.getStorageGroupForAccount(accountId)
+            const isInStorage = storageGroup && storageGroup.some(n => n.id === Self.id)
+            if (isInStorage) {
+              inStorageCount++
+            } else {
+              notInStorageCount++
+              queryStats.skip_notInStorage++
+            }
+          }
+          
+          nestedCountersInstance.countEvent('repair-server', `inStorage.${inStorageCount > 0}`)
+          nestedCountersInstance.countEvent('repair-server', `notInStorage.${notInStorageCount}`)
+          
           const accountData = await this.app.getAccountDataByList(accountIDs)
           const skippedAccounts: AccountIDAndHash[] = []
           const returnedAccounts: AccountIDAndHash[] = []
@@ -1331,6 +1358,7 @@ class AccountPatcher {
               if (stateId !== accountHash) {
                 skippedAccounts.push({ accountID: accountId, hash: stateId })
                 queryStats.skip_localHashMismatch++
+                nestedCountersInstance.countEvent('repair-server', `skip.localHashMismatch`)
                 continue
               }
 
@@ -1341,6 +1369,7 @@ class AccountPatcher {
                 queryStats.returned++
               } else {
                 queryStats.skip_requestHashMismatch++
+                nestedCountersInstance.countEvent('repair-server', `skip.requestHashMismatch`)
                 skippedAccounts.push({ accountID: accountId, hash: stateId })
               }
             }
@@ -1354,6 +1383,20 @@ class AccountPatcher {
               queryStats.noResp = true
             }
           }
+          
+          // Emit detailed queryStats counters
+          nestedCountersInstance.countEvent('repair-server', `returned`, queryStats.returned)
+          nestedCountersInstance.countEvent('repair-server', `skip_localHashMismatch`, queryStats.skip_localHashMismatch)
+          nestedCountersInstance.countEvent('repair-server', `skip_requestHashMismatch`, queryStats.skip_requestHashMismatch)
+          nestedCountersInstance.countEvent('repair-server', `skip_notInStorage`, queryStats.skip_notInStorage)
+          nestedCountersInstance.countEvent('repair-server', `missingResp`, queryStats.missingResp ? 1 : 0)
+          nestedCountersInstance.countEvent('repair-server', `noResp`, queryStats.noResp ? 1 : 0)
+          
+          // Log detailed query stats
+          this.mainLogger.info(`${route} stats: cycle:${requestCycle} requested:${req.accounts.length} ` +
+            `returned:${queryStats.returned} skip_localHash:${queryStats.skip_localHashMismatch} ` +
+            `skip_requestHash:${queryStats.skip_requestHashMismatch} skip_notInStorage:${queryStats.skip_notInStorage} ` +
+            `cycleDiff:${cycleDiff} inStorage:${inStorageCount} notInStorage:${notInStorageCount}`)
 
           this.mainLogger.debug(`${route} 1 requests[${req.accounts.length}] :${utils.stringifyReduce(req.accounts)} `)
           this.mainLogger.debug(`${route} 2 skippedAccounts:${utils.stringifyReduce(skippedAccounts)} `)
@@ -4220,9 +4263,26 @@ class AccountPatcher {
           if (nodeToAsk == null) {
             noNodeAvailCount++
             nestedCountersInstance.countEvent('repair', `getAccountRepairData.noNodeAvail c:${cycle}`)
+            nestedCountersInstance.countEvent('repair', `noNodeAvail.account.${utils.makeShortHash(accountEntry.accountID)} c:${cycle}`)
             this.statemanager_fatal('getAccountRepairData no node avail', `getAccountRepairData no node avail ${cycle} for account ${utils.makeShortHash(accountEntry.accountID)}`)
             continue
           }
+          
+          // Track node selection patterns
+          const nodeId = utils.makeShortHash(nodeToAsk.id)
+          nestedCountersInstance.countEvent('repair', `nodeSelected.${nodeId} c:${cycle}`)
+          nestedCountersInstance.countEvent('repair', `nodeSelected.radix.${syncRadix} c:${cycle}`)
+          
+          // Check if node is in storage group for this account
+          const storageGroup = this.stateManager.transactionQueue.getStorageGroupForAccount(accountEntry.accountID)
+          const isInStorageGroup = storageGroup && storageGroup.some(n => n.id === nodeToAsk.id)
+          nestedCountersInstance.countEvent('repair', `nodeIsStorage.${isInStorageGroup} c:${cycle}`)
+          
+          // Log detailed node selection
+          this.mainLogger.info(`Node selection: c:${cycle} account:${utils.makeShortHash(accountEntry.accountID)} ` +
+            `radix:${syncRadix} selectedNode:${nodeId}:${nodeToAsk.externalPort} ` +
+            `isStorage:${isInStorageGroup} storageGroupSize:${storageGroup ? storageGroup.length : 0}`)
+          
           requestEntry = { node: nodeToAsk, request: { cycle, accounts: [] } }
           nodesBySyncRadix.set(syncRadix, requestEntry)
         }
@@ -4237,6 +4297,15 @@ class AccountPatcher {
       
       // Log request configuration
       this.mainLogger.info(`Request config: c:${cycle} nodesBySyncRadix:${nodesBySyncRadix.size} accountPerRequest:${accountPerRequest} maxAskCount:${maxAskCount}`)
+      
+      // Track radix concentration
+      for (const [radix, entry] of nodesBySyncRadix.entries()) {
+        const nodeId = utils.makeShortHash(entry.node.id)
+        nestedCountersInstance.countEvent('repair', `accountsPerRadix.${entry.request.accounts.length} c:${cycle}`)
+        nestedCountersInstance.countEvent('repair', `radixBatch.${radix}.count c:${cycle}`, entry.request.accounts.length)
+        this.mainLogger.info(`Radix batching: c:${cycle} radix:${radix} ` +
+          `accounts:${entry.request.accounts.length} targetNode:${nodeId}:${entry.node.externalPort}`)
+      }
       
       for (const requestEntry of nodesBySyncRadix.values()) {
         totalRequestEntriesProcessed++
@@ -4356,11 +4425,29 @@ class AccountPatcher {
       let emptyResultCount = 0
       let wrongHashCount = 0
       
+      // Track promise-to-node mapping for empty result diagnosis
+      const promiseToNodeMap = new Map<number, { node: Shardus.Node; requestedCount: number; radix?: string }>()
+      let promiseIndex = 0
+      for (const [radix, entry] of nodesBySyncRadix.entries()) {
+        promiseToNodeMap.set(promiseIndex++, { 
+          node: entry.node, 
+          requestedCount: entry.request.accounts.length,
+          radix: radix
+        })
+      }
+      
+      promiseIndex = 0
       for (const promiseResult of promiseResults) {
+        const nodeInfo = promiseToNodeMap.get(promiseIndex)
+        const nodeId = nodeInfo ? utils.makeShortHash(nodeInfo.node.id) : 'unknown'
+        const nodePort = nodeInfo ? nodeInfo.node.externalPort : 0
+        promiseIndex++
+        
         if (promiseResult.status === 'rejected') {
           rejectedCount++
           nestedCountersInstance.countEvent('repair', `getAccountRepairData.promiseRejected c:${cycle}`)
-          if (logFlags.debug) this.mainLogger.debug(`getAccountRepairData: promise rejected for cycle ${cycle}: ${promiseResult.reason}`)
+          nestedCountersInstance.countEvent('repair', `rejected.node.${nodeId} c:${cycle}`)
+          this.mainLogger.error(`Promise rejected: c:${cycle} node:${nodeId}:${nodePort} reason:${promiseResult.reason}`)
           continue
         }
         const result = promiseResult.value as HashTrieAccountDataResponse
@@ -4368,14 +4455,31 @@ class AccountPatcher {
         if (result == null) {
           nullResultCount++
           nestedCountersInstance.countEvent('repair', `getAccountRepairData.nullResult c:${cycle}`)
+          nestedCountersInstance.countEvent('repair', `nullResult.node.${nodeId} c:${cycle}`)
+          this.mainLogger.warn(`Null result: c:${cycle} node:${nodeId}:${nodePort}`)
           continue
         }
         if (result.accounts == null || result.accounts.length === 0) {
           emptyResultCount++
           nestedCountersInstance.countEvent('repair', `getAccountRepairData.emptyResult c:${cycle}`)
+          nestedCountersInstance.countEvent('repair', `emptyResult.node.${nodeId} c:${cycle}`)
+          nestedCountersInstance.countEvent('repair', `emptyResult.radix.${nodeInfo?.radix || 'unknown'} c:${cycle}`)
+          
+          // Log detailed empty response info
+          this.mainLogger.warn(`Empty response: c:${cycle} fromNode:${nodeId}:${nodePort} ` +
+            `requested:${nodeInfo?.requestedCount || 0} radix:${nodeInfo?.radix || 'unknown'} ` +
+            `resultNull:${result == null} accountsNull:${result?.accounts == null}`)
           continue
         }
         if (result != null && result.accounts != null && result.accounts.length > 0) {
+          // Track successful responses
+          nestedCountersInstance.countEvent('repair', `successfulResponse.node.${nodeId} c:${cycle}`, result.accounts.length)
+          nestedCountersInstance.countEvent('repair', `successfulResponse.radix.${nodeInfo?.radix || 'unknown'} c:${cycle}`, result.accounts.length)
+          
+          this.mainLogger.info(`Successful response: c:${cycle} fromNode:${nodeId}:${nodePort} ` +
+            `requested:${nodeInfo?.requestedCount || 0} received:${result.accounts.length} ` +
+            `radix:${nodeInfo?.radix || 'unknown'}`)
+          
           if (result.stateTableData != null && result.stateTableData.length > 0) {
             for (const stateTableData of result.stateTableData) {
               stateTableDataMap.set(stateTableData.stateAfter, stateTableData)
