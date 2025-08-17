@@ -30,6 +30,10 @@ export const __ShardFunctions = {
   findHomeNode,
 }
 
+// Re-export full shardFunctions implementation and state-manager types for external tooling
+export { default as ShardFunctions } from './state-manager/shardFunctions'
+export * as StateManagerTypes from './state-manager/state-manager-types'
+
 export { LogFlags } from './logger'
 
 export { DebugComplete } from './state-manager/TransactionQueue'
