@@ -28,12 +28,12 @@ The AccountPatcher allows validators to:
 The core data structure is a 16-way radix trie with the following properties:
 
 #### Structure Properties
-- **Fixed Depth**: Determined by the number of active validators
-  - `treeMaxDepth`: Total depth of the trie (typically 4)
-  - `treeSyncDepth`: Level at which sync hashes are shared (typically 1)
+- **Dynamic Depth (capped)**: Depths are computed each cycle from shard values and coverage, and capped by configuration
+  - `treeMaxDepth`: Configured maximum trie depth (commonly 3–4)
+  - `treeSyncDepth`: The level at which sync hashes are shared (often 1); may adapt with network size and coverage
 - **Radix Keys**: Hexadecimal strings representing position in the 32-byte address space
 - **Sparse Arrays**: Each node contains up to 16 children (0-9, a-f)
-- **Distributed Construction**: No single node builds the complete trie
+- **Distributed Construction**: No single node builds or stores the complete trie; each node maintains the portions it covers, with placeholders for incomplete regions
 
 #### Trie Nodes
 
@@ -81,9 +81,9 @@ When a validator doesn't store all accounts in a trie region:
 **Frequency**: Once per cycle (60 seconds)
 
 **Process**:
-1. Calculate tree depths based on network size
+1. Calculate tree depths based on network size and coverage; resize trie if needed
 2. Ingest recent state changes meeting age requirements
-3. Update the Sharded-Hash-Trie structure
+3. Update the Sharded-Hash-Trie structure (bottom-up propagation)
 4. Broadcast sync hashes to neighbors
 
 **Function Flow**:
@@ -105,9 +105,9 @@ updateTrieAndBroadCast(cycle)
 
 **Process**:
 1. Identify sync-level radixes within coverage
-2. Group messages by destination nodes
-3. Send hashes to consensus and edge neighbors
-4. Use binary serialization for efficiency
+2. Group messages by destination nodes (consensus and edge neighbors)
+3. Send hashes using binary-serialized P2P routes
+4. Rate-limit payloads via configuration to avoid large responses
 
 **Message Structure**:
 ```typescript
@@ -127,6 +127,7 @@ type HashTrieSyncTell = {
 2. Build consensus on each radix hash
 3. Track votes per hash value
 4. Determine majority hash (best votes)
+5. Skip radixes with insufficient votes or currently in active syncing ranges
 
 **Consensus Data**:
 ```typescript
@@ -140,19 +141,24 @@ type HashTrieSyncConsensus = {
       voters: Set<Node>
     }>
   }>
+  // Tracks coverage/syncing state for each radix at sync depth
+  coverageMap: Map<radix, { inCoverage: boolean; syncing: boolean }>
 }
 ```
+
+Notes:
+- A minimum vote threshold (minVotes) is computed from network size/coverage. Radixes with fewer than `minVotes` are not considered authoritative for patching.
 
 ### 4. Testing and Patching (`testAndPatchAccounts`)
 
 **Frequency**: Shortly after sync hash consensus
 
 **Process**:
-1. Check if in sync with majority (`isInSync`)
+1. Check if in sync with majority (`isInSync`) at sync depth
 2. If out of sync, find bad accounts (`findBadAccounts`)
-3. Request repair data from majority nodes
-4. Filter and apply repairs
-5. Handle special cases (newer data, reverse healing)
+3. Request repair data (account state by hashes) from majority nodes
+4. Filter and apply repairs (timestamp and hash validation)
+5. Handle special cases (newer local data, reverse healing)
 
 **Decision Flow**:
 ```
@@ -164,11 +170,11 @@ testAndPatchAccounts(cycle)
   │   ├── Compare with consensus
   │   ├── Traverse trie to leaf level
   │   └── Identify specific accounts
-  ├── getAccountRepairData()
+  ├── Request account data by hashes
   ├── Filter repair candidates
-  │   ├── Check timestamps
-  │   ├── Verify hashes
-  │   └── Handle too-old updates
+  │   ├── Check timestamps (reject too-old)
+  │   ├── Verify account hashes
+  │   └── Handle removals
   └── Apply repairs
 ```
 
@@ -177,13 +183,13 @@ testAndPatchAccounts(cycle)
 **Purpose**: Identify specific accounts that differ from majority
 
 **Algorithm**:
-1. Start at sync depth with consensus mismatches
-2. Request child hashes from majority nodes
-3. Compare with local hashes
-4. Recursively descend to leaf level
-5. Extract account IDs needing repair
+1. Start at sync depth with consensus mismatches (meeting minVotes)
+2. Request child hashes from majority nodes for those radixes
+3. Compare with local hashes and descend levels where mismatches are found
+4. At leaf level, compare per-account hashes to extract account IDs needing repair
+5. If child hashes match but remote has additional known keys in our coverage, surface `extraBadKeys` for reverse healing
 
-**Optimization**: Uses binary search through trie levels to minimize network requests
+**Optimization**: Guided descent across trie levels using child-hash diffs and cached local leaves; avoids requesting entire subtrees unnecessarily.
 
 ### 6. Repair Flows
 
@@ -207,9 +213,9 @@ Three mechanisms enable this:
    - Proactively sent to remote nodes
 
 3. **Accounts They Need to Repair** (`accountsTheyNeedToRepair`)
-   - Currently broken due to flawed logic in `findBadAccounts`
+   - Currently disabled/incomplete due to logic gaps in `findBadAccounts`
    - Intended to identify accounts remote nodes are missing
-   - Would enable bidirectional repair
+   - Would enable stronger bidirectional repair
 
 ## Data Flow
 
@@ -228,9 +234,11 @@ Three mechanisms enable this:
 #### Binary Endpoints
 - `binary_sync_trie_hashes`: Broadcast sync hashes
 - `binary_get_trie_hashes`: Request child hashes
-- `binary_get_trie_accountHashes`: Request leaf accounts
-- `binary_get_account_data_by_hashes`: Get account data
+- `binary_get_trie_account_hashes`: Request leaf accounts (accountID+hash at leaf radixes)
+- `binary_get_account_data_by_hashes`: Get full account data for specific hashes
 - `binary_repair_oos_accounts`: Send repair instructions
+
+Note: Endpoint names correspond to `InternalRouteEnum.*` in code and are binary-serialized.
 
 #### Message Patterns
 - **Tell**: Direct message to specific nodes
@@ -281,6 +289,7 @@ Three mechanisms enable this:
 - Binary serialization for messages
 - Compressed child hash requests
 - Targeted repairs (only bad accounts)
+- Limit per-response size via `patcherMaxChildHashResponses`
 
 ### Caching
 - Account hash cache (`AccountHashCache`)
@@ -294,21 +303,36 @@ Three mechanisms enable this:
 {
   stateManager: {
     accountPatcher: {
-      enabled: true,              // Enable patcher system
-      treeMaxDepth: 4,            // Maximum trie depth
-      treeSyncDepth: 1,           // Sync hash depth
-      patchCycleOffset: 10,       // Seconds after cycle start
-      maxRepairRequests: 100,     // Per-cycle repair limit
-    }
+      enabled: true,                 // Enable patcher system
+      treeMaxDepth: 4,               // Max trie depth (cap)
+      treeSyncDepth: 1,              // Sync hash depth (typical starting level)
+      patchCycleOffset: 10,          // Seconds after cycle start to run patcher
+      maxRepairRequests: 100,        // Per-cycle repair limit
+    },
+    patcherMaxChildHashResponses: 5000 // Upper bound on leaf account responses per request
+  },
+  p2p: {
+    useBinarySerializedEndpoints: true,
+    syncTrieHashesBinary: true,
+    getTrieHashesBinary: true,
+    getTrieAccountHashesBinary: true
+  },
+  debug: {
+    haltOnDataOOS: false,            // Optional: halt repairs when OOS detected (debug only)
+    verboseNestedCounters: false
   }
 }
 ```
+
+Notes:
+- Depths are computed per cycle based on shard values but limited by configured caps.
+- Additional thresholds (e.g., minVotes) are derived from network size and coverage.
 
 ## Error Handling
 
 ### Failure Modes
 1. **Consensus Timeout**: Skip cycle, retry next
-2. **Network Partition**: Continue with available nodes
+2. **Network Partition**: Continue with available nodes; skip radixes with insufficient votes
 3. **Invalid Repair Data**: Reject and log
 4. **Persistent Mismatch**: Track failure history
 
@@ -317,6 +341,7 @@ Three mechanisms enable this:
 - Failure history tracking (`syncFailHistory`)
 - Escalating repair strategies
 - Fatal error reporting for investigation
+- Debug mode option to halt on OOS for forensic analysis
 
 ## Monitoring and Debugging
 
@@ -326,24 +351,26 @@ Three mechanisms enable this:
 - `badAccounts.length`: Accounts needing repair
 - `filterStats`: Repair filtering statistics
 - `repairRequestsMadeThisCycle`: Network load
+- `accountHashesChecked`: Per-leaf accounts examined
 
 ### Debug Features
 - Extensive counter events via `nestedCountersInstance`
 - Detailed logging of repair decisions
 - Stats objects at each operation level
 - Cycle-by-cycle history tracking
+- HTTP debug endpoint: `GET /debug-patcher-fail-hashes` to inspect consensus failures at sync depth
 
 ## Future Improvements
 
 ### Identified Issues
-1. **accountsTheyNeedToRepair Logic**: Currently broken, needs fix
+1. **accountsTheyNeedToRepair Logic**: Currently broken/incomplete, needs fix
 2. **Bidirectional Repair**: Not fully implemented
-3. **Scalability**: Tree depth calculation for large networks
+3. **Scalability**: Tree depth calculation for very large networks
 
 ### Potential Enhancements
 1. **Merkle Proofs**: For efficient verification
 2. **Parallel Repair**: Multiple concurrent repairs
-3. **Adaptive Sync Depth**: Based on network size
+3. **Adaptive Sync Depth**: Based on network size and coverage
 4. **Compression**: For trie node storage
 
 ## Conclusion
