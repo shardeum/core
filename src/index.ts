@@ -24,11 +24,11 @@ export { VectorBufferStream } from './utils/serialization/VectorBufferStream'
 // a more permanent solution is proper.
 import { addressToPartition, partitionInWrappingRange, findHomeNode } from './state-manager/shardFunctions'
 import SHARDUS_CONFIG from './config'
-export const __ShardFunctions = {
-  addressToPartition,
-  partitionInWrappingRange,
-  findHomeNode,
-}
+// export const __ShardFunctions = {
+//   addressToPartition,
+//   partitionInWrappingRange,
+//   findHomeNode,
+// }
 
 // Re-export full shardFunctions implementation and state-manager types for external tooling
 export { default as ShardFunctions } from './state-manager/shardFunctions'

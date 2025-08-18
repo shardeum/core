@@ -53,11 +53,11 @@ describe('index', () => {
       expect(index.VectorBufferStream).toBeDefined()
     })
 
-    it('should export __ShardFunctions', () => {
-      expect(index.__ShardFunctions).toBeDefined()
-      expect(index.__ShardFunctions.addressToPartition).toBeDefined()
-      expect(index.__ShardFunctions.partitionInWrappingRange).toBeDefined()
-      expect(index.__ShardFunctions.findHomeNode).toBeDefined()
+    it('should export ShardFunctions', () => {
+      expect(index.ShardFunctions).toBeDefined()
+      expect(index.ShardFunctions.addressToPartition).toBeDefined()
+      expect(index.ShardFunctions.partitionInWrappingRange).toBeDefined()
+      expect(index.ShardFunctions.findHomeNode).toBeDefined()
     })
 
     it('should export LogFlags type', () => {
