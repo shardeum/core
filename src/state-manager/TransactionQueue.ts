@@ -4516,7 +4516,7 @@ class TransactionQueue {
         const additionalIndices: number[] = []
         for (let spreadIndex = 1; spreadIndex < Context.config.stateManager.factBeforeSpreadFactor; spreadIndex++) {
           const secondaryIndices = getCorrespondingNodes(
-            ourIndexInTxGroup,
+            senderIndex,  // Use the same index (wrapped or regular) that we calculated above
             targetIndices.startIndex,
             targetIndices.endIndex,
             queueEntry.correspondingGlobalOffset + spreadIndex, // Modified offset for secondary senders
