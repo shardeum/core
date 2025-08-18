@@ -5334,7 +5334,7 @@ class TransactionQueue {
           queueEntry.logID
         )
         if (Context.config.stateManager.concatCorrespondingTellUseUnwrapped) {
-          correspondingIndices.concat(extraCorrespondingIndices)
+          correspondingIndices = correspondingIndices.concat(extraCorrespondingIndices)
         } else {
           correspondingIndices = extraCorrespondingIndices
         }
