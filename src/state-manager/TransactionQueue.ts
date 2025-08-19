@@ -4465,8 +4465,8 @@ class TransactionQueue {
       }
 
       // Use the same logic as receiver validation to determine which index to use
-      let senderIndex = ourIndexInTxGroup  // Start with regular index
-      
+      let senderIndex = ourIndexInTxGroup // Start with regular index
+
       // If we have a wrapped entry, use that instead (matching receiver's validation logic)
       if (unwrappedIndex != null) {
         senderIndex = unwrappedIndex
@@ -4494,8 +4494,8 @@ class TransactionQueue {
         queueEntry.correspondingGlobalOffset += 1
         nestedCountersInstance.countEvent('stateManager', 'factTellCorrespondingNodes: avoiding our index in tx group')
         // Use the same logic as receiver validation to determine which index to use
-        let senderIndex = ourIndexInTxGroup  // Start with regular index
-        
+        let senderIndex = ourIndexInTxGroup // Start with regular index
+
         // If we have a wrapped entry, use that instead (matching receiver's validation logic)
         if (unwrappedIndex != null) {
           senderIndex = unwrappedIndex
@@ -4578,7 +4578,7 @@ class TransactionQueue {
         ourUnwrappedIndex: unwrappedIndex,
         callParams,
         localKeys: queueEntry.localKeys,
-        oldCorrespondingIndices: [],  // No longer calculated with new logic
+        oldCorrespondingIndices: [], // No longer calculated with new logic
         correspondingIndices: correspondingIndices,
         correspondingNodeIds: correspondingNodes.map((n) => n.id),
       }
@@ -5074,12 +5074,12 @@ class TransactionQueue {
     const targetEndIndex = queueEntry.transactionGroup.length
     const targetGroupSize = queueEntry.transactionGroup.length
 
-    const senderIndexInTxGroup = queueEntry.ourTXGroupIndex  // Keep original variable for logging
+    const senderIndexInTxGroup = queueEntry.ourTXGroupIndex // Keep original variable for logging
     const senderGroupSize = queueEntry.executionGroup.length
-    
+
     // Use the same logic as receiver validation to determine which index to use
-    let senderIndex = senderIndexInTxGroup  // Start with regular index
-    
+    let senderIndex = senderIndexInTxGroup // Start with regular index
+
     // If we have a wrapped entry, use that instead (matching receiver's validation logic)
     const wrappedIndex = queueEntry.isSenderWrappedTxGroup[Self.id]
     if (wrappedIndex != null) {
