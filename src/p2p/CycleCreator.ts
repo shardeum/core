@@ -765,7 +765,7 @@ function makeCycleRecord(
     txlisthash: '',
   }) as P2P.CycleCreatorTypes.CycleRecord
 
-  submodules.map((submodule) => submodule.updateRecord(cycleTxs, cycleRecord, prevRecord))
+  submodules.forEach((submodule) => submodule.updateRecord(cycleTxs, cycleRecord, prevRecord))
   //Updating Cycle Record if network has entered 'Shutdown' Mode
   if (config.p2p.initShutdown || cycleRecord.mode === 'shutdown') {
     console.log('Updating Shutdown Mode Cycle Record...')

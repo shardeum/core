@@ -74,7 +74,7 @@ export function updateRecord(
   // If you're the first node
   if (Self.isFirst) {
     // Get saftey mode field values from snapshot
-    Object.assign(record, Snapshot.safetyModeVals)
+    record = Object.assign(record, Snapshot.safetyModeVals)
   }
   // If you're not the first node
   else {

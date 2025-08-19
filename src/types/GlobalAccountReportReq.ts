@@ -5,7 +5,6 @@ import { AJVSchemaEnum } from './enum/AJVSchemaEnum'
 
 const cGlobalAccountReportReqVersion = 1
 
-// eslint-disable-next-line @typescript-eslint/ban-types
 export type GlobalAccountReportReqSerializable = {}
 
 export function serializeGlobalAccountReportReq(
