@@ -4471,7 +4471,8 @@ class TransactionQueue {
         queueEntry.correspondingGlobalOffset,
         targetGroupSize,
         senderGroupSize,
-        queueEntry.transactionGroup.length
+        queueEntry.transactionGroup.length,
+        'factTellCorrespondingNodes' + queueEntry.logID + queueEntry.acceptedTx.txId
       )
       // check if we should avoid our index in the corresponding nodes
       if (Context.config.stateManager.avoidOurIndexInFactTell && correspondingIndices.includes(ourIndexInTxGroup)) {
@@ -4500,7 +4501,8 @@ class TransactionQueue {
           queueEntry.correspondingGlobalOffset,
           targetGroupSize,
           senderGroupSize,
-          queueEntry.transactionGroup.length
+          queueEntry.transactionGroup.length,
+          `factTellCorrespondingNodes` + queueEntry.logID + queueEntry.acceptedTx.txId
         )
         if (logFlags.debug)
           this.mainLogger.debug(
@@ -4715,9 +4717,10 @@ class TransactionQueue {
       false,
       `tellSender ${queueEntry.logID}`
     )
+
     if (isValidFactSender === false && wrappedSenderNodeIndex != null && wrappedSenderNodeIndex >= 0) {
       // try again with wrapped sender index
-      isValidFactSender = verifyCorrespondingSender(
+      let isValidFactSender = verifyCorrespondingSender(
         receivingNodeIndex,
         wrappedSenderNodeIndex,
         queueEntry.correspondingGlobalOffset,
@@ -4729,6 +4732,7 @@ class TransactionQueue {
         false,
         `tellSenderWrapped ${queueEntry.logID}`
       )
+      console.log(`factValidateCorrespondingTellSender: result: ${isValidFactSender}`)
     }
     // it maybe a FACT sender but sender does not cover the account
     if (senderHasAddress === false) {
@@ -4745,7 +4749,7 @@ class TransactionQueue {
     // it is neither a FACT corresponding node nor an exe neighbour node
     if (isValidFactSender === false) {
       this.mainLogger.error(
-        `factValidateCorrespondingTellSender: logId: ${queueEntry.logID} sender is neither a valid sender nor a neighbour node isValidSender:  ${isValidFactSender}`
+        `factValidateCorrespondingTellSender: logId: ${queueEntry.logID} sender is neither a valid sender nor a neighbour node isValidSender:  ${wrappedSenderNodeIndex}`
       )
       nestedCountersInstance.countEvent(
         'stateManager',
@@ -5086,7 +5090,7 @@ class TransactionQueue {
       targetGroupSize,
       senderGroupSize,
       queueEntry.transactionGroup.length,
-      queueEntry.logID
+      `factTellCorrespondingNodesFinalData` + queueEntry.logID + queueEntry.acceptedTx.txId
     )
 
     for (const key of keysToShare) {
