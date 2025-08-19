@@ -382,7 +382,9 @@ class CachedAppDataManager {
       senderGroupSize,
       targetStartIndex,
       targetEndIndex,
-      allNodes.length
+      allNodes.length,
+      false,
+      `cachedAppData ${logID}`
     )
 
     // it is not a FACT corresponding node
