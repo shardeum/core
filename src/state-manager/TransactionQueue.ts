@@ -4427,7 +4427,7 @@ class TransactionQueue {
       const ourIndexInTxGroup = queueEntry.ourTXGroupIndex
       const targetGroup = queueEntry.executionNodeIdSorted
       const targetGroupSize = targetGroup.length
-      const senderGroupSize = targetGroupSize
+      const senderGroupSize = queueEntry.transactionGroup.length
 
       // calculate target start and end indices in txGroup
       const targetIndices = this.getStartAndEndIndexOfTargetGroup(targetGroup, queueEntry.transactionGroup)
@@ -4464,7 +4464,7 @@ class TransactionQueue {
       }
 
       // Calculate corresponding nodes using the correct index that receivers will validate
-      let correspondingIndices = getCorrespondingNodes(
+      let validCorrespondingIndices = getCorrespondingNodes(
         senderIndex,
         targetIndices.startIndex,
         targetIndices.endIndex,
@@ -4473,53 +4473,6 @@ class TransactionQueue {
         senderGroupSize,
         queueEntry.transactionGroup.length
       )
-      // check if we should avoid our index in the corresponding nodes
-      if (Context.config.stateManager.avoidOurIndexInFactTell && correspondingIndices.includes(ourIndexInTxGroup)) {
-        if (logFlags.debug)
-          this.mainLogger.debug(
-            `factTellCorrespondingNodes: avoiding our index in tx group`,
-            ourIndexInTxGroup,
-            correspondingIndices
-          )
-        queueEntry.correspondingGlobalOffset += 1
-        nestedCountersInstance.countEvent('stateManager', 'factTellCorrespondingNodes: avoiding our index in tx group')
-        // Use the same logic as receiver validation to determine which index to use
-        let senderIndex = ourIndexInTxGroup // Start with regular index
-
-        // If we have a wrapped entry, use that instead (matching receiver's validation logic)
-        if (unwrappedIndex != null) {
-          senderIndex = unwrappedIndex
-          /* prettier-ignore */ if (logFlags.verbose) this.mainLogger.debug(`factTellCorrespondingNodesData-2: Using wrapped index ${unwrappedIndex} instead of regular ${ourIndexInTxGroup}`)
-        }
-
-        // Calculate corresponding nodes using the correct index that receivers will validate
-        correspondingIndices = getCorrespondingNodes(
-          senderIndex,
-          targetIndices.startIndex,
-          targetIndices.endIndex,
-          queueEntry.correspondingGlobalOffset,
-          targetGroupSize,
-          senderGroupSize,
-          queueEntry.transactionGroup.length
-        )
-        if (logFlags.debug)
-          this.mainLogger.debug(
-            `factTellCorrespondingNodes: new corresponding indices after avoiding our index in tx group`,
-            ourIndexInTxGroup,
-            correspondingIndices
-          )
-      }
-
-      const validCorrespondingIndices = []
-      for (const targetIndex of correspondingIndices) {
-        validCorrespondingIndices.push(targetIndex)
-
-        // if (logFlags.debug) {
-        //   //  debug verification code
-        //   const isValid = verifyCorrespondingSender(targetIndex, ourIndexInTxGroup, queueEntry.correspondingGlobalOffset, targetGroupSize, senderGroupSize, targetIndices.startIndex, targetIndices.endIndex, queueEntry.transactionGroup.length)
-        //   if (logFlags.debug) this.mainLogger.debug(`factTellCorrespondingNodes: debug verifyCorrespondingSender`, ourIndexInTxGroup, '->', targetIndex, isValid);
-        // }
-      }
 
       const correspondingNodes = []
       for (const index of validCorrespondingIndices) {
@@ -4562,14 +4515,14 @@ class TransactionQueue {
         tn: queueEntry.transactionGroup.length,
       }
 
-      /* prettier-ignore */ if (logFlags.verbose) this.mainLogger.debug(`factTellCorrespondingNodes: correspondingIndices and nodes ${queueEntry.logID}`, ourIndexInTxGroup, correspondingIndices, correspondingNodes.map(n => n.id), callParams)
+      /* prettier-ignore */ if (logFlags.verbose) this.mainLogger.debug(`factTellCorrespondingNodes: correspondingIndices and nodes ${queueEntry.logID}`, ourIndexInTxGroup, validCorrespondingIndices, correspondingNodes.map(n => n.id), callParams)
       queueEntry.txDebug.correspondingDebugInfo = {
         ourIndex: ourIndexInTxGroup,
         ourUnwrappedIndex: unwrappedIndex,
         callParams,
         localKeys: queueEntry.localKeys,
         oldCorrespondingIndices: [], // No longer calculated with new logic
-        correspondingIndices: correspondingIndices,
+        correspondingIndices: validCorrespondingIndices,
         correspondingNodeIds: correspondingNodes.map((n) => n.id),
       }
       if (correspondingNodes.length === 0) {
@@ -4696,7 +4649,7 @@ class TransactionQueue {
       wrappedSenderNodeIndex = queueEntry.isSenderWrappedTxGroup[senderNodeId]
     }
     const receiverGroupSize = queueEntry.executionNodeIdSorted.length
-    const senderGroupSize = receiverGroupSize
+    const senderGroupSize = queueEntry.transactionGroup.length
 
     const targetGroup = queueEntry.executionNodeIdSorted
     const targetIndices = this.getStartAndEndIndexOfTargetGroup(targetGroup, queueEntry.transactionGroup)
@@ -4783,233 +4736,6 @@ class TransactionQueue {
     }
     return { startIndex, endIndex }
   }
-
-  /**
-   * After a reciept is formed, use this to send updated account data to shards that did not execute a change
-   * I am keeping the async tag because this function does kick off async tasks it just does not await them
-   * I think this tag makes it more clear that this function is not a simple synchronous function
-   * @param queueEntry
-   * @returns
-   */
-  // async tellCorrespondingNodesFinalData(queueEntry: QueueEntry): Promise<void> {
-  //   profilerInstance.profileSectionStart('tellCorrespondingNodesFinalData', true)
-  //   /* prettier-ignore */ if (logFlags.playback) this.logger.playbackLogNote('tellCorrespondingNodesFinalData', queueEntry.logID, `tellCorrespondingNodesFinalData - start: ${queueEntry.logID}`)
-
-  //   if (this.stateManager.currentCycleShardData == null) {
-  //     throw new Error('tellCorrespondingNodesFinalData: currentCycleShardData == null')
-  //   }
-  //   if (queueEntry.uniqueKeys == null) {
-  //     throw new Error('tellCorrespondingNodesFinalData: queueEntry.uniqueKeys == null')
-  //   }
-  //   if (queueEntry.globalModification === true) {
-  //     throw new Error('tellCorrespondingNodesFinalData globalModification === true')
-  //   }
-
-  //   if (this.executeInOneShard && queueEntry.isInExecutionHome === false) {
-  //     throw new Error('tellCorrespondingNodesFinalData isInExecutionHome === false')
-  //   }
-  //   if (queueEntry.executionShardKey == null || queueEntry.executionShardKey == '') {
-  //     throw new Error('tellCorrespondingNodesFinalData executionShardKey == null or empty')
-  //   }
-  //   if (queueEntry.preApplyTXResult == null) {
-  //     throw new Error('tellCorrespondingNodesFinalData preApplyTXResult == null')
-  //   }
-
-  //   // Report data to corresponding nodes
-  //   const ourNodeData = this.stateManager.currentCycleShardData.nodeShardData
-  //   let correspondingAccNodes: Shardus.Node[] = []
-  //   const datas: { [accountID: string]: Shardus.WrappedResponse } = {}
-
-  //   const applyResponse = queueEntry.preApplyTXResult.applyResponse
-  //   let wrappedStates = this.stateManager.useAccountWritesOnly ? {} : queueEntry.collectedData
-  //   const writtenAccountsMap: WrappedResponses = {}
-  //   if (applyResponse.accountWrites != null && applyResponse.accountWrites.length > 0) {
-  //     for (const writtenAccount of applyResponse.accountWrites) {
-  //       writtenAccountsMap[writtenAccount.accountId] = writtenAccount.data
-  //       writtenAccountsMap[writtenAccount.accountId].prevStateId = wrappedStates[writtenAccount.accountId]
-  //         ? wrappedStates[writtenAccount.accountId].stateId
-  //         : ''
-  //       writtenAccountsMap[writtenAccount.accountId].prevDataCopy = wrappedStates[writtenAccount.accountId]
-  //         ? utils.deepCopy(writtenAccount.data)
-  //         : {}
-
-  //       datas[writtenAccount.accountId] = writtenAccount.data
-  //     }
-  //     //override wrapped states with writtenAccountsMap which should be more complete if it included
-  //     wrappedStates = writtenAccountsMap
-  //   }
-  //   const keysToShare = Object.keys(wrappedStates)
-
-  //   let message: { stateList: Shardus.WrappedResponse[]; txid: string }
-  //   let edgeNodeIds = []
-  //   let consensusNodeIds = []
-
-  //   const localHomeNode = queueEntry.homeNodes[queueEntry.executionShardKey]
-
-  //   let nodesToSendTo: StringNodeObjectMap = {}
-  //   let doOnceNodeAccPair = new Set<string>() //can skip  node+acc if it happens more than once.
-
-  //   //let uniqueAccountsShared = 0
-  //   let totalShares = 0
-  //   for (const key of keysToShare) {
-  //     nodesToSendTo = {}
-  //     doOnceNodeAccPair = new Set<string>()
-
-  //     // eslint-disable-next-line security/detect-object-injection
-  //     if (wrappedStates[key] != null) {
-  //       // eslint-disable-next-line security/detect-object-injection
-  //       let accountHomeNode = queueEntry.homeNodes[key]
-
-  //       if (accountHomeNode == null) {
-  //         accountHomeNode = ShardFunctions.findHomeNode(
-  //           this.stateManager.currentCycleShardData.shardGlobals,
-  //           key,
-  //           this.stateManager.currentCycleShardData.parititionShardDataMap
-  //         )
-  //         nestedCountersInstance.countEvent('stateManager', 'fetch missing home info')
-  //       }
-  //       if (accountHomeNode == null) {
-  //         throw new Error('tellCorrespondingNodesFinalData: should never get here.  accountHomeNode == null')
-  //       }
-
-  //       edgeNodeIds = []
-  //       consensusNodeIds = []
-  //       correspondingAccNodes = []
-
-  //       if (queueEntry.ourExGroupIndex === -1) {
-  //         throw new Error(
-  //           'tellCorrespondingNodesFinalData: should never get here.  our sending node must be in the execution group'
-  //         )
-  //       }
-
-  //       const ourLocalExecutionSetIndex = queueEntry.ourExGroupIndex
-  //       const ourSendingGroupSize = queueEntry.executionGroupMap.size
-
-  //       const consensusListSize = accountHomeNode.consensusNodeForOurNodeFull.length
-  //       const edgeListSize = accountHomeNode.edgeNodes.length
-  //       const pachedListSize = accountHomeNode.patchedOnNodes.length
-
-  //       // must add one to each lookup index!
-  //       const indicies = ShardFunctions.debugFastStableCorrespondingIndicies(
-  //         ourSendingGroupSize,
-  //         consensusListSize,
-  //         ourLocalExecutionSetIndex + 1
-  //       )
-  //       const edgeIndicies = ShardFunctions.debugFastStableCorrespondingIndicies(
-  //         ourSendingGroupSize,
-  //         edgeListSize,
-  //         ourLocalExecutionSetIndex + 1
-  //       )
-
-  //       let patchIndicies = []
-  //       if (accountHomeNode.patchedOnNodes.length > 0) {
-  //         patchIndicies = ShardFunctions.debugFastStableCorrespondingIndicies(
-  //           ourSendingGroupSize,
-  //           pachedListSize,
-  //           ourLocalExecutionSetIndex + 1
-  //         )
-  //       }
-
-  //       // for each remote node lets save it's id
-  //       for (const index of indicies) {
-  //         const node = accountHomeNode.consensusNodeForOurNodeFull[index - 1] // fastStableCorrespondingIndicies is one based so adjust for 0 based array
-  //         if (node != null && node.id !== ourNodeData.node.id) {
-  //           nodesToSendTo[node.id] = node
-  //           consensusNodeIds.push(node.id)
-  //         }
-  //       }
-  //       for (const index of edgeIndicies) {
-  //         const node = accountHomeNode.edgeNodes[index - 1] // fastStableCorrespondingIndicies is one based so adjust for 0 based array
-  //         if (node != null && node.id !== ourNodeData.node.id) {
-  //           nodesToSendTo[node.id] = node
-  //           edgeNodeIds.push(node.id)
-  //         }
-  //       }
-
-  //       for (const index of patchIndicies) {
-  //         const node = accountHomeNode.edgeNodes[index - 1] // fastStableCorrespondingIndicies is one based so adjust for 0 based array
-  //         if (node != null && node.id !== ourNodeData.node.id) {
-  //           nodesToSendTo[node.id] = node
-  //           //edgeNodeIds.push(node.id)
-  //         }
-  //       }
-
-  //       for (const [accountID, node] of Object.entries(nodesToSendTo)) {
-  //         const keyPair = accountID + key
-  //         if (node != null && doOnceNodeAccPair.has(keyPair) === false) {
-  //           doOnceNodeAccPair.add(keyPair)
-  //           correspondingAccNodes.push(node)
-  //         }
-  //       }
-
-  //       //how can we be making so many calls??
-  //       /* prettier-ignore */ if (logFlags.verbose) if (logFlags.playback) this.logger.playbackLogNote('tellCorrespondingNodesFinalData', queueEntry.logID, `tellCorrespondingNodesFinalData nodesToSendTo:${Object.keys(nodesToSendTo).length} doOnceNodeAccPair:${doOnceNodeAccPair.size} indicies:${Utils.safeStringify(indicies)} edgeIndicies:${Utils.safeStringify(edgeIndicies)} patchIndicies:${Utils.safeStringify(patchIndicies)}  doOnceNodeAccPair: ${Utils.safeStringify([...doOnceNodeAccPair.keys()])} ourLocalExecutionSetIndex:${ourLocalExecutionSetIndex} ourSendingGroupSize:${ourSendingGroupSize} consensusListSize:${consensusListSize} edgeListSize:${edgeListSize} pachedListSize:${pachedListSize}`)
-
-  //       const dataToSend: Shardus.WrappedResponse[] = []
-  //       // eslint-disable-next-line security/detect-object-injection
-  //       dataToSend.push(datas[key]) // only sending just this one key at a time
-  //       message = { stateList: dataToSend, txid: queueEntry.acceptedTx.txId }
-  //       if (correspondingAccNodes.length > 0) {
-  //         const remoteRelation = ShardFunctions.getNodeRelation(
-  //           accountHomeNode,
-  //           this.stateManager.currentCycleShardData.ourNode.id
-  //         )
-  //         const localRelation = ShardFunctions.getNodeRelation(
-  //           localHomeNode,
-  //           this.stateManager.currentCycleShardData.ourNode.id
-  //         )
-  //         /* prettier-ignore */ if (logFlags.playback) this.logger.playbackLogNote('tellCorrespondingNodesFinalData', queueEntry.logID, `remoteRel: ${remoteRelation} localrel: ${localRelation} qId: ${queueEntry.entryID} AccountBeingShared: ${utils.makeShortHash(key)} EdgeNodes:${utils.stringifyReduce(edgeNodeIds)} ConsesusNodes${utils.stringifyReduce(consensusNodeIds)}`)
-
-  //         // Filter nodes before we send tell()
-  //         const filteredNodes = this.stateManager.filterValidNodesForInternalMessage(
-  //           correspondingAccNodes,
-  //           'tellCorrespondingNodesFinalData',
-  //           true,
-  //           true
-  //         )
-  //         if (filteredNodes.length === 0) {
-  //           /* prettier-ignore */ if (logFlags.error) this.mainLogger.error('tellCorrespondingNodesFinalData: filterValidNodesForInternalMessage no valid nodes left to try')
-  //           //return null
-  //           continue
-  //         }
-  //         const filterdCorrespondingAccNodes = filteredNodes
-  //         const filterNodesIpPort = filterdCorrespondingAccNodes.map(
-  //           (node) => node.externalIp + ':' + node.externalPort
-  //         )
-  //         /* prettier-ignore */ if (logFlags.error) this.mainLogger.debug('tellcorrernodingnodesfinaldata', queueEntry.logID, ` : filterValidNodesForInternalMessage ${filterNodesIpPort} for accounts: ${utils.stringifyReduce(message.stateList)}`)
-  //         // if (this.config.p2p.useBinarySerializedEndpoints && this.config.p2p.broadcastFinalStateBinary) {
-  //           // convert legacy message to binary supported type
-  //           const request = message as BroadcastFinalStateReq
-  //           if (logFlags.seqdiagram) {
-  //             for (const node of filterdCorrespondingAccNodes) {
-  //               /* prettier-ignore */ if (logFlags.seqdiagram) this.seqLogger.info(`0x53455102 ${shardusGetTime()} tx:${message.txid} ${NodeList.activeIdToPartition.get(Self.id)}-->>${NodeList.activeIdToPartition.get(node.id)}: ${'broadcast_finalstate'}`)
-  //             }
-  //           }
-
-  //           this.p2p.tellBinary<BroadcastFinalStateReq>(
-  //             filterdCorrespondingAccNodes,
-  //             InternalRouteEnum.binary_broadcast_finalstate,
-  //             request,
-  //             serializeBroadcastFinalStateReq,
-  //             {
-  //               verification_data: verificationDataCombiner(
-  //                 message.txid,
-  //                 message.stateList.length.toString()
-  //               ),
-  //             }
-  //           )
-  //         // } else {
-  //           // this.p2p.tell(filterdCorrespondingAccNodes, 'broadcast_finalstate', message)
-  //         // }
-  //         totalShares++
-  //       }
-  //     }
-  //   }
-
-  //   nestedCountersInstance.countEvent('tellCorrespondingNodesFinalData', 'totalShares', totalShares)
-  //   /* prettier-ignore */ if (logFlags.verbose) this.mainLogger.debug(`tellCorrespondingNodesFinalData - end: ${queueEntry.logID} totalShares:${totalShares}`)
-  //   profilerInstance.profileSectionEnd('tellCorrespondingNodesFinalData', true)
-  // }
 
   factTellCorrespondingNodesFinalData(queueEntry: QueueEntry): void {
     profilerInstance.profileSectionStart('factTellCorrespondingNodesFinalData', true)
@@ -5108,7 +4834,6 @@ class TransactionQueue {
           }
         }
 
-        //how can we be making so many calls??
         /* prettier-ignore */ if (logFlags.verbose) if (logFlags.playback) {
           this.logger.playbackLogNote('factTellCorrespondingNodesFinalData', queueEntry.logID, `factTellCorrespondingNodesFinalData ourIndex: ${senderIndexInTxGroup} correspondingIndices:${JSON.stringify(correspondingIndices)} correspondingNodes:${JSON.stringify(correspondingNodes.map(node => node.id))} for accounts: ${key}`)
         }
@@ -5127,7 +4852,6 @@ class TransactionQueue {
           )
           if (filteredNodes.length === 0) {
             /* prettier-ignore */ if (logFlags.error) this.mainLogger.error('factTellCorrespondingNodesFinalData: filterValidNodesForInternalMessage no valid nodes left to try')
-            //return null
             continue
           }
           const filterdCorrespondingAccNodes = filteredNodes
@@ -5143,8 +4867,6 @@ class TransactionQueue {
             }
           }
 
-          // if (this.usePOQo) {
-          // && this.config.p2p.useBinarySerializedEndpoints && Context.config.p2p.poqoDataAndReceiptBinary) {
           this.p2p.tellBinary<PoqoDataAndReceiptReq>(
             filterdCorrespondingAccNodes,
             InternalRouteEnum.binary_poqo_data_and_receipt,
@@ -5156,31 +4878,7 @@ class TransactionQueue {
             serializePoqoDataAndReceiptReq,
             {}
           )
-          // } else if (this.usePOQo) {
-          //   this.p2p.tell(
-          //     filterdCorrespondingAccNodes,
-          //     'poqo-data-and-receipt',
-          //     {
-          //       finalState: message,
-          //       receipt: queueEntry.appliedReceipt2
-          //     }
-          //   )
-          // } else //if (this.config.p2p.useBinarySerializedEndpoints && this.config.p2p.broadcastFinalStateBinary) {
-          //   this.p2p.tellBinary<BroadcastFinalStateReq>(
-          //     filterdCorrespondingAccNodes,
-          //     InternalRouteEnum.binary_broadcast_finalstate,
-          //     request,
-          //     serializeBroadcastFinalStateReq,
-          //     {
-          //       verification_data: verificationDataCombiner(
-          //         message.txid,
-          //         message.stateList.length.toString()
-          //       ),
-          //     }
-          //   )
-          // } else {
-          // this.p2p.tell(filterdCorrespondingAccNodes, 'broadcast_finalstate', message)
-          // }
+
           totalShares++
         }
       }
