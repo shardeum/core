@@ -4693,9 +4693,10 @@ class TransactionQueue {
     // check if it is a FACT sender
     const receivingNodeIndex = queueEntry.ourTXGroupIndex // we are the receiver
     const senderNodeIndex = queueEntry.transactionGroup.findIndex((node) => node.id === senderNodeId)
-    let wrappedSenderNodeIndex = null
+    // CHANGE: Determine the correct sender index upfront
+    let effectiveSenderIndex = senderNodeIndex
     if (queueEntry.isSenderWrappedTxGroup[senderNodeId] != null) {
-      wrappedSenderNodeIndex = queueEntry.isSenderWrappedTxGroup[senderNodeId]
+      effectiveSenderIndex = queueEntry.isSenderWrappedTxGroup[senderNodeId]
     }
     const receiverGroupSize = queueEntry.executionNodeIdSorted.length
     const senderGroupSize = receiverGroupSize
@@ -4707,7 +4708,7 @@ class TransactionQueue {
 
     let isValidFactSender = verifyCorrespondingSender(
       receivingNodeIndex,
-      senderNodeIndex,
+      effectiveSenderIndex,
       queueEntry.correspondingGlobalOffset,
       receiverGroupSize,
       senderGroupSize,
@@ -4718,22 +4719,6 @@ class TransactionQueue {
       `tellSender ${queueEntry.logID}`
     )
 
-    if (isValidFactSender === false && wrappedSenderNodeIndex != null && wrappedSenderNodeIndex >= 0) {
-      // try again with wrapped sender index
-      let isValidFactSender = verifyCorrespondingSender(
-        receivingNodeIndex,
-        wrappedSenderNodeIndex,
-        queueEntry.correspondingGlobalOffset,
-        receiverGroupSize,
-        senderGroupSize,
-        targetIndices.startIndex,
-        targetIndices.endIndex,
-        queueEntry.transactionGroup.length,
-        false,
-        `tellSenderWrapped ${queueEntry.logID}`
-      )
-      console.log(`factValidateCorrespondingTellSender: result: ${isValidFactSender}`)
-    }
     // it maybe a FACT sender but sender does not cover the account
     if (senderHasAddress === false) {
       this.mainLogger.error(
@@ -4749,7 +4734,7 @@ class TransactionQueue {
     // it is neither a FACT corresponding node nor an exe neighbour node
     if (isValidFactSender === false) {
       this.mainLogger.error(
-        `factValidateCorrespondingTellSender: logId: ${queueEntry.logID} sender is neither a valid sender nor a neighbour node isValidSender:  ${wrappedSenderNodeIndex}`
+        `factValidateCorrespondingTellSender: logId: ${queueEntry.logID} sender is neither a valid sender nor a neighbour node isValidSender:  ${effectiveSenderIndex}`
       )
       nestedCountersInstance.countEvent(
         'stateManager',
