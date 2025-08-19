@@ -6,12 +6,7 @@ const LOGS_CONFIG: StrictLogsConfiguration = {
   files: { main: '', fatal: '', net: '', app: '', seq: '' },
   options: {
     appenders: {
-      out: {
-        type: 'console',
-        layout: { type: 'pattern', pattern: '%d{ISO8601} %p %c - %m', tokens: {} },
-        maxLogSize: 10000000,
-        backups: 10,
-      },
+      out: { type: 'console', layout: { type:'basic' }, maxLogSize: 10000000, backups: 10 },
       seq: { type: 'file', maxLogSize: 1000000000, backups: 10 },
       main: { type: 'file', maxLogSize: 10000000, backups: 10 },
       app: { type: 'file', maxLogSize: 10000000, backups: 10 },
