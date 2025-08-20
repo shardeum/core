@@ -952,7 +952,7 @@ class StateManager {
       this.accountSync.syncStatement.internalFlag = true
     }
     // Add transition delay to prevent race condition during sync-to-processing transition
-    const transitionDelay = this.config.stateManager.syncToProcessingDelay || 500
+
     setTimeout(() => {
       this.tryStartTransactionProcessingQueue()
     }, transitionDelay)
