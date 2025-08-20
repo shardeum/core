@@ -28,7 +28,7 @@ export function getCorrespondingNodes(
     endTargetIndex = endTargetIndex + transactionGroupSize
   }
   //wrap our index to the send group size
-  ourIndex = ourIndex % sendGroupSize
+  ourIndex = ourIndex % receiverGroupSize
 
   //find our initial staring index into the receiver group (wrappedIndex)
   for (let i = startTargetIndex; i < endTargetIndex; i++) {
@@ -125,8 +125,8 @@ export function verifyCorrespondingSender(
   }
 
   // use unwrappedReceivingNodeIndex to calculate the target index
-  const targetIndex = ((unwrappedReceivingNodeIndex + globalOffset) % receiverGroupSize) % sendGroupSize
-  const targetIndex2 = unwrappedSendingNodeIndex % sendGroupSize
+  const targetIndex = (unwrappedReceivingNodeIndex + globalOffset) % receiverGroupSize
+  const targetIndex2 = unwrappedSendingNodeIndex % receiverGroupSize
   if (targetIndex === targetIndex2) {
     if (logFlags.verbose)
       console.log(
