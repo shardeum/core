@@ -938,6 +938,7 @@ class StateManager {
     this.accountSync.syncStatement.syncSeconds =
       (this.accountSync.syncStatement.syncEndTime - this.accountSync.syncStatement.syncStartTime) / 1000
 
+    const transitionDelay = this.config.stateManager.syncToProcessingDelay || 500
     /* prettier-ignore */ nestedCountersInstance.countEvent('sync', `sync comlete numCycles: ${this.accountSync.syncStatement.numCycles} start:${this.accountSync.syncStatement.cycleStarted} end:${this.accountSync.syncStatement.cycleEnded} numAccounts: ${this.accountSync.syncStatement.numAccounts}`)
     if (this.accountSync.syncStatement.internalFlag === true) {
       /* prettier-ignore */ if (logFlags.playback) this.logger.playbackLogNote('shrd_sync_syncStatement', ` `, `${utils.stringifyReduce(this.accountSync.syncStatement)}`)
@@ -950,7 +951,7 @@ class StateManager {
       this.accountSync.syncStatement.internalFlag = true
     }
     // Add transition delay to prevent race condition during sync-to-processing transition
-    const transitionDelay = this.config.stateManager.syncToProcessingDelay || 500
+
     setTimeout(() => {
       this.tryStartTransactionProcessingQueue()
     }, transitionDelay)
