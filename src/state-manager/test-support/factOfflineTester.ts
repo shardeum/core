@@ -15,6 +15,7 @@ import {
 import { factTellCorrespondingNodesFinalDataWrapper } from './factWrapper'
 import { loadTestConfig, applyConfigToMocks, TestConfig } from './configLoader'
 import { getLogger } from './testLogger'
+import ShardFunctions from '../shardFunctions'
 import fs from 'fs'
 import path from 'path'
 
@@ -353,12 +354,19 @@ export class FACTOfflineTester {
         id: node.id
       },
       
-      // Add helper method for storage group
+      // Add helper method for storage group - using production logic
       getStorageGroupForAccount: (accountId: string) => {
-        // Simplified: return all nodes in transaction group for now
-        return cycleShardData.nodes.filter(n => 
-          Math.random() > 0.5 // Randomly assign for testing
+        const { homePartition } = ShardFunctions.addressToPartition(
+          cycleShardData.shardGlobals,
+          accountId
         )
+        const homeShardData = cycleShardData.parititionShardDataMap.get(homePartition)
+        if (!homeShardData || !homeShardData.homeNodes || !homeShardData.homeNodes[0]) {
+          console.warn(`No home shard data for account ${accountId.substring(0, 8)}, partition ${homePartition}`)
+          return []
+        }
+        const storageGroup = homeShardData.homeNodes[0].nodeThatStoreOurParitionFull.slice()
+        return storageGroup
       }
     }
     
