@@ -5043,7 +5043,7 @@ class TransactionQueue {
   //   profilerInstance.profileSectionEnd('tellCorrespondingNodesFinalData', true)
   // }
 
-  factTellCorrespondingNodesFinalData(queueEntry: QueueEntry): void {
+  factTellCorrespondingNodesFinalData(queueEntry: QueueEntry, p2pOverride?: { tellBinary: Function }): void {
     profilerInstance.profileSectionStart('factTellCorrespondingNodesFinalData', true)
     /* prettier-ignore */ if (logFlags.playback) this.logger.playbackLogNote('factTellCorrespondingNodesFinalData', queueEntry.logID, `factTellCorrespondingNodesFinalData - start: ${queueEntry.logID}`)
 
@@ -5187,7 +5187,8 @@ class TransactionQueue {
 
           // if (this.usePOQo) {
           // && this.config.p2p.useBinarySerializedEndpoints && Context.config.p2p.poqoDataAndReceiptBinary) {
-          this.p2p.tellBinary<PoqoDataAndReceiptReq>(
+          const p2p = p2pOverride || this.p2p
+          ;(p2p as any).tellBinary(
             filterdCorrespondingAccNodes,
             InternalRouteEnum.binary_poqo_data_and_receipt,
             {

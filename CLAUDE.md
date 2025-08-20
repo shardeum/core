@@ -22,7 +22,7 @@ This is Shardus Core (`@shardeum-foundation/core`), the foundational technology 
 - `npm test test` - Run unit tests with Jest
 
 ### Requirements
-- Node.js version: 20.19.3 (exact version required)
+- Node.js version: 18.19.1 (exact version required)
 - Rust toolchain must be installed (cargo must be in PATH)
 
 ## Architecture Overview
