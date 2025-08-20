@@ -947,17 +947,15 @@ class StateManager {
       /* prettier-ignore */ this.statemanager_fatal('shrd_sync_syncStatement-startCatchUpQueue', `${utils.stringifyReduce(this.accountSync.syncStatement)}`)
       /* prettier-ignore */ this.mainLogger.debug(`DATASYNC: syncStatement-startCatchUpQueue c:${this.currentCycleShardData.cycleNumber} ${utils.stringifyReduce(this.accountSync.syncStatement)}`)
 
-      // Add transition delay to prevent race condition during sync-to-processing transition
-      const transitionDelay = this.config.stateManager.syncToProcessingDelay || 500
       /* prettier-ignore */ this.mainLogger.debug(`DATASYNC: Delaying transaction queue start by ${transitionDelay}ms after sync completion`)
-      setTimeout(() => {
-        this.tryStartTransactionProcessingQueue()
-      }, transitionDelay)
     } else {
       this.accountSync.syncStatement.internalFlag = true
-      this.tryStartTransactionProcessingQueue()
     }
     // Add transition delay to prevent race condition during sync-to-processing transition
+    const transitionDelay = this.config.stateManager.syncToProcessingDelay || 500
+    setTimeout(() => {
+      this.tryStartTransactionProcessingQueue()
+    }, transitionDelay)
 
     if (logFlags.playback) this.logger.playbackLogNote('shrd_sync_mainphaseComplete', ` `, `  `)
   }
