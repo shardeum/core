@@ -78,11 +78,10 @@ export function verifyCorrespondingSender(
       logicalPosition = receivingNodeIndex - receiverStartIndex
     } else {
       // Receiver not in group
-      if (logFlags.verbose) {
-        console.log(
-          `verifyCorrespondingSender ${note} receiver not in group receivingNode:${receivingNodeIndex} receiverStart:${receiverStartIndex} receiverEnd:${receiverEndIndex}`
-        )
-      }
+      console.log(
+        `verifyCorrespondingSender ${note} receiver not in group receivingNode:${receivingNodeIndex} receiverStart:${receiverStartIndex} receiverEnd:${receiverEndIndex}`
+      )
+    
       return false
     }
   } else {
@@ -93,11 +92,10 @@ export function verifyCorrespondingSender(
       logicalPosition = (transactionGroupSize - receiverStartIndex) + receivingNodeIndex
     } else {
       // Receiver not in group
-      if (logFlags.verbose) {
-        console.log(
-          `verifyCorrespondingSender ${note} receiver not in group (wrapped case) receivingNode:${receivingNodeIndex} receiverStart:${receiverStartIndex} receiverEnd:${receiverEndIndex}`
-        )
-      }
+      console.log(
+        `verifyCorrespondingSender ${note} receiver not in group (wrapped case) receivingNode:${receivingNodeIndex} receiverStart:${receiverStartIndex} receiverEnd:${receiverEndIndex}`
+      )
+    
       return false
     }
   }
@@ -113,12 +111,13 @@ export function verifyCorrespondingSender(
       console.log(
         `verifyCorrespondingSender ${note} verification PASSED expectedSender:${expectedSenderIndex} === actualSender:${actualSenderIndex} sender:${sendingNodeIndex}->receiver:${receivingNodeIndex}`
       )
-    } else {
+    }
+  } else {
       console.log(
         `verifyCorrespondingSender ${note} verification FAILED expectedSender:${expectedSenderIndex} !== actualSender:${actualSenderIndex} sender:${sendingNodeIndex} receiver:${receivingNodeIndex}`
       )
     }
-  }
+  
   
   return result
 }
