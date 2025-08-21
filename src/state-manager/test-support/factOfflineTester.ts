@@ -19,6 +19,15 @@ import ShardFunctions from '../shardFunctions'
 import fs from 'fs'
 import path from 'path'
 
+export interface MessageBatchResult {
+  batchId: string
+  accountId: string
+  totalRecipients: number
+  acceptedByNodes: string[]
+  rejectedByNodes: string[]
+  acceptanceRate: number
+}
+
 export interface TestResults {
   // Coverage metrics
   nodesReached: number
@@ -28,14 +37,26 @@ export interface TestResults {
   accountsCovered: Map<string, string[]>  // accountId -> [nodeIds that received]
   accountsMissing: Map<string, string[]>   // accountId -> [nodeIds that should have received]
   
-  // Validation results
-  messagesAccepted: number
-  messagesRejected: number
+  // Message batch metrics (batch = one tellBinary call)
+  messagesBatchesSent: number              // Number of tellBinary() calls
+  messageBatchesAccepted: number           // Batches with ≥1 acceptance
+  messageBatchesFullyAccepted: number      // Batches accepted by ALL recipients
+  
+  // Message reception metrics (individual node receptions)
+  totalMessageReceptions: number           // Total individual receptions
+  messageReceptionsAccepted: number        // Individual receptions accepted
+  messageReceptionsRejected: number        // Individual receptions rejected
   rejectionReasons: Map<string, number>    // reason -> count
   
-  // Detailed message tracking
-  messagesSent: number
-  messagesByNode: Map<string, number>       // nodeId -> message count
+  // Detailed tracking
+  messagesByNode: Map<string, number>      // nodeId -> message count
+  batchResults: MessageBatchResult[]       // Per-batch detailed results
+  averageAcceptanceRate: number            // Average acceptance rate across batches
+  
+  // Legacy fields (for backward compatibility)
+  messagesAccepted: number                 // DEPRECATED: use messageReceptionsAccepted
+  messagesRejected: number                 // DEPRECATED: use messageReceptionsRejected
+  messagesSent: number                     // DEPRECATED: use messagesBatchesSent
 }
 
 export class FACTOfflineTester {
@@ -58,11 +79,27 @@ export class FACTOfflineTester {
       totalInTransactionGroup: 0,
       accountsCovered: new Map(),
       accountsMissing: new Map(),
+      
+      // New batch metrics
+      messagesBatchesSent: 0,
+      messageBatchesAccepted: 0,
+      messageBatchesFullyAccepted: 0,
+      
+      // New reception metrics
+      totalMessageReceptions: 0,
+      messageReceptionsAccepted: 0,
+      messageReceptionsRejected: 0,
+      rejectionReasons: new Map(),
+      
+      // Detailed tracking
+      messagesByNode: new Map(),
+      batchResults: [],
+      averageAcceptanceRate: 0,
+      
+      // Legacy fields (for backward compatibility)
       messagesAccepted: 0,
       messagesRejected: 0,
-      rejectionReasons: new Map(),
-      messagesSent: 0,
-      messagesByNode: new Map()
+      messagesSent: 0
     }
   }
   
@@ -173,7 +210,8 @@ export class FACTOfflineTester {
     }
     
     this.results.messagesSent = this.messageCollector.sentMessages.length
-    logger.detail(`\nTotal messages sent: ${this.results.messagesSent}`)
+    this.results.messagesBatchesSent = this.messageCollector.sentMessages.length
+    logger.detail(`\nMessage batches sent: ${this.results.messagesBatchesSent}`)
   }
   
   /**
@@ -185,26 +223,36 @@ export class FACTOfflineTester {
     transactionGroup: any[]
   ) {
     const logger = getLogger()
-    // Get all messages sent via binary_poqo_data_and_receipt route
     const poqoMessages = this.messageCollector.getMessagesByRoute('binary_poqo_data_and_receipt')
-    logger.detail(`Found ${poqoMessages.length} POQO messages to process`)
+    logger.detail(`Found ${poqoMessages.length} POQO message batches to process`)
     
     const nodesReached = new Set<string>()
+    const batchResults: MessageBatchResult[] = []
     
-    // Process each message
-    for (const message of poqoMessages) {
+    // Process each message batch
+    for (let i = 0; i < poqoMessages.length; i++) {
+      const message = poqoMessages[i]
+      const batchId = `batch_${i}`
+      const accountId = message.data?.finalState?.stateList?.[0]?.accountId || 'unknown'
+      
+      const acceptedByNodes: string[] = []
+      const rejectedByNodes: string[] = []
+      
+      // Process each recipient in the batch
       for (const receiverNode of message.nodes) {
         nodesReached.add(receiverNode.id)
         
-        // Track messages per node
+        // Track receptions per node
         const currentCount = this.results.messagesByNode.get(receiverNode.id) || 0
         this.results.messagesByNode.set(receiverNode.id, currentCount + 1)
         
-        // Simulate validation (simplified for now)
+        // Validate message
         const isValid = this.validateMessage(message, receiverNode, transactionGroup, scenario)
         
         if (isValid) {
-          this.results.messagesAccepted++
+          acceptedByNodes.push(receiverNode.id)
+          this.results.messageReceptionsAccepted++
+          this.results.messagesAccepted++ // Legacy field
           
           // Track account coverage
           if (message.data?.finalState?.stateList) {
@@ -217,20 +265,60 @@ export class FACTOfflineTester {
             }
           }
         } else {
-          this.results.messagesRejected++
-          const reason = 'validation_failed' // Simplified for now
+          rejectedByNodes.push(receiverNode.id)
+          this.results.messageReceptionsRejected++
+          this.results.messagesRejected++ // Legacy field
+          const reason = 'validation_failed'
           this.results.rejectionReasons.set(
             reason,
             (this.results.rejectionReasons.get(reason) || 0) + 1
           )
         }
       }
+      
+      // Calculate batch-level metrics
+      const totalRecipients = message.nodes.length
+      const acceptanceRate = acceptedByNodes.length / totalRecipients
+      
+      batchResults.push({
+        batchId,
+        accountId,
+        totalRecipients,
+        acceptedByNodes,
+        rejectedByNodes,
+        acceptanceRate
+      })
+      
+      // Track batch-level acceptance
+      if (acceptedByNodes.length > 0) {
+        this.results.messageBatchesAccepted++
+      }
+      if (acceptedByNodes.length === totalRecipients) {
+        this.results.messageBatchesFullyAccepted++
+      }
+      
+      logger.detail(`  Batch ${i + 1}: Account ${accountId.substring(0, 8)}... → ${acceptedByNodes.length}/${totalRecipients} nodes (${(acceptanceRate * 100).toFixed(1)}%)`)
     }
     
+    // Calculate summary metrics
+    this.results.batchResults = batchResults
+    this.results.averageAcceptanceRate = batchResults.length > 0 
+      ? batchResults.reduce((sum, b) => sum + b.acceptanceRate, 0) / batchResults.length 
+      : 0
+    this.results.totalMessageReceptions = this.results.messageReceptionsAccepted + this.results.messageReceptionsRejected
     this.results.nodesReached = nodesReached.size
-    logger.detail(`Nodes reached: ${this.results.nodesReached}`)
-    logger.detail(`Messages accepted: ${this.results.messagesAccepted}`)
-    logger.detail(`Messages rejected: ${this.results.messagesRejected}`)
+    
+    // Log improved summary
+    logger.detail(`\nBatch Summary:`)
+    logger.detail(`  - Message batches processed: ${poqoMessages.length}`)
+    logger.detail(`  - Batches with full acceptance: ${this.results.messageBatchesFullyAccepted}`)
+    logger.detail(`  - Batches with partial acceptance: ${this.results.messageBatchesAccepted - this.results.messageBatchesFullyAccepted}`)
+    logger.detail(`  - Average batch acceptance rate: ${(this.results.averageAcceptanceRate * 100).toFixed(1)}%`)
+    logger.detail(`\nReception Summary:`)
+    logger.detail(`  - Total message receptions: ${this.results.totalMessageReceptions}`)
+    logger.detail(`  - Receptions accepted: ${this.results.messageReceptionsAccepted}`)
+    logger.detail(`  - Receptions rejected: ${this.results.messageReceptionsRejected}`)
+    logger.detail(`  - Nodes reached: ${this.results.nodesReached}`)
   }
   
   /**
@@ -459,12 +547,28 @@ export class FACTOfflineTester {
     logger.summary('FACT Simulation Results')
     logger.summary('========================================\n')
     
-    logger.summary('Coverage Metrics:')
-    logger.summary(`  - Nodes reached: ${this.results.nodesReached}/${this.results.totalInTransactionGroup} (${(this.results.nodesReached / this.results.totalInTransactionGroup * 100).toFixed(1)}%)`)
-    logger.summary(`  - Messages sent: ${this.results.messagesSent}`)
-    logger.summary(`  - Messages accepted: ${this.results.messagesAccepted}`)
-    logger.summary(`  - Messages rejected: ${this.results.messagesRejected}`)
+    // Message batch metrics
+    logger.summary('Message Batch Metrics:')
+    logger.summary(`  - Message batches sent: ${this.results.messagesBatchesSent}`)
+    logger.summary(`  - Batches with full acceptance: ${this.results.messageBatchesFullyAccepted}`)
+    logger.summary(`  - Batches with partial acceptance: ${this.results.messageBatchesAccepted - this.results.messageBatchesFullyAccepted}`)
+    logger.summary(`  - Batches with no acceptance: ${this.results.messagesBatchesSent - this.results.messageBatchesAccepted}`)
+    logger.summary(`  - Average batch acceptance rate: ${(this.results.averageAcceptanceRate * 100).toFixed(1)}%`)
     
+    // Message reception metrics  
+    logger.summary('\nMessage Reception Metrics:')
+    logger.summary(`  - Total message receptions: ${this.results.totalMessageReceptions}`)
+    logger.summary(`  - Receptions accepted: ${this.results.messageReceptionsAccepted}`)
+    logger.summary(`  - Receptions rejected: ${this.results.messageReceptionsRejected}`)
+    if (this.results.totalMessageReceptions > 0) {
+      logger.summary(`  - Reception success rate: ${(this.results.messageReceptionsAccepted / this.results.totalMessageReceptions * 100).toFixed(1)}%`)
+    }
+    
+    // Node coverage
+    logger.summary('\nNode Coverage:')
+    logger.summary(`  - Nodes reached: ${this.results.nodesReached}/${this.results.totalInTransactionGroup} (${(this.results.nodesReached / this.results.totalInTransactionGroup * 100).toFixed(1)}%)`)
+    
+    // Account coverage
     logger.summary('\nAccount Coverage:')
     logger.summary(`  - Accounts tracked: ${this.results.accountsCovered.size}`)
     logger.summary(`  - Accounts with missing coverage: ${this.results.accountsMissing.size}`)
@@ -476,12 +580,30 @@ export class FACTOfflineTester {
       }
     }
     
+    // Per-batch breakdown (if there are failed batches)
+    const failedBatches = this.results.batchResults.filter(b => b.acceptanceRate < 1)
+    if (failedBatches.length > 0) {
+      logger.summary('\nFailed/Partial Batch Details:')
+      for (const batch of failedBatches.slice(0, 5)) { // Show first 5 failed batches
+        logger.summary(`  ${batch.batchId}: Account ${batch.accountId.substring(0, 8)}... → ${batch.acceptedByNodes.length}/${batch.totalRecipients} (${(batch.acceptanceRate * 100).toFixed(1)}%)`)
+      }
+      if (failedBatches.length > 5) {
+        logger.summary(`  ... and ${failedBatches.length - 5} more failed batches`)
+      }
+    }
+    
     if (this.results.rejectionReasons.size > 0) {
       logger.summary('\nRejection Reasons:')
       for (const [reason, count] of this.results.rejectionReasons) {
         logger.summary(`  - ${reason}: ${count}`)
       }
     }
+    
+    // Legacy compatibility note
+    logger.summary('\nLegacy Fields (for backward compatibility):')
+    logger.summary(`  - Messages sent (legacy): ${this.results.messagesSent}`)
+    logger.summary(`  - Messages accepted (legacy): ${this.results.messagesAccepted}`)
+    logger.summary(`  - Messages rejected (legacy): ${this.results.messagesRejected}`)
     
     // Print message collector summary
     this.messageCollector.printSummary()
