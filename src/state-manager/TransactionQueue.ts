@@ -4454,7 +4454,6 @@ class TransactionQueue {
         this.mainLogger.debug(`factTellCorrespondingNodes: target group indices`, targetIndices)
       }
 
-      
       let correspondingIndices = getCorrespondingNodes(
         ourIndexInTxGroup,
         targetIndices.startIndex,
@@ -4503,7 +4502,7 @@ class TransactionQueue {
           )
         queueEntry.correspondingGlobalOffset += 1
         nestedCountersInstance.countEvent('stateManager', 'factTellCorrespondingNodes: avoiding our index in tx group')
-        
+
         correspondingIndices = getCorrespondingNodes(
           ourIndexInTxGroup,
           targetIndices.startIndex,
