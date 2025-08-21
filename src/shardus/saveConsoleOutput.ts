@@ -9,24 +9,25 @@ export function startSaving(baseDir: string): void {
   const stream = new RollingFileStream(join(baseDir, outFileName), 10000000, 10)
 
   // Create a transform stream factory that adds timestamps
-  const createTimestampTransform = () => new Transform({
-    transform(chunk, encoding, callback) {
-      try {
-        const lines = chunk.toString().split('\n')
-        const timestampedLines = lines.map((line) => {
-          if (line.trim()) {
-            const timestamp = new Date().toISOString()
-            return `${timestamp} - ${line}`
-          }
-          return line
-        })
-        callback(null, timestampedLines.join('\n'))
-      } catch (err) {
-        // Swallow any error silently and pass through the original chunk
-        callback(null, chunk)
-      }
-    }
-  })
+  const createTimestampTransform = () =>
+    new Transform({
+      transform(chunk, encoding, callback) {
+        try {
+          const lines = chunk.toString().split('\n')
+          const timestampedLines = lines.map((line) => {
+            if (line.trim()) {
+              const timestamp = new Date().toISOString()
+              return `${timestamp} - ${line}`
+            }
+            return line
+          })
+          callback(null, timestampedLines.join('\n'))
+        } catch (err) {
+          // Swallow any error silently and pass through the original chunk
+          callback(null, chunk)
+        }
+      },
+    })
 
   // Create passthroughs that write to stdout, stderr, and the output file
   const outPass = new PassThrough()
