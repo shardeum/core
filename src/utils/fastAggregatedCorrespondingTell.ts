@@ -1,4 +1,5 @@
 //get the target nodes for a given corresponding sender
+import { Utils } from '@shardeum-foundation/lib-types'
 import { logFlags } from '../logger'
 
 //this only has to be computed once time no matter how many facts are being shared
@@ -12,11 +13,11 @@ export function getCorrespondingNodes(
   transactionGroupSize: number,
   note = ''
 ): number[] {
-  // if (logFlags.verbose) {
+  if (logFlags.verbose) {
     console.log(
-      `getCorrespondingNodes ${note} ${ourIndex} ${startTargetIndex} ${endTargetIndex} ${globalOffset} ${receiverGroupSize} ${sendGroupSize} ${transactionGroupSize}`
+      `getCorrespondingNodes ${note} ourIndex:${ourIndex} startTarget:${startTargetIndex} endTarget:${endTargetIndex} globalOffset:${globalOffset} receiverGroupSize:${receiverGroupSize} sendGroupSize:${sendGroupSize} transactionGroupSize:${transactionGroupSize}`
     )
-  // }
+  }
   
   const destinationNodes: number[] = []
   const normalizedSenderIndex = ourIndex % sendGroupSize
@@ -44,9 +45,9 @@ export function getCorrespondingNodes(
     }
   }
   
-  // if (logFlags.verbose) {
-    console.log(`note: ${note} destinationNodes ${destinationNodes}`)
-  // }
+  if (logFlags.verbose) {
+    console.log(`getCorrespondingNodes ${note} destinationNodes:${Utils.safeStringify(destinationNodes)}`)
+  }
   return destinationNodes
 }
 
@@ -62,11 +63,11 @@ export function verifyCorrespondingSender(
   shouldUnwrapSender = false,
   note = ''
 ): boolean {
-  // if (logFlags.verbose) {
+  if (logFlags.verbose) {
     console.log(
-      `verifyCorrespondingSender ${note} ${receivingNodeIndex} ${sendingNodeIndex} ${globalOffset} ${receiverGroupSize} ${sendGroupSize} ${receiverStartIndex} ${receiverEndIndex} ${transactionGroupSize}`
+      `verifyCorrespondingSender ${note} receivingNode:${receivingNodeIndex} sendingNode:${sendingNodeIndex} globalOffset:${globalOffset} receiverGroupSize:${receiverGroupSize} sendGroupSize:${sendGroupSize} receiverStart:${receiverStartIndex} receiverEnd:${receiverEndIndex} transactionGroupSize:${transactionGroupSize}`
     )
-  // }
+  }
   
   // Calculate logical position of receiver in its group
   let logicalPosition: number
@@ -77,9 +78,11 @@ export function verifyCorrespondingSender(
       logicalPosition = receivingNodeIndex - receiverStartIndex
     } else {
       // Receiver not in group
-      console.log(
-        `note: ${note} receiver not in group ${receivingNodeIndex} ${receiverStartIndex} ${receiverEndIndex}`
-      )
+      if (logFlags.verbose) {
+        console.log(
+          `verifyCorrespondingSender ${note} receiver not in group receivingNode:${receivingNodeIndex} receiverStart:${receiverStartIndex} receiverEnd:${receiverEndIndex}`
+        )
+      }
       return false
     }
   } else {
@@ -90,9 +93,11 @@ export function verifyCorrespondingSender(
       logicalPosition = (transactionGroupSize - receiverStartIndex) + receivingNodeIndex
     } else {
       // Receiver not in group
-      console.log(
-        `note: ${note} receiver not in group ${receivingNodeIndex} ${receiverStartIndex} ${receiverEndIndex}`
-      )
+      if (logFlags.verbose) {
+        console.log(
+          `verifyCorrespondingSender ${note} receiver not in group (wrapped case) receivingNode:${receivingNodeIndex} receiverStart:${receiverStartIndex} receiverEnd:${receiverEndIndex}`
+        )
+      }
       return false
     }
   }
@@ -103,17 +108,17 @@ export function verifyCorrespondingSender(
   
   const result = expectedSenderIndex === actualSenderIndex
   
-  // if (logFlags.verbose) {
+  if (logFlags.verbose) {
     if (result) {
       console.log(
-        `note: ${note} verification passed ${expectedSenderIndex} === ${actualSenderIndex}  ${sendingNodeIndex}->${receivingNodeIndex}`
+        `verifyCorrespondingSender ${note} verification PASSED expectedSender:${expectedSenderIndex} === actualSender:${actualSenderIndex} sender:${sendingNodeIndex}->receiver:${receivingNodeIndex}`
       )
     } else {
       console.log(
-        `note: ${note} X verification failed ${expectedSenderIndex} !== ${actualSenderIndex} sender: ${sendingNodeIndex} receiver: ${receivingNodeIndex}`
+        `verifyCorrespondingSender ${note} verification FAILED expectedSender:${expectedSenderIndex} !== actualSender:${actualSenderIndex} sender:${sendingNodeIndex} receiver:${receivingNodeIndex}`
       )
     }
-  // }
+  }
   
   return result
 }
