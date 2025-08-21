@@ -441,7 +441,7 @@ class CachedAppDataManager {
       targetGroupSize,
       senderGroupSize,
       allNodes.length,
-      `factSendCorrespondingCachedAppData`+ txId
+      `factSendCorrespondingCachedAppData `+ txId
     )
 
     const correspondingNodes: P2PTypes.NodeListTypes.Node[] = []

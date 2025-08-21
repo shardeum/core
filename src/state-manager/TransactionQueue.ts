@@ -4472,7 +4472,7 @@ class TransactionQueue {
         targetGroupSize,
         senderGroupSize,
         queueEntry.transactionGroup.length,
-        'factTellCorrespondingNodes' + queueEntry.logID + queueEntry.acceptedTx.txId
+        'factTellCorrespondingNodes ' + queueEntry.logID
       )
       // check if we should avoid our index in the corresponding nodes
       if (Context.config.stateManager.avoidOurIndexInFactTell && correspondingIndices.includes(ourIndexInTxGroup)) {
@@ -4502,7 +4502,7 @@ class TransactionQueue {
           targetGroupSize,
           senderGroupSize,
           queueEntry.transactionGroup.length,
-          `factTellCorrespondingNodes` + queueEntry.logID + queueEntry.acceptedTx.txId
+          `factTellCorrespondingNodes ` + queueEntry.logID
         )
         if (logFlags.debug)
           this.mainLogger.debug(
@@ -5075,7 +5075,7 @@ class TransactionQueue {
       targetGroupSize,
       senderGroupSize,
       queueEntry.transactionGroup.length,
-      `factTellCorrespondingNodesFinalData` + queueEntry.logID + queueEntry.acceptedTx.txId
+      `factTellCorrespondingNodesFinalData ` + queueEntry.logID
     )
 
     for (const key of keysToShare) {
