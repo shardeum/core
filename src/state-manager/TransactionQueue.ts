@@ -4454,18 +4454,9 @@ class TransactionQueue {
         this.mainLogger.debug(`factTellCorrespondingNodes: target group indices`, targetIndices)
       }
 
-      // Use the same logic as receiver validation to determine which index to use
-      let senderIndex = ourIndexInTxGroup // Start with regular index
-
-      // If we have a wrapped entry, use that instead (matching receiver's validation logic)
-      if (unwrappedIndex != null) {
-        senderIndex = unwrappedIndex
-        /* prettier-ignore */ if (logFlags.verbose) this.mainLogger.debug(`factTellCorrespondingNodesData: Using wrapped index ${unwrappedIndex} instead of regular ${ourIndexInTxGroup}`)
-      }
-
-      // Calculate corresponding nodes using the correct index that receivers will validate
+      
       let correspondingIndices = getCorrespondingNodes(
-        senderIndex,
+        ourIndexInTxGroup,
         targetIndices.startIndex,
         targetIndices.endIndex,
         queueEntry.correspondingGlobalOffset,
@@ -4473,6 +4464,35 @@ class TransactionQueue {
         senderGroupSize,
         queueEntry.transactionGroup.length
       )
+      let oldCorrespondingIndices: number[] = undefined
+      if (this.config.stateManager.correspondingTellUseUnwrapped) {
+        // can just find if any home nodes for the accounts we cover would say that our node is wrapped
+        // precalc shouldUnwrapSender   check if any account we own shows that we are on the left side of a wrapped range
+        // can use partitions to check this
+        if (unwrappedIndex != null) {
+          const extraCorrespondingIndices = getCorrespondingNodes(
+            unwrappedIndex,
+            targetIndices.startIndex,
+            targetIndices.endIndex,
+            queueEntry.correspondingGlobalOffset,
+            targetGroupSize,
+            senderGroupSize,
+            queueEntry.transactionGroup.length,
+            queueEntry.logID
+          )
+          if (Context.config.stateManager.concatCorrespondingTellUseUnwrapped) {
+            //add them
+            correspondingIndices = correspondingIndices.concat(extraCorrespondingIndices)
+          } else {
+            // replace them
+            oldCorrespondingIndices = correspondingIndices
+            correspondingIndices = extraCorrespondingIndices
+          }
+          //replace them
+          // possible optimization where we pick one or the other path based on our account index
+          //correspondingIndices = extraCorrespondingIndices
+        }
+      }
       // check if we should avoid our index in the corresponding nodes
       if (Context.config.stateManager.avoidOurIndexInFactTell && correspondingIndices.includes(ourIndexInTxGroup)) {
         if (logFlags.debug)
@@ -4483,18 +4503,9 @@ class TransactionQueue {
           )
         queueEntry.correspondingGlobalOffset += 1
         nestedCountersInstance.countEvent('stateManager', 'factTellCorrespondingNodes: avoiding our index in tx group')
-        // Use the same logic as receiver validation to determine which index to use
-        let senderIndex = ourIndexInTxGroup // Start with regular index
-
-        // If we have a wrapped entry, use that instead (matching receiver's validation logic)
-        if (unwrappedIndex != null) {
-          senderIndex = unwrappedIndex
-          /* prettier-ignore */ if (logFlags.verbose) this.mainLogger.debug(`factTellCorrespondingNodesData-2: Using wrapped index ${unwrappedIndex} instead of regular ${ourIndexInTxGroup}`)
-        }
-
-        // Calculate corresponding nodes using the correct index that receivers will validate
+        
         correspondingIndices = getCorrespondingNodes(
-          senderIndex,
+          ourIndexInTxGroup,
           targetIndices.startIndex,
           targetIndices.endIndex,
           queueEntry.correspondingGlobalOffset,
@@ -4502,6 +4513,35 @@ class TransactionQueue {
           senderGroupSize,
           queueEntry.transactionGroup.length
         )
+        let oldCorrespondingIndices: number[] = undefined
+        if (this.config.stateManager.correspondingTellUseUnwrapped) {
+          // can just find if any home nodes for the accounts we cover would say that our node is wrapped
+          // precalc shouldUnwrapSender   check if any account we own shows that we are on the left side of a wrapped range
+          // can use partitions to check this
+          if (unwrappedIndex != null) {
+            const extraCorrespondingIndices = getCorrespondingNodes(
+              unwrappedIndex,
+              targetIndices.startIndex,
+              targetIndices.endIndex,
+              queueEntry.correspondingGlobalOffset,
+              targetGroupSize,
+              senderGroupSize,
+              queueEntry.transactionGroup.length,
+              queueEntry.logID
+            )
+            if (Context.config.stateManager.concatCorrespondingTellUseUnwrapped) {
+              //add them
+              correspondingIndices = correspondingIndices.concat(extraCorrespondingIndices)
+            } else {
+              // replace them
+              oldCorrespondingIndices = correspondingIndices
+              correspondingIndices = extraCorrespondingIndices
+            }
+            //replace them
+            // possible optimization where we pick one or the other path based on our account index
+            //correspondingIndices = extraCorrespondingIndices
+          }
+        }
         if (logFlags.debug)
           this.mainLogger.debug(
             `factTellCorrespondingNodes: new corresponding indices after avoiding our index in tx group`,
@@ -4568,7 +4608,7 @@ class TransactionQueue {
         ourUnwrappedIndex: unwrappedIndex,
         callParams,
         localKeys: queueEntry.localKeys,
-        oldCorrespondingIndices: [], // No longer calculated with new logic
+        oldCorrespondingIndices,
         correspondingIndices: correspondingIndices,
         correspondingNodeIds: correspondingNodes.map((n) => n.id),
       }
