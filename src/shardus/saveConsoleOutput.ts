@@ -11,15 +11,20 @@ export function startSaving(baseDir: string): void {
   // Create a transform stream factory that adds timestamps
   const createTimestampTransform = () => new Transform({
     transform(chunk, encoding, callback) {
-      const lines = chunk.toString().split('\n')
-      const timestampedLines = lines.map((line) => {
-        if (line.trim()) {
-          const timestamp = new Date().toISOString()
-          return `${timestamp} - ${line}`
-        }
-        return line
-      })
-      callback(null, timestampedLines.join('\n'))
+      try {
+        const lines = chunk.toString().split('\n')
+        const timestampedLines = lines.map((line) => {
+          if (line.trim()) {
+            const timestamp = new Date().toISOString()
+            return `${timestamp} - ${line}`
+          }
+          return line
+        })
+        callback(null, timestampedLines.join('\n'))
+      } catch (err) {
+        // Swallow any error silently and pass through the original chunk
+        callback(null, chunk)
+      }
     }
   })
 
