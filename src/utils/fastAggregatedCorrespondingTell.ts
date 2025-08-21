@@ -1,7 +1,7 @@
 //get the target nodes for a given corresponding sender
 import { Utils } from '@shardeum-foundation/lib-types'
 import { logFlags } from '../logger'
-
+import { nestedCountersInstance } from './nestedCounters'
 //this only has to be computed once time no matter how many facts are being shared
 export function getCorrespondingNodes(
   ourIndex: number,
@@ -109,13 +109,14 @@ export function verifyCorrespondingSender(
   if (logFlags.verbose) {
     if (result) {
       console.log(
-        `verifyCorrespondingSender ${note} verification PASSED expectedSender:${expectedSenderIndex} === actualSender:${actualSenderIndex} sender:${sendingNodeIndex}->receiver:${receivingNodeIndex}`
+        `verifyCorrespondingSender ${note} verification passed expectedSender:${expectedSenderIndex} === actualSender:${actualSenderIndex} sender:${sendingNodeIndex}->receiver:${receivingNodeIndex}`
       )
     }
   } else {
       console.log(
-        `verifyCorrespondingSender ${note} verification FAILED expectedSender:${expectedSenderIndex} !== actualSender:${actualSenderIndex} sender:${sendingNodeIndex} receiver:${receivingNodeIndex}`
+        `verifyCorrespondingSender ${note} verification failed expectedSender:${expectedSenderIndex} !== actualSender:${actualSenderIndex} sender:${sendingNodeIndex} receiver:${receivingNodeIndex}`
       )
+      if (nestedCountersInstance) nestedCountersInstance.countEvent('verifyCorrespondingSender', 'failed')
     }
   
   
