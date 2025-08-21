@@ -5235,7 +5235,7 @@ class TransactionQueue {
       targetEndIndex,
       queueEntry.transactionGroup.length,
       false,
-      `finalDataSender: ${queueEntry.logID}`,
+      `finalDataSender: ${queueEntry.logID}`
     )
 
     // it is not a FACT corresponding node
