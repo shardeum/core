@@ -16,6 +16,7 @@ import { factTellCorrespondingNodesFinalDataWrapper } from './factWrapper'
 import { loadTestConfig, applyConfigToMocks, TestConfig } from './configLoader'
 import { getLogger } from './testLogger'
 import ShardFunctions from '../shardFunctions'
+import { verifyCorrespondingSender } from '../../utils/fastAggregatedCorrespondingTell'
 import fs from 'fs'
 import path from 'path'
 
@@ -124,7 +125,7 @@ export class FACTOfflineTester {
     
     // 3. Process received messages
     logger.detail('\nStep 3: Processing received messages...')
-    await this.processReceivedMessages(scenario, cycleShardData, transactionGroup)
+    await this.processReceivedMessages(scenario, cycleShardData, transactionGroup, executionGroup)
     
     // 4. Analyze results
     logger.detail('\nStep 4: Analyzing results...')
@@ -200,6 +201,9 @@ export class FACTOfflineTester {
       // Create a mock TransactionQueue instance
       const mockTxQueue = this.createMockTransactionQueue(executionNode, cycleShardData)
       
+      // Set the current sender node for message tracking
+      this.mockP2P.setCurrentSender(executionNode.id)
+      
       try {
         // Call the wrapper function with our mock P2P
         factTellCorrespondingNodesFinalDataWrapper(mockTxQueue, queueEntry, this.mockP2P as any)
@@ -220,7 +224,8 @@ export class FACTOfflineTester {
   private async processReceivedMessages(
     scenario: TestScenario,
     cycleShardData: any,
-    transactionGroup: any[]
+    transactionGroup: any[],
+    executionGroup: any[]
   ) {
     const logger = getLogger()
     const poqoMessages = this.messageCollector.getMessagesByRoute('binary_poqo_data_and_receipt')
@@ -247,9 +252,9 @@ export class FACTOfflineTester {
         this.results.messagesByNode.set(receiverNode.id, currentCount + 1)
         
         // Validate message
-        const isValid = this.validateMessage(message, receiverNode, transactionGroup, scenario)
-        
-        if (isValid) {
+        const validationResult = this.validateMessageWithReason(message, receiverNode, transactionGroup, executionGroup, scenario)
+        //validationResult.isValid = false
+        if (validationResult.isValid === true) {
           acceptedByNodes.push(receiverNode.id)
           this.results.messageReceptionsAccepted++
           this.results.messagesAccepted++ // Legacy field
@@ -268,7 +273,7 @@ export class FACTOfflineTester {
           rejectedByNodes.push(receiverNode.id)
           this.results.messageReceptionsRejected++
           this.results.messagesRejected++ // Legacy field
-          const reason = 'validation_failed'
+          const reason = validationResult.reason || 'validation_failed'
           this.results.rejectionReasons.set(
             reason,
             (this.results.rejectionReasons.get(reason) || 0) + 1
@@ -465,17 +470,97 @@ export class FACTOfflineTester {
   }
   
   /**
-   * Simple message validation
+   * Validate message simulating poqoDataAndReceiptBinaryHandler logic
+   * Returns validation result and reason for failure
    */
-  private validateMessage(
+  private validateMessageWithReason(
     message: any,
     receiverNode: any,
     transactionGroup: any[],
+    executionGroup: any[],
     scenario: TestScenario
-  ): boolean {
-    // For now, just check if receiver is in transaction group
+  ): { isValid: boolean; reason?: string } {
+    const logger = getLogger()
+    
+    // 1. Check if receiver is in transaction group (basic check)
     const isInTxGroup = transactionGroup.some(n => n.id === receiverNode.id)
-    return isInTxGroup
+    if (!isInTxGroup) {
+      logger.detail(`    Validation failed: receiver ${receiverNode.id.substring(0, 8)} not in transaction group`)
+      return { isValid: false, reason: 'not_in_tx_group' }
+    }
+    
+    // 2. Call the ACTUAL factValidateCorrespondingTellFinalDataSender logic
+    // This replicates what happens in the real code
+    
+    // Find sender node info from the message
+    // In real code, the sender would be passed from the network layer
+    // For testing, we need to determine who sent this message
+    const senderNodeId = message.senderNodeId || message.nodes?.[0]?.id
+    if (!senderNodeId) {
+      logger.detail(`    Validation failed: no sender node ID`)
+      return { isValid: false, reason: 'no_sender_id' }
+    }
+    
+    // Check if sender is in execution group
+    const senderIsInExecutionGroup = executionGroup.some(n => n.id === senderNodeId)
+    
+    if (!senderIsInExecutionGroup) {
+      logger.detail(`    Validation failed: sender ${senderNodeId.substring(0, 8)} not in execution group`)
+      return { isValid: false, reason: 'sender_not_in_execution_group' }
+    }
+    
+    // Find indices for validation
+    const senderNodeIndex = transactionGroup.findIndex(n => n.id === senderNodeId)
+    const targetNodeIndex = transactionGroup.findIndex(n => n.id === receiverNode.id)
+    
+    if (senderNodeIndex === -1 || targetNodeIndex === -1) {
+      logger.detail(`    Validation failed: could not find sender or receiver index`)
+      return { isValid: false, reason: 'index_not_found' }
+    }
+    
+    // Get the global offset from the message or scenario
+    const globalOffset = message.globalOffset || parseInt(message.data?.finalState?.txid?.substring(message.data.finalState.txid.length - 4), 16) || 0
+    
+    // Call the actual verification function from fastAggregatedCorrespondingTell
+    let isValidFactSender = verifyCorrespondingSender(
+      targetNodeIndex,        // receiver index (us)
+      senderNodeIndex,        // sender index
+      globalOffset,           // correspondingGlobalOffset
+      transactionGroup.length, // targetGroupSize
+      executionGroup.length,  // senderGroupSize
+      0,                      // targetStartIndex
+      transactionGroup.length, // targetEndIndex
+      transactionGroup.length  // totalTargetGroupSize
+    )
+    //isValidFactSender = false
+    if (!isValidFactSender) {
+      logger.detail(`    Validation failed: verifyCorrespondingSender returned false`)
+      logger.detail(`      - targetNodeIndex: ${targetNodeIndex}`)
+      logger.detail(`      - senderNodeIndex: ${senderNodeIndex}`)
+      logger.detail(`      - globalOffset: ${globalOffset}`)
+      logger.detail(`      - txGroupSize: ${transactionGroup.length}`)
+      logger.detail(`      - exGroupSize: ${executionGroup.length || 128}`)
+      return { isValid: false, reason: 'invalid_corresponding_sender' }
+    }
+    
+    // 3. Additional checks from poqoDataAndReceiptBinaryHandler
+    if (!message.data?.receipt) {
+      logger.detail(`    Validation failed: no receipt in message`)
+      return { isValid: false, reason: 'no_receipt' }
+    }
+    
+    if (!message.data?.finalState?.txid) {
+      logger.detail(`    Validation failed: no txid in finalState`)
+      return { isValid: false, reason: 'no_txid' }
+    }
+    
+    if (message.data.finalState.txid !== message.data.receipt?.proposal?.txid) {
+      logger.detail(`    Validation failed: txid mismatch`)
+      return { isValid: false, reason: 'txid_mismatch' }
+    }
+    
+    logger.detail(`    Validation passed for receiver ${receiverNode.id.substring(0, 8)}`)
+    return { isValid: true }
   }
   
   /**

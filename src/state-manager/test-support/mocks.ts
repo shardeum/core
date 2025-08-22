@@ -11,9 +11,14 @@ import { getLogger } from './testLogger'
  */
 export class MockP2P {
   private messageCollector: MessageCollector
+  private currentSenderId: string | null = null
   
   constructor(messageCollector: MessageCollector) {
     this.messageCollector = messageCollector
+  }
+  
+  setCurrentSender(senderId: string): void {
+    this.currentSenderId = senderId
   }
   
   tellBinary<T>(
@@ -28,15 +33,17 @@ export class MockP2P {
     logger.detail(`  - Route: ${route}`)
     logger.detail(`  - Nodes count: ${nodes.length}`)
     logger.detail(`  - Node IDs: ${nodes.map(n => n.id).join(', ')}`)
+    logger.detail(`  - Sender: ${this.currentSenderId?.substring(0, 8) || 'unknown'}`)
     
-    // Capture the message
+    // Capture the message with sender info
     this.messageCollector.collectMessage({
       nodes,
       route,
       data,
       serializeFunc,
       extraData,
-      timestamp: Date.now()
+      timestamp: Date.now(),
+      senderNodeId: this.currentSenderId
     })
   }
   
@@ -243,6 +250,7 @@ export interface SentMessage {
   serializeFunc?: any
   extraData?: any
   timestamp: number
+  senderNodeId?: string
 }
 
 export interface ShardConfig {
