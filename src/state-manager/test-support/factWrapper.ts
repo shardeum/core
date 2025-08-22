@@ -6,6 +6,11 @@
 import { getCorrespondingNodes } from '../../utils/fastAggregatedCorrespondingTell'
 import { getLogger } from './testLogger'
 
+// Simple deepCopy to match production behavior
+function deepCopy(obj: any): any {
+  return JSON.parse(JSON.stringify(obj))
+}
+
 export function factTellCorrespondingNodesFinalDataWrapper(
   mockQueue: any,
   queueEntry: any,
@@ -36,6 +41,11 @@ export function factTellCorrespondingNodesFinalDataWrapper(
     throw new Error('factTellCorrespondingNodesFinalData isInExecutionHome === false')
   }
   
+  // Check executionShardKey (missing in original wrapper)
+  if (queueEntry.executionShardKey == null || queueEntry.executionShardKey === '') {
+    throw new Error('factTellCorrespondingNodesFinalData executionShardKey == null or empty')
+  }
+  
   if (!queueEntry.preApplyTXResult) {
     throw new Error('factTellCorrespondingNodesFinalData preApplyTXResult == null')
   }
@@ -52,7 +62,7 @@ export function factTellCorrespondingNodesFinalDataWrapper(
         ? wrappedStates[writtenAccount.accountId].stateId
         : ''
       writtenAccountsMap[writtenAccount.accountId].prevDataCopy = wrappedStates[writtenAccount.accountId]
-        ? JSON.parse(JSON.stringify(writtenAccount.data))
+        ? deepCopy(writtenAccount.data)
         : {}
       
       datas[writtenAccount.accountId] = writtenAccount.data
@@ -69,18 +79,11 @@ export function factTellCorrespondingNodesFinalDataWrapper(
   
   const senderIndexInTxGroup = queueEntry.ourTXGroupIndex
   const senderGroupSize = queueEntry.executionGroup.length
+  const unwrappedIndex = queueEntry.isSenderWrappedTxGroup?.[mockQueue.Self.id]
   
-  // Use wrapped index if available
-  let senderIndex = senderIndexInTxGroup
-  const wrappedIndex = queueEntry.isSenderWrappedTxGroup?.[mockQueue.Self.id]
-  if (wrappedIndex != null) {
-    senderIndex = wrappedIndex
-    logger.detail(`    Using wrapped index ${wrappedIndex} instead of regular ${senderIndexInTxGroup}`)
-  }
-  
-  // Calculate corresponding nodes
-  const correspondingIndices = getCorrespondingNodes(
-    senderIndex,
+  // Calculate corresponding nodes - matches production logic
+  let correspondingIndices = getCorrespondingNodes(
+    senderIndexInTxGroup,
     targetStartIndex,
     targetEndIndex,
     queueEntry.correspondingGlobalOffset,
@@ -89,6 +92,34 @@ export function factTellCorrespondingNodesFinalDataWrapper(
     queueEntry.transactionGroup.length,
     queueEntry.logID || 'test'
   )
+  
+  // Handle correspondingTellUseUnwrapped config - matches production lines 5114-5132
+  if (mockQueue.config?.stateManager?.correspondingTellUseUnwrapped) {
+    if (unwrappedIndex != null) {
+      const extraCorrespondingIndices = getCorrespondingNodes(
+        unwrappedIndex,
+        targetStartIndex,
+        targetEndIndex,
+        queueEntry.correspondingGlobalOffset,
+        targetGroupSize,
+        senderGroupSize,
+        queueEntry.transactionGroup.length,
+        queueEntry.logID || 'test'
+      )
+      
+      if (mockQueue.config?.stateManager?.concatCorrespondingTellUseUnwrapped) {
+        // Note: production code has a bug here - it doesn't assign the concat result
+        // Production: correspondingIndices.concat(extraCorrespondingIndices)
+        // Should be: correspondingIndices = correspondingIndices.concat(extraCorrespondingIndices)
+        //correspondingIndices = 
+        correspondingIndices.concat(extraCorrespondingIndices)
+        logger.detail(`    Concatenated wrapped indices: total ${correspondingIndices.length} indices`)
+      } else {
+        correspondingIndices = extraCorrespondingIndices
+        logger.detail(`    Using only wrapped indices: ${correspondingIndices.length} indices`)
+      }
+    }
+  }
   
   logger.detail(`    Calculated ${correspondingIndices.length} corresponding indices: ${correspondingIndices.join(', ')}`)
   
