@@ -1978,7 +1978,7 @@ class TransactionQueue {
         approximateCycleAge: cycleNumber,
         ourNodeInTransactionGroup: false,
         ourNodeInConsensusGroup: false,
-        logID: '',
+        logID: utils.makeShortHash(acceptedTx.txId),
         txGroupDebug: '',
         uniqueWritableKeys: [],
         txGroupCycle: 0,
@@ -2044,7 +2044,7 @@ class TransactionQueue {
         return false // already in our queue, or temp queue
       }
 
-      txQueueEntry.logID = utils.makeShortHash(acceptedTx.txId)
+      // logID is now set at queue entry creation time to ensure it's always available
 
       this.stateManager.debugTXHistory[txQueueEntry.logID] = 'enteredQueue'
 
