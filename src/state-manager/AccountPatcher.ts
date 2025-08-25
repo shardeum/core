@@ -273,6 +273,14 @@ class AccountPatcher {
     return 0
   }
   sortByRadix(a: RadixAndHash, b: RadixAndHash): Ordering {
+    if (!a || !a.radix) {
+      this.mainLogger.error(`sortByRadix: Invalid 'a' parameter - a: ${utils.stringifyReduce(a)}`)
+      return 1
+    }
+    if (!b || !b.radix) {
+      this.mainLogger.error(`sortByRadix: Invalid 'b' parameter - b: ${utils.stringifyReduce(b)}`)
+      return -1
+    }
     if (a.radix < b.radix) {
       return -1
     }
@@ -2901,12 +2909,29 @@ class AccountPatcher {
     stats.badSyncRadix = toFix.length
 
     if (logFlags.debug) {
+      // Filter out any null/undefined entries and log them
+      const originalLength = toFix.length
+      toFix = toFix.filter(item => {
+        if (!item || !item.radix) {
+          this.mainLogger.error(`Invalid toFix entry filtered out: ${utils.stringifyReduce(item)}`)
+          return false
+        }
+        return true
+      })
+      if (originalLength !== toFix.length) {
+        this.mainLogger.error(`Filtered ${originalLength - toFix.length} invalid entries from toFix array`)
+      }
+      
       toFix.sort(this.sortByRadix)
       this.statemanager_fatal(
         'debug findBadAccounts',
         `debug findBadAccounts ${cycle}: toFix: ${utils.stringifyReduce(toFix)}`
       )
       for (let radixToFix of toFix) {
+        if (!radixToFix || !radixToFix.radix) {
+          this.mainLogger.error(`Invalid radixToFix in loop: ${utils.stringifyReduce(radixToFix)}`)
+          continue
+        }
         const votesMap = hashTrieSyncConsensus.radixHashVotes.get(radixToFix.radix)
         let hasNonConsensusRange = false
         let hasNonStorageRange = false
