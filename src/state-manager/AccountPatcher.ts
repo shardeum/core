@@ -274,35 +274,14 @@ class AccountPatcher {
     return 0
   }
   sortByRadix(a: RadixAndHash, b: RadixAndHash): Ordering {
-    // Check for null/undefined objects
-    if (!a) {
+    if (!a || !a.radix) {
       this.mainLogger.error(`sortByRadix: Invalid 'a' parameter - a: ${utils.stringifyReduce(a)}`)
       return 1
     }
-    if (!b) {
+    if (!b || !b.radix) {
       this.mainLogger.error(`sortByRadix: Invalid 'b' parameter - b: ${utils.stringifyReduce(b)}`)
       return -1
     }
-
-    // Handle empty string radix - empty strings should sort before non-empty
-    if (a.radix === '' && b.radix !== '') {
-      return -1
-    }
-    if (b.radix === '' && a.radix !== '') {
-      return 1
-    }
-
-    // Check for undefined/null radix property (but not empty string)
-    if (a.radix === undefined || a.radix === null) {
-      this.mainLogger.error(`sortByRadix: Invalid 'a.radix' - a: ${utils.stringifyReduce(a)}`)
-      return 1
-    }
-    if (b.radix === undefined || b.radix === null) {
-      this.mainLogger.error(`sortByRadix: Invalid 'b.radix' - b: ${utils.stringifyReduce(b)}`)
-      return -1
-    }
-
-    // Normal string comparison
     if (a.radix < b.radix) {
       return -1
     }
@@ -2933,7 +2912,7 @@ class AccountPatcher {
     if (logFlags.debug) {
       // Filter out any null/undefined entries and log them
       const originalLength = toFix.length
-      toFix = toFix.filter((item) => {
+      toFix = toFix.filter(item => {
         if (!item || !item.radix) {
           this.mainLogger.error(`Invalid toFix entry filtered out: ${utils.stringifyReduce(item)}`)
           return false
@@ -2943,7 +2922,7 @@ class AccountPatcher {
       if (originalLength !== toFix.length) {
         this.mainLogger.error(`Filtered ${originalLength - toFix.length} invalid entries from toFix array`)
       }
-
+      
       toFix.sort(this.sortByRadix)
       this.statemanager_fatal(
         'debug findBadAccounts',
