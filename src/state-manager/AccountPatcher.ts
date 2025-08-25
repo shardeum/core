@@ -3665,7 +3665,12 @@ class AccountPatcher {
       const debug = []
       if (hashTrieSyncConsensus && hashTrieSyncConsensus.radixHashVotes) {
         for (const [key, value] of hashTrieSyncConsensus.radixHashVotes) {
-          debug.push({ radix: key, hash: value.bestHash, votes: value.bestVotes })
+          if (key && value && value.bestHash != null && value.bestVotes != null) {
+            debug.push({ radix: key, hash: value.bestHash, votes: value.bestVotes })
+          } else {
+            // Log the problematic entry for debugging
+            this.mainLogger.error(`Invalid radixHashVotes entry - key: ${key}, value: ${utils.stringifyReduce(value)}`)
+          }
         }
       }
       debug.sort(this.sortByRadix)
