@@ -206,6 +206,30 @@ class Logger {
     }
   }
 
+  // Map token types to absolute module paths (for custom appenders)
+  _mapCustomAppenderTypes() {
+    const conf = this.log4Conf
+    if (!conf?.appenders) return
+    for (const key in conf.appenders) {
+      const appender: any = conf.appenders[key]
+      if (!appender || typeof appender.type !== 'string') continue
+      if (appender.type === 'custom-size-time' || appender.type === 'dateFileWithSize') {
+        // Resolve to compiled JS appender beside this file at runtime
+        // build/src/logger/index.js -> build/src/logger/appenders/dateFileWithSize.js
+        const modulePath = path.resolve(__dirname, 'appenders', 'dateFileWithSize.js')
+        appender.type = modulePath
+        // ensure filename present for our appender to compute base name
+        if (!appender.filename) {
+          appender.filename = `${this.logDir}/${key}.log`
+        }
+        // default pattern if not supplied
+        if (!appender.pattern) {
+          appender.pattern = 'yyyy-MM-dd-HH-mm-ss'
+        }
+      }
+    }
+  }
+
   _configureLogs() {
     return log4js.configure(this.log4Conf)
   }
@@ -232,6 +256,7 @@ class Logger {
     this.log4Conf = config.options
     log4jsExtend(log4js)
     this._addFileNamesToAppenders()
+    this._mapCustomAppenderTypes()
     this._configureLogs()
     this.getLogger('main').info('Logger initialized.')
 
