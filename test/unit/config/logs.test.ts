@@ -46,9 +46,6 @@ describe('logs config', () => {
 
     it('should have correct file appender configurations', () => {
       const fileAppenders = [
-        'main',
-        'app',
-        'p2p',
         'snapshot',
         'cycle',
         'fatal',
@@ -61,14 +58,29 @@ describe('logs config', () => {
       ]
 
       fileAppenders.forEach((appender) => {
-        expect(LOGS_CONFIG.options.appenders[appender]).toHaveProperty('type', 'file')
-        expect(LOGS_CONFIG.options.appenders[appender]).toHaveProperty('maxLogSize', 10000000)
+        expect(LOGS_CONFIG.options.appenders[appender]).toHaveProperty('type', 'dateFileWithSize')
+        expect(LOGS_CONFIG.options.appenders[appender]).toHaveProperty('maxLogSize', 10485760)
         expect(LOGS_CONFIG.options.appenders[appender]).toHaveProperty('backups', 10)
       })
 
-      // seq has different maxLogSize
-      expect(LOGS_CONFIG.options.appenders.seq).toHaveProperty('type', 'file')
+      // seq uses the same appender and limits
+      expect(LOGS_CONFIG.options.appenders.seq).toHaveProperty('type', 'dateFileWithSize')
       expect(LOGS_CONFIG.options.appenders.seq).toHaveProperty('backups', 10)
+    })
+
+    it('should have correct dateFile appender configurations', () => {
+      const dateFileAppenders = ['main', 'app', 'p2p']
+
+      dateFileAppenders.forEach((appender) => {
+        expect(LOGS_CONFIG.options.appenders[appender]).toHaveProperty('type', 'dateFileWithSize')
+        expect(LOGS_CONFIG.options.appenders[appender]).toHaveProperty('pattern')
+        expect(LOGS_CONFIG.options.appenders[appender]).toHaveProperty('keepFileExt', true)
+        expect(LOGS_CONFIG.options.appenders[appender]).toHaveProperty('maxLogSize', 10485760)
+        expect(LOGS_CONFIG.options.appenders[appender]).toHaveProperty('backups', 10)
+        expect(LOGS_CONFIG.options.appenders[appender]).toHaveProperty('numBackups')
+        expect(LOGS_CONFIG.options.appenders[appender]).toHaveProperty('compress', false)
+        expect(LOGS_CONFIG.options.appenders[appender]).toHaveProperty('alwaysIncludePattern', false)
+      })
     })
 
     it('should have correct console appender configuration', () => {
@@ -88,7 +100,7 @@ describe('logs config', () => {
     })
 
     it('should have larger maxLogSize for seq appender', () => {
-      expect(LOGS_CONFIG.options.appenders.seq.maxLogSize).toBe(1000000000)
+      expect(LOGS_CONFIG.options.appenders.seq.maxLogSize).toBe(10485760)
     })
 
     it('should have all required categories', () => {

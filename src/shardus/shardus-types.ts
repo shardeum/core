@@ -1482,46 +1482,91 @@ export interface LogsConfiguration {
         type?: string
         maxLogSize?: number
         backups?: number
+        pattern?: string
+        keepFileExt?: boolean
+        numBackups?: number
+        compress?: boolean
+        alwaysIncludePattern?: boolean
       }
       seq?: {
         type?: string
         maxLogSize?: number
         backups?: number
+        pattern?: string
+        keepFileExt?: boolean
+        numBackups?: number
+        compress?: boolean
+        alwaysIncludePattern?: boolean
       }
       app?: {
         type?: string
         maxLogSize?: number
         backups?: number
+        pattern?: string
+        keepFileExt?: boolean
+        numBackups?: number
+        compress?: boolean
+        alwaysIncludePattern?: boolean
       }
       p2p?: {
         type?: string
         maxLogSize?: number
         backups?: number
+        pattern?: string
+        keepFileExt?: boolean
+        numBackups?: number
+        compress?: boolean
+        alwaysIncludePattern?: boolean
       }
       snapshot?: {
         type?: string
         maxLogSize?: number
         backups?: number
+        pattern?: string
+        keepFileExt?: boolean
+        numBackups?: number
+        compress?: boolean
+        alwaysIncludePattern?: boolean
       }
       cycle?: {
         type?: string
         maxLogSize?: number
         backups?: number
+        pattern?: string
+        keepFileExt?: boolean
+        numBackups?: number
+        compress?: boolean
+        alwaysIncludePattern?: boolean
       }
       fatal?: {
         type?: string
         maxLogSize?: number
         backups?: number
+        pattern?: string
+        keepFileExt?: boolean
+        numBackups?: number
+        compress?: boolean
+        alwaysIncludePattern?: boolean
       }
       exit?: {
         type?: string
         maxLogSize?: number
         backups?: number
+        pattern?: string
+        keepFileExt?: boolean
+        numBackups?: number
+        compress?: boolean
+        alwaysIncludePattern?: boolean
       }
       errorFile?: {
         type?: string
         maxLogSize?: number
         backups?: number
+        pattern?: string
+        keepFileExt?: boolean
+        numBackups?: number
+        compress?: boolean
+        alwaysIncludePattern?: boolean
       }
       errors?: {
         type?: string
@@ -1532,21 +1577,41 @@ export interface LogsConfiguration {
         type?: string
         maxLogSize?: number
         backups?: number
+        pattern?: string
+        keepFileExt?: boolean
+        numBackups?: number
+        compress?: boolean
+        alwaysIncludePattern?: boolean
       }
       playback?: {
         type?: string
         maxLogSize?: number
         backups?: number
+        pattern?: string
+        keepFileExt?: boolean
+        numBackups?: number
+        compress?: boolean
+        alwaysIncludePattern?: boolean
       }
       shardDump?: {
         type?: string
         maxLogSize?: number
         backups?: number
+        pattern?: string
+        keepFileExt?: boolean
+        numBackups?: number
+        compress?: boolean
+        alwaysIncludePattern?: boolean
       }
       statsDump?: {
         type?: string
         maxLogSize?: number
         backups?: number
+        pattern?: string
+        keepFileExt?: boolean
+        numBackups?: number
+        compress?: boolean
+        alwaysIncludePattern?: boolean
       }
     }
     categories?: {
