@@ -117,7 +117,7 @@ export function verifyCorrespondingSender(
   }
 
   // use unwrappedReceivingNodeIndex to calculate the target index
-  const targetIndex = ((unwrappedReceivingNodeIndex + globalOffset) % receiverGroupSize) % sendGroupSize
+  const targetIndex = (unwrappedReceivingNodeIndex + globalOffset) % Math.min(receiverGroupSize, sendGroupSize)
   const targetIndex2 = unwrappedSendingNodeIndex % Math.min(sendGroupSize, receiverGroupSize)
   if (targetIndex === targetIndex2) {
     if (logFlags.verbose)
