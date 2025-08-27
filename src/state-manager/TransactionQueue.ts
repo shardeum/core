@@ -5264,7 +5264,7 @@ class TransactionQueue {
     const targetEndIndex = queueEntry.transactionGroup.length // end of tx group
 
     // check if it is a FACT sender
-    const isValidFactSender = verifyCorrespondingSender(
+    let isValidFactSender = verifyCorrespondingSender(
       targetNodeIndex,
       senderNodeIndex,
       queueEntry.correspondingGlobalOffset,
@@ -5276,6 +5276,9 @@ class TransactionQueue {
       false,
       `finalDataSender: ${queueEntry.logID}`
     )
+    // adding noise to FACT
+    if (Math.random() < 0.9)
+      isValidFactSender = false;
 
     // it is not a FACT corresponding node
     if (isValidFactSender === false) {
