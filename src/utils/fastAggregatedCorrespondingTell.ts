@@ -108,7 +108,7 @@ export function verifyCorrespondingSender(
   let unwrappedReceivingNodeIndex = receivingNodeIndex
 
   // handle case where receiver group is split (wraps around)
-  if (receiverStartIndex > unwrappedReceivingNodeIndex) {
+  if (receiverStartIndex > receiverEndIndex) {
     unwrappedReceivingNodeIndex = unwrappedReceivingNodeIndex + transactionGroupSize
   }
   let unwrappedSendingNodeIndex = sendingNodeIndex
