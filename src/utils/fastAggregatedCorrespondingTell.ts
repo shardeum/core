@@ -10,7 +10,8 @@ export function getCorrespondingNodes(
   receiverGroupSize: number,
   sendGroupSize: number,
   transactionGroupSize: number,
-  note = ''
+  note = '',
+  v2 = false
 ): number[] {
   if (logFlags.verbose) {
     console.log(
@@ -28,15 +29,15 @@ export function getCorrespondingNodes(
     endTargetIndex = endTargetIndex + transactionGroupSize
   }
   //wrap our index to the send group size
-  ourIndex = ourIndex % sendGroupSize
+  ourIndex = ourIndex % (v2 ? Math.min(receiverGroupSize, sendGroupSize) : sendGroupSize )
 
   //find our initial staring index into the receiver group (wrappedIndex)
-  for (let i = startTargetIndex; i < endTargetIndex; i++) {
+  for (let i = startTargetIndex; i < (v2 ? endTargetIndex + 1 : endTargetIndex) ; i++) {
     wrappedIndex = i
     if (i >= transactionGroupSize) {
       wrappedIndex = i - transactionGroupSize
     }
-    targetNumber = (i + globalOffset) % receiverGroupSize
+    targetNumber = (i + globalOffset) % (v2 ? Math.min(receiverGroupSize, sendGroupSize) : receiverGroupSize)
     if (targetNumber === ourIndex) {
       found = true
       break
@@ -76,17 +77,19 @@ export function getCorrespondingNodes(
     if (wrappedIndex >= transactionGroupSize) {
       wrappedIndex = wrappedIndex - transactionGroupSize
     }
-    //wrap to front of receiver group
-    if (wrappedIndex >= endTargetIndex) {
-      wrappedIndex = wrappedIndex - receiverGroupSize
-    }
-    //special case to stay in bounds when we have a split index and
-    //the unWrappedEndIndex is smaller than the start index.
-    //i.e.  startTargetIndex = 45, endTargetIndex = 5  for a 50 node group
-    if (unWrappedEndIndex != -1 && wrappedIndex >= unWrappedEndIndex) {
-      const howFarPastUnWrapped = wrappedIndex - unWrappedEndIndex
-      wrappedIndex = startTargetIndex + howFarPastUnWrapped
-    }
+    if (!v2) {
+      //wrap to front of receiver group
+      if (wrappedIndex >= endTargetIndex) {
+        wrappedIndex = wrappedIndex - receiverGroupSize
+      }
+      //special case to stay in bounds when we have a split index and
+      //the unWrappedEndIndex is smaller than the start index.
+      //i.e.  startTargetIndex = 45, endTargetIndex = 5  for a 50 node group
+      if (unWrappedEndIndex != -1 && wrappedIndex >= unWrappedEndIndex) {
+        const howFarPastUnWrapped = wrappedIndex - unWrappedEndIndex
+        wrappedIndex = startTargetIndex + howFarPastUnWrapped
+      }      
+    }    
   }
   if (logFlags.verbose) {
     console.log(`note: ${note} destinationNodes ${destinationNodes}`)
@@ -94,6 +97,7 @@ export function getCorrespondingNodes(
   return destinationNodes
 }
 
+// not used in fact v2
 export function verifyCorrespondingSender(
   receivingNodeIndex: number,
   sendingNodeIndex: number,

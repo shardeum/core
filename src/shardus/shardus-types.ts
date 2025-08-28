@@ -993,6 +993,8 @@ export interface ServerConfiguration {
     downNodeFilteringEnabled: boolean
     /** Whether to use upgraded FACT corresponding tell algorithm */
     useFactCorrespondingTell: boolean
+    /** Whether to use FACT v2 algorithm (enhanced version with improved verification) */
+    factv2?: boolean
     // /** The number of ms to wait to resubmit a standby add request to an active node if we get an error */
     resubmitStandbyAddWaitDuration: number
     // /** The percentage of votes required to confirm transaction*/

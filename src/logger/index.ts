@@ -125,6 +125,8 @@ export type LogFlags = {
   p2pSyncDebug: boolean // extra logging for debugging sync issues
 
   p2pExtraHeavyLogs: boolean // extra heavy logs to use with caution
+
+  fact: boolean // FACT algorithm logging for debugging and monitoring
 }
 
 export let logFlags: LogFlags = {
@@ -172,6 +174,8 @@ export let logFlags: LogFlags = {
   p2pSyncDebug: false,
 
   p2pExtraHeavyLogs: false,
+
+  fact: false, // FACT algorithm logging - disabled by default
 }
 
 const filePath1 = path.join(process.cwd(), 'data-logs', 'cycleRecords1.txt')
