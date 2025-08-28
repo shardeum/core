@@ -2665,6 +2665,9 @@ class TransactionQueue {
         `Attempting to add data and uniqueKeys are not available yet: ${utils.stringifyReduceLimit(queueEntry, 200)}`
       )
     }
+
+    if (logFlags.fact) console.log(`FACT-ADD-DATA-1 nodeId:${Self.id} txId:${queueEntry.logID} accountId:${data.accountId}`)
+
     if (queueEntry.collectedData[data.accountId] != null) {
       if (configContext.stateManager.collectedDataFix) {
         // compare the timestamps and keep the newest
@@ -2719,6 +2722,8 @@ class TransactionQueue {
 
     queueEntry.collectedData[data.accountId] = data
     queueEntry.dataCollected = Object.keys(queueEntry.collectedData).length
+
+    if (logFlags.fact) console.log(`FACT-ADD-DATA-2 nodeId:${Self.id} txId:${queueEntry.logID} accountId:${data.accountId} collectedData.keys:${Object.keys(queueEntry.collectedData)}`)
 
     //make a deep copy of the data
     queueEntry.originalData[data.accountId] = Utils.safeJsonParse(Utils.safeStringify(data))
@@ -4324,6 +4329,91 @@ class TransactionQueue {
     }
   }
 
+  /**
+   * Calculate FACT v2 sender and receiver groups
+   * @param transactionGroup Full transaction group
+   * @param executionGroup Execution group subset
+   * @returns Reduced sender and receiver groups for FACT communication
+   */
+  calculateFactSenderGroup(queueEntry: QueueEntry): [(Shardus.NodeWithRank | P2PTypes.NodeListTypes.Node)[], (Shardus.NodeWithRank | P2PTypes.NodeListTypes.Node)[]] {
+    if (!queueEntry.transactionGroup || !queueEntry.executionGroup) {
+      return [[],[]]
+    }    
+  
+    /* prettier-ignore */ if (logFlags.fact) console.log(`FACT-GROUP-1 txId:${queueEntry.logID} keys:${queueEntry.uniqueKeys.length}`)
+  
+    // Track which nodes store which accounts
+    const nodeToAccountsMap = new Map<string, Set<number>>()
+  
+    // Build map of which nodes store which accounts
+    const allkeys = queueEntry.uniqueKeys.length
+  
+    for (let i = 0; i < queueEntry.uniqueKeys.length; i++) 
+    {
+      const key = queueEntry.uniqueKeys[i]
+      const homeNode = queueEntry.homeNodes[key]
+  
+      if (!homeNode) continue
+  
+      // Skip global accounts if not global modification
+      if (queueEntry.globalModification === false && 
+          this.stateManager.accountGlobals.isGlobalAccount(key)) {
+        continue
+      }
+  
+      const consensusNodeIds = homeNode.consensusNodeForOurNodeFull.map(n => n.id)
+      /* prettier-ignore */ if (logFlags.fact) console.log(`FACT-GROUP-2 txId:${queueEntry.logID} key[${i}]:${key.substring(0,8)} consensusNodes:[${consensusNodeIds.join(',')}]`)
+  
+      // Track all nodes that store this account's partition
+      for (const node of homeNode.consensusNodeForOurNodeFull) {
+        if (!nodeToAccountsMap.has(node.id)) {
+          nodeToAccountsMap.set(node.id, new Set())
+        }
+        nodeToAccountsMap.get(node.id).add(i)
+      }    
+    }
+    // Get first account's home node to access consensus and edge nodes separately
+    const executionGroupHome = queueEntry.homeNodes[queueEntry.uniqueKeys[0]]
+    const executionEdgeNodeIds = new Set(executionGroupHome?.edgeNodes?.map(n => n.id) || [])
+  
+    /* prettier-ignore */ if (logFlags.fact) console.log(`FACT-GROUP-3 txId:${queueEntry.logID} executionEdgeNodeIds:[${Array.from(executionEdgeNodeIds).join(',')}]`)
+  
+    const senderGroup = queueEntry.transactionGroup.filter(node => {
+      const accountsStored = nodeToAccountsMap.get(node.id)
+      const accountsStoredArray = accountsStored ? Array.from(accountsStored) : []
+      const isExecutionEdge = executionEdgeNodeIds.has(node.id)
+  
+      /* prettier-ignore */ if (logFlags.fact) console.log(`FACT-GROUP-4 txId:${queueEntry.logID} node:${node.id} accountsStored:[${accountsStoredArray.join(',')}] isExecutionEdge:${isExecutionEdge}`)
+  
+      if (!accountsStored || accountsStored.size === 0) 
+        return false
+  
+      if (accountsStored && accountsStored.size == allkeys) {
+        return false
+      }
+  
+      return true
+    })
+  
+    const receiverGroup = (queueEntry.executionGroup as (Shardus.NodeWithRank | P2PTypes.NodeListTypes.Node)[])?.filter(node => {
+      const accountsStored = nodeToAccountsMap.get(node.id)
+  
+      if (accountsStored && accountsStored.size == allkeys) {
+        return false
+      }
+  
+      return true
+    })
+  
+    // Sort the result by node.id for consistent ordering
+    senderGroup.sort(this.stateManager._sortByIdAsc)
+    receiverGroup.sort(this.stateManager._sortByIdAsc)
+  
+    if (logFlags.fact) console.log(`FACT-GROUP-5 txId:${queueEntry.logID} senderGroup:[${senderGroup.map(n => n.id.substring(0,4)).join(',')}] receiverGroup:[${receiverGroup.map(n => n.id.substring(0,4)).join(',')}]`)
+  
+    return [receiverGroup, senderGroup]
+  }  
+
   async factTellCorrespondingNodes(queueEntry: QueueEntry): Promise<unknown> {
     try {
       let cycleShardData = this.stateManager.currentCycleShardData
@@ -4367,6 +4457,8 @@ class TransactionQueue {
           /* prettier-ignore */ if (logFlags.verbose) this.mainLogger.debug(`factTellCorrespondingNodes hasKey=false  key: ${utils.stringifyReduce(key)}`)
         }
 
+        if (logFlags.fact) console.log(`FACT-ADD-DATA-03 nodeId:${Self.id} txId:${queueEntry.logID} key:${key} hasKey:${hasKey}`)
+
         if (hasKey) {
           // TODO PERF is it possible that this query could be used to update our in memory cache? (this would save us from some slow look ups) later on
           //    when checking timestamps.. alternatively maybe there is a away we can note the timestamp with what is returned here in the queueEntry data
@@ -4409,6 +4501,16 @@ class TransactionQueue {
         return
       }
 
+      const ourNodeId = cycleShardData.nodeShardData.node.id
+      const [receiverGroup, senderGroup] = this.calculateFactSenderGroup(queueEntry)        
+      const isInSenderGroup = senderGroup.some(node => node.id === ourNodeId)
+
+      if (configContext.p2p.factv2) {        
+        if (!isInSenderGroup) {
+          return
+        }
+      }
+
       const payload: { stateList: Shardus.WrappedResponse[]; txid: string } = {
         stateList: [],
         txid: queueEntry.acceptedTx.txId,
@@ -4424,14 +4526,28 @@ class TransactionQueue {
       const signedPayload = this.crypto.sign(payload)
 
       // prepare inputs to get corresponding indices
-      const ourIndexInTxGroup = queueEntry.ourTXGroupIndex
-      const targetGroup = queueEntry.executionNodeIdSorted
-      const targetGroupSize = targetGroup.length
-      const senderGroupSize = targetGroupSize
+      let ourIndexInTxGroup: number
+      let targetGroup: string[]
+      let senderGroupSize: number
+      let targetGroupSize: number
+      let targetIndices: { startIndex: number; endIndex: number }
 
-      // calculate target start and end indices in txGroup
-      const targetIndices = this.getStartAndEndIndexOfTargetGroup(targetGroup, queueEntry.transactionGroup)
-      const unwrappedIndex = queueEntry.isSenderWrappedTxGroup[Self.id]
+      const unwrappedIndex = queueEntry.isSenderWrappedTxGroup[Self.id]      
+
+      if (configContext.p2p.factv2) {
+        ourIndexInTxGroup = senderGroup.findIndex((node) => node.id === Self.id)
+        targetGroup = receiverGroup.map(n => n.id)
+        targetGroupSize = targetGroup.length
+        senderGroupSize = senderGroup.length
+        targetIndices = this.getStartAndEndIndexOfTargetGroup(targetGroup, senderGroup)
+      } else {
+        ourIndexInTxGroup = queueEntry.ourTXGroupIndex
+        targetGroup = queueEntry.executionNodeIdSorted
+        targetGroupSize = targetGroup.length
+        senderGroupSize = targetGroupSize
+        // calculate target start and end indices in txGroup
+        targetIndices = this.getStartAndEndIndexOfTargetGroup(targetGroup, queueEntry.transactionGroup)
+      }
 
       // temp logs
       if (logFlags.verbose) {
@@ -4461,10 +4577,32 @@ class TransactionQueue {
         queueEntry.correspondingGlobalOffset,
         targetGroupSize,
         senderGroupSize,
-        queueEntry.transactionGroup.length
+        configContext.p2p.factv2 ? queueEntry.transactionGroup.length : senderGroupSize,
+        `preApplyDataSender: ${queueEntry.logID}`,
+        configContext.p2p.factv2
       )
+      
+      if (configContext.p2p.factv2 && logFlags.fact) {
+        const factSendJson1 = {
+          txId: queueEntry.logID,
+          parameters: {
+            senderIndex: ourIndexInTxGroup,
+            startIndex: targetIndices.startIndex,
+            endIndex: targetIndices.endIndex,
+            globalOffset: queueEntry.correspondingGlobalOffset,
+            targetGroupSize: targetGroupSize,
+            senderGroupSize: senderGroupSize,
+            transactionGroupLength: senderGroupSize
+          },
+          result: {
+            validCorrespondingIndices: correspondingIndices,
+            destinationCount: correspondingIndices.length
+          }
+        }
+        console.log(`[FACT-PRETX-SEND-JSON-1] ${Self.id} ${queueEntry.logID} ${JSON.stringify(factSendJson1)}`)      
+      }
       let oldCorrespondingIndices: number[] = undefined
-      if (this.config.stateManager.correspondingTellUseUnwrapped) {
+      if (this.config.stateManager.correspondingTellUseUnwrapped && !configContext.p2p.factv2) {
         // can just find if any home nodes for the accounts we cover would say that our node is wrapped
         // precalc shouldUnwrapSender   check if any account we own shows that we are on the left side of a wrapped range
         // can use partitions to check this
@@ -4493,7 +4631,7 @@ class TransactionQueue {
         }
       }
       // check if we should avoid our index in the corresponding nodes
-      if (Context.config.stateManager.avoidOurIndexInFactTell && correspondingIndices.includes(ourIndexInTxGroup)) {
+      if (Context.config.stateManager.avoidOurIndexInFactTell && correspondingIndices.includes(ourIndexInTxGroup) && !configContext.p2p.factv2) {
         if (logFlags.debug)
           this.mainLogger.debug(
             `factTellCorrespondingNodes: avoiding our index in tx group`,
@@ -4565,7 +4703,13 @@ class TransactionQueue {
         if (index === ourIndexInTxGroup) {
           continue
         }
-        const targetNode = queueEntry.transactionGroup[index]
+
+        let targetNode: P2PTypes.NodeListTypes.Node
+        if (configContext.p2p.factv2) 
+          senderGroup[index]
+        else
+          queueEntry.transactionGroup[index]
+
         let targetHasOurData = false
 
         if (this.config.stateManager.filterReceivingNodesForTXData) {
@@ -4640,6 +4784,17 @@ class TransactionQueue {
       }
       // send payload to each node in correspondingNodes
       this.broadcastState(filteredNodes, payload, 'factTellCorrespondingNodes')
+
+      if (logFlags.fact) {
+        const factSendJson2 = {
+          txId: queueEntry.logID,
+          filteredNodes: filteredNodes.map(n => ({ id: n.id, ip: n.externalIp, port: n.externalPort })),
+          payload: {
+            stateList: payload.stateList.map(s => s.accountId)
+          }
+        }
+        console.log(`[FACT-PRETX-SEND-JSON-3] ${Self.id} ${queueEntry.logID} ${JSON.stringify(factSendJson2)}`)
+      }
     } catch (error) {
       /* prettier-ignore */ this.statemanager_fatal( `factTellCorrespondingNodes_ex`, 'factTellCorrespondingNodes' + utils.formatErrorMessage(error) )
     }
@@ -4725,40 +4880,82 @@ class TransactionQueue {
       )
       return false
     }
-    const senderHasAddress = ShardFunctions.testAddressInRange(dataKey, senderNodeShardData.storedPartitions)
+    const senderHasAddress = ShardFunctions.testAddressInRange(dataKey, senderNodeShardData.storedPartitions)    
 
-    // check if it is a FACT sender
-    const receivingNodeIndex = queueEntry.ourTXGroupIndex // we are the receiver
-    const senderNodeIndex = queueEntry.transactionGroup.findIndex((node) => node.id === senderNodeId)
-    let wrappedSenderNodeIndex = null
-    if (queueEntry.isSenderWrappedTxGroup[senderNodeId] != null) {
-      wrappedSenderNodeIndex = queueEntry.isSenderWrappedTxGroup[senderNodeId]
-    }
-    const receiverGroupSize = queueEntry.executionNodeIdSorted.length
-    const senderGroupSize = receiverGroupSize
+    let isValidFactSender: boolean 
 
-    const targetGroup = queueEntry.executionNodeIdSorted
-    const targetIndices = this.getStartAndEndIndexOfTargetGroup(targetGroup, queueEntry.transactionGroup)
+    if (configContext.p2p.factv2) {
+      const [receiverGroup, senderGroup] = this.calculateFactSenderGroup(queueEntry)
+      const receivingNodeIndex = senderGroup.findIndex((node) => node.id === Self.id)
+      const senderNodeIndex = senderGroup.findIndex((node) => node.id === senderNodeId)
+      const receiverGroupSize = receiverGroup.length
+      const senderGroupSize = senderGroup.length
+      const targetIndices = this.getStartAndEndIndexOfTargetGroup(receiverGroup.map(n => n.id), senderGroup)
+  
+      // Early validation: check if sender is in the reduced FACT sender group
+      const isInFactSenderGroup = senderGroup.some(node => node.id === senderNodeId)
+      if (!isInFactSenderGroup) {
+        /* prettier-ignore */ if (logFlags.verbose) this.mainLogger.debug(`factValidateCorrespondingTellSender: Sender ${senderNodeId.slice(0, 4)} not in FACT sender group - invalid`)
+        nestedCountersInstance.countEvent(
+          'stateManager',
+          'factValidateCorrespondingTellSender: sender not in FACT sender group'
+        )
+        return false
+      }
+      let correspondingIndices = getCorrespondingNodes(
+        senderNodeIndex,
+        targetIndices.startIndex,
+        targetIndices.endIndex,
+        queueEntry.correspondingGlobalOffset,
+        receiverGroupSize,
+        senderGroupSize,
+        senderGroupSize,
+        `preApplyDataValidator: ${queueEntry.logID}`,
+        configContext.p2p.factv2
+      )
+      isValidFactSender = correspondingIndices.includes(receivingNodeIndex)
+      if (logFlags.fact) {
+        const factPreTxVerifyJson1 = {
+          txId: queueEntry.logID,
+          parameters: {
+            receivingNodeIndex: receivingNodeIndex,
+            senderNodeIndex: senderNodeIndex,
+            globalOffset: queueEntry.correspondingGlobalOffset,
+            receiverGroupSize: receiverGroupSize,
+            senderGroupSize: senderGroupSize,
+            startIndex: targetIndices.startIndex,
+            endIndex: targetIndices.endIndex,
+            transactionGroupLength: senderGroupSize,
+            dataKey: dataKey
+          },
+          result: isValidFactSender
+        }
+        console.log(`[FACT-PRETX-VERIFY-JSON-1] ${Self.id} ${queueEntry.logID} ${JSON.stringify(factPreTxVerifyJson1)}`)
+        // because we are not using validate function
+        console.log(
+          `note: tellSender ${queueEntry.logID} X verification failed correspondingIndices:${correspondingIndices} sender: ${senderNodeIndex} receiver: ${receivingNodeIndex}`
+        )      
+      }
 
-    /* prettier-ignore */ if (logFlags.verbose) this.mainLogger.debug(`factValidateCorrespondingTellSender: txId: ${queueEntry.acceptedTx.txId} sender node id: ${senderNodeId}, receiver id: ${Self.id} senderHasAddress: ${senderHasAddress} receivingNodeIndex: ${receivingNodeIndex} senderNodeIndex: ${senderNodeIndex} receiverGroupSize: ${receiverGroupSize} senderGroupSize: ${senderGroupSize} targetIndices: ${utils.stringifyReduce(targetIndices)}`)
+    } else {
+      // check if it is a FACT sender
+      const receivingNodeIndex = queueEntry.ourTXGroupIndex // we are the receiver
+      const senderNodeIndex = queueEntry.transactionGroup.findIndex((node) => node.id === senderNodeId)
+      let wrappedSenderNodeIndex = null
+      if (queueEntry.isSenderWrappedTxGroup[senderNodeId] != null) {
+        wrappedSenderNodeIndex = queueEntry.isSenderWrappedTxGroup[senderNodeId]
+      }
+      const receiverGroupSize = queueEntry.executionNodeIdSorted.length
+      const senderGroupSize = receiverGroupSize
 
-    let isValidFactSender = verifyCorrespondingSender(
-      receivingNodeIndex,
-      senderNodeIndex,
-      queueEntry.correspondingGlobalOffset,
-      receiverGroupSize,
-      senderGroupSize,
-      targetIndices.startIndex,
-      targetIndices.endIndex,
-      queueEntry.transactionGroup.length,
-      false,
-      `tellSender ${queueEntry.logID}`
-    )
-    if (isValidFactSender === false && wrappedSenderNodeIndex != null && wrappedSenderNodeIndex >= 0) {
-      // try again with wrapped sender index
+      const targetGroup = queueEntry.executionNodeIdSorted
+      const targetIndices = this.getStartAndEndIndexOfTargetGroup(targetGroup, queueEntry.transactionGroup)
+
+      /* prettier-ignore */ if (logFlags.verbose) this.mainLogger.debug(`factValidateCorrespondingTellSender: txId: ${queueEntry.acceptedTx.txId} sender node id: ${senderNodeId}, receiver id: ${Self.id} senderHasAddress: ${senderHasAddress} receivingNodeIndex: ${receivingNodeIndex} senderNodeIndex: ${senderNodeIndex} receiverGroupSize: ${receiverGroupSize} senderGroupSize: ${senderGroupSize} targetIndices: ${utils.stringifyReduce(targetIndices)}`)
+      
       isValidFactSender = verifyCorrespondingSender(
         receivingNodeIndex,
-        wrappedSenderNodeIndex,
+        senderNodeIndex,
         queueEntry.correspondingGlobalOffset,
         receiverGroupSize,
         senderGroupSize,
@@ -4766,9 +4963,25 @@ class TransactionQueue {
         targetIndices.endIndex,
         queueEntry.transactionGroup.length,
         false,
-        `tellSenderWrapped ${queueEntry.logID}`
+        `tellSender ${queueEntry.logID}`
       )
+      if (isValidFactSender === false && wrappedSenderNodeIndex != null && wrappedSenderNodeIndex >= 0) {
+        // try again with wrapped sender index
+        isValidFactSender = verifyCorrespondingSender(
+          receivingNodeIndex,
+          wrappedSenderNodeIndex,
+          queueEntry.correspondingGlobalOffset,
+          receiverGroupSize,
+          senderGroupSize,
+          targetIndices.startIndex,
+          targetIndices.endIndex,
+          queueEntry.transactionGroup.length,
+          false,
+          `tellSenderWrapped ${queueEntry.logID}`
+        )
+      }
     }
+
     // it maybe a FACT sender but sender does not cover the account
     if (senderHasAddress === false) {
       this.mainLogger.error(
@@ -4782,7 +4995,7 @@ class TransactionQueue {
     }
 
     // it is neither a FACT corresponding node nor an exe neighbour node
-    if (isValidFactSender === false) {
+    if (isValidFactSender === false) {      
       this.mainLogger.error(
         `factValidateCorrespondingTellSender: logId: ${queueEntry.logID} sender is neither a valid sender nor a neighbour node isValidSender:  ${isValidFactSender}`
       )
@@ -4816,239 +5029,22 @@ class TransactionQueue {
         break
       }
     }
-    let endIndex = startIndex + n
-    if (endIndex > transactionGroup.length) {
-      endIndex = endIndex - transactionGroup.length
+    let endIndex: number
+    // fixing obvious bug with rotation safety
+    if (configContext.p2p.factv2) {
+      endIndex = startIndex + n - 1
+      if (endIndex >= transactionGroup.length) {
+        endIndex = endIndex - transactionGroup.length
+      }
+    }
+    else {
+      endIndex = startIndex + n
+      if (endIndex > transactionGroup.length) {
+        endIndex = endIndex - transactionGroup.length
+      }
     }
     return { startIndex, endIndex }
-  }
-
-  /**
-   * After a reciept is formed, use this to send updated account data to shards that did not execute a change
-   * I am keeping the async tag because this function does kick off async tasks it just does not await them
-   * I think this tag makes it more clear that this function is not a simple synchronous function
-   * @param queueEntry
-   * @returns
-   */
-  // async tellCorrespondingNodesFinalData(queueEntry: QueueEntry): Promise<void> {
-  //   profilerInstance.profileSectionStart('tellCorrespondingNodesFinalData', true)
-  //   /* prettier-ignore */ if (logFlags.playback) this.logger.playbackLogNote('tellCorrespondingNodesFinalData', queueEntry.logID, `tellCorrespondingNodesFinalData - start: ${queueEntry.logID}`)
-
-  //   if (this.stateManager.currentCycleShardData == null) {
-  //     throw new Error('tellCorrespondingNodesFinalData: currentCycleShardData == null')
-  //   }
-  //   if (queueEntry.uniqueKeys == null) {
-  //     throw new Error('tellCorrespondingNodesFinalData: queueEntry.uniqueKeys == null')
-  //   }
-  //   if (queueEntry.globalModification === true) {
-  //     throw new Error('tellCorrespondingNodesFinalData globalModification === true')
-  //   }
-
-  //   if (this.executeInOneShard && queueEntry.isInExecutionHome === false) {
-  //     throw new Error('tellCorrespondingNodesFinalData isInExecutionHome === false')
-  //   }
-  //   if (queueEntry.executionShardKey == null || queueEntry.executionShardKey == '') {
-  //     throw new Error('tellCorrespondingNodesFinalData executionShardKey == null or empty')
-  //   }
-  //   if (queueEntry.preApplyTXResult == null) {
-  //     throw new Error('tellCorrespondingNodesFinalData preApplyTXResult == null')
-  //   }
-
-  //   // Report data to corresponding nodes
-  //   const ourNodeData = this.stateManager.currentCycleShardData.nodeShardData
-  //   let correspondingAccNodes: Shardus.Node[] = []
-  //   const datas: { [accountID: string]: Shardus.WrappedResponse } = {}
-
-  //   const applyResponse = queueEntry.preApplyTXResult.applyResponse
-  //   let wrappedStates = this.stateManager.useAccountWritesOnly ? {} : queueEntry.collectedData
-  //   const writtenAccountsMap: WrappedResponses = {}
-  //   if (applyResponse.accountWrites != null && applyResponse.accountWrites.length > 0) {
-  //     for (const writtenAccount of applyResponse.accountWrites) {
-  //       writtenAccountsMap[writtenAccount.accountId] = writtenAccount.data
-  //       writtenAccountsMap[writtenAccount.accountId].prevStateId = wrappedStates[writtenAccount.accountId]
-  //         ? wrappedStates[writtenAccount.accountId].stateId
-  //         : ''
-  //       writtenAccountsMap[writtenAccount.accountId].prevDataCopy = wrappedStates[writtenAccount.accountId]
-  //         ? utils.deepCopy(writtenAccount.data)
-  //         : {}
-
-  //       datas[writtenAccount.accountId] = writtenAccount.data
-  //     }
-  //     //override wrapped states with writtenAccountsMap which should be more complete if it included
-  //     wrappedStates = writtenAccountsMap
-  //   }
-  //   const keysToShare = Object.keys(wrappedStates)
-
-  //   let message: { stateList: Shardus.WrappedResponse[]; txid: string }
-  //   let edgeNodeIds = []
-  //   let consensusNodeIds = []
-
-  //   const localHomeNode = queueEntry.homeNodes[queueEntry.executionShardKey]
-
-  //   let nodesToSendTo: StringNodeObjectMap = {}
-  //   let doOnceNodeAccPair = new Set<string>() //can skip  node+acc if it happens more than once.
-
-  //   //let uniqueAccountsShared = 0
-  //   let totalShares = 0
-  //   for (const key of keysToShare) {
-  //     nodesToSendTo = {}
-  //     doOnceNodeAccPair = new Set<string>()
-
-  //     // eslint-disable-next-line security/detect-object-injection
-  //     if (wrappedStates[key] != null) {
-  //       // eslint-disable-next-line security/detect-object-injection
-  //       let accountHomeNode = queueEntry.homeNodes[key]
-
-  //       if (accountHomeNode == null) {
-  //         accountHomeNode = ShardFunctions.findHomeNode(
-  //           this.stateManager.currentCycleShardData.shardGlobals,
-  //           key,
-  //           this.stateManager.currentCycleShardData.parititionShardDataMap
-  //         )
-  //         nestedCountersInstance.countEvent('stateManager', 'fetch missing home info')
-  //       }
-  //       if (accountHomeNode == null) {
-  //         throw new Error('tellCorrespondingNodesFinalData: should never get here.  accountHomeNode == null')
-  //       }
-
-  //       edgeNodeIds = []
-  //       consensusNodeIds = []
-  //       correspondingAccNodes = []
-
-  //       if (queueEntry.ourExGroupIndex === -1) {
-  //         throw new Error(
-  //           'tellCorrespondingNodesFinalData: should never get here.  our sending node must be in the execution group'
-  //         )
-  //       }
-
-  //       const ourLocalExecutionSetIndex = queueEntry.ourExGroupIndex
-  //       const ourSendingGroupSize = queueEntry.executionGroupMap.size
-
-  //       const consensusListSize = accountHomeNode.consensusNodeForOurNodeFull.length
-  //       const edgeListSize = accountHomeNode.edgeNodes.length
-  //       const pachedListSize = accountHomeNode.patchedOnNodes.length
-
-  //       // must add one to each lookup index!
-  //       const indicies = ShardFunctions.debugFastStableCorrespondingIndicies(
-  //         ourSendingGroupSize,
-  //         consensusListSize,
-  //         ourLocalExecutionSetIndex + 1
-  //       )
-  //       const edgeIndicies = ShardFunctions.debugFastStableCorrespondingIndicies(
-  //         ourSendingGroupSize,
-  //         edgeListSize,
-  //         ourLocalExecutionSetIndex + 1
-  //       )
-
-  //       let patchIndicies = []
-  //       if (accountHomeNode.patchedOnNodes.length > 0) {
-  //         patchIndicies = ShardFunctions.debugFastStableCorrespondingIndicies(
-  //           ourSendingGroupSize,
-  //           pachedListSize,
-  //           ourLocalExecutionSetIndex + 1
-  //         )
-  //       }
-
-  //       // for each remote node lets save it's id
-  //       for (const index of indicies) {
-  //         const node = accountHomeNode.consensusNodeForOurNodeFull[index - 1] // fastStableCorrespondingIndicies is one based so adjust for 0 based array
-  //         if (node != null && node.id !== ourNodeData.node.id) {
-  //           nodesToSendTo[node.id] = node
-  //           consensusNodeIds.push(node.id)
-  //         }
-  //       }
-  //       for (const index of edgeIndicies) {
-  //         const node = accountHomeNode.edgeNodes[index - 1] // fastStableCorrespondingIndicies is one based so adjust for 0 based array
-  //         if (node != null && node.id !== ourNodeData.node.id) {
-  //           nodesToSendTo[node.id] = node
-  //           edgeNodeIds.push(node.id)
-  //         }
-  //       }
-
-  //       for (const index of patchIndicies) {
-  //         const node = accountHomeNode.edgeNodes[index - 1] // fastStableCorrespondingIndicies is one based so adjust for 0 based array
-  //         if (node != null && node.id !== ourNodeData.node.id) {
-  //           nodesToSendTo[node.id] = node
-  //           //edgeNodeIds.push(node.id)
-  //         }
-  //       }
-
-  //       for (const [accountID, node] of Object.entries(nodesToSendTo)) {
-  //         const keyPair = accountID + key
-  //         if (node != null && doOnceNodeAccPair.has(keyPair) === false) {
-  //           doOnceNodeAccPair.add(keyPair)
-  //           correspondingAccNodes.push(node)
-  //         }
-  //       }
-
-  //       //how can we be making so many calls??
-  //       /* prettier-ignore */ if (logFlags.verbose) if (logFlags.playback) this.logger.playbackLogNote('tellCorrespondingNodesFinalData', queueEntry.logID, `tellCorrespondingNodesFinalData nodesToSendTo:${Object.keys(nodesToSendTo).length} doOnceNodeAccPair:${doOnceNodeAccPair.size} indicies:${Utils.safeStringify(indicies)} edgeIndicies:${Utils.safeStringify(edgeIndicies)} patchIndicies:${Utils.safeStringify(patchIndicies)}  doOnceNodeAccPair: ${Utils.safeStringify([...doOnceNodeAccPair.keys()])} ourLocalExecutionSetIndex:${ourLocalExecutionSetIndex} ourSendingGroupSize:${ourSendingGroupSize} consensusListSize:${consensusListSize} edgeListSize:${edgeListSize} pachedListSize:${pachedListSize}`)
-
-  //       const dataToSend: Shardus.WrappedResponse[] = []
-  //       // eslint-disable-next-line security/detect-object-injection
-  //       dataToSend.push(datas[key]) // only sending just this one key at a time
-  //       message = { stateList: dataToSend, txid: queueEntry.acceptedTx.txId }
-  //       if (correspondingAccNodes.length > 0) {
-  //         const remoteRelation = ShardFunctions.getNodeRelation(
-  //           accountHomeNode,
-  //           this.stateManager.currentCycleShardData.ourNode.id
-  //         )
-  //         const localRelation = ShardFunctions.getNodeRelation(
-  //           localHomeNode,
-  //           this.stateManager.currentCycleShardData.ourNode.id
-  //         )
-  //         /* prettier-ignore */ if (logFlags.playback) this.logger.playbackLogNote('tellCorrespondingNodesFinalData', queueEntry.logID, `remoteRel: ${remoteRelation} localrel: ${localRelation} qId: ${queueEntry.entryID} AccountBeingShared: ${utils.makeShortHash(key)} EdgeNodes:${utils.stringifyReduce(edgeNodeIds)} ConsesusNodes${utils.stringifyReduce(consensusNodeIds)}`)
-
-  //         // Filter nodes before we send tell()
-  //         const filteredNodes = this.stateManager.filterValidNodesForInternalMessage(
-  //           correspondingAccNodes,
-  //           'tellCorrespondingNodesFinalData',
-  //           true,
-  //           true
-  //         )
-  //         if (filteredNodes.length === 0) {
-  //           /* prettier-ignore */ if (logFlags.error) this.mainLogger.error('tellCorrespondingNodesFinalData: filterValidNodesForInternalMessage no valid nodes left to try')
-  //           //return null
-  //           continue
-  //         }
-  //         const filterdCorrespondingAccNodes = filteredNodes
-  //         const filterNodesIpPort = filterdCorrespondingAccNodes.map(
-  //           (node) => node.externalIp + ':' + node.externalPort
-  //         )
-  //         /* prettier-ignore */ if (logFlags.error) this.mainLogger.debug('tellcorrernodingnodesfinaldata', queueEntry.logID, ` : filterValidNodesForInternalMessage ${filterNodesIpPort} for accounts: ${utils.stringifyReduce(message.stateList)}`)
-  //         // if (this.config.p2p.useBinarySerializedEndpoints && this.config.p2p.broadcastFinalStateBinary) {
-  //           // convert legacy message to binary supported type
-  //           const request = message as BroadcastFinalStateReq
-  //           if (logFlags.seqdiagram) {
-  //             for (const node of filterdCorrespondingAccNodes) {
-  //               /* prettier-ignore */ if (logFlags.seqdiagram) this.seqLogger.info(`0x53455102 ${shardusGetTime()} tx:${message.txid} ${NodeList.activeIdToPartition.get(Self.id)}-->>${NodeList.activeIdToPartition.get(node.id)}: ${'broadcast_finalstate'}`)
-  //             }
-  //           }
-
-  //           this.p2p.tellBinary<BroadcastFinalStateReq>(
-  //             filterdCorrespondingAccNodes,
-  //             InternalRouteEnum.binary_broadcast_finalstate,
-  //             request,
-  //             serializeBroadcastFinalStateReq,
-  //             {
-  //               verification_data: verificationDataCombiner(
-  //                 message.txid,
-  //                 message.stateList.length.toString()
-  //               ),
-  //             }
-  //           )
-  //         // } else {
-  //           // this.p2p.tell(filterdCorrespondingAccNodes, 'broadcast_finalstate', message)
-  //         // }
-  //         totalShares++
-  //       }
-  //     }
-  //   }
-
-  //   nestedCountersInstance.countEvent('tellCorrespondingNodesFinalData', 'totalShares', totalShares)
-  //   /* prettier-ignore */ if (logFlags.verbose) this.mainLogger.debug(`tellCorrespondingNodesFinalData - end: ${queueEntry.logID} totalShares:${totalShares}`)
-  //   profilerInstance.profileSectionEnd('tellCorrespondingNodesFinalData', true)
-  // }
+  }  
 
   factTellCorrespondingNodesFinalData(queueEntry: QueueEntry): void {
     profilerInstance.profileSectionStart('factTellCorrespondingNodesFinalData', true)
@@ -5100,7 +5096,12 @@ class TransactionQueue {
 
     let totalShares = 0
     const targetStartIndex = 0
-    const targetEndIndex = queueEntry.transactionGroup.length
+
+    // fixing obvious bug with rotation safety
+    let targetEndIndex = queueEntry.transactionGroup.length
+    if (configContext.p2p.factv2) 
+      targetEndIndex = targetEndIndex - 1
+    
     const targetGroupSize = queueEntry.transactionGroup.length
 
     const senderIndexInTxGroup = queueEntry.ourTXGroupIndex // Keep original variable for logging
@@ -5116,6 +5117,9 @@ class TransactionQueue {
       /* prettier-ignore */ if (logFlags.verbose) this.mainLogger.debug(`factTellCorrespondingNodesFinalData: Using wrapped index ${wrappedIndex} instead of regular ${senderIndexInTxGroup}`)
     }
 
+    if (configContext.p2p.factv2) 
+      senderIndex = queueEntry.transactionGroup.findIndex((node) => node.id === Self.id)    
+
     // Calculate corresponding nodes using the correct index that receivers will validate
     const correspondingIndices = getCorrespondingNodes(
       senderIndex,
@@ -5124,9 +5128,31 @@ class TransactionQueue {
       queueEntry.correspondingGlobalOffset,
       targetGroupSize,
       senderGroupSize,
-      queueEntry.transactionGroup.length,
-      queueEntry.logID
+      targetGroupSize,
+      `finalDataSender: ${queueEntry.logID}`,
+      configContext.p2p.factv2
     )
+
+    if (logFlags.fact) {
+      const factFinalJson1 = {
+        txId: queueEntry.logID,
+        parameters: {
+          senderIndex: senderIndex,
+          startIndex: targetStartIndex,
+          endIndex: targetEndIndex,
+          globalOffset: queueEntry.correspondingGlobalOffset,
+          targetGroupSize: targetGroupSize,
+          senderGroupSize: senderGroupSize,
+          transactionGroupLength: queueEntry.transactionGroup.length,
+          wrappedIndex: wrappedIndex
+        },
+        result: {
+          correspondingIndices: correspondingIndices,
+          destinationCount: correspondingIndices.length
+        }
+      }
+      console.log(`[FACT-FINAL-SEND-JSON-1] ${Self.id} ${queueEntry.logID} ${JSON.stringify(factFinalJson1)}`)
+    }
 
     for (const key of keysToShare) {
       // eslint-disable-next-line security/detect-object-injection
@@ -5180,6 +5206,18 @@ class TransactionQueue {
             for (const node of filterdCorrespondingAccNodes) {
               /* prettier-ignore */ if (logFlags.seqdiagram) this.seqLogger.info(`0x53455102 ${shardusGetTime()} tx:${message.txid} ${NodeList.activeIdToPartition.get(Self.id)}-->>${NodeList.activeIdToPartition.get(node.id)}: ${'broadcast_finalstate'}`)
             }
+          }
+
+          if (logFlags.fact) {
+            const factFinalJson2 = {
+              txId: queueEntry.logID,
+              filteredNodes: filterdCorrespondingAccNodes.map(n => ({ id: n.id, ip: n.externalIp, port: n.externalPort })),
+              payload: {
+                stateList: message.stateList.map(s => s.accountId)
+              },
+              accountKey: key
+            }
+            console.log(`[FACT-FINAL-SEND-JSON-2] ${Self.id} ${queueEntry.logID} ${JSON.stringify(factFinalJson2)}`)
           }
 
           // if (this.usePOQo) {
@@ -5253,29 +5291,75 @@ class TransactionQueue {
     }
 
     let senderNodeIndex = queueEntry.transactionGroup.findIndex((node) => node.id === senderNodeId)
-    if (queueEntry.isSenderWrappedTxGroup[senderNodeId] != null) {
-      senderNodeIndex = queueEntry.isSenderWrappedTxGroup[senderNodeId]
+    let targetNodeIndex: number
+    let targetEndIndex = queueEntry.transactionGroup.length // end of tx group
+
+    if (configContext.p2p.factv2) {
+      targetNodeIndex = queueEntry.transactionGroup.findIndex((node) => node.id === Self.id)
+      targetEndIndex = targetEndIndex - 1
+    } else {
+      if (queueEntry.isSenderWrappedTxGroup[senderNodeId] != null) {
+        senderNodeIndex = queueEntry.isSenderWrappedTxGroup[senderNodeId]
+      }
+      targetNodeIndex = queueEntry.ourTXGroupIndex // we are the receiver
     }
+    
     const senderGroupSize = queueEntry.executionGroup.length
 
-    const targetNodeIndex = queueEntry.ourTXGroupIndex // we are the receiver
     const targetGroupSize = queueEntry.transactionGroup.length
-    const targetStartIndex = 0 // start of tx group
-    const targetEndIndex = queueEntry.transactionGroup.length // end of tx group
+    const targetStartIndex = 0 // start of tx group    
 
     // check if it is a FACT sender
-    const isValidFactSender = verifyCorrespondingSender(
-      targetNodeIndex,
-      senderNodeIndex,
-      queueEntry.correspondingGlobalOffset,
-      targetGroupSize,
-      senderGroupSize,
-      targetStartIndex,
-      targetEndIndex,
-      queueEntry.transactionGroup.length,
-      false,
-      `finalDataSender: ${queueEntry.logID}`
-    )
+    let isValidFactSender: boolean
+    if (configContext.p2p.factv2) {
+      const correspondingIndices = getCorrespondingNodes(
+        senderNodeIndex,
+        targetStartIndex,
+        targetEndIndex,
+        queueEntry.correspondingGlobalOffset,
+        targetGroupSize,
+        senderGroupSize,
+        targetGroupSize,
+        `finalDataValidator: ${queueEntry.logID}`,
+        configContext.p2p.factv2
+      )
+      const isValidFactSender = correspondingIndices.includes(targetNodeIndex)
+      if (logFlags.fact) {
+        const factFinalVerifyJson1 = {
+          txId: queueEntry.logID,
+          parameters: {
+            targetNodeIndex: targetNodeIndex,
+            senderNodeIndex: senderNodeIndex,
+            globalOffset: queueEntry.correspondingGlobalOffset,
+            targetGroupSize: targetGroupSize,
+            senderGroupSize: senderGroupSize,
+            targetStartIndex: targetStartIndex,
+            targetEndIndex: targetEndIndex,
+            transactionGroupLength: targetGroupSize,
+            wrapped: false
+          },
+          result: isValidFactSender
+        }
+        console.log(`[FACT-FINAL-VERIFY-JSON-1] ${Self.id} ${queueEntry.logID} ${JSON.stringify(factFinalVerifyJson1)}`)
+        if (isValidFactSender === false)
+          console.log(
+            `note: finalDataSender ${queueEntry.logID} X verification failed correspondingIndices:${correspondingIndices} sender: ${senderNodeIndex} receiver: ${targetNodeIndex}`
+          )
+      }
+    } else {
+      isValidFactSender = verifyCorrespondingSender(
+        targetNodeIndex,
+        senderNodeIndex,
+        queueEntry.correspondingGlobalOffset,
+        targetGroupSize,
+        senderGroupSize,
+        targetStartIndex,
+        targetEndIndex,
+        queueEntry.transactionGroup.length,
+        false,
+        `finalDataSender: ${queueEntry.logID}`
+      )
+    }    
 
     // it is not a FACT corresponding node
     if (isValidFactSender === false) {
@@ -5976,6 +6060,26 @@ class TransactionQueue {
               `txSafelyRemoved_1`,
               `stuck_in_consensus_3 txid: ${shortID} state: ${queueEntry.state} age:${txAge}`
             )
+
+            if (logFlags.fact) {
+              // Enhanced FACT-STUCK logging for debugging
+              const txGroupIds = queueEntry.transactionGroup?.map(node => node.id.slice(0, 4)) || []
+              const execGroupIds = queueEntry.executionGroup?.map(node => node.id.slice(0, 4)) || []
+              const activeNodeIds = NodeList.activeByIdOrder.map(n => n.id.slice(0, 4))
+              const [factReceiverGroup, factSenderGroup] = this.calculateFactSenderGroup(queueEntry)
+              const factSenderIds = factSenderGroup?.map(node => node.id.slice(0, 4)) || []
+              const factReceiverIds = factReceiverGroup?.map(node => node.id.slice(0, 4)) || []
+
+              console.log(
+                `FACT-STUCK nodeId:${Self.id} shortId:${shortID} state:${queueEntry.state} ` +
+                `txGroup:[${txGroupIds.join(',')}] ` +
+                `execGroup:[${execGroupIds.join(',')}] ` +
+                `factSenders:[${factSenderIds.join(',')}] ` +
+                `factReceivers:[${factReceiverIds.join(',')}] ` +
+                `activeNodes:[${activeNodeIds.join(',')}]`
+              )
+            }
+
             if (logFlags.txCancel)
               this.statemanager_fatal(`txSafelyRemoved_1_dump`, `${this.getDebugQueueInfo(queueEntry)}`)
             this.removeFromQueue(queueEntry, currentIndex)
@@ -6019,6 +6123,26 @@ class TransactionQueue {
                   configContext.stateManager.stuckTxRemoveTime3 / 1000
                 } seconds. state: ${queueEntry.state} has seen vote: ${anyVotes}`
               )
+
+              if (logFlags.fact) {
+                // Enhanced logging for FACT-STUCK debugging
+                const txGroupIds = queueEntry.transactionGroup?.map(node => node.id.slice(0, 4)) || []
+                const execGroupIds = queueEntry.executionGroup?.map(node => node.id.slice(0, 4)) || []
+                const activeNodeIds = NodeList.activeByIdOrder.map(n => n.id.slice(0, 4))
+                const [factReceiverGroup, factSenderGroup] = this.calculateFactSenderGroup(queueEntry)
+                const factSenderIds = factSenderGroup?.map(node => node.id.slice(0, 4)) || []
+                const factReceiverIds = factReceiverGroup?.map(node => node.id.slice(0, 4)) || []
+
+                console.log(
+                  `FACT-STUCK nodeId:${Self.id} shortId:${shortID} state:${queueEntry.state} ` +
+                  `txGroup:[${txGroupIds.join(',')}] ` +
+                  `execGroup:[${execGroupIds.join(',')}] ` +
+                  `factSenders:[${factSenderIds.join(',')}] ` +
+                  `factReceivers:[${factReceiverIds.join(',')}] ` +
+                  `activeNodes:[${activeNodeIds.join(',')}]`
+                )
+              }
+
               this.statemanager_fatal(
                 `txSafelyRemoved_3`,
                 `stuck_in_consensus_3. txid: ${shortID} state: ${queueEntry.state} age:${txAge}`
