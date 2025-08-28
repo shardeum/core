@@ -168,6 +168,7 @@ const SERVER_CONFIG: StrictServerConfiguration = {
     formingNodesPerCycle: 7,
     downNodeFilteringEnabled: false,
     useFactCorrespondingTell: true,
+    factv2: false, // FACT v2 algorithm - disabled by default
     resubmitStandbyAddWaitDuration: 1000, // 1 second in ms
     requiredVotesPercentage: 2 / 3.0,
     timestampCacheFix: true,
