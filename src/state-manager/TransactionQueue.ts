@@ -4716,7 +4716,8 @@ class TransactionQueue {
       queueEntry.correspondingGlobalOffset,
       receiverGroupSize,
       senderGroupSize,
-      senderGroupSize
+      senderGroupSize,
+      `tellSender: ${queueEntry.logID}`
     )
     const isValidFactSender = correspondingIndices.includes(receivingNodeIndex)
     
@@ -4753,6 +4754,9 @@ class TransactionQueue {
 
     // it is neither a FACT corresponding node nor an exe neighbour node
     if (isValidFactSender === false) {
+      console.log(
+        `note: tellSender ${queueEntry.logID} X verification failed correspondingIndices:${correspondingIndices} sender: ${senderNodeIndex} receiver: ${receivingNodeIndex}`
+      )
       this.mainLogger.error(
         `factValidateCorrespondingTellSender: logId: ${queueEntry.logID} sender is neither a valid sender nor a neighbour node isValidSender:  ${isValidFactSender}`
       )
@@ -5353,19 +5357,18 @@ class TransactionQueue {
     const targetStartIndex = 0 // start of tx group
     const targetEndIndex = queueEntry.transactionGroup.length - 1 // end of tx group
 
-    // check if it is a FACT sender
-    const isValidFactSender = verifyCorrespondingSender(
-      targetNodeIndex,
+    const correspondingIndices = getCorrespondingNodes(
       senderNodeIndex,
+      targetStartIndex,
+      targetEndIndex,
       queueEntry.correspondingGlobalOffset,
       targetGroupSize,
       senderGroupSize,
-      targetStartIndex,
-      targetEndIndex,
       targetGroupSize,
-      false,
       `finalDataSender: ${queueEntry.logID}`
     )
+    
+    const isValidFactSender = correspondingIndices.includes(targetNodeIndex)
 
     // JSON log for Final verification
     const factFinalVerifyJson1 = {
@@ -5378,7 +5381,7 @@ class TransactionQueue {
         senderGroupSize: senderGroupSize,
         targetStartIndex: targetStartIndex,
         targetEndIndex: targetEndIndex,
-        transactionGroupLength: queueEntry.transactionGroup.length,
+        transactionGroupLength: targetGroupSize,
         wrapped: false
       },
       result: isValidFactSender
@@ -5387,6 +5390,9 @@ class TransactionQueue {
 
     // it is not a FACT corresponding node
     if (isValidFactSender === false) {
+      console.log(
+        `note: finalDataSender ${queueEntry.logID} X verification failed correspondingIndices:${correspondingIndices} sender: ${senderNodeIndex} receiver: ${targetNodeIndex}`
+      )
       /* prettier-ignore */ if(logFlags.error) this.mainLogger.error(`factValidateCorrespondingTellFinalDataSender: logId: ${queueEntry.logID} sender is not a valid sender isValidSender:  ${isValidFactSender}`);
       nestedCountersInstance.countEvent(
         'stateManager',
