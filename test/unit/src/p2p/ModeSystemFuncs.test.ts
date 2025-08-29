@@ -36,9 +36,9 @@ jest.mock('../../../../src/p2p/Context', () => ({
       rotationCountMultiply: 1,
       rotationCountAdd: 0,
       rotationPercentActive: 0.001,
-      enableDangerousProblematicNodeRemoval: false,
       problematicNodeRemovalCycleFrequency: 10,
       maxProblematicNodeRemovalsPerCycle: 1,
+      problematicNodeRemovalSafetyDelta: 1,
     },
     debug: {
       verboseNestedCounters: false,
@@ -174,9 +174,9 @@ describe('ModeSystemFuncs', () => {
       rotationCountMultiply: 1,
       rotationCountAdd: 0,
       rotationPercentActive: 0.001,
-      enableDangerousProblematicNodeRemoval: false,
       problematicNodeRemovalCycleFrequency: 10,
       maxProblematicNodeRemovalsPerCycle: 1,
+      problematicNodeRemovalSafetyDelta: 1,
     }
 
     // Reset mock functions
@@ -1083,33 +1083,6 @@ describe('ModeSystemFuncs', () => {
       ;(getProblematicNodes as jest.Mock).mockReturnValue([])
     })
 
-    it('should return empty result when dangerous removal is prevented', () => {
-      ;(config.p2p.enableDangerousProblematicNodeRemoval as any) = false
-      ;(config.p2p.syncFloorEnabled as any) = false // Use old logic
-
-      const prevRecord = {
-        start: Date.now(),
-        desired: 20,
-        counter: 1,
-        mode: 'processing',
-        lost: [],
-      } as any
-
-      const txs = { apoptosis: [] } as any
-
-      mockNodeList.activeByIdOrder = new Array(20)
-      mockNodeList.byJoinOrder = new Array(20)
-      mockTargetCount = 20 // No removals
-
-      const result = ModeSystemFuncs.getExpiredRemovedV3(prevRecord, lastLoggedCycle, txs, mockInfo)
-
-      expect(result).toEqual({
-        problematic: 0,
-        expired: 0,
-        removed: [],
-      })
-    })
-
     it('should return empty result when nodes never expire', () => {
       ;(config.p2p.nodeExpiryAge as any) = -1
 
@@ -1175,6 +1148,8 @@ describe('ModeSystemFuncs', () => {
       ;(config.p2p.problematicNodeRemovalCycleFrequency as any) = 10
       ;(config.p2p.maxProblematicNodeRemovalsPerCycle as any) = 2
       ;(config.p2p.syncFloorEnabled as any) = false // Use old logic
+      ;(config.p2p.minNodes as any) = 10
+      ;(config.p2p.problematicNodeRemovalSafetyDelta as any) = 1
 
       const prevRecord = {
         start: now,
@@ -1183,6 +1158,16 @@ describe('ModeSystemFuncs', () => {
         mode: 'processing',
         lost: [],
       } as any
+
+      // Create enough nodes to be above safety threshold
+      const nodes = []
+      for (let i = 0; i < 15; i++) {
+        nodes.push({
+          id: `node${i}`,
+          status: 'active',
+          activeTimestamp: now - 100000, // Not expired
+        })
+      }
 
       const problematicNode1 = {
         id: 'prob1',
@@ -1195,9 +1180,11 @@ describe('ModeSystemFuncs', () => {
         activeTimestamp: now - 100000, // Not expired
       }
 
-      mockNodeList.byJoinOrder = [problematicNode1, problematicNode2]
-      mockNodeList.activeByIdOrder = [problematicNode1, problematicNode2]
-      mockTargetCount = 0 // Remove 2 nodes
+      // Add problematic nodes to the node list
+      const allNodes = [...nodes, problematicNode1, problematicNode2]
+      mockNodeList.byJoinOrder = allNodes
+      mockNodeList.activeByIdOrder = allNodes
+      mockTargetCount = 15 // Remove 2 nodes (17 active - 15 target = 2 to remove)
       ;(getProblematicNodes as jest.Mock).mockReturnValue(['prob1', 'prob2'])
 
       const txs = { apoptosis: [] } as any
@@ -1284,6 +1271,9 @@ describe('ModeSystemFuncs', () => {
       ;(config.p2p.nodeExpiryAge as any) = 300000
       ;(config.p2p.problematicNodeRemovalCycleFrequency as any) = 10
       ;(config.p2p.syncFloorEnabled as any) = false // Use old logic
+      ;(config.p2p.minNodes as any) = 10
+      ;(config.p2p.problematicNodeRemovalSafetyDelta as any) = 1
+      ;(config.p2p.maxProblematicNodeRemovalsPerCycle as any) = 2
 
       const prevRecord = {
         start: now,
@@ -1292,6 +1282,16 @@ describe('ModeSystemFuncs', () => {
         mode: 'processing',
         lost: [],
       } as any
+
+      // Create enough nodes to be above safety threshold
+      const nodes = []
+      for (let i = 0; i < 15; i++) {
+        nodes.push({
+          id: `node${i}`,
+          status: 'active',
+          activeTimestamp: now - 100000, // Not expired
+        })
+      }
 
       const problematicNode = {
         id: 'prob1',
@@ -1304,13 +1304,14 @@ describe('ModeSystemFuncs', () => {
         activeTimestamp: now - 100000,
       }
 
-      mockNodeList.byJoinOrder = [problematicNode, apoptosisProblematicNode]
-      mockNodeList.activeByIdOrder = [problematicNode, apoptosisProblematicNode]
+      const allNodes = [...nodes, problematicNode, apoptosisProblematicNode]
+      mockNodeList.byJoinOrder = allNodes
+      mockNodeList.activeByIdOrder = allNodes
       mockNodeList.nodes = new Map([
         ['prob1', problematicNode],
         ['apopprob1', apoptosisProblematicNode],
       ])
-      mockTargetCount = 0 // Remove 2 nodes
+      mockTargetCount = 16 // Remove 1 node (17 active - 16 target = 1 to remove)
 
       // Both nodes are problematic, but one is also apoptosis
       ;(getProblematicNodes as jest.Mock).mockReturnValue(['prob1', 'apopprob1'])

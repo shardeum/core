@@ -198,7 +198,7 @@ class Debug {
               id: nodeId.substring(0, 8),
               fullId: nodeId,
               refuteCycles: node.refuteCycles || [],
-              consecutiveRefutes: ProblemNodeHandler.getConsecutiveRefutes(
+              consecutiveRefutes: ProblemNodeHandler.getMaxConsecutiveRefutes(
                 node.refuteCycles || [],
                 currentCycleRecord.counter
               ),
@@ -231,11 +231,11 @@ class Debug {
     this.network.registerExternalGet('debug_simulateProblematic', isDebugModeMiddleware, (req, res) => {
       try {
         // Parse parameters with defaults
-        const missConsensus = req.query.missConsensus ? parseFloat(req.query.missConsensus as string) : 0
-        const networkDelay = req.query.networkDelay ? parseInt(req.query.networkDelay as string) : 0
-        const dropMessages = req.query.dropMessages ? parseFloat(req.query.dropMessages as string) : 0
-        const slowResponse = req.query.slowResponse ? parseFloat(req.query.slowResponse as string) : 0
-        const slowDelayMs = req.query.slowDelayMs ? parseInt(req.query.slowDelayMs as string) : 0
+        const missConsensus = req.query.missConsensus ? parseFloat(req.query.missConsensus as string) : 1
+        const networkDelay = req.query.networkDelay ? parseInt(req.query.networkDelay as string) : 100
+        const dropMessages = req.query.dropMessages ? parseFloat(req.query.dropMessages as string) : 1
+        const slowResponse = req.query.slowResponse ? parseFloat(req.query.slowResponse as string) : 1
+        const slowDelayMs = req.query.slowDelayMs ? parseInt(req.query.slowDelayMs as string) : 10000
         const reset = req.query.reset === 'true'
 
         // Validate parameters

@@ -196,7 +196,7 @@ export class ProblematicNodeCache {
     const refuteCycles = this.refuteHistory.get(nodeId) || []
 
     // Calculate consecutive refutes
-    const consecutiveRefutes = this.getConsecutiveRefutes(refuteCycles, currentCycle)
+    const consecutiveRefutes = this.getMaxConsecutiveRefutes(refuteCycles, currentCycle)
 
     // Calculate refute percentage
     const refutePercentage = this.getRefutePercentage(refuteCycles, currentCycle)
@@ -213,40 +213,38 @@ export class ProblematicNodeCache {
     return metrics
   }
 
-  getConsecutiveRefutes(refuteCycles: number[], currentCycle: number): number {
+  getMaxConsecutiveRefutes(refuteCycles: number[], currentCycle: number): number {
     if (refuteCycles.length === 0) return 0
 
     // Filter to only include refutes up to current cycle
     const relevantRefutes = refuteCycles.filter((cycle) => cycle <= currentCycle)
     if (relevantRefutes.length === 0) return 0
 
-    // Count consecutive refutes ending at current cycle or one before
-    let count = 0
+    // Find the maximum consecutive refutes in the retained cycle history
     const sortedRefutes = [...relevantRefutes].sort((a, b) => a - b)
 
-    // Start from the end and count backwards
-    for (let i = sortedRefutes.length - 1; i >= 0; i--) {
-      const cycle = sortedRefutes[i]
+    let maxConsecutive = 1 // At least 1 if we have any refutes
+    let currentConsecutive = 1
 
-      if (i === sortedRefutes.length - 1) {
-        // Last refute must be at current cycle or one before
-        if (cycle === currentCycle || cycle === currentCycle - 1) {
-          count = 1
-        } else {
-          break
-        }
+    // Iterate through sorted refutes to find all consecutive sequences
+    for (let i = 1; i < sortedRefutes.length; i++) {
+      const currentCycle = sortedRefutes[i]
+      const prevCycle = sortedRefutes[i - 1]
+
+      if (currentCycle === prevCycle + 1) {
+        // Consecutive with previous cycle
+        currentConsecutive++
       } else {
-        // Check if consecutive with next cycle
-        const nextCycle = sortedRefutes[i + 1]
-        if (cycle === nextCycle - 1) {
-          count++
-        } else {
-          break
-        }
+        // Gap found, update max and reset current count
+        maxConsecutive = Math.max(maxConsecutive, currentConsecutive)
+        currentConsecutive = 1
       }
     }
 
-    return count
+    // Update max with final sequence
+    maxConsecutive = Math.max(maxConsecutive, currentConsecutive)
+
+    return maxConsecutive
   }
 
   getRefutePercentage(refuteCycles: number[], currentCycle: number): number {
@@ -274,7 +272,7 @@ export class ProblematicNodeCache {
     }
 
     // Sort by score and return top N based on maxProblematicNodeRemovalsPerCycle
-    const maxRemovals = this.config.p2p.maxProblematicNodeRemovalsPerCycle || 1
+    const maxRemovals = this.config.p2p.maxProblematicNodeRemovalsPerCycle
 
     return problematicNodes
       .sort((a, b) => b.score - a.score)

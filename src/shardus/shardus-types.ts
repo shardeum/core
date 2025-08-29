@@ -774,13 +774,13 @@ export interface ServerConfiguration {
     /** Problematic Node configurations */
     /** enable problematic node removal */
     enableProblematicNodeRemoval?: boolean
-    /** when true, we will remove problematic nodes even when calculateToAcceptV2 says we should not remove any nodes. This is useful in development when testing this feature. */
-    enableDangerousProblematicNodeRemoval?: boolean
     /** enable problematic node removal on a specific cycle. This is to allow the network to stabilize before removing problematic nodes.
      * enableProblematicNodeRemoval must be true for this to take effect*/
     enableProblematicNodeRemovalOnCycle?: number
     /** The problematicNodeRemovalCycleFrequency parameter is an Integer specifying the number of cycles between problematic node removals. */
     problematicNodeRemovalCycleFrequency?: number
+    /** The problematicNodeRemovalSafetyDelta parameter is an Integer specifying how far below minNodes the active count can be before we stop removing problematic nodes. For example, if minNodes is 100 and this value is 10, we won't remove problematic nodes if active count < 90. */
+    problematicNodeRemovalSafetyDelta?: number
     /** The maxProblematicNodeRemovalsPerCycle parameter is an Integer specifying the maximum number of problematic nodes that can be removed from the network each cycle. */
     maxProblematicNodeRemovalsPerCycle?: number
     /** The problematicNodeConsecutiveRefuteThreshold parameter is an Integer specifying the number of consecutive refutes a node must have before it is considered problematic. */

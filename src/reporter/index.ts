@@ -25,6 +25,7 @@ import { finishedSyncingCycle } from '../p2p/Join'
 import { currentCycle } from '../p2p/CycleCreator'
 import process from 'process'
 import { fireAndForget } from '../utils/functions/promises'
+import * as ProblemNodeHandler from '../p2p/ProblemNodeHandler'
 
 const http = require('../http')
 const allZeroes64 = '0'.repeat(64)
@@ -350,6 +351,9 @@ class Reporter {
     const archiverListHash = Archivers.getArchiverListHash()
     const lastInSyncResult = this.stateManager.accountPatcher.lastInSyncResult
 
+    // Get problematic node info for this validator
+    const problematicNodeInfo = ProblemNodeHandler.getProblematicNodeInfoForSelf(Self.id)
+
     try {
       await this._sendReport({
         repairsStarted,
@@ -397,6 +401,7 @@ class Reporter {
         cycleFinishedSyncing,
         stillNeedsInitialPatchPostActive,
         memory: process.memoryUsage(),
+        problematicNodeInfo,
       })
       if (this.stateManager != null && config.mode === 'debug' && !config.debug.disableTxCoverageReport) {
         this.stateManager.transactionQueue.resetTxCoverageMap()

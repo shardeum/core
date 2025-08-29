@@ -71,7 +71,6 @@ const SERVER_CONFIG: StrictServerConfiguration = {
     maxRotatedPerCycle: 1,
     flexibleRotationDelta: 1,
     flexibleRotationEnabled: false,
-    enableDangerousProblematicNodeRemoval: false,
     enableProblematicNodeRemoval: false,
     enableProblematicNodeRemovalOnCycle: 20000,
     maxProblematicNodeRemovalsPerCycle: 1,
@@ -79,6 +78,7 @@ const SERVER_CONFIG: StrictServerConfiguration = {
     problematicNodeRefutePercentageThreshold: 0.1,
     problematicNodeHistoryLength: 60,
     problematicNodeRemovalCycleFrequency: 5,
+    problematicNodeRemovalSafetyDelta: 1, // How far below minNodes before we stop removing problematic nodes
     // New flags for problematic node cache v2
     useProblematicNodeCacheV2: false, // When true, use the new cache-based implementation
     enableProblematicNodeCacheBuilding: false, // Enable shadow mode cache building for validation
