@@ -4936,9 +4936,10 @@ class TransactionQueue {
         }
         console.log(`[FACT-PRETX-VERIFY-JSON-1] ${Self.id} ${queueEntry.logID} ${JSON.stringify(factPreTxVerifyJson1)}`)
         // because we are not using validate function
-        console.log(
-          `note: tellSender ${queueEntry.logID} X verification failed correspondingIndices:${correspondingIndices} sender: ${senderNodeIndex} receiver: ${receivingNodeIndex}`
-        )      
+        if (isValidFactSender === false)
+          console.log(
+            `note: tellSender ${queueEntry.logID} X verification failed correspondingIndices:${correspondingIndices} sender: ${senderNodeIndex} receiver: ${receivingNodeIndex}`
+          )      
       }
 
     } else {
