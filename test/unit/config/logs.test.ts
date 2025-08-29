@@ -74,6 +74,11 @@ describe('logs config', () => {
     it('should have correct console appender configuration', () => {
       expect(LOGS_CONFIG.options.appenders.out).toEqual({
         type: 'console',
+        layout: {
+          type: 'pattern',
+          pattern: '%d{ISO8601} %p %c - %m',
+          tokens: {},
+        },
         maxLogSize: 10000000,
         backups: 10,
       })

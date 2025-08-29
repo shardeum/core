@@ -81,19 +81,31 @@ describe('saveConsoleOutput', () => {
 
     // Mock pipe methods
     const stdoutPipeSpy = jest.spyOn(PassThrough.prototype, 'pipe')
+    const pipeChainSpy = jest.fn().mockReturnValue(mockRollingFileStream)
+
+    // Track destinations piped to
+    const pipedDestinations: any[] = []
+    stdoutPipeSpy.mockImplementation(function (this: PassThrough, destination: any) {
+      pipedDestinations.push(destination)
+      // If piping to something that has a pipe method (like Transform), return mock that can chain
+      if (destination && typeof destination.pipe === 'function') {
+        return { pipe: pipeChainSpy } as any
+      }
+      return this
+    })
 
     startSaving(tempDir)
 
     // Should have created two PassThrough streams
-    expect(stdoutPipeSpy).toHaveBeenCalledTimes(4) // 2 calls per PassThrough (stdout/file, stderr/file)
+    expect(stdoutPipeSpy).toHaveBeenCalledTimes(4) // 2 calls per PassThrough (stdout+transform, stderr+transform)
 
-    // Check that PassThrough streams pipe to correct destinations
-    const pipeCalls = stdoutPipeSpy.mock.calls
-    const destinations = pipeCalls.map((call) => call[0])
+    // Check that PassThrough streams pipe to stdout and stderr
+    expect(pipedDestinations).toContain(originalStdout)
+    expect(pipedDestinations).toContain(originalStderr)
 
-    expect(destinations).toContain(originalStdout)
-    expect(destinations).toContain(originalStderr)
-    expect(destinations.filter((d) => d === mockRollingFileStream)).toHaveLength(2)
+    // Check that transform streams pipe to file stream (2 times: one for stdout, one for stderr)
+    expect(pipeChainSpy).toHaveBeenCalledWith(mockRollingFileStream)
+    expect(pipeChainSpy).toHaveBeenCalledTimes(2)
 
     stdoutPipeSpy.mockRestore()
   })

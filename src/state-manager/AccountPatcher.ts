@@ -274,14 +274,35 @@ class AccountPatcher {
     return 0
   }
   sortByRadix(a: RadixAndHash, b: RadixAndHash): Ordering {
-    if (!a || !a.radix) {
+    // Check for null/undefined objects
+    if (!a) {
       this.mainLogger.error(`sortByRadix: Invalid 'a' parameter - a: ${utils.stringifyReduce(a)}`)
       return 1
     }
-    if (!b || !b.radix) {
+    if (!b) {
       this.mainLogger.error(`sortByRadix: Invalid 'b' parameter - b: ${utils.stringifyReduce(b)}`)
       return -1
     }
+
+    // Handle empty string radix - empty strings should sort before non-empty
+    if (a.radix === '' && b.radix !== '') {
+      return -1
+    }
+    if (b.radix === '' && a.radix !== '') {
+      return 1
+    }
+
+    // Check for undefined/null radix property (but not empty string)
+    if (a.radix === undefined || a.radix === null) {
+      this.mainLogger.error(`sortByRadix: Invalid 'a.radix' - a: ${utils.stringifyReduce(a)}`)
+      return 1
+    }
+    if (b.radix === undefined || b.radix === null) {
+      this.mainLogger.error(`sortByRadix: Invalid 'b.radix' - b: ${utils.stringifyReduce(b)}`)
+      return -1
+    }
+
+    // Normal string comparison
     if (a.radix < b.radix) {
       return -1
     }
