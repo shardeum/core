@@ -5327,7 +5327,7 @@ class TransactionQueue {
         `finalDataValidator: ${queueEntry.logID}`,
         configContext.p2p.factv2
       )
-      const isValidFactSender = correspondingIndices.includes(targetNodeIndex)
+      isValidFactSender = correspondingIndices.includes(targetNodeIndex)
       if (logFlags.fact) {
         const factFinalVerifyJson1 = {
           txId: queueEntry.logID,
