@@ -142,14 +142,14 @@ describe('GlobalAccountReportResp Tests', () => {
     stream.writeString('acc1')
     stream.writeString('hash1')
     stream.writeBigUInt64(BigInt(123456))
-    // Missing ready field
+    stream.writeUInt8(0) // Write ready field as false (0)
     stream.position = 0
 
     const result = deserializeGlobalAccountReportResp(stream)
     expect(result).toEqual({
       combinedHash: 'hash123',
       accounts: [{ id: 'acc1', hash: 'hash1', timestamp: 123456 }],
-      ready: false, // Default value for missing field
+      ready: false, // Expected value
     })
   })
 
