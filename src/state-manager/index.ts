@@ -818,14 +818,18 @@ class StateManager {
   }
 
   getCurrentCycleShardData(): CycleShardData | null {
+    console.log('DEBUG getCurrentCycleShardData: ', Utils.safeStringify(this.currentCycleShardData?.cycleNumber), Utils.safeStringify(this.p2p.state.getLastCycle()?.counter))
     if (this.currentCycleShardData === null) {
+      console.log('DEBUG getCurrentCycleShardData updating...')
       const cycle = this.p2p.state.getLastCycle()
       if (cycle === null || cycle === undefined) {
+        console.log('DEBUG getCurrentCycleShardData null cycle... Returning null')
         return null
       }
+      console.log('DEBUG getCurrentCycleShardData updating... ', cycle.counter, cycle.mode)
       this.updateShardValues(cycle.counter, cycle.mode)
     }
-
+    console.log('DEBUG getCurrentCycleShardData returning... ', Utils.safeStringify(this.currentCycleShardData?.cycleNumber))
     return this.currentCycleShardData
   }
 
@@ -2650,17 +2654,23 @@ class StateManager {
   }
 
   async waitForShardData(counterMsg = '') {
+    console.log('DEBUG waitForShardData: ', Utils.safeStringify(this.currentCycleShardData?.cycleNumber), Utils.safeStringify(this.p2p.state.getLastCycle()?.counter), counterMsg)
     // wait for shard data
+    console.log('DEBUG waitForShardData waiting...')
     while (this.currentCycleShardData == null) {
+     
       this.getCurrentCycleShardData()
       await utils.sleep(1000)
 
       if (counterMsg.length > 0) {
+        console.log('DEBUG waitForShardData counting...', counterMsg)
         nestedCountersInstance.countRareEvent('sync', `waitForShardData ${counterMsg}`)
       }
 
+      //console.log('DEBUG waitForShardData checking...')
       /* prettier-ignore */ if (logFlags.playback) this.logger.playbackLogNote('_waitForShardData', ` `, ` ${utils.stringifyReduce(this.currentCycleShardData)} `)
     }
+    console.log('DEBUG waitForShardData returning...')
   }
 
   async getLocalOrRemoteAccountQueueCount(address: string): Promise<QueueCountsResult> {
@@ -2793,29 +2803,38 @@ class StateManager {
       canThrowException?: boolean
     } = { useRICache: false, canThrowException: false }
   ): Promise<ShardusTypes.WrappedDataFromQueue | null> {
+    console.log("DEBUG getLocalOrRemoteAccount: " + utils.stringifyReduce(address), ' opts:', opts)
     let wrappedAccount: ShardusTypes.WrappedDataFromQueue | null = null
     if (!isServiceMode()) {
       if (this.currentCycleShardData == null) {
+        console.log("DEBUG getLocalOrRemoteAccount: waiting for shard data")
         await this.waitForShardData()
+        console.log("DEBUG getLocalOrRemoteAccount: shard data after wait: " + utils.stringifyReduce(this.currentCycleShardData?.cycleNumber) + ' Last Cycle: ' + utils.stringifyReduce(this.p2p.state.getLastCycle()?.counter))
       }
       // TSConversion since this should never happen due to the above function should we assert that the value is non null?.  Still need to figure out the best practice.
       if (this.currentCycleShardData == null) {
+        console.log("DEBUG getLocalOrRemoteAccount: shard data still null after wait")
         throw new Error('getLocalOrRemoteAccount: network not ready')
       }
     }
 
     // If enabled, check the RI cache first
     if (opts.useRICache) {
+      console.log("DEBUG getLocalOrRemoteAccount: checking RI cache for " + utils.stringifyReduce(address))
       const riCacheResult = await this.app.getCachedRIAccountData([address])
+      //console.log("DEBUG getLocalOrRemoteAccount: RI cache result: " + utils.stringifyReduce(riCacheResult))
       if (riCacheResult != null) {
         if (riCacheResult.length > 0) {
           nestedCountersInstance.countEvent('stateManager', 'getLocalOrRemoteAccount: RI cache hit')
+          //console.log("DEBUG getLocalOrRemoteAccount: RI cache hit for " + utils.stringifyReduce(address))
           if (logFlags.verbose) this.mainLogger.debug(`getLocalOrRemoteAccount: RI cache hit for ${address}`)
           wrappedAccount = riCacheResult[0] as ShardusTypes.WrappedDataFromQueue
+          console.log("DEBUG getLocalOrRemoteAccount: RI cache hit")
           return wrappedAccount
         }
       } else {
         nestedCountersInstance.countEvent('stateManager', 'getLocalOrRemoteAccount: RI cache miss')
+        console.log("DEBUG getLocalOrRemoteAccount: RI cache miss for " + utils.stringifyReduce(address))
       }
     }
 
@@ -2827,10 +2846,13 @@ class StateManager {
 
     //it seems backwards that isServiceMode would treat the account as always remote, as it has access to all data locally
     let accountIsRemote = isServiceMode() ? true : this.transactionQueue.isAccountRemote(address)
+    console.log("DEBUG getLocalOrRemoteAccount: accountIsRemote: " + accountIsRemote + " for " + utils.stringifyReduce(address))
 
     // hack to say we have all the data
     if (!isServiceMode()) {
-      if (this.currentCycleShardData.nodes.length <= this.currentCycleShardData.shardGlobals.consensusRadius) {
+      console.log("DEBUG getLocalOrRemoteAccount: checking currentCycleShardData: " + utils.stringifyReduce(this.currentCycleShardData?.cycleNumber) + ' Last Cycle: ' + utils.stringifyReduce(this.p2p.state.getLastCycle()?.counter))
+      if (this.currentCycleShardData?.nodes.length <= (this.currentCycleShardData?.shardGlobals?.consensusRadius ?? 0)) {
+        console.log("DEBUG getLocalOrRemoteAccount: setting accountIsRemote to false because currentCycleShardData.nodes.length <= currentCycleShardData.shardGlobals.consensusRadius")
         accountIsRemote = false
       }
     }
@@ -2839,117 +2861,181 @@ class StateManager {
     }
 
     if (accountIsRemote) {
+      console.log("DEBUG getLocalOrRemoteAccount: account is remote, looking for consensus node for " + utils.stringifyReduce(address))
       let randomConsensusNode: P2PTypes.NodeListTypes.Node
       const preCheckLimit = 5
-      for (let i = 0; i < preCheckLimit; i++) {
-        randomConsensusNode = this.transactionQueue.getRandomConsensusNodeForAccount(address)
-        if (randomConsensusNode == null) {
-          nestedCountersInstance.countEvent('getLocalOrRemoteAccount', `precheck: no consensus node found`)
-          throw new Error(`getLocalOrRemoteAccount: no consensus node found`)
-        }
-        // Node Precheck!.  this check our internal records to find a good node to talk to.
-        // it is worth it to look through the list if needed.
-        if (
-          this.isNodeValidForInternalMessage(
-            randomConsensusNode.id,
-            'getLocalOrRemoteAccount',
-            true,
-            true,
-            true,
-            true
-          ) === false
-        ) {
-          //we got to the end of our tries?
-          if (i >= preCheckLimit - 1) {
-            /* prettier-ignore */ if (logFlags.verbose || logFlags.getLocalOrRemote) this.getAccountFailDump(address, 'getLocalOrRemoteAccount: isNodeValidForInternalMessage failed, no retry')
-            //return null   ....better to throw an error
-            if (opts.canThrowException) {
-              nestedCountersInstance.countEvent('getLocalOrRemoteAccount', `precheck: out of nodes to try`)
-              throw new Error(`getLocalOrRemoteAccount: no consensus nodes worth asking`)
-            } else return null
+      const maxRetries = 3 // Maximum number of nodes to try when getting empty accountData
+      let triedNodes: string[] = [] // Keep track of nodes we've already tried
+      
+      for (let retryAttempt = 0; retryAttempt < maxRetries; retryAttempt++) {
+        // Find a valid consensus node
+        let foundValidNode = false
+        for (let i = 0; i < preCheckLimit; i++) {
+          randomConsensusNode = this.transactionQueue.getRandomConsensusNodeForAccount(address)
+          console.log("DEBUG getLocalOrRemoteAccount: randomConsensusNode: " + utils.stringifyReduce(randomConsensusNode.externalPort) + " for " + utils.stringifyReduce(address))
+          if (randomConsensusNode == null) {
+            nestedCountersInstance.countEvent('getLocalOrRemoteAccount', `precheck: no consensus node found for ${address}`)
+            console.log("DEBUG getLocalOrRemoteAccount: no consensus node found for " + utils.stringifyReduce(address))
+            throw new Error(`getLocalOrRemoteAccount: no consensus node found for ${address}`)
           }
-        } else {
-          break
+          
+          // Skip nodes we've already tried for this account request
+          if (triedNodes.includes(randomConsensusNode.id)) {
+            console.log("DEBUG getLocalOrRemoteAccount: skipping already tried node " + utils.stringifyReduce(randomConsensusNode.externalPort) + " for " + utils.stringifyReduce(address))
+            continue
+          }
+          
+          // Node Precheck!.  this check our internal records to find a good node to talk to.
+          // it is worth it to look through the list if needed.
+          console.log("DEBUG getLocalOrRemoteAccount: checking node precheck for " + utils.stringifyReduce(randomConsensusNode.externalPort) + " for " + utils.stringifyReduce(address))
+          if (
+            this.isNodeValidForInternalMessage(
+              randomConsensusNode.id,
+              'getLocalOrRemoteAccount',
+              true,
+              true,
+              true,
+              true
+            ) === false
+          ) {
+            //we got to the end of our tries?
+            console.log("DEBUG getLocalOrRemoteAccount: node precheck failed for " + utils.stringifyReduce(randomConsensusNode.externalPort) + " for " + utils.stringifyReduce(address) + " try " + i + "/" + preCheckLimit)
+            if (i >= preCheckLimit - 1) {
+              /* prettier-ignore */ if (logFlags.verbose || logFlags.getLocalOrRemote) this.getAccountFailDump(address, 'getLocalOrRemoteAccount: isNodeValidForInternalMessage failed, no retry')
+              //return null   ....better to throw an error
+              if (opts.canThrowException) {
+                nestedCountersInstance.countEvent('getLocalOrRemoteAccount', `precheck: out of nodes to try`)
+                console.log("DEBUG getLocalOrRemoteAccount: out of nodes to try for " + utils.stringifyReduce(address) + " after " + i + " tries / " + preCheckLimit)
+                throw new Error(`getLocalOrRemoteAccount: no consensus nodes worth asking`)
+              } else {
+                nestedCountersInstance.countEvent('getLocalOrRemoteAccount', `precheck: out of nodes to try, returning null`)
+                console.log("DEBUG getLocalOrRemoteAccount: out of nodes to try, returning null for " + utils.stringifyReduce(address) + " after " + i + " tries / " + preCheckLimit)
+                return null
+              }
+            }
+          } else {
+            nestedCountersInstance.countEvent('getLocalOrRemoteAccount', `precheck: node precheck passed`)
+            console.log("DEBUG getLocalOrRemoteAccount: node precheck passed for " + utils.stringifyReduce(randomConsensusNode.externalPort) + " for " + utils.stringifyReduce(address))
+            foundValidNode = true
+            break
+          }
         }
-      }
+        
+        if (!foundValidNode) {
+          console.log("DEBUG getLocalOrRemoteAccount: no valid node found after precheck for " + utils.stringifyReduce(address))
+          break // Exit retry loop if no valid nodes found
+        }
+        
+        // Add this node to the tried list
+        triedNodes.push(randomConsensusNode.id)
+        console.log("DEBUG getLocalOrRemoteAccount: trying node " + utils.stringifyReduce(randomConsensusNode.id) + " (attempt " + (retryAttempt + 1) + "/" + maxRetries + ") for " + utils.stringifyReduce(address))
 
-      const message = { accountIds: [address] }
+        const message = { accountIds: [address] }
+        console.log("DEBUG getLocalOrRemoteAccount: asking " + utils.stringifyReduce(randomConsensusNode) + " for " + utils.stringifyReduce(message))
 
-      let r: GetAccountDataWithQueueHintsResp
+        let r: GetAccountDataWithQueueHintsResp
 
-      // if (
-      //   this.config.p2p.useBinarySerializedEndpoints &&
-      //   this.config.p2p.getAccountDataWithQueueHintsBinary
-      // ) {
-      try {
-        const serialized_res = await this.p2p.askBinary<
-          GetAccountDataWithQueueHintsReqSerializable,
-          GetAccountDataWithQueueHintsRespSerializable
-        >(
-          randomConsensusNode,
-          InternalRouteEnum.binary_get_account_data_with_queue_hints,
-          message,
-          serializeGetAccountDataWithQueueHintsReq,
-          deserializeGetAccountDataWithQueueHintsResp,
-          {}
-        )
-        r = serialized_res as GetAccountDataWithQueueHintsResp
-      } catch (er) {
-        if (er instanceof ResponseError && logFlags.error) {
-          this.mainLogger.error(
-            `ASK FAIL getLocalOrRemoteAccount exception: ResponseError encountered. Code: ${er.Code}, AppCode: ${er.AppCode}, Message: ${er.Message}`
+        // if (
+        //   this.config.p2p.useBinarySerializedEndpoints &&
+        //   this.config.p2p.getAccountDataWithQueueHintsBinary
+        // ) {
+        try {
+          const serialized_res = await this.p2p.askBinary<
+            GetAccountDataWithQueueHintsReqSerializable,
+            GetAccountDataWithQueueHintsRespSerializable
+          >(
+            randomConsensusNode,
+            InternalRouteEnum.binary_get_account_data_with_queue_hints,
+            message,
+            serializeGetAccountDataWithQueueHintsReq,
+            deserializeGetAccountDataWithQueueHintsResp,
+            {}
           )
+          r = serialized_res as GetAccountDataWithQueueHintsResp
+        } catch (er) {
+          console.log("DEBUG getLocalOrRemoteAccount: askBinary failed for " + utils.stringifyReduce(randomConsensusNode) + " for " + utils.stringifyReduce(message) + ": " + er)
+          if (er instanceof ResponseError && logFlags.error) {
+            this.mainLogger.error(
+              `ASK FAIL getLocalOrRemoteAccount exception: ResponseError encountered. Code: ${er.Code}, AppCode: ${er.AppCode}, Message: ${er.Message}`
+            )
+          }
+          if (logFlags.verbose || logFlags.getLocalOrRemote) this.mainLogger.error('askBinary', er)
+          if (opts.canThrowException) {
+            throw er
+          } else {
+            nestedCountersInstance.countEvent('getLocalOrRemoteAccount', `askBinary ex: ${er?.message}`)
+            continue // Try next node on network error
+          }
         }
-        if (logFlags.verbose || logFlags.getLocalOrRemote) this.mainLogger.error('askBinary', er)
-        if (opts.canThrowException) {
-          throw er
+        // } else {
+        // r = await this.p2p.ask(randomConsensusNode, 'get_account_data_with_queue_hints', message)
+        // }
+
+        if (!r) {
+          console.log("DEBUG getLocalOrRemoteAccount: r === false for " + utils.stringifyReduce(randomConsensusNode) + " for " + utils.stringifyReduce(message))
+          if (logFlags.error || logFlags.getLocalOrRemote)
+            this.mainLogger.error('ASK FAIL getLocalOrRemoteAccount r === false')
+          if (opts.canThrowException) {
+            throw new Error(`getLocalOrRemoteAccount: remote node had an exception`)
+          } else {
+            continue // Try next node when response is false
+          }
+        }
+
+        const result = r as GetAccountDataWithQueueHintsResp
+        if (result != null && result.accountData != null && result.accountData.length > 0) {
+          console.log("DEBUG getLocalOrRemoteAccount: got result for " + utils.stringifyReduce(randomConsensusNode) + " for " + utils.stringifyReduce(message) + " account data len: " + utils.stringifyReduce(result.accountData.length))
+          wrappedAccount = result.accountData[0]
+          if (wrappedAccount == null) {
+            console.log("DEBUG getLocalOrRemoteAccount: wrappedAccount == null for " + utils.stringifyReduce(randomConsensusNode) + " for " + utils.stringifyReduce(message) + " account data len: " + utils.stringifyReduce(result.accountData.length))
+            if (logFlags.verbose || logFlags.getLocalOrRemote)
+              this.getAccountFailDump(address, 'remote result.accountData[0] == null')
+            nestedCountersInstance.countEvent('getLocalOrRemoteAccount', `remote result.accountData[0] == null`)
+          }
+          console.log("DEBUG getLocalOrRemoteAccount: returning wrappedAccount for " + utils.stringifyReduce(randomConsensusNode) + " for " + utils.stringifyReduce(message) + " account data len: " + utils.stringifyReduce(result.accountData.length) + ": " + utils.stringifyReduce(wrappedAccount))
+          return wrappedAccount
         } else {
-          nestedCountersInstance.countEvent('getLocalOrRemoteAccount', `askBinary ex: ${er?.message}`)
+          //these cases probably should throw an error to, but dont wont to over prescribe the format yet
+          //if the remote node has a major breakdown it should return false
+          if (result == null) {
+            console.log("DEBUG getLocalOrRemoteAccount: result == null for " + utils.stringifyReduce(randomConsensusNode) + " for " + utils.stringifyReduce(message) + " account data len: " + utils.stringifyReduce(result?.accountData?.length) + ": " + utils.stringifyReduce(result))
+            /* prettier-ignore */ if (logFlags.verbose || logFlags.getLocalOrRemote) this.getAccountFailDump(address, 'remote request missing data: result == null')
+            nestedCountersInstance.countEvent('getLocalOrRemoteAccount', `remote else.. result == null`)
+          } else if (result.accountData == null) {
+            console.log("DEBUG getLocalOrRemoteAccount: result.accountData == null for " + utils.stringifyReduce(randomConsensusNode) + " for " + utils.stringifyReduce(message) + " account data len: " + utils.stringifyReduce(result?.accountData?.length) + ": " + utils.stringifyReduce(result))
+            /* prettier-ignore */ if (logFlags.verbose || logFlags.getLocalOrRemote) this.getAccountFailDump(address, 'remote request missing data: result.accountData == null ' + utils.stringifyReduce(result))
+            nestedCountersInstance.countEvent('getLocalOrRemoteAccount', `remote else.. result.accountData == null`)
+          } else if (result.accountData.length <= 0) {
+            console.log("DEBUG getLocalOrRemoteAccount: result.accountData.length <= 0 for " + utils.stringifyReduce(randomConsensusNode) + " for " + utils.stringifyReduce(message) + ": " + utils.stringifyReduce(result))
+            /* prettier-ignore */ if (logFlags.verbose || logFlags.getLocalOrRemote) this.getAccountFailDump(address, 'remote request missing data: result.accountData.length <= 0 ' + utils.stringifyReduce(result))
+            nestedCountersInstance.countEvent('getLocalOrRemoteAccount', `remote else.. result.accountData.length <= 0, retry attempt: ${retryAttempt + 1}/${maxRetries}`)
+          }
+          
+          // If this is not the last retry attempt, continue to try another node
+          if (retryAttempt < maxRetries - 1) {
+            console.log("DEBUG getLocalOrRemoteAccount: empty accountData received, retrying with different consensus node (attempt " + (retryAttempt + 1) + "/" + maxRetries + ") for " + utils.stringifyReduce(address))
+            continue
+          }
         }
       }
-      // } else {
-      // r = await this.p2p.ask(randomConsensusNode, 'get_account_data_with_queue_hints', message)
-      // }
-
-      if (!r) {
-        if (logFlags.error || logFlags.getLocalOrRemote)
-          this.mainLogger.error('ASK FAIL getLocalOrRemoteAccount r === false')
-        if (opts.canThrowException) throw new Error(`getLocalOrRemoteAccount: remote node had an exception`)
-      }
-
-      const result = r as GetAccountDataWithQueueHintsResp
-      if (result != null && result.accountData != null && result.accountData.length > 0) {
-        wrappedAccount = result.accountData[0]
-        if (wrappedAccount == null) {
-          if (logFlags.verbose || logFlags.getLocalOrRemote)
-            this.getAccountFailDump(address, 'remote result.accountData[0] == null')
-          nestedCountersInstance.countEvent('getLocalOrRemoteAccount', `remote result.accountData[0] == null`)
-        }
-        return wrappedAccount
-      } else {
-        //these cases probably should throw an error to, but dont wont to over prescribe the format yet
-        //if the remote node has a major breakdown it should return false
-        if (result == null) {
-          /* prettier-ignore */ if (logFlags.verbose || logFlags.getLocalOrRemote) this.getAccountFailDump(address, 'remote request missing data: result == null')
-          nestedCountersInstance.countEvent('getLocalOrRemoteAccount', `remote else.. result == null`)
-        } else if (result.accountData == null) {
-          /* prettier-ignore */ if (logFlags.verbose || logFlags.getLocalOrRemote) this.getAccountFailDump(address, 'remote request missing data: result.accountData == null ' + utils.stringifyReduce(result))
-          nestedCountersInstance.countEvent('getLocalOrRemoteAccount', `remote else.. result.accountData == null`)
-        } else if (result.accountData.length <= 0) {
-          /* prettier-ignore */ if (logFlags.verbose || logFlags.getLocalOrRemote) this.getAccountFailDump(address, 'remote request missing data: result.accountData.length <= 0 ' + utils.stringifyReduce(result))
-          nestedCountersInstance.countEvent('getLocalOrRemoteAccount', `remote else.. result.accountData.length <= 0 `)
-        }
-      }
+      
+      // If we get here, all retry attempts failed
+      console.log("DEBUG getLocalOrRemoteAccount: all retry attempts failed for " + utils.stringifyReduce(address) + " after trying " + triedNodes.length + " nodes")
+      nestedCountersInstance.countEvent('getLocalOrRemoteAccount', `all retry attempts failed after ${triedNodes.length} nodes`)
     } else {
       // we are local!
+      console.log("DEBUG getLocalOrRemoteAccount: local for " + utils.stringifyReduce(address))
       const accountData = await this.app.getAccountDataByList([address])
       if (accountData != null) {
+        console.log("DEBUG getLocalOrRemoteAccount: local accountData for " + utils.stringifyReduce(address) + " account data len: " + utils.stringifyReduce(accountData.length))
         for (const wrappedAccountEntry of accountData) {
+          console.log("DEBUG getLocalOrRemoteAccount: local wrappedAccountEntry for " + utils.stringifyReduce(address) + " account data len: " + utils.stringifyReduce(accountData.length))
           // We are going to add in new data here, which upgrades the account wrapper to a new type.
           const expandedRef = wrappedAccountEntry as ShardusTypes.WrappedDataFromQueue
           expandedRef.seenInQueue = false
-
+          //console.log("DEBUG getLocalOrRemoteAccount: local expandedRef for " + utils.stringifyReduce(address))
           if (this.lastSeenAccountsMap != null) {
+            console.log("DEBUG getLocalOrRemoteAccount: local this.lastSeenAccountsMap for " + utils.stringifyReduce(address))
             const queueEntry = this.lastSeenAccountsMap[expandedRef.accountId]
             if (queueEntry != null) {
               expandedRef.seenInQueue = true
@@ -2960,25 +3046,31 @@ class StateManager {
       } else {
         //this should probably throw as we expect a [] for the real empty case
         //avoiding too many changes
+        console.log("DEBUG getLocalOrRemoteAccount: local accountData.length <= 0 for " + utils.stringifyReduce(address) + " account data len: " + utils.stringifyReduce(accountData.length))
         if (logFlags.verbose || logFlags.getLocalOrRemote)
           this.getAccountFailDump(address, 'getAccountDataByList() returned null')
         nestedCountersInstance.countEvent('getLocalOrRemoteAccount', `localload: getAccountDataByList() returned null`)
+        console.log("DEBUG getLocalOrRemoteAccount: local returning null for " + utils.stringifyReduce(address))
         return null
       }
       // there must have been an issue in the past, but for some reason we are checking the first element in the array now.
       if (accountData[0] == null) {
+        console.log("DEBUG getLocalOrRemoteAccount: local accountData[0] == null for " + utils.stringifyReduce(address) + " account data len: " + utils.stringifyReduce(accountData.length) + "accountData[0] == null")
         if (logFlags.verbose || logFlags.getLocalOrRemote) this.getAccountFailDump(address, 'accountData[0] == null')
         nestedCountersInstance.countEvent('getLocalOrRemoteAccount', `localload: accountData[0] == null`)
       }
       if (accountData.length > 1 || accountData.length == 0) {
+        console.log("DEBUG getLocalOrRemoteAccount: local accountData.length > 1 || accountData.length == 0 for " + utils.stringifyReduce(address) + " account data len: " + utils.stringifyReduce(accountData.length))
         /* prettier-ignore */ if (logFlags.verbose || logFlags.getLocalOrRemote) this.getAccountFailDump(address, `getAccountDataByList() returned wrong element count: ${accountData}`)
         nestedCountersInstance.countEvent(
           'getLocalOrRemoteAccount',
           `localload: getAccountDataByList() returned wrong element count`
         )
       }
+      console.log("DEBUG getLocalOrRemoteAccount: local returning wrappedAccount for " + utils.stringifyReduce(address))
       return wrappedAccount
     }
+    console.log("DEBUG getLocalOrRemoteAccount: remote returning null for " + utils.stringifyReduce(address))
     return null
   }
 

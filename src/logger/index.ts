@@ -156,7 +156,7 @@ export let logFlags: LogFlags = {
   dapp_verbose: false,
   profiling_verbose: false,
 
-  aalg: false,
+  aalg: true,
   shardedCache: false,
   lost: false,
   rotation: false,

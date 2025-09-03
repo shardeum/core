@@ -7875,8 +7875,8 @@ class TransactionQueue {
       cycle: queueEntry.txGroupCycle,
       globalModification,
     }
-    /* prettier-ignore */ if (logFlags.important_as_error) console.log('getArchiverReceiptFromQueueEntry : archiverReceipt', txId, Utils.safeStringify(archiverReceipt))
-    /* prettier-ignore */ if (logFlags.important_as_error) console.log('getArchiverReceiptFromQueueEntry : originalTxData object', txId, Utils.safeStringify(archiverReceipt.tx.originalTxData))
+    // /* prettier-ignore */ if (logFlags.important_as_error) console.log('getArchiverReceiptFromQueueEntry : archiverReceipt', txId, Utils.safeStringify(archiverReceipt))
+    // /* prettier-ignore */ if (logFlags.important_as_error) console.log('getArchiverReceiptFromQueueEntry : originalTxData object', txId, Utils.safeStringify(archiverReceipt.tx.originalTxData))
 
     return archiverReceipt
   }
