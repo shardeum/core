@@ -1,7 +1,7 @@
 import { Console } from 'console'
 import { PassThrough } from 'stream'
 import { join } from 'path'
-import { createWriteStream, existsSync, mkdirSync, readdirSync, statSync, unlinkSync, WriteStream } from 'fs'
+import { createWriteStream, existsSync, mkdirSync, readdirSync, statSync, unlinkSync, renameSync, WriteStream } from 'fs'
 
 export function startSaving(baseDir: string): void {
   // Settings (match prior defaults): 10MB max size, keep 10 backups, timestamped filenames
@@ -36,9 +36,13 @@ export function startSaving(baseDir: string): void {
       .replace('SSS', SSS)
   }
 
-  function buildFilePath(): string {
+  const basePath = join(baseDir, `${baseName}${ext}`) // active file without timestamp
+
+  function buildRotatedName(): string {
     const dir = baseDir
-    if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
+    if (!existsSync(dir)) {
+      try { mkdirSync(dir, { recursive: true }) } catch {}
+    }
     const stamp = format(new Date())
     if (stamp === lastStamp) sameStampIndex += 1
     else {
@@ -55,7 +59,7 @@ export function startSaving(baseDir: string): void {
       const dir = baseDir
       // eslint-disable-next-line security/detect-non-literal-fs-filename
       const files = readdirSync(dir)
-        .filter((f) => f.startsWith(`${baseName}.`) && f.endsWith(ext))
+        .filter((f) => f !== `${baseName}${ext}` && f.startsWith(`${baseName}.`) && f.endsWith(ext))
         .map((f) => {
           try {
             // eslint-disable-next-line security/detect-non-literal-fs-filename
@@ -80,22 +84,53 @@ export function startSaving(baseDir: string): void {
     }
   }
 
-  function openNewStream(): void {
+  function openBaseStream(): void {
     try {
-      if (currentStream) currentStream.end()
+      if (!existsSync(baseDir)) mkdirSync(baseDir, { recursive: true })
     } catch {}
-    const filePath = buildFilePath()
-    currentStream = createWriteStream(filePath, { flags: 'a' })
-    currentSize = 0
-    pruneBackups()
+    try {
+      currentStream = createWriteStream(basePath, { flags: 'a' })
+      currentSize = 0
+    } catch {
+      // ignore; logging disabled if this fails
+    }
+  }
+
+  function rotateAndReopen(): void {
+    // Flush any partial line to current file before rotate
+    try { flushResidual() } catch {}
+    try {
+      if (currentStream) {
+        try { currentStream.end() } catch {}
+      }
+    } catch {}
+    currentStream = null
+    try {
+      // Only rotate if base file actually exists & has size
+      let sizeOk = false
+      try {
+        const st = statSync(basePath)
+        sizeOk = st.size >= 0 // rotate even empty to keep semantic separation (could require >0 if preferred)
+      } catch {}
+      if (sizeOk && existsSync(basePath)) {
+        const rotated = buildRotatedName()
+        try {
+          renameSync(basePath, rotated)
+        } catch (e) {
+          try { process.stderr.write('[log-rotate] rename failed: ' + String(e) + '\n') } catch {}
+        }
+        pruneBackups()
+      }
+    } catch {}
+    openBaseStream()
   }
 
   function writeChunk(chunk: Buffer): void {
     try {
-      if (!currentStream) openNewStream()
+      if (!currentStream) openBaseStream()
       if (!currentStream) return
       if (currentSize + chunk.length > maxLogSize) {
-        openNewStream()
+        rotateAndReopen()
         if (!currentStream) return
       }
       currentStream.write(chunk)
@@ -152,6 +187,27 @@ export function startSaving(baseDir: string): void {
   } catch {
     // ignore handler registration errors
   }
+
+  // --- Startup archival of existing base file (previous run) ---
+  try {
+    let shouldArchive = false
+    try {
+      const st = statSync(basePath)
+      if (st && st.size > 0) shouldArchive = true
+    } catch {}
+    if (shouldArchive) {
+      try {
+        const rotated = buildRotatedName()
+        renameSync(basePath, rotated)
+        pruneBackups()
+      } catch (e) {
+        try { process.stderr.write('[log-startup] archival rename failed: ' + String(e) + '\n') } catch {}
+      }
+    }
+  } catch {}
+
+  // Open the fresh active base file
+  openBaseStream()
 
   // Create passthroughs that write to stdout/stderr and to the rotating file stream with per-line timestamps
   const outPass = new PassThrough()

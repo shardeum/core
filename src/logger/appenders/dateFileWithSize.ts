@@ -1,6 +1,5 @@
 import path from 'path'
 import fs from 'fs'
-import { RollingFileStream } from 'streamroller'
 
 type Layouts = {
   patternLayout?: (pattern: string) => (evt: LogEvent) => string
@@ -47,16 +46,17 @@ export function configure(config: AppenderConfig = {}, layouts: Layouts): (evt: 
   const baseFile = config.filename ?? 'main.log'
 
   // Per-instance state
-  let stream: RollingFileStream | null = null
+  let stream: fs.WriteStream | null = null
   let bytesWritten = 0
   let lastStamp = ''
   let sameStampIndex = 0
+  let initialized = false // ensure startup archival only once
 
-  function buildFilePath(localBaseFile: string, localPattern: string): string {
-    const dir = path.dirname(localBaseFile)
-    const base = path.basename(localBaseFile, path.extname(localBaseFile))
-    const ext = path.extname(localBaseFile) || '.log'
-    const stamp = format(new Date(), localPattern)
+  function buildRotatedName(): string {
+    const dir = path.dirname(baseFile)
+    const base = path.basename(baseFile, path.extname(baseFile))
+    const ext = path.extname(baseFile) || '.log'
+    const stamp = format(new Date(), pattern)
     if (stamp === lastStamp) {
       sameStampIndex += 1
     } else {
@@ -79,26 +79,26 @@ export function configure(config: AppenderConfig = {}, layouts: Layouts): (evt: 
     if (!backups || backups <= 0) return
     try {
       const dir = path.dirname(baseFile)
-      const base = path.basename(baseFile, path.extname(baseFile)) + '.' // prefix including trailing dot
+      const basePrefix = path.basename(baseFile, path.extname(baseFile)) + '.'
       const ext = path.extname(baseFile) || '.log'
-      // collect files that match base.<something>.ext; avoid deleting the original baseFile if it exists without timestamp
-  // Synchronous directory scan is acceptable here because rotation is infrequent
-  // eslint-disable-next-line security/detect-non-literal-fs-filename
-  const files = fs.readdirSync(dir).filter((f) => f.startsWith(base) && f.endsWith(ext))
+      // eslint-disable-next-line security/detect-non-literal-fs-filename
+      const files = fs
+        .readdirSync(dir)
+        .filter((f) => f !== path.basename(baseFile) && f.startsWith(basePrefix) && f.endsWith(ext))
+        .sort()
       if (files.length <= backups) return
-      files.sort() // lexical sort sufficient for default pattern
       while (files.length > backups) {
         const oldest = files.shift()
         if (!oldest) break
         try {
           // eslint-disable-next-line security/detect-non-literal-fs-filename
           fs.unlinkSync(path.join(dir, oldest))
-        } catch (e) {
-          // swallow to avoid crashing logging system
+        } catch {
+          // ignore
         }
       }
-    } catch (e) {
-      // best-effort retention; ignore errors
+    } catch {
+      // ignore
     }
   }
 
@@ -108,46 +108,115 @@ export function configure(config: AppenderConfig = {}, layouts: Layouts): (evt: 
   : (evt: LogEvent) =>
           `${evt.startTime.toISOString()} [${evt.level.levelStr}] ${evt.categoryName} - ${evt.data.join(' ')}\n`
 
-  function openNewStream(): void {
+  function safePath(p: string): boolean {
+    // Basic guard: no null bytes, must be absolute or relative without traversal outside its dir
+    if (!p || p.includes('\0')) return false
+    return true
+  }
+
+  function pathExists(p: string): boolean {
+    if (!safePath(p)) return false
+    // eslint-disable-next-line security/detect-non-literal-fs-filename
+    try { return fs.existsSync(p) } catch { return false }
+  }
+
+  function makeDirRecursive(p: string): void {
+    if (!safePath(p)) return
+    // eslint-disable-next-line security/detect-non-literal-fs-filename
+    try { fs.mkdirSync(p, { recursive: true }) } catch {}
+  }
+
+  function createAppendStream(p: string): fs.WriteStream | null {
+    if (!safePath(p)) return null
+    // eslint-disable-next-line security/detect-non-literal-fs-filename
+    try { return fs.createWriteStream(p, { flags: 'a' }) } catch { return null }
+  }
+
+  function openActiveStream(): void {
     try {
-      const filePath = buildFilePath(baseFile, pattern)
-      stream = new RollingFileStream(filePath, maxSize, backups)
-      // attach error listener to prevent unhandled exceptions
-  stream.on('error', (err: unknown) => {
-        try {
-          // eslint-disable-next-line no-console
-          console.error('[dateFileWithSize] stream error', err)
-        } catch {}
+      const dir = path.dirname(baseFile)
+      if (safePath(dir) && dir && dir !== '.' && !pathExists(dir)) {
+        makeDirRecursive(dir)
+      }
+      if (!safePath(baseFile)) return
+      stream = createAppendStream(baseFile)
+      stream.on('error', (err: unknown) => {
+        try { console.error('[dateFileWithSize] stream error', err) } catch {}
       })
       bytesWritten = 0
-      // After creating a new file, prune old ones
-      enforceRetention()
     } catch (e) {
-      // eslint-disable-next-line no-console
-      console.error('[dateFileWithSize] failed to open new stream', e)
+      try { console.error('[dateFileWithSize] failed to open active stream', e) } catch {}
       stream = null
     }
   }
 
+  function rotate(): void {
+    try {
+      if (stream) {
+        try { stream.end() } catch {}
+      }
+    } catch {}
+    stream = null
+    try {
+      let shouldRotate = false
+      try {
+        // eslint-disable-next-line security/detect-non-literal-fs-filename
+        const st = fs.statSync(baseFile)
+        shouldRotate = st.size >= 0
+      } catch {}
+  if (shouldRotate && safePath(baseFile) && pathExists(baseFile)) {
+        const rotated = buildRotatedName()
+        try {
+          // eslint-disable-next-line security/detect-non-literal-fs-filename
+          fs.renameSync(baseFile, rotated)
+        } catch (e) {
+          try { console.error('[dateFileWithSize] rotate rename failed', e) } catch {}
+        }
+        enforceRetention()
+      }
+    } catch {}
+    openActiveStream()
+  }
+
+  function ensureInitialized(): void {
+    if (initialized) return
+    initialized = true
+    // Startup archival of previous active file
+    try {
+      let shouldArchive = false
+      try {
+        // eslint-disable-next-line security/detect-non-literal-fs-filename
+        const st = fs.statSync(baseFile)
+        if (st.size > 0) shouldArchive = true
+      } catch {}
+  if (shouldArchive && safePath(baseFile) && pathExists(baseFile)) {
+        const rotated = buildRotatedName()
+        try {
+          // eslint-disable-next-line security/detect-non-literal-fs-filename
+          fs.renameSync(baseFile, rotated)
+          enforceRetention()
+        } catch (e) {
+          try { console.error('[dateFileWithSize] startup archival failed', e) } catch {}
+        }
+      }
+    } catch {}
+    openActiveStream()
+  }
+
   const appender = (loggingEvent: LogEvent): void => {
     try {
-      if (!stream) openNewStream()
-      if (!stream) return // give up silently if stream creation failed
+      ensureInitialized()
+      if (!stream) return
       const line = layoutFn(loggingEvent)
       const sz = Buffer.byteLength(line)
       if (bytesWritten + sz > maxSize) {
-        try {
-          stream.end()
-        } catch {}
-        stream = null
-        openNewStream()
+        rotate()
         if (!stream) return
       }
       stream.write(line)
       bytesWritten += sz
     } catch (e) {
-      // eslint-disable-next-line no-console
-      console.error('[dateFileWithSize] appender error', e)
+      try { console.error('[dateFileWithSize] appender error', e) } catch {}
     }
   }
 
@@ -156,14 +225,10 @@ export function configure(config: AppenderConfig = {}, layouts: Layouts): (evt: 
       if (stream) {
         const s = stream
         stream = null
-        try {
-          s.end(() => done())
-        } catch (e) {
-          done()
-        }
+        try { s.end(() => done()) } catch { done() }
         return
       }
-    } catch (e) {
+    } catch {
       // ignore
     }
     done()
