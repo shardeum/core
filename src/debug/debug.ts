@@ -8,13 +8,13 @@ import { nestedCountersInstance } from '../utils/nestedCounters'
 import { logFlags } from '../logger'
 import * as ProblemNodeHandler from '../p2p/ProblemNodeHandler'
 import { Node } from '@shardeum-foundation/lib-types/build/src/p2p/NodeListTypes'
-import * as NodeList from '../p2p/NodeList'
-import * as CycleChain from '../p2p/CycleChain'
-import { config } from '../p2p/Context'
+import { nodes } from '../p2p/NodeList'
+import log4js from 'log4js'
 const tar = require('tar-fs')
 const fs = require('fs')
 
 export let unsafeUnlock = false //REVIEWER WARNING: Never commit or merge this as true.  It disableds endpoint security for internal testing
+export let debugZInProgress = false
 
 interface Debug {
   baseDir: string
@@ -109,13 +109,32 @@ class Debug {
 
   _registerRoutes() {
     this.network.registerExternalGet('debug', isDebugModeMiddlewareMedium, (req, res) => {
-      const logsOnlyRaw = req.query.logsOnly
-      const logsOnly = typeof logsOnlyRaw === 'string' ? logsOnlyRaw === 'true' : false
-      const archive = this.createArchiveStream(logsOnly)
-      const gzip = zlib.createGzip()
-      res.set('content-disposition', `attachment; filename="${this.archiveName}"`)
-      res.set('content-type', 'application/gzip')
-      archive.pipe(gzip).pipe(res)
+      const fatalLogger = log4js.getLogger('fatal')
+      let archive
+      let gzip
+      try {
+        debugZInProgress = true
+        const logsOnlyRaw = req.query.logsOnly
+        const logsOnly = typeof logsOnlyRaw === 'string' ? logsOnlyRaw === 'true' : false
+        archive = this.createArchiveStream(logsOnly)
+        gzip = zlib.createGzip()
+        res.set('content-disposition', `attachment; filename="${this.archiveName}"`)
+        res.set('content-type', 'application/gzip')
+        archive.pipe(gzip).pipe(res)
+      } catch (e) {
+        // Log fatal error
+        try {
+          nestedCountersInstance?.countEvent('logRotation', 'crash in debug route' + e.message)
+          fatalLogger.fatal('debug route error:', e)
+        } catch {}
+        if (!res.headersSent) {
+          res.status(500).json({ success: false, error: 'debug archive failed' })
+        } else {
+          try { res.end() } catch {}
+        }
+      } finally {
+        debugZInProgress = false
+      }
     })
     this.network.registerExternalGet('debug-logfile', isDebugModeMiddlewareMedium, (req, res) => {
       const requestedFile = req.query.file

@@ -1,6 +1,8 @@
 import path from 'path'
 import fs from 'fs'
 import { WriteStream } from 'fs'
+import { debugZInProgress } from '../../debug/debug'
+import { nestedCountersInstance } from '../../utils/nestedCounters'
 
 type Layouts = {
   patternLayout?: (pattern: string) => (evt: LogEvent) => string
@@ -82,12 +84,14 @@ export function configure(config: AppenderConfig = {}, layouts: Layouts): (evt: 
       if (stream || isInitialFile || !currentFilePath) return
 
       // Check if current file exists and has content
-      if (fs.existsSync(currentFilePath) && bytesWritten > 0) {
+  // eslint-disable-next-line security/detect-non-literal-fs-filename
+  if (fs.existsSync(currentFilePath) && bytesWritten > 0) {
         // Generate timestamped name for the rollover file
         const timestampedPath = buildFilePath(baseFile, pattern, true)
 
         // Rename current file to timestamped name
-        fs.renameSync(currentFilePath, timestampedPath)
+  // eslint-disable-next-line security/detect-non-literal-fs-filename
+  fs.renameSync(currentFilePath, timestampedPath)
         console.log(`[dateFileWithSize] Renamed ${currentFilePath} to ${timestampedPath}`)
       }
     } catch (e) {
@@ -115,6 +119,10 @@ export function configure(config: AppenderConfig = {}, layouts: Layouts): (evt: 
       // eslint-disable-next-line security/detect-non-literal-fs-filename
       const files = fs.readdirSync(dir).filter((f) => f.startsWith(base) && f.endsWith(ext))
       if (files.length <= backups) return
+      if (debugZInProgress) {
+        nestedCountersInstance.countEvent('logRotation', 'cleanup paused due to zip export in dateWithFileSize')
+        return
+      }
       files.sort() // lexical sort sufficient for default pattern
       while (files.length > backups) {
         const oldest = files.shift()
@@ -148,12 +156,15 @@ export function configure(config: AppenderConfig = {}, layouts: Layouts): (evt: 
       const filePath = buildFilePath(baseFile, pattern, false)
       // Create directory if it doesn't exist
       const dir = path.dirname(filePath)
+      // eslint-disable-next-line security/detect-non-literal-fs-filename
       if (!fs.existsSync(dir)) {
+        // eslint-disable-next-line security/detect-non-literal-fs-filename
         fs.mkdirSync(dir, { recursive: true })
       }
 
       // Create new WriteStream instead of RollingFileStream
-      stream = fs.createWriteStream(filePath, { flags: 'a' })
+  // eslint-disable-next-line security/detect-non-literal-fs-filename
+  stream = fs.createWriteStream(filePath, { flags: 'a' })
 
       // Store the actual file path being written to
       currentFilePath = filePath
