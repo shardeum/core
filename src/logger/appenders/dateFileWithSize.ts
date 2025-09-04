@@ -1,6 +1,6 @@
 import path from 'path'
 import fs from 'fs'
-import { RollingFileStream } from 'streamroller'
+import { WriteStream } from 'fs'
 
 type Layouts = {
   patternLayout?: (pattern: string) => (evt: LogEvent) => string
@@ -47,15 +47,24 @@ export function configure(config: AppenderConfig = {}, layouts: Layouts): (evt: 
   const baseFile = config.filename ?? 'main.log'
 
   // Per-instance state
-  let stream: RollingFileStream | null = null
+  let stream: WriteStream | null = null
   let bytesWritten = 0
   let lastStamp = ''
   let sameStampIndex = 0
+  let isInitialFile = true // Track if this is the first file creation
+  let currentFilePath = '' // Track the actual current file path being written to
 
-  function buildFilePath(localBaseFile: string, localPattern: string): string {
+  // Build file path for initial file (simple name) or rollover file (timestamped)
+  function buildFilePath(localBaseFile: string, localPattern: string, isTimestamped = false): string {
     const dir = path.dirname(localBaseFile)
     const base = path.basename(localBaseFile, path.extname(localBaseFile))
     const ext = path.extname(localBaseFile) || '.log'
+
+    if (!isTimestamped) {
+      return path.join(dir, `${base}${ext}`)
+    }
+
+    // Rollover file: base + timestamp + extension (e.g., main.2024-01-15-14-30-45.log)
     const stamp = format(new Date(), localPattern)
     if (stamp === lastStamp) {
       sameStampIndex += 1
@@ -65,6 +74,26 @@ export function configure(config: AppenderConfig = {}, layouts: Layouts): (evt: 
     }
     const suffix = sameStampIndex > 0 ? `.${String(sameStampIndex).padStart(2, '0')}` : ''
     return path.join(dir, `${base}.${stamp}${suffix}${ext}`)
+  }
+
+  // Rename current file with timestamp before creating new one
+  function renameCurrentFile(): void {
+    try {
+      if (stream || isInitialFile || !currentFilePath) return
+
+      // Check if current file exists and has content
+      if (fs.existsSync(currentFilePath) && bytesWritten > 0) {
+        // Generate timestamped name for the rollover file
+        const timestampedPath = buildFilePath(baseFile, pattern, true)
+
+        // Rename current file to timestamped name
+        fs.renameSync(currentFilePath, timestampedPath)
+        console.log(`[dateFileWithSize] Renamed ${currentFilePath} to ${timestampedPath}`)
+      }
+    } catch (e) {
+      // Log error but don't crash the logging system
+      console.error('[dateFileWithSize] Failed to rename current file:', e)
+    }
   }
 
   /**
@@ -82,9 +111,9 @@ export function configure(config: AppenderConfig = {}, layouts: Layouts): (evt: 
       const base = path.basename(baseFile, path.extname(baseFile)) + '.' // prefix including trailing dot
       const ext = path.extname(baseFile) || '.log'
       // collect files that match base.<something>.ext; avoid deleting the original baseFile if it exists without timestamp
-  // Synchronous directory scan is acceptable here because rotation is infrequent
-  // eslint-disable-next-line security/detect-non-literal-fs-filename
-  const files = fs.readdirSync(dir).filter((f) => f.startsWith(base) && f.endsWith(ext))
+      // Synchronous directory scan is acceptable here because rotation is infrequent
+      // eslint-disable-next-line security/detect-non-literal-fs-filename
+      const files = fs.readdirSync(dir).filter((f) => f.startsWith(base) && f.endsWith(ext))
       if (files.length <= backups) return
       files.sort() // lexical sort sufficient for default pattern
       while (files.length > backups) {
@@ -105,23 +134,44 @@ export function configure(config: AppenderConfig = {}, layouts: Layouts): (evt: 
   const layoutFn =
     layouts && layouts.patternLayout && config.layout
       ? layouts.patternLayout(config.layout)
-  : (evt: LogEvent) =>
+      : (evt: LogEvent) =>
           `${evt.startTime.toISOString()} [${evt.level.levelStr}] ${evt.categoryName} - ${evt.data.join(' ')}\n`
 
   function openNewStream(): void {
     try {
-      const filePath = buildFilePath(baseFile, pattern)
-      stream = new RollingFileStream(filePath, maxSize, backups)
+      // If this is a rollover (not initial creation), rename the current file first
+      if (!isInitialFile) {
+        renameCurrentFile()
+      }
+
+      // Create new file with simple name for initial, or timestamped name for rollover
+      const filePath = buildFilePath(baseFile, pattern, false)
+      // Create directory if it doesn't exist
+      const dir = path.dirname(filePath)
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true })
+      }
+
+      // Create new WriteStream instead of RollingFileStream
+      stream = fs.createWriteStream(filePath, { flags: 'a' })
+
+      // Store the actual file path being written to
+      currentFilePath = filePath
+
       // attach error listener to prevent unhandled exceptions
-  stream.on('error', (err: unknown) => {
+      stream.on('error', (err: unknown) => {
         try {
           // eslint-disable-next-line no-console
           console.error('[dateFileWithSize] stream error', err)
         } catch {}
       })
       bytesWritten = 0
+
       // After creating a new file, prune old ones
       enforceRetention()
+
+      // Mark that we're no longer on the initial file
+      isInitialFile = false
     } catch (e) {
       // eslint-disable-next-line no-console
       console.error('[dateFileWithSize] failed to open new stream', e)
@@ -131,27 +181,43 @@ export function configure(config: AppenderConfig = {}, layouts: Layouts): (evt: 
 
   const appender = (loggingEvent: LogEvent): void => {
     try {
-      if (!stream) openNewStream()
+      if (!stream) {
+        openNewStream()
+      }
       if (!stream) return // give up silently if stream creation failed
+
       const line = layoutFn(loggingEvent)
       const sz = Buffer.byteLength(line)
+
+      // Check if adding this line would exceed maxLogSize
       if (bytesWritten + sz > maxSize) {
         try {
+          // Close current stream
           stream.end()
-        } catch {}
-        stream = null
-        openNewStream()
-        if (!stream) return
+          stream = null
+          // Open new stream (this will rename current file and create new one)
+          openNewStream()
+          if (!stream) return
+        } catch (e) {
+          console.error('[dateFileWithSize] Failed to rotate file:', e)
+          return
+        }
       }
-      stream.write(line)
-      bytesWritten += sz
+
+      // Write the line to current stream
+      if (stream) {
+        stream.write(line)
+        bytesWritten += sz
+      }
     } catch (e) {
       // eslint-disable-next-line no-console
       console.error('[dateFileWithSize] appender error', e)
     }
   }
 
-  ;(appender as unknown as { shutdown?: (done: (err?: Error) => void) => void }).shutdown = (done: (err?: Error) => void): void => {
+  ;(appender as unknown as { shutdown?: (done: (err?: Error) => void) => void }).shutdown = (
+    done: (err?: Error) => void
+  ): void => {
     try {
       if (stream) {
         const s = stream

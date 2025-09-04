@@ -1,7 +1,16 @@
 import { Console } from 'console'
 import { PassThrough } from 'stream'
 import { join } from 'path'
-import { createWriteStream, existsSync, mkdirSync, readdirSync, statSync, unlinkSync, WriteStream } from 'fs'
+import {
+  createWriteStream,
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  statSync,
+  unlinkSync,
+  WriteStream,
+  renameSync,
+} from 'fs'
 
 export function startSaving(baseDir: string): void {
   // Settings (match prior defaults): 10MB max size, keep 10 backups, timestamped filenames
@@ -15,6 +24,7 @@ export function startSaving(baseDir: string): void {
 
   let currentStream: WriteStream | null = null
   let currentSize = 0
+  let currentPath = ''
   let lastStamp = ''
   let sameStampIndex = 0
 
@@ -36,7 +46,15 @@ export function startSaving(baseDir: string): void {
       .replace('SSS', SSS)
   }
 
-  function buildFilePath(): string {
+  // Build the active simple path, e.g., logs/out.log
+  function buildSimplePath(): string {
+    const dir = baseDir
+    if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
+    return join(dir, `${baseName}${ext}`)
+  }
+
+  // Build a timestamped rollover path, e.g., logs/out.2025-09-04-12-46-16[.01].log
+  function buildTimestampedPath(): string {
     const dir = baseDir
     if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
     const stamp = format(new Date())
@@ -80,22 +98,46 @@ export function startSaving(baseDir: string): void {
     }
   }
 
-  function openNewStream(): void {
+  // Rotate the current out.log to a timestamped file, then open a fresh out.log
+  function rotate(): void {
     try {
-      if (currentStream) currentStream.end()
-    } catch {}
-    const filePath = buildFilePath()
-    currentStream = createWriteStream(filePath, { flags: 'a' })
+      if (currentStream) {
+        try {
+          currentStream.end()
+        } catch {}
+        currentStream = null
+      }
+      if (currentPath && existsSync(currentPath) && currentSize > 0) {
+        try {
+          const rolledPath = buildTimestampedPath()
+          // eslint-disable-next-line security/detect-non-literal-fs-filename
+          renameSync(currentPath, rolledPath)
+        } catch {}
+      }
+    } finally {
+      const simplePath = buildSimplePath()
+      currentStream = createWriteStream(simplePath, { flags: 'a' })
+      currentPath = simplePath
+      currentSize = 0
+      pruneBackups()
+    }
+  }
+
+  // Initial open of out.log at process start
+  function openInitial(): void {
+    const simplePath = buildSimplePath()
+    currentStream = createWriteStream(simplePath, { flags: 'a' })
+    currentPath = simplePath
     currentSize = 0
     pruneBackups()
   }
 
   function writeChunk(chunk: Buffer): void {
     try {
-      if (!currentStream) openNewStream()
+      if (!currentStream) openInitial()
       if (!currentStream) return
       if (currentSize + chunk.length > maxLogSize) {
-        openNewStream()
+        rotate()
         if (!currentStream) return
       }
       currentStream.write(chunk)
@@ -118,7 +160,7 @@ export function startSaving(baseDir: string): void {
         .map((line) => {
           if (line.trim() === '') return line // preserve blank lines
           const ts = new Date().toISOString()
-            // Prior format: `${timestamp} - ${line}`
+          // Prior format: `${timestamp} - ${line}`
           return `${ts} - ${line}`
         })
         .join('\n')
