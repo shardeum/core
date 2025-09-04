@@ -1,5 +1,5 @@
 import { Console } from 'console'
-import { PassThrough, Transform } from 'stream'
+import { PassThrough } from 'stream'
 import { join } from 'path'
 import { createWriteStream, existsSync, mkdirSync, readdirSync, statSync, unlinkSync, WriteStream } from 'fs'
 
@@ -10,6 +10,8 @@ export function startSaving(baseDir: string): void {
   const maxLogSize = 10485760
   const numBackups = 10
   const pattern = 'yyyy-MM-dd-HH-mm-ss'
+  // NOTE: This implementation restores per-line timestamping (ISO8601) and strengthens
+  // rotation/retention with defensive try/catch blocks so logging cannot crash the process.
 
   let currentStream: WriteStream | null = null
   let currentSize = 0
@@ -48,18 +50,34 @@ export function startSaving(baseDir: string): void {
   }
 
   function pruneBackups(): void {
+    if (!numBackups || numBackups <= 0) return
     try {
       const dir = baseDir
+      // eslint-disable-next-line security/detect-non-literal-fs-filename
       const files = readdirSync(dir)
         .filter((f) => f.startsWith(`${baseName}.`) && f.endsWith(ext))
-        .map((f) => ({ f, t: statSync(join(dir, f)).mtimeMs }))
+        .map((f) => {
+          try {
+            // eslint-disable-next-line security/detect-non-literal-fs-filename
+            return { f, t: statSync(join(dir, f)).mtimeMs }
+          } catch {
+            return { f, t: 0 }
+          }
+        })
         .sort((a, b) => b.t - a.t)
-      for (let i = numBackups; i < files.length; i++) {
+      for (const target of files.slice(numBackups)) {
         try {
-          unlinkSync(join(dir, files[i].f))
-        } catch {}
+          const name = target.f
+          if (!/^[A-Za-z0-9_.-]+$/.test(name)) continue
+          // eslint-disable-next-line security/detect-non-literal-fs-filename
+          unlinkSync(join(dir, name))
+        } catch {
+          // ignore unlink errors
+        }
       }
-    } catch {}
+    } catch {
+      // ignore overall retention errors
+    }
   }
 
   function openNewStream(): void {
@@ -73,23 +91,95 @@ export function startSaving(baseDir: string): void {
   }
 
   function writeChunk(chunk: Buffer): void {
-    if (!currentStream) openNewStream()
-    if (currentSize + chunk.length > maxLogSize) {
-      openNewStream()
+    try {
+      if (!currentStream) openNewStream()
+      if (!currentStream) return
+      if (currentSize + chunk.length > maxLogSize) {
+        openNewStream()
+        if (!currentStream) return
+      }
+      currentStream.write(chunk)
+      currentSize += chunk.length
+    } catch {
+      // swallow write errors
     }
-    currentStream.write(chunk)
-    currentSize += chunk.length
   }
 
-  // Create passthroughs that write to stdout/stderr and to the rotating file stream
+  // Buffer for lines across chunk boundaries
+  let lineBuffer = ''
+
+  function addTimestamps(chunk: Buffer): Buffer {
+    try {
+      lineBuffer += chunk.toString('utf8')
+      const lines = lineBuffer.split('\n')
+      lineBuffer = lines.pop() ?? ''
+      if (!lines.length) return Buffer.from('')
+      const processed = lines
+        .map((line) => {
+          if (line.trim() === '') return line // preserve blank lines
+          const ts = new Date().toISOString()
+            // Prior format: `${timestamp} - ${line}`
+          return `${ts} - ${line}`
+        })
+        .join('\n')
+      return Buffer.from(processed + '\n')
+    } catch {
+      // On failure, emit raw chunk to avoid data loss
+      return chunk
+    }
+  }
+
+  function flushResidual(): void {
+    try {
+      if (lineBuffer && lineBuffer.trim() !== '') {
+        const ts = new Date().toISOString()
+        writeChunk(Buffer.from(`${ts} - ${lineBuffer}\n`))
+      } else if (lineBuffer) {
+        writeChunk(Buffer.from(lineBuffer))
+      }
+      lineBuffer = ''
+    } catch {
+      // ignore
+    }
+  }
+
+  try {
+    process.on('exit', flushResidual)
+    process.on('SIGINT', () => {
+      flushResidual()
+      // allow default exit behavior
+    })
+  } catch {
+    // ignore handler registration errors
+  }
+
+  // Create passthroughs that write to stdout/stderr and to the rotating file stream with per-line timestamps
   const outPass = new PassThrough()
   outPass.pipe(process.stdout)
-  outPass.on('data', (chunk: Buffer) => writeChunk(chunk))
+  outPass.on('data', (chunk: Buffer) => {
+    try {
+      const stamped = addTimestamps(chunk)
+      if (stamped.length) writeChunk(stamped)
+    } catch {
+      writeChunk(chunk)
+    }
+  })
 
   const errPass = new PassThrough()
   errPass.pipe(process.stderr)
-  errPass.on('data', (chunk: Buffer) => writeChunk(chunk))
+  errPass.on('data', (chunk: Buffer) => {
+    try {
+      const stamped = addTimestamps(chunk)
+      if (stamped.length) writeChunk(stamped)
+    } catch {
+      writeChunk(chunk)
+    }
+  })
 
   // Monkey patch the global console with a new one that uses our passthroughs
-  console = new Console({ stdout: outPass, stderr: errPass }) // eslint-disable-line no-global-assign
+  try {
+    console = new Console({ stdout: outPass, stderr: errPass }) // eslint-disable-line no-global-assign
+  } catch {
+    // ignore console patch errors
+  }
 }
