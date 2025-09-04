@@ -41,7 +41,8 @@ class Debug {
    * Build a tar pack stream containing the files previously registered via addToArchive.
    * @param ignoreDBFiles If true, any file whose path contains a folder named "db" will be skipped.
    */
-  createArchiveStream(ignroreDBFiles: boolean = false) { // note: ignroreDBFiles name kept to match external specification
+  createArchiveStream(ignroreDBFiles: boolean = false) {
+    // note: ignroreDBFiles name kept to match external specification
     const ignoreDBFiles = ignroreDBFiles // internal canonical name
     const cwd = process.cwd()
     const filesRel = {}
@@ -86,6 +87,20 @@ class Debug {
         header.name = path.normalize(path.join(dest, header.name))
         return header
       },
+    })
+
+    // Tolerate files rotated/deleted during packing
+    pack.on('error', (err: any) => {
+      if (err && (err.code === 'ENOENT' || String(err).includes('ENOENT'))) {
+        try {
+          pack.resume()
+        } catch {}
+        return
+      }
+      // propagate non-ENOENT errors
+      try {
+        pack.destroy(err)
+      } catch {}
     })
 
     return pack
