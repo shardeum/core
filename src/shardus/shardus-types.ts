@@ -323,7 +323,7 @@ export interface App {
 
   calculateAccountHash: (account: unknown) => string
 
-  setAccountData: (accountRecords: unknown[]) => Promise<void>
+  setAccountData: (accountRecords: Array<{ accountData: unknown; accountId: string }>) => Promise<void>
 
   resetAccountData: (accountRecords: unknown[]) => void
 

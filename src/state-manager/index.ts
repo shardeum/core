@@ -1111,7 +1111,7 @@ class StateManager {
     processStats: boolean,
     updatedAccounts: string[] = null
   ): Promise<string[]> {
-    const accountsToAdd: unknown[] = []
+    const accountsToAdd: Array<{ accountData: unknown; accountId: string }> = []
     const wrappedAccountsToAdd: ShardusTypes.WrappedData[] = []
     const failedHashes: string[] = []
     for (const wrappedAccount of accountRecords) {
@@ -1147,7 +1147,7 @@ class StateManager {
       }
 
       if (stateId.length === hash.length && timingSafeEqual(Buffer.from(stateId), Buffer.from(hash))) {
-        accountsToAdd.push(recordData)
+        accountsToAdd.push({ accountData: recordData, accountId })
         wrappedAccountsToAdd.push(wrappedAccount)
 
         if (updatedAccounts != null) {
@@ -1230,6 +1230,7 @@ class StateManager {
     /* prettier-ignore */ if (logFlags.verbose) console.log(`setAccountData toAdd:${accountsToAdd.length}  failed:${failedHashes.length}`)
     /* prettier-ignore */ this.transactionQueue.setDebugLastAwaitedCallInner('ths.app.setAccountData')
     await this.app.setAccountData(accountsToAdd)
+    // adjust to share the list of accountsToAdd with the app so it can use the shardusAddress
     /* prettier-ignore */ this.transactionQueue.setDebugLastAwaitedCallInner('ths.app.setAccountData', DebugComplete.Completed)
     fireAndForget(() => this.transactionQueue.processNonceQueue(wrappedAccountsToAdd))
     return failedHashes
@@ -3332,7 +3333,7 @@ class StateManager {
    * @param accountCopies
    */
   async _commitAccountCopies(accountCopies: ShardusTypes.AccountsCopy[]) {
-    const rawDataList: unknown[] = []
+    const rawDataList: Array<{ accountData: unknown; accountId: string }> = []
     if (accountCopies.length > 0) {
       for (const accountData of accountCopies) {
         // make sure the data is not a json string
@@ -3351,7 +3352,8 @@ class StateManager {
           /* prettier-ignore */ if (logFlags.verbose && this.extendedRepairLogging) this.mainLogger.debug(` _commitAccountCopies: ${utils.makeShortHash(accountData.accountId)} ts: ${utils.makeShortHash(accountData.timestamp)} data: ${utils.stringifyReduce(accountData)}`)
         }
 
-        rawDataList.push(accountData.data)
+        rawDataList.push({ accountData: accountData.data, accountId: accountData.accountId })
+        // accId.push(accountData.accountId)
       }
       // tell the app to replace the account data
       await this.app.setAccountData(rawDataList)
