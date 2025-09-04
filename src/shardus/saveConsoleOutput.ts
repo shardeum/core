@@ -11,6 +11,8 @@ import {
   WriteStream,
   renameSync,
 } from 'fs'
+import { debugZInProgress } from '../debug/debug'
+import { nestedCountersInstance } from '../utils/nestedCounters'
 
 export function startSaving(baseDir: string): void {
   // Settings (match prior defaults): 10MB max size, keep 10 backups, timestamped filenames
@@ -83,8 +85,13 @@ export function startSaving(baseDir: string): void {
           }
         })
         .sort((a, b) => b.t - a.t)
-      for (const target of files.slice(numBackups)) {
+      const filesToDelete = files.slice(numBackups)
+      for (const target of filesToDelete) {
         try {
+          if (debugZInProgress) {
+            nestedCountersInstance.countEvent('logRotation', 'cleanup paused due to zip export in dateWithFileSize')
+            return
+          }
           const name = target.f
           if (!/^[A-Za-z0-9_.-]+$/.test(name)) continue
           // eslint-disable-next-line security/detect-non-literal-fs-filename
