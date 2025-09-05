@@ -89,25 +89,34 @@ export function startSaving(baseDir: string): void {
       for (const target of filesToDelete) {
         try {
           if (debugZInProgress) {
-            nestedCountersInstance.countEvent('logRotation', 'cleanup paused due to zip export in dateWithFileSize')
+            nestedCountersInstance.countEvent('logRotation', 'logRotation: cleanup paused due to zip export in dateWithFileSize')
             return
           }
           const name = target.f
           if (!/^[A-Za-z0-9_.-]+$/.test(name)) continue
           // eslint-disable-next-line security/detect-non-literal-fs-filename
           unlinkSync(join(dir, name))
-        } catch {
+        } catch (e) {
+          nestedCountersInstance.countEvent('logRotation', 'logRotation: unlink failed in saveConsoleOutput: ' + e.message)
           // ignore unlink errors
         }
       }
-    } catch {
+    } catch (e) {
       // ignore overall retention errors
+      nestedCountersInstance.countEvent('logRotation', 'logRotation: prune failed in saveConsoleOutput: ' + e.message)
+
     }
   }
 
   // Rotate the current out.log to a timestamped file, then open a fresh out.log
   function rotate(): void {
     try {
+
+      if (debugZInProgress) {
+        nestedCountersInstance.countEvent('logRotation', 'logRotation: new file paused due to zip export in saveConsoleOutput')
+        return
+      } 
+
       if (currentStream) {
         try {
           currentStream.end()
