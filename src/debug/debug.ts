@@ -95,13 +95,17 @@ class Debug {
       if (err && (err.code === 'ENOENT' || String(err).includes('ENOENT'))) {
         try {
           pack.resume()
-        } catch {}
+        } catch (e) {
+          nestedCountersInstance?.countEvent('logRotation', 'logRotation: pack error: ' + e.message)
+        }
         return
       }
       // propagate non-ENOENT errors
       try {
         pack.destroy(err)
-      } catch {}
+      } catch (e) {
+        nestedCountersInstance?.countEvent('logRotation', 'logRotation: pack error2: ' + e.message)
+      }
     })
 
     return pack
@@ -113,27 +117,94 @@ class Debug {
       let archive
       let gzip
       try {
+        nestedCountersInstance?.countEvent('logRotation', 'logRotation: calling debug route')
+
         debugZInProgress = true
+        // Safety timer: if still true after 10 minutes, log & force clear
+        let forceClearTimeout: NodeJS.Timeout | null = setTimeout(() => {
+          if (debugZInProgress) {
+            nestedCountersInstance?.countEvent('logRotation', 'logRotation: force-clear: still true after 10m (timeout)')
+            debugZInProgress = false
+          }
+        }, 10 * 60 * 1000)
         const logsOnlyRaw = req.query.logsOnly
         const logsOnly = typeof logsOnlyRaw === 'string' ? logsOnlyRaw === 'true' : false
         archive = this.createArchiveStream(logsOnly)
         gzip = zlib.createGzip()
         res.set('content-disposition', `attachment; filename="${this.archiveName}"`)
         res.set('content-type', 'application/gzip')
+        // Helper to ensure we only clear the flag once
+        let completed = false
+        const complete = (reason: string, err?: any) => {
+          if (completed) return
+            completed = true
+            if (forceClearTimeout) { 
+              try { 
+                clearTimeout(forceClearTimeout) 
+              } catch (e) {
+                nestedCountersInstance?.countEvent('logRotation', `logRotation: error clearing timeout: ${e?.message || e}`)
+              } 
+              forceClearTimeout = null 
+            }
+            debugZInProgress = false
+            if (err) {
+              nestedCountersInstance?.countEvent('logRotation', `logRotation: end: ${reason}: ${err?.message || err}`)
+            } else {
+              nestedCountersInstance?.countEvent('logRotation', `logRotation: end: ${reason}`)
+            }
+        }
+
+        // Attach lifecycle handlers BEFORE piping to avoid missed events
+        archive.on('error', (e: any) => {
+          // createArchiveStream already handles ENOENT gracefully; still mark completion if fatal
+          if (e && String(e).includes('ENOENT')) return // allow resume logic inside createArchiveStream
+          try { fatalLogger.fatal('debug archive stream error', e) } catch {}
+          if (!res.headersSent) {
+            try { res.status(500).json({ success: false, error: 'archive stream error' }) } catch {}
+          } else {
+            try { res.end() } catch {}
+          }
+          complete('archive_error', e)
+        })
+
+        gzip.on('error', (e: any) => {
+          try { fatalLogger?.fatal('debug gzip error', e) } catch {}
+          if (!res.headersSent) {
+            try { res.status(500).json({ success: false, error: 'compression error' }) } catch {}
+          } else {
+            try { res.end() } catch {}
+          }
+          complete('gzip_error', e)
+        })
+
+        res.on('error', (e: any) => {
+          try { fatalLogger?.fatal('debug response error', e) } catch {}
+          complete('res_error', e)
+        })
+        res.on('finish', () => complete('res_finish'))
+        res.on('close', () => complete('res_close'))
+
         archive.pipe(gzip).pipe(res)
+
+        nestedCountersInstance?.countEvent('logRotation', 'logRotation: calling debug route - pipe started')
       } catch (e) {
         // Log fatal error
         try {
-          nestedCountersInstance?.countEvent('logRotation', 'crash in debug route' + e.message)
+          nestedCountersInstance?.countEvent('logRotation', 'logRotation: crash in debug route: ' + e.message)
           fatalLogger.fatal('debug route error:', e)
-        } catch {}
+        } catch (e) {
+          nestedCountersInstance?.countEvent('logRotation', 'logRotation: crash in debug route2: ' + e.message)
+        }
         if (!res.headersSent) {
           res.status(500).json({ success: false, error: 'debug archive failed' })
         } else {
-          try { res.end() } catch {}
+          try { res.end() } catch (e) {
+            nestedCountersInstance?.countEvent('logRotation', 'logRotation: crash in debug route3: ' + e.message)
+          }
         }
-      } finally {
-        debugZInProgress = false
+        debugZInProgress = false // ensure flag reset on synchronous failure
+        // Clear safety timer if it was set
+        // forceClearTimeout is only defined inside try block; guard via optional chain
       }
     })
     this.network.registerExternalGet('debug-logfile', isDebugModeMiddlewareMedium, (req, res) => {
