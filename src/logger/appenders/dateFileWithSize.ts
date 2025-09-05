@@ -120,7 +120,7 @@ export function configure(config: AppenderConfig = {}, layouts: Layouts): (evt: 
       const files = fs.readdirSync(dir).filter((f) => f.startsWith(base) && f.endsWith(ext))
       if (files.length <= backups) return
       if (debugZInProgress) {
-        nestedCountersInstance.countEvent('logRotation', 'cleanup paused due to zip export in dateWithFileSize')
+        nestedCountersInstance.countEvent('logRotation', 'logRotation: cleanup paused due to zip export in dateWithFileSize')
         return
       }
       files.sort() // lexical sort sufficient for default pattern
@@ -132,10 +132,14 @@ export function configure(config: AppenderConfig = {}, layouts: Layouts): (evt: 
           fs.unlinkSync(path.join(dir, oldest))
         } catch (e) {
           // swallow to avoid crashing logging system
+          nestedCountersInstance.countEvent('logRotation', 'logRotation: unlink failed in dateWithFileSize: ' + e.message)
+
         }
       }
     } catch (e) {
       // best-effort retention; ignore errors
+      nestedCountersInstance.countEvent('logRotation', 'logRotation: prune failed in dateWithFileSize: ' + e.message)
+
     }
   }
 
@@ -202,16 +206,20 @@ export function configure(config: AppenderConfig = {}, layouts: Layouts): (evt: 
 
       // Check if adding this line would exceed maxLogSize
       if (bytesWritten + sz > maxSize) {
-        try {
-          // Close current stream
-          stream.end()
-          stream = null
-          // Open new stream (this will rename current file and create new one)
-          openNewStream()
-          if (!stream) return
-        } catch (e) {
-          console.error('[dateFileWithSize] Failed to rotate file:', e)
-          return
+        if (debugZInProgress) {
+          nestedCountersInstance.countEvent('logRotation', 'logRotation: new file paused due to zip export in dateWithFileSize')
+        } else {
+          try {
+            // Close current stream
+            stream.end()
+            stream = null
+            // Open new stream (this will rename current file and create new one)
+            openNewStream()
+            if (!stream) return
+          } catch (e) {
+            console.error('[dateFileWithSize] Failed to rotate file:', e)
+            return
+          }
         }
       }
 
