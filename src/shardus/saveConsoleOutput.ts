@@ -89,7 +89,7 @@ export function startSaving(baseDir: string): void {
       for (const target of filesToDelete) {
         try {
           if (debugZInProgress) {
-            nestedCountersInstance.countEvent('logRotation', 'logRotation: cleanup paused due to zip export in dateWithFileSize')
+            nestedCountersInstance.countEvent('logRotation', 'logRotation: cleanup paused due to zip export in saveConsoleOutput')
             return
           }
           const name = target.f
