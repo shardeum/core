@@ -3945,19 +3945,22 @@ class StateManager {
     // build partition hashes from previous full cycle
     if (this.feature_partitionHashes === true) {
       if (cycleShardValues && cycleShardValues.ourNode.status === 'active') {
-        this.profiler.profileSectionStart('stateManager_processPreviousCycleSummaries_buildPartitionHashesForNode')
-        this.accountCache.processCacheUpdates(cycleShardValues)
+        //do not patch in restore mode
+        if(cycle.mode != 'restore'){
+          this.profiler.profileSectionStart('stateManager_processPreviousCycleSummaries_buildPartitionHashesForNode')
+          this.accountCache.processCacheUpdates(cycleShardValues)
 
-        this.profiler.profileSectionEnd('stateManager_processPreviousCycleSummaries_buildPartitionHashesForNode')
+          this.profiler.profileSectionEnd('stateManager_processPreviousCycleSummaries_buildPartitionHashesForNode')
 
-        this.profiler.profileSectionStart('stateManager_updatePartitionReport_updateTrie')
-        //Note: the main work is happening in accountCache.buildPartitionHashesForNode, this just
-        // uses that data to create our old report structure for reporting to the monitor-server
-        // this.partitionObjects.updatePartitionReport(cycleShardValues, mainHashResults) //this needs to go away along all of partitionObjects I think
-        //this is used in the reporter and account dump, but these features cant scale to hundreds of nodes.
-        //
-        this.accountPatcher.updateTrieAndBroadCast(lastCycle.counter)
-        this.profiler.profileSectionEnd('stateManager_updatePartitionReport_updateTrie')
+          this.profiler.profileSectionStart('stateManager_updatePartitionReport_updateTrie')
+          //Note: the main work is happening in accountCache.buildPartitionHashesForNode, this just
+          // uses that data to create our old report structure for reporting to the monitor-server
+          // this.partitionObjects.updatePartitionReport(cycleShardValues, mainHashResults) //this needs to go away along all of partitionObjects I think
+          //this is used in the reporter and account dump, but these features cant scale to hundreds of nodes.
+          //
+          this.accountPatcher.updateTrieAndBroadCast(lastCycle.counter)
+          this.profiler.profileSectionEnd('stateManager_updatePartitionReport_updateTrie')
+        }
       }
     }
 
@@ -4002,14 +4005,16 @@ class StateManager {
     }
 
     await utils.sleep(10000) //wait 10 seconds
-    try {
-      await this.accountPatcher.testAndPatchAccounts(lastCycle.counter)
-    } catch (e) {
-      this.statemanager_fatal('processPreviousCycleSummaries', `testAndPatchAccounts ${e.message}`)
-      nestedCountersInstance.countEvent(
-        'processPreviousCycleSummaries',
-        `testAndPatchAccounts fail with exception: ${e.message}`
-      )
+    if(cycle.mode != 'restore'){
+      try {
+        await this.accountPatcher.testAndPatchAccounts(lastCycle.counter)
+      } catch (e) {
+        this.statemanager_fatal('processPreviousCycleSummaries', `testAndPatchAccounts ${e.message}`)
+        nestedCountersInstance.countEvent(
+          'processPreviousCycleSummaries',
+          `testAndPatchAccounts fail with exception: ${e.message}`
+        )
+      }
     }
   }
 
