@@ -262,8 +262,8 @@ export default class ArchiverSyncTracker implements SyncTrackerInterface {
         while (hasAllGlobalData === false) {
           maxTries--
           if (maxTries <= 0) {
-            /* prettier-ignore */ if (logFlags.error) this.accountSync.mainLogger.error(`ARCHIVER_DATASYNC: syncStateDataGlobals max tries excceded `)
-            return
+            /* prettier-ignore */ if (logFlags.important_as_fatal) this.accountSync.mainLogger.error(`ARCHIVER_DATASYNC: syncStateDataGlobals max tries excceded `)
+            throw new Error(`setting global data falied. max tries exceeded`)
           }
           /* prettier-ignore */ if (logFlags.debug) this.accountSync.mainLogger.debug(`ARCHIVER_DATASYNC: syncStateDataGlobals hasAllGlobalData === false `)
 
@@ -373,12 +373,12 @@ export default class ArchiverSyncTracker implements SyncTrackerInterface {
               //we dont have the data
               hasAllGlobalData = false
               remainingAccountsToSync.push(report.id)
-              /* prettier-ignore */ if (logFlags.debug) this.accountSync.mainLogger.debug(`ARCHIVER_DATASYNC: syncStateDataGlobals remainingAccountsToSync data===null ${utils.makeShortHash(report.id)} `)
+              /* prettier-ignore */ if (logFlags.important_as_fatal) this.accountSync.mainLogger.debug(`ARCHIVER_DATASYNC: syncStateDataGlobals remainingAccountsToSync data===null ${utils.makeShortHash(report.id)} `)
             } else if (data.stateId !== report.hash) {
               //we have the data but he hash is wrong
               hasAllGlobalData = false
               remainingAccountsToSync.push(report.id)
-              /* prettier-ignore */ if (logFlags.debug) this.accountSync.mainLogger.debug(`ARCHIVER_DATASYNC: syncStateDataGlobals remainingAccountsToSync data.stateId !== report.hash ${utils.makeShortHash(report.id)} `)
+              /* prettier-ignore */ if (logFlags.important_as_fatal) this.accountSync.mainLogger.debug(`ARCHIVER_DATASYNC: syncStateDataGlobals remainingAccountsToSync data.stateId !== report.hash ${utils.makeShortHash(report.id)} `)
             }
           }
           //set this report to the last report and continue.
@@ -420,13 +420,13 @@ export default class ArchiverSyncTracker implements SyncTrackerInterface {
         /* prettier-ignore */ if (logFlags.debug) this.accountSync.mainLogger.debug(`ARCHIVER_DATASYNC: syncStateDataGlobals complete synced ${dataToSet.length} accounts `)
       } catch (error) {
         if (error.message.includes('FailAndRestartPartition')) {
-          /* prettier-ignore */ if (logFlags.debug) this.accountSync.mainLogger.debug(`ARCHIVER_DATASYNC: syncStateDataGlobals Error Failed at: ${error.stack}`)
+          /* prettier-ignore */ if (logFlags.important_as_fatal) this.accountSync.mainLogger.debug(`ARCHIVER_DATASYNC: syncStateDataGlobals Error Failed at: ${error.stack}`)
           /* prettier-ignore */ this.accountSync.statemanager_fatal( `syncStateDataGlobals_ex_failandrestart`, 'ARCHIVER_DATASYNC: syncStateDataGlobals FailAndRestartPartition: ' + errorToStringFull(error) )
 
           retry = await this.tryRetry('syncStateDataGlobals 1 ')
         } else {
           /* prettier-ignore */ this.accountSync.statemanager_fatal( `syncStateDataGlobals_ex`, 'syncStateDataGlobals failed: ' + errorToStringFull(error) )
-          /* prettier-ignore */ if (logFlags.debug) this.accountSync.mainLogger.debug(`ARCHIVER_DATASYNC: unexpected error. restaring sync:` + errorToStringFull(error))
+          /* prettier-ignore */ if (logFlags.important_as_fatal) this.accountSync.mainLogger.debug(`ARCHIVER_DATASYNC: unexpected error. restaring sync:` + errorToStringFull(error))
 
           retry = await this.tryRetry('syncStateDataGlobals 2')
         }
