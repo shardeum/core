@@ -156,13 +156,13 @@ export default class ArchiverSyncTracker implements SyncTrackerInterface {
           //buble up:
           throw new Error('reset-sync-ranges')
         } else if (error.message.includes('FailAndRestartPartition')) {
-          /* prettier-ignore */ if (logFlags.debug) this.accountSync.mainLogger.debug(`ARCHIVER_DATASYNC: Error Failed at: ${error.stack}`)
+          /* prettier-ignore */ if (logFlags.important_as_fatal) this.accountSync.mainLogger.debug(`ARCHIVER_DATASYNC: Error Failed at: ${error.stack}`)
           /* prettier-ignore */ this.accountSync.statemanager_fatal( `syncStateDataForRange_ex_failandrestart`, 'ARCHIVER_DATASYNC: FailAndRestartPartition: ' + errorToStringFull(error) )
 
           retry = await this.tryRetry('syncStateDataForRange 1')
         } else {
           /* prettier-ignore */ this.accountSync.statemanager_fatal( `syncStateDataForRange_ex`, 'syncStateDataForPartition failed: ' + errorToStringFull(error) )
-          /* prettier-ignore */ if (logFlags.debug) this.accountSync.mainLogger.debug(`ARCHIVER_DATASYNC: unexpected error. restaring sync:` + errorToStringFull(error))
+          /* prettier-ignore */ if (logFlags.important_as_fatal) this.accountSync.mainLogger.debug(`ARCHIVER_DATASYNC: unexpected error. restaring sync:` + errorToStringFull(error))
 
           retry = await this.tryRetry('syncStateDataForRange 2')
         }
@@ -868,13 +868,17 @@ export default class ArchiverSyncTracker implements SyncTrackerInterface {
     this.accountSync.syncStatement.numAccounts += goodAccounts.length
 
     if (failedHashes.length > 1000) {
-      /* prettier-ignore */ if (logFlags.error) this.accountSync.mainLogger.error(`ARCHIVER_DATASYNC: processAccountData failed hashes over 1000:  ${failedHashes.length} restarting sync process`)
+      /* prettier-ignore */ if (logFlags.important_as_fatal) this.accountSync.mainLogger.error(`ARCHIVER_DATASYNC: processAccountData failed hashes over 1000:  ${failedHashes.length} restarting sync process`)
+      /* prettier-ignore */  nestedCountersInstance.countEvent('archiver_sync', `data hashes failed`, failedHashes.length)
+
       // recordPotentialBadnode is not implemented yet but we have it as a placeholder
       this.accountSync.stateManager.recordPotentialBadnode()
       throw new Error('FailAndRestartPartition_processAccountData_A')
     }
     if (failedHashes.length > 0) {
-      /* prettier-ignore */ if (logFlags.error) this.accountSync.mainLogger.error(`ARCHIVER_DATASYNC: processAccountData failed hashes:  ${failedHashes.length} will have to download them again`)
+      /* prettier-ignore */ if (logFlags.important_as_fatal) this.accountSync.mainLogger.error(`ARCHIVER_DATASYNC: processAccountData failed hashes:  ${failedHashes.length} will have to download them again`)
+      /* prettier-ignore */  nestedCountersInstance.countEvent('archiver_sync', `data hashes failed`, failedHashes.length)
+
       // recordPotentialBadnode is not implemented yet but we have it as a placeholder
       this.accountSync.stateManager.recordPotentialBadnode()
       this.failedAccounts = this.failedAccounts.concat(failedHashes)
