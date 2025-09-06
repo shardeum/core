@@ -148,7 +148,7 @@ export default class ArchiverSyncTracker implements SyncTrackerInterface {
         const accountsSaved = await this.syncAccountData2(lowAddress, highAddress)
         /* prettier-ignore */ if (logFlags.debug) this.accountSync.mainLogger.debug(`ARCHIVER_DATASYNC: partition: ${partition}, syncAccountData2 done.`)
 
-        /* prettier-ignore */ if (config.debug.verboseNestedCounters) nestedCountersInstance.countEvent( 'archiver_sync', `sync partition: ${partition} end: ${this.accountSync.stateManager.currentCycleShardData.cycleNumber} accountsSynced:${accountsSaved} failedHashes:${this.failedAccounts.length}` )
+        /* prettier-ignore */ nestedCountersInstance.countEvent( 'archiver_sync', `sync partition: ${partition} end: ${this.accountSync.stateManager.currentCycleShardData.cycleNumber} accountsSynced:${accountsSaved} failedHashes:${this.failedAccounts.length}` )
         this.failedAccounts = [] //clear failed hashes.  We dont try to fix them for now.  let the patcher handle it.  could bring back old code if we change mind
       } catch (error) {
         if (error.message.includes('reset-sync-ranges')) {
