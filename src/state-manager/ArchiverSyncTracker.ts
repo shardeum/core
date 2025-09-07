@@ -872,7 +872,6 @@ export default class ArchiverSyncTracker implements SyncTrackerInterface {
         `ARCHIVER_DATASYNC: stop condition for restore treatLastUpdateAsAdvisory: ${treatLastUpdateAsAdvisory} 
         | considerLastUpdate: ${considerLastUpdate} 
         | accountData2.length: ${accountData2.length} 
-        | accountData.length: ${accountData.length} 
         `
       )
 
