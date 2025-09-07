@@ -440,6 +440,122 @@ export default class ArchiverSyncTracker implements SyncTrackerInterface {
     this.accountSync.setGlobalSyncFinished()
   }
 
+  /*
+    TODO: Handle de-duplications
+  */
+  async syncAccountDataV3(lowAddress: string, highAddress: string): Promise<number> {
+    let totalAccountsSaved = 0
+    let offset = 0
+    let hasMoreData = true
+    const maxRecords = this.accountSync.config.stateManager.accountBucketSize || 600
+    let retryCount = 0
+    const maxRetries = 5
+
+    // Initialize archiver data source
+    this.archiverDataSourceHelper.initWithList(getArchiversList())
+    
+    if (this.archiverDataSourceHelper.dataSourceArchiver == null) {
+      throw new Error('reset-sync-ranges syncAccountDataV3: dataSourceArchiver == null')
+    }
+
+    while (hasMoreData) {
+      try {
+        // message for archiver - address range and offset
+        const message = {
+          accountStart: lowAddress,
+          accountEnd: highAddress,
+          offset,
+          maxRecords
+        }
+
+        const signedMessage = crypto.sign(message)
+        const getAccountDataFromArchiver = async (payload) => {
+          const dataSourceArchiver = this.archiverDataSourceHelper.dataSourceArchiver
+          const accountDataArchiverUrl = `http://${dataSourceArchiver.ip}:${dataSourceArchiver.port}/restore_account_data`
+          try {
+            const result = await http.post(accountDataArchiverUrl, payload, false, 10000)
+            return result
+          } catch (error) {
+            return { data: null, success: false, error: error.message }
+          }
+        }
+
+        const result = await getAccountDataFromArchiver(signedMessage)
+
+        // Handle archiver busy or error responses
+        if (!result || !result.success) {
+          if (result?.error === 'Archiver is busy serving other validators at the moment!' || 
+              result?.error?.includes('Timeout')) {
+            // Archiver busy - wait 10 seconds and try next archiver
+            await utils.sleep(10000)
+            if (!this.archiverDataSourceHelper.tryNextDataSourceArchiver('busy archiver')) {
+              throw new Error('All archivers are busy')
+            }
+            continue
+          } else {
+            // Unknown error - wait 20 seconds and retry
+            retryCount++
+            if (retryCount > maxRetries) {
+              throw new Error(`Max retries exceeded: ${result?.error || 'Unknown error'}`)
+            }
+            await utils.sleep(20000)
+            continue
+          }
+        }
+
+        // Reset retry count on successful response
+        retryCount = 0
+
+        if (!result.data || !result.data.wrappedAccounts) {
+          hasMoreData = false
+          break
+        }
+
+        const accountData = result.data.wrappedAccounts
+        
+        // If no account data, we're done
+        if (accountData.length === 0) {
+          hasMoreData = false
+          break
+        }
+        
+        // Check if we have more data based on batch size
+        if (accountData.length < maxRecords) {
+          hasMoreData = false
+        } else {
+          offset += accountData.length
+        }
+
+        // Process unique records
+        if (accountData.length > 0) {
+          this.combinedAccountData = accountData
+          const accountsSaved = await this.processAccountDataNoStateTable2()
+          totalAccountsSaved += accountsSaved
+          
+          nestedCountersInstance.countEvent('archiver_sync', 
+            `accounts synced from archiver ${this.archiverDataSourceHelper.dataSourceArchiver?.ip}`, 
+            accountData.length)
+        }
+        await utils.sleep(200)
+
+      } catch (error) {
+        /* prettier-ignore */ this.accountSync.statemanager_fatal('syncAccountDataV3', 'syncAccountDataV3 failed: ' + errorToStringFull(error))
+        
+        // Try next archiver on error
+        if (!this.archiverDataSourceHelper.tryNextDataSourceArchiver('syncAccountDataV3 error')) {
+          throw error
+        }
+        
+        // Reset offset when switching archivers
+        offset = 0
+        retryCount = 0
+        await utils.sleep(5000)
+      }
+    }
+
+    return totalAccountsSaved
+  }
+
   async syncAccountData2(lowAddress: string, highAddress: string): Promise<number> {
     // Sync the Account data
     if (logFlags.console) console.log(`syncAccountData3` + '   time:' + Date.now())
