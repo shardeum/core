@@ -760,6 +760,11 @@ export default class ArchiverSyncTracker implements SyncTrackerInterface {
           `ARCHIVER_DATASYNC: new bucket update offset lastLowQuery: ${lastLowQuery} | lowTimeQuery: ${lowTimeQuery}`
         )
         offset = 0
+      } else {
+        this.accountSync.mainLogger.debug(`ARCHIVER_DATASYNC offset : ${offset} lastLowQuery: ${lastLowQuery} | lowTimeQuery: ${lowTimeQuery} |  accountOffset: ${accountOffset}`)
+        //update offset, so we can get next page of data
+        offset += sameAsLastTS
+        this.accountSync.mainLogger.debug(`ARCHIVER_DATASYNC offset final: ${offset} sameAsLastTS: ${sameAsLastTS}`)
       }
 
       // Only bump the clock to the NEXT timestamp if the RAW page was truly
@@ -817,6 +822,7 @@ export default class ArchiverSyncTracker implements SyncTrackerInterface {
         `ARCHIVER_DATASYNC: stop condition for restore treatLastUpdateAsAdvisory: ${treatLastUpdateAsAdvisory} 
         | considerLastUpdate: ${considerLastUpdate} 
         | accountData2.length: ${accountData2.length} 
+        | accountData.length: ${accountData.length} 
         `
       )
 
