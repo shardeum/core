@@ -689,6 +689,10 @@ export default class ArchiverSyncTracker implements SyncTrackerInterface {
         }
       }
 
+      this.accountSync.mainLogger.debug(
+        `ARCHIVER_DATASYNC: rawPage stats calc sameTsRaw: ${sameTsRaw} lastSameTsId: ${lastSameTsId}`
+      )
+
       let sameAsStartTS = 0
       let sameAsLastTS = 0
       let lastLoopTS = -1
@@ -742,6 +746,9 @@ export default class ArchiverSyncTracker implements SyncTrackerInterface {
           // keep tsStart as-is and continue from the last seen accountId at this ts
           accountOffset = lastSameTsId
         }
+        this.accountSync.mainLogger.debug(
+          `ARCHIVER_DATASYNC: accountOffset calc accountOffset: ${accountOffset} | sameTsRaw: ${sameTsRaw}`
+        )
       }
 
       // If the timestamp advanced (lastLowQuery !== lowTimeQuery), we are at a
@@ -749,6 +756,9 @@ export default class ArchiverSyncTracker implements SyncTrackerInterface {
       // carry us within the same ts; otherwise we start from the first row at
       // the new timestamp.
       if (lastLowQuery !== lowTimeQuery) {
+        this.accountSync.mainLogger.debug(
+          `ARCHIVER_DATASYNC: new bucket update offset lastLowQuery: ${lastLowQuery} | lowTimeQuery: ${lowTimeQuery}`
+        )
         offset = 0
       }
 
@@ -760,6 +770,10 @@ export default class ArchiverSyncTracker implements SyncTrackerInterface {
         if (this.accountSync.config.stateManager.syncWithAccountOffset === true) {
           accountOffset = ''
         }
+
+        this.accountSync.mainLogger.debug(
+          `ARCHIVER_DATASYNC: bump the clock offset accountOffset: ${accountOffset} | startTime: ${startTime}`
+        )
       }
 
       // accountOffset is managed above (based on RAW same-timestamp rows).
@@ -799,6 +813,13 @@ export default class ArchiverSyncTracker implements SyncTrackerInterface {
       const treatLastUpdateAsAdvisory = this.isPartOfInitialSync === true
       const considerLastUpdate = treatLastUpdateAsAdvisory ? false : lastUpdateNeeded
 
+      this.accountSync.mainLogger.debug(
+        `ARCHIVER_DATASYNC: stop condition for restore treatLastUpdateAsAdvisory: ${treatLastUpdateAsAdvisory} 
+        | considerLastUpdate: ${considerLastUpdate} 
+        | accountData2.length: ${accountData2.length} 
+        `
+      )
+
       if (considerLastUpdate || (accountData2.length === 0 && accountData.length === 0)) {
         if (considerLastUpdate) {
           // non-restore path: respect lastUpdateNeeded
@@ -817,7 +838,9 @@ export default class ArchiverSyncTracker implements SyncTrackerInterface {
           }
         }
 
-        /* prettier-ignore */ if (logFlags.debug) this.accountSync.mainLogger.debug( `ARCHIVER_DATASYNC: syncAccountData3 got ${accountData.length} more records.  last update: ${lastUpdateNeeded} extra records: ${result.data.wrappedAccounts2.length} tsStart: ${lastLowQuery} highestTS1: ${result.data.highestTs} delta:${result.data.delta} offset:${offset} sameAsStartTS:${sameAsStartTS}` )
+        this.accountSync.mainLogger.debug(
+          `ARCHIVER_DATASYNC: syncAccountData3 got ${accountData.length} more records.  last update: ${lastUpdateNeeded} extra records: ${result.data.wrappedAccounts2.length} tsStart: ${lastLowQuery} highestTS1: ${result.data.highestTs} delta:${result.data.delta} offset:${offset} sameAsStartTS:${sameAsStartTS}`
+        )
         if (accountData.length > 0) {
           this.combinedAccountData = this.combinedAccountData.concat(accountData)
         }
@@ -827,7 +850,9 @@ export default class ArchiverSyncTracker implements SyncTrackerInterface {
       } else {
         //we got accounts this time so reset this flag to false
         stopIfNextLoopHasNoResults = false
-        /* prettier-ignore */ if (logFlags.debug) this.accountSync.mainLogger.debug( `ARCHIVER_DATASYNC: syncAccountData3b got ${accountData.length} more records.  last update: ${lastUpdateNeeded} extra records: ${result.data.wrappedAccounts2.length} tsStart: ${lastLowQuery} highestTS1: ${result.data.highestTs} delta:${result.data.delta} offset:${offset} sameAsStartTS:${sameAsStartTS}` )
+        this.accountSync.mainLogger.debug(
+          `ARCHIVER_DATASYNC: syncAccountData3b got ${accountData.length} more records.  last update: ${lastUpdateNeeded} extra records: ${result.data.wrappedAccounts2.length} tsStart: ${lastLowQuery} highestTS1: ${result.data.highestTs} delta:${result.data.delta} offset:${offset} sameAsStartTS:${sameAsStartTS}`
+        )
         this.combinedAccountData = this.combinedAccountData.concat(accountData)
         loopCount++
         // await utils.sleep(500)
@@ -841,7 +866,9 @@ export default class ArchiverSyncTracker implements SyncTrackerInterface {
         const accountToSave = this.combinedAccountData.length
         const accountsSaved = await this.processAccountDataNoStateTable2()
         totalAccountsSaved += accountsSaved
-        /* prettier-ignore */ if (logFlags.debug) this.accountSync.mainLogger.debug( `ARCHIVER_DATASYNC: syncAccountData3 accountToSave: ${accountToSave} accountsSaved: ${accountsSaved}  offset:${offset} sameAsStartTS:${sameAsStartTS}` )
+        this.accountSync.mainLogger.debug(
+          `ARCHIVER_DATASYNC: syncAccountData3 accountToSave: ${accountToSave} accountsSaved: ${accountsSaved}  offset:${offset} sameAsStartTS:${sameAsStartTS}`
+        )
         //clear data
         this.combinedAccountData = []
       }
@@ -905,7 +932,7 @@ export default class ArchiverSyncTracker implements SyncTrackerInterface {
 
     if (failedHashes.length > 1000) {
       /* prettier-ignore */ if (logFlags.important_as_fatal) this.accountSync.mainLogger.error(`ARCHIVER_DATASYNC: processAccountData failed hashes over 1000:  ${failedHashes.length} restarting sync process`)
-      /* prettier-ignore */  nestedCountersInstance.countEvent('archiver_sync', `data hashes failed`, failedHashes.length)
+      /* prettier-ignore */ nestedCountersInstance.countEvent('archiver_sync', `data hashes failed`, failedHashes.length)
 
       // recordPotentialBadnode is not implemented yet but we have it as a placeholder
       this.accountSync.stateManager.recordPotentialBadnode()
@@ -913,7 +940,7 @@ export default class ArchiverSyncTracker implements SyncTrackerInterface {
     }
     if (failedHashes.length > 0) {
       /* prettier-ignore */ if (logFlags.important_as_fatal) this.accountSync.mainLogger.error(`ARCHIVER_DATASYNC: processAccountData failed hashes:  ${failedHashes.length} will have to download them again`)
-      /* prettier-ignore */  nestedCountersInstance.countEvent('archiver_sync', `data hashes failed`, failedHashes.length)
+      /* prettier-ignore */ nestedCountersInstance.countEvent('archiver_sync', `data hashes failed`, failedHashes.length)
 
       // recordPotentialBadnode is not implemented yet but we have it as a placeholder
       this.accountSync.stateManager.recordPotentialBadnode()
