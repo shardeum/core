@@ -500,9 +500,9 @@ export default class ArchiverSyncTracker implements SyncTrackerInterface {
       if (this.archiverDataSourceHelper.tryNextDataSourceArchiver(debugMessage) == false) {
         // If we have received busy message from more than half of the archivers, then try again from the start of the list of archivers after waiting for 10 seconds
         if (receivedBusyMessageTimes > this.archiverDataSourceHelper.getNumberArchivers() / 2) {
-          // Try again from the start of the list of archivers after waiting for 10 seconds
+          // Try again from the start of the list of archivers after a jittered backoff (8-20s)
           receivedBusyMessageTimes = 0
-          await utils.sleep(10000)
+          await utils.sleep(8000 + Math.floor(Math.random() * 12000))
         } else {
           //this throw made no sense... the else case here is the happy path, as in
           //we have not run out of attempts to keep asking archivers
@@ -512,7 +512,7 @@ export default class ArchiverSyncTracker implements SyncTrackerInterface {
 
         if (otherArchiverRetries > this.archiverDataSourceHelper.getNumberArchivers()) {
           otherArchiverRetries = 0
-          await utils.sleep(10000)
+          await utils.sleep(8000 + Math.floor(Math.random() * 12000))
         }
 
         //select archiver 0 if we wrapped around.  This is a local fix,
@@ -665,6 +665,30 @@ export default class ArchiverSyncTracker implements SyncTrackerInterface {
         }
       }
 
+      // ---------------------------------------------------------------------
+      // RESTORE PAGING FIXES
+      // Fundamental restore miss was caused by advancing startTime to a newer
+      // timestamp and then bumping it again (startTime++) based on a "short
+      // page" decision after local dedup, which excluded remaining rows at the
+      // current timestamp. To avoid this, drive paging decisions from RAW page
+      // stats (before dedup) and prefer accountOffset to drain within a
+      // timestamp bucket before moving the clock.
+      // ---------------------------------------------------------------------
+
+      // RAW stats from the response (use original wrappedAccounts before dedup)
+      const rawPage = result.data?.wrappedAccounts ?? []
+      const rawLen = rawPage.length
+      // Count how many raw rows are still at the current timestamp bucket
+      let sameTsRaw = 0
+      let lastSameTsId = ''
+      for (let i = 0; i < rawPage.length; i++) {
+        const r = rawPage[i]
+        if (r.timestamp === lastLowQuery) {
+          sameTsRaw++
+          lastSameTsId = r.accountId // raw page sorted by (ts, accountId)
+        }
+      }
+
       let sameAsStartTS = 0
       let sameAsLastTS = 0
       let lastLoopTS = -1
@@ -711,30 +735,36 @@ export default class ArchiverSyncTracker implements SyncTrackerInterface {
         }
       }
 
-      //finish our calculations related to offset
-      if (lastLowQuery === lowTimeQuery) {
-        //update offset, so we can get next page of data
-        //offset+= (result.data.wrappedAccounts.length + result.data.wrappedAccounts2.length)
-        offset += sameAsLastTS //conservative offset!
-      } else {
-        //clear offset
-        offset = 0
+      // FINISH CALCULATIONS RELATED TO PAGING (use RAW stats, not dedup)
+      // Prefer accountOffset to drain within the same timestamp bucket.
+      if (this.accountSync.config.stateManager.syncWithAccountOffset === true) {
+        if (sameTsRaw > 0) {
+          // keep tsStart as-is and continue from the last seen accountId at this ts
+          accountOffset = lastSameTsId
+        }
       }
-      if (accountData.length < message.maxRecords) {
-        //bump clock up because we didn't get a full data return
-        startTime++
-        //dont need offset because we should already have all the records
+
+      // If the timestamp advanced (lastLowQuery !== lowTimeQuery), we are at a
+      // new ts bucket. Reset numeric offset; accountOffset (if set above) will
+      // carry us within the same ts; otherwise we start from the first row at
+      // the new timestamp.
+      if (lastLowQuery !== lowTimeQuery) {
         offset = 0
       }
 
-      //clear account offset for next pass
-      accountOffset = ''
-      // if we would use an offset, then set an account offset
-      if (this.accountSync.config.stateManager.syncWithAccountOffset === true) {
-        if (offset > 0) {
-          accountOffset = accountData[accountData.length - 1].accountId
+      // Only bump the clock to the NEXT timestamp if the RAW page was truly
+      // short and we did NOT observe any rows at the current timestamp bucket.
+      if (rawLen < message.maxRecords && sameTsRaw === 0) {
+        startTime++ // move to next timestamp bucket
+        offset = 0
+        if (this.accountSync.config.stateManager.syncWithAccountOffset === true) {
+          accountOffset = ''
         }
       }
+
+      // accountOffset is managed above (based on RAW same-timestamp rows).
+      // Do not blindly clear here; keep any cursor we intentionally set.
+      // (If we bumped to the next timestamp above, we already cleared it.)
 
       // if we have any accounts in wrappedAccounts2
       const accountData2 = result.data.wrappedAccounts2
@@ -763,9 +793,15 @@ export default class ArchiverSyncTracker implements SyncTrackerInterface {
         }
       }
 
-      if (lastUpdateNeeded || (accountData2.length === 0 && accountData.length === 0)) {
-        if (lastUpdateNeeded) {
-          //we are done
+      // STOP CONDITION ADJUSTED FOR RESTORE
+      // In initial restore, treat lastUpdateNeeded as advisory only. Do not
+      // stop solely because of it; stop when we genuinely exhaust the range.
+      const treatLastUpdateAsAdvisory = this.isPartOfInitialSync === true
+      const considerLastUpdate = treatLastUpdateAsAdvisory ? false : lastUpdateNeeded
+
+      if (considerLastUpdate || (accountData2.length === 0 && accountData.length === 0)) {
+        if (considerLastUpdate) {
+          // non-restore path: respect lastUpdateNeeded
           moreDataRemaining = false
         } else {
           if (stopIfNextLoopHasNoResults === true) {
@@ -773,7 +809,7 @@ export default class ArchiverSyncTracker implements SyncTrackerInterface {
             moreDataRemaining = false
           } else {
             //bump start time and loop once more!
-            //If we don't get anymore accounts on that loopl then we will quit for sure
+            //If we don't get anymore accounts on that loop then we will quit for sure
             //If we do get more accounts then stopIfNextLoopHasNoResults will reset in a branch below
             startTime++
             loopCount++
