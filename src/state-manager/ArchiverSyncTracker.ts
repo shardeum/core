@@ -50,6 +50,9 @@ export default class ArchiverSyncTracker implements SyncTrackerInterface {
 
   restartCount: number
 
+  // Tracks per-timestamp no-progress (when accountOffset-based paging stalls on the same id)
+  private restoreNoProgress: { [ts: string]: { lastId: string; stalled: number } } = {}
+
   reset(): void {
     this.addressRange = null
 
@@ -736,11 +739,43 @@ export default class ArchiverSyncTracker implements SyncTrackerInterface {
       }
 
       // FINISH CALCULATIONS RELATED TO PAGING (use RAW stats, not dedup)
+      // Add a simple no-progress guard when using accountOffset so we don't
+      // request the same (ts,accountId) forever if the archiver uses >= semantics.
+      const tsKey = String(lastLowQuery)
+      const prev = this.restoreNoProgress[tsKey] || { lastId: '', stalled: 0 }
+      if (sameTsRaw > 0) {
+        if (prev.lastId === lastSameTsId) prev.stalled += 1
+        else {
+          prev.stalled = 0
+          prev.lastId = lastSameTsId
+        }
+        this.restoreNoProgress[tsKey] = prev
+      } else {
+        // reset when we move past this timestamp bucket
+        this.restoreNoProgress[tsKey] = { lastId: '', stalled: 0 }
+      }
+
       // Prefer accountOffset to drain within the same timestamp bucket.
       if (this.accountSync.config.stateManager.syncWithAccountOffset === true) {
         if (sameTsRaw > 0) {
-          // keep tsStart as-is and continue from the last seen accountId at this ts
-          accountOffset = lastSameTsId
+          if (prev.stalled >= 2) {
+            // Fallback: accountOffset stalled on the same id; use numeric offset to force progress
+            accountOffset = ''
+            if (lastLowQuery === lowTimeQuery) {
+              offset += Math.max(1, rawLen)
+            } else {
+              offset = Math.max(1, rawLen)
+            }
+            // Optional escape hatch: after excessive stalls, bump startTime
+            if (prev.stalled >= 5) {
+              startTime++
+              offset = 0
+              prev.stalled = 0
+            }
+          } else {
+            // keep tsStart as-is and continue from the last seen accountId at this ts
+            accountOffset = lastSameTsId
+          }
         }
       }
 
