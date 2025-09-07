@@ -457,6 +457,12 @@ export default class ArchiverSyncTracker implements SyncTrackerInterface {
     this.combinedAccountData = []
     let loopCount = 0
 
+
+    // Track no-progress across iterations independent of sameTsRaw so we can
+    // escalate even when the archiver keeps returning full pages that do not
+    // include the current tsStart bucket.
+    let prevProgressKey = ''
+    let noProgressLoops = 0
     let startTime = 0
     let lowTimeQuery = startTime
 
@@ -796,11 +802,20 @@ export default class ArchiverSyncTracker implements SyncTrackerInterface {
         )
         offset = 0
       } else {
-        this.accountSync.mainLogger.debug(`ARCHIVER_DATASYNC offset : ${offset} lastLowQuery: ${lastLowQuery} | lowTimeQuery: ${lowTimeQuery} |  accountOffset: ${accountOffset}`)
-        //update offset, so we can get next page of data
-        offset += sameAsLastTS
-        this.accountSync.mainLogger.debug(`ARCHIVER_DATASYNC offset final: ${offset} sameAsLastTS: ${sameAsLastTS}`)
-      }
+        this.accountSync.mainLogger.debug(
+          `ARCHIVER_DATASYNC offset : ${offset} lastLowQuery: ${lastLowQuery} | lowTimeQuery: ${lowTimeQuery} |  accountOffset: ${accountOffset}`
+        )
+        // Prefer RAW-driven progress when not using accountOffset; dedup-based
+        // sameAsLastTS can be zero even when RAW page was full.
+        if (accountOffset === '') {
+          offset += Math.max(1, rawLen)
+        } else {
+          offset += sameAsLastTS
+        }
+        this.accountSync.mainLogger.debug(
+          `ARCHIVER_DATASYNC offset final: ${offset} rawLen: ${rawLen} sameAsLastTS: ${sameAsLastTS}`
+        )
+}
 
       // Only bump the clock to the NEXT timestamp if the RAW page was truly
       // short and we did NOT observe any rows at the current timestamp bucket.
@@ -913,6 +928,28 @@ export default class ArchiverSyncTracker implements SyncTrackerInterface {
         //clear data
         this.combinedAccountData = []
       }
+      // Generic no-progress guard independent of sameTsRaw. If the tuple
+      // (tsStart, offset, accountOffset, firstRawId) does not change across
+      // loops, force numeric progress by rawLen and eventually bump ts.
+      const firstRawId = rawLen > 0 ? rawPage[0].accountId : ''
+      const progressKey = `${startTime}|${offset}|${accountOffset}|${firstRawId}`
+      if (progressKey === prevProgressKey) {
+        noProgressLoops += 1
+        if (noProgressLoops >= 2) {
+          if (accountOffset !== '') accountOffset = ''
+          if (rawLen > 0) offset += Math.max(1, rawLen)
+        }
+        if (noProgressLoops >= 5) {
+          startTime++
+          offset = 0
+          accountOffset = ''
+          noProgressLoops = 0
+        }
+      } else {
+        noProgressLoops = 0
+        prevProgressKey = progressKey
+      }
+
       await utils.sleep(200)
     }
 
