@@ -139,7 +139,7 @@ export default class ArchiverSyncTracker implements SyncTrackerInterface {
 
         const lowAddress = this.addressRange.low
         const highAddress = this.addressRange.high
-        partition = `${utils.stringifyReduce(lowAddress)} - ${utils.stringifyReduce(highAddress)}`
+        partition = `${utils.makeShortHash(lowAddress, 8)} - ${utils.makeShortHash(highAddress, 8)}`
 
         /* prettier-ignore */ if (config.debug.verboseNestedCounters) nestedCountersInstance.countEvent('archiver_sync', `sync partition: ${partition} start: ${this.accountSync.stateManager.currentCycleShardData.cycleNumber}`)
 
