@@ -18,7 +18,8 @@ import * as utils from '../utils'
 import { formatErrorMessage } from '../utils'
 import { nestedCountersInstance } from '../utils/nestedCounters'
 import { profilerInstance } from '../utils/profiler'
-import NatAPI = require('nat-api')
+import { upnpNat, pmpNat } from '@achingbrain/nat-port-mapper'
+import { gateway4sync } from 'default-gateway'
 import { Utils } from '@shardeum-foundation/lib-types'
 
 /** TYPES */
@@ -33,7 +34,8 @@ export interface IPInfo {
 
 let mainLogger: Log4js.Logger
 
-let natClient: any
+let upnpClient: any
+let pmpClient: any
 
 export let ipInfo: IPInfo
 
@@ -555,7 +557,20 @@ export class NetworkClass extends EventEmitter {
       if (this.extServer) promises.push(closeServer(this.extServer))
       // [TODO] - need to see why it is taking minutes for stopListening promises to return; for now Omar decided to comment this out
       //      if (this.sn) promises.push(this.sn.stopListening(this.intServer))
-      if (natClient) promises.push(natClient.es6.destroy())
+      if (upnpClient) {
+        try {
+          upnpClient.close()
+        } catch (err) {
+          if (logFlags.info) mainLogger.info('Error closing UPnP client:', err.message)
+        }
+      }
+      if (pmpClient) {
+        try {
+          await pmpClient.stop()
+        } catch (err) {
+          if (logFlags.info) mainLogger.info('Error stopping PMP client:', err.message)
+        }
+      }
       await Promise.all(promises)
     } catch (e) {
       if (e.code !== 'ERR_SERVER_NOT_RUNNING') throw e
@@ -740,54 +755,96 @@ export async function init() {
   }
 }
 
-function initNatClient() {
-  // Initialize 'nat-api' client if not initialized
-  if (!natClient) {
-    natClient = new NatAPI()
-    natClient['es6'] = {}
-    natClient['es6']['externalIp'] = promisify(natClient.externalIp.bind(natClient))
-    natClient['es6']['map'] = promisify(natClient.map.bind(natClient))
-    natClient['es6']['destroy'] = promisify(natClient.destroy.bind(natClient))
-  }
-}
-
-async function getExternalIp() {
-  initNatClient()
-
-  try {
-    const ip = await natClient.es6.externalIp()
-    return ip
-  } catch (err) {
-    mainLogger.warn('Failed to get external IP from gateway:', err.message ? err.message : err)
-
+async function initNatClients() {
+  // Initialize NAT clients if not initialized
+  if (!upnpClient && !pmpClient) {
     try {
-      const ip = await discoverExternalIp(config.p2p.ipServers)
-      return ip
+      // Try to initialize UPnP client first
+      upnpClient = await upnpNat({
+        ttl: 7200, // 2 hours
+        description: 'Shardus Core P2P',
+        keepAlive: true
+      })
     } catch (err) {
-      mainLogger.warn('Failed to get external IP from IP server:', err.message ? err.message : err)
+      if (logFlags.info) mainLogger.info('UPnP client initialization failed:', err.message)
+    }
+    
+    try {
+      // Initialize PMP client as fallback
+      const gateway = gateway4sync()
+      if (gateway && gateway.gateway) {
+        pmpClient = pmpNat(gateway.gateway)
+      }
+    } catch (err) {
+      if (logFlags.info) mainLogger.info('PMP client initialization failed:', err.message)
     }
   }
 }
 
+async function getExternalIp() {
+  await initNatClients()
+
+  // Try UPnP first
+  if (upnpClient) {
+    try {
+      const ip = await upnpClient.externalIp()
+      return ip
+    } catch (err) {
+      if (logFlags.info) mainLogger.info('Failed to get external IP via UPnP:', err.message ? err.message : err)
+    }
+  }
+
+  // Try PMP as fallback
+  if (pmpClient) {
+    try {
+      const ip = await pmpClient.externalIp()
+      return ip
+    } catch (err) {
+      if (logFlags.info) mainLogger.info('Failed to get external IP via PMP:', err.message ? err.message : err)
+    }
+  }
+
+  mainLogger.warn('Failed to get external IP from gateway, trying IP servers')
+
+  try {
+    const ip = await discoverExternalIp(config.p2p.ipServers)
+    return ip
+  } catch (err) {
+    mainLogger.warn('Failed to get external IP from IP server:', err.message ? err.message : err)
+  }
+}
+
 async function getNextExternalPort(ip: string) {
-  initNatClient()
+  await initNatClients()
 
   // Get the next available port from the OS and test it
   let [reachable, port] = await wrapTest(new ConnectTest(ip))
 
   // If port is unreachable attempt to forward it with UPnP, then PMP
   if (reachable === false) {
-    const attempts = [{ enablePMP: false }, { enablePMP: true }]
-
-    for (const opts of attempts) {
-      if (logFlags.info) mainLogger.info(`Forwarding ${port} via ${opts.enablePMP ? 'PMP' : 'UPnP'}...`)
-
+    // Try UPnP first
+    if (upnpClient) {
+      if (logFlags.info) mainLogger.info(`Forwarding ${port} via UPnP...`)
       try {
-        await natClient.es6.map(Object.assign({ publicPort: port, privatePort: port, protocol: 'TCP' }, opts))
+        await upnpClient.map({ 
+          localPort: port, 
+          publicPort: port, 
+          protocol: 'TCP' 
+        })
         if (logFlags.info) mainLogger.info('  Success!')
-        break
       } catch (err) {
-        if (logFlags.info) mainLogger.info('  Error:', err.message)
+        if (logFlags.info) mainLogger.info('  UPnP Error:', err.message)
+      }
+    }
+
+    // Try PMP as fallback
+    if (pmpClient && !reachable) {
+      if (logFlags.info) mainLogger.info(`Forwarding ${port} via PMP...`)
+      try {
+        await pmpClient.map(port, ip, { protocol: 'tcp' })
+        if (logFlags.info) mainLogger.info('  Success!')
+      } catch (err) {
+        if (logFlags.info) mainLogger.info('  PMP Error:', err.message)
       }
     }
   }

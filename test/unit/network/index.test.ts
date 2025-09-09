@@ -11,19 +11,22 @@ const mockSn = {
 
 const mockSnConstructor = jest.fn(() => mockSn)
 
-// Mock NatAPI
-const mockNatClient = {
+// Mock nat-port-mapper
+const mockUpnpClient = {
   externalIp: jest.fn(),
   map: jest.fn(),
-  destroy: jest.fn(),
-  es6: {
-    externalIp: jest.fn(),
-    map: jest.fn(),
-    destroy: jest.fn(),
-  },
+  close: jest.fn(),
 }
 
-const NatAPIMock = jest.fn(() => mockNatClient)
+const mockPmpClient = {
+  externalIp: jest.fn(),
+  map: jest.fn(),
+  stop: jest.fn(),
+}
+
+const mockUpnpNat = jest.fn().mockResolvedValue(mockUpnpClient)
+const mockPmpNat = jest.fn().mockReturnValue(mockPmpClient)
+const mockGateway4sync = jest.fn().mockReturnValue({ gateway: '192.168.1.1' })
 
 // Mock all dependencies
 jest.mock('@hapi/sntp', () => ({
@@ -36,7 +39,13 @@ jest.mock('express')
 jest.mock('body-parser')
 jest.mock('cors')
 jest.mock('socket.io', () => jest.fn(() => ({ on: jest.fn() })))
-jest.mock('nat-api', () => NatAPIMock)
+jest.mock('@achingbrain/nat-port-mapper', () => ({
+  upnpNat: mockUpnpNat,
+  pmpNat: mockPmpNat,
+}))
+jest.mock('default-gateway', () => ({
+  gateway4sync: mockGateway4sync,
+}))
 jest.mock('../../../src/debug', () => ({
   isDebugMode: jest.fn(() => false),
 }))
@@ -789,8 +798,10 @@ describe('Module functions', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     mockHttpModule.get.mockResolvedValue({ ip: '1.2.3.4' })
-    mockNatClient.es6.externalIp.mockResolvedValue('1.2.3.4')
-    mockNatClient.es6.map.mockResolvedValue(undefined)
+    mockUpnpClient.externalIp.mockResolvedValue('1.2.3.4')
+    mockUpnpClient.map.mockResolvedValue(undefined)
+    mockPmpClient.externalIp.mockResolvedValue('1.2.3.4')
+    mockPmpClient.map.mockResolvedValue(undefined)
     mockSntp.time.mockResolvedValue({ t: 0 })
   })
 
