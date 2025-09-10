@@ -31,14 +31,13 @@ describe('saveConsoleOutput', () => {
     jest.clearAllMocks()
   })
 
-  it('should create a timestamped log file on first write', async () => {
+  it('should create a plain log file on first write', async () => {
     startSaving(tempDir)
     console.log('hello world')
     await new Promise((r) => setTimeout(r, 10))
-    const files = fs.readdirSync(tempDir).filter((f) => f.startsWith('out.') && f.endsWith('.log'))
-    expect(files.length).toBeGreaterThanOrEqual(1)
-    const pattern = /^out\.\d{4}-\d{2}-\d{2}-\d{2}-\d{2}-\d{2}(\.\d{2})?\.log$/
-    expect(pattern.test(files[0])).toBe(true)
+    const files = fs.readdirSync(tempDir).filter((f) => f === 'out.log')
+    expect(files.length).toBe(1)
+    expect(files[0]).toBe('out.log')
   })
 
   it('should monkey patch global console', () => {
@@ -64,8 +63,8 @@ describe('saveConsoleOutput', () => {
     expect(stdoutSpy).toHaveBeenCalled()
     expect(stderrSpy).toHaveBeenCalled()
 
-    const files = fs.readdirSync(tempDir).filter((f) => f.startsWith('out.') && f.endsWith('.log'))
-    expect(files.length).toBeGreaterThanOrEqual(1)
+    const files = fs.readdirSync(tempDir).filter((f) => f === 'out.log')
+    expect(files.length).toBe(1)
     const stat = fs.statSync(join(tempDir, files[0]))
     expect(stat.size).toBeGreaterThan(0)
 
@@ -88,8 +87,8 @@ describe('saveConsoleOutput', () => {
     startSaving(tempDir)
     console.log('filename test')
     await new Promise((r) => setTimeout(r, 10))
-    const files = fs.readdirSync(tempDir).filter((f) => f.startsWith('out.') && f.endsWith('.log'))
-    expect(files.length).toBeGreaterThanOrEqual(1)
+    const files = fs.readdirSync(tempDir).filter((f) => f === 'out.log')
+    expect(files.length).toBe(1)
   })
 
   // Size and backup limits are enforced internally; rotation behavior is covered via integration.
@@ -99,8 +98,8 @@ describe('saveConsoleOutput', () => {
     startSaving(customDir)
     console.log('custom dir write')
     await new Promise((r) => setTimeout(r, 10))
-    const files = fs.readdirSync(customDir).filter((f) => f.startsWith('out.') && f.endsWith('.log'))
-    expect(files.length).toBeGreaterThanOrEqual(1)
+    const files = fs.readdirSync(customDir).filter((f) => f === 'out.log')
+    expect(files.length).toBe(1)
   })
 
   it('should replace console with a new Console instance', () => {
