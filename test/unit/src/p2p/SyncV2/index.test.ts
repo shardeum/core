@@ -312,7 +312,7 @@ describe('SyncV2', () => {
     })
 
     it('should return error when config fetch fails', async () => {
-      mockShardus.earlyConfigFetchAndPatch.mockRejectedValue(new Error('Config fetch failed'))
+      mockShardus.earlyConfigFetchAndPatch.mockImplementation(() => Promise.reject(new Error('Config fetch failed')))
 
       const result = await SyncV2.syncV2(mockActiveNodes, mockShardus as any)
 

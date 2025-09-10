@@ -8,6 +8,7 @@ import * as ShardusTypes from '../shardus/shardus-types'
 import StateManager from '../state-manager'
 import Storage from '../storage'
 import Reporter from '../reporter'
+import SocketIO from 'socket.io'
 
 export type P2PModuleContext = typeof P2P
 

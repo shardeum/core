@@ -1,3 +1,38 @@
+// Break circular dependency chain BEFORE any imports
+jest.mock('../../../../src/network', () => ({
+  shardusGetTime: jest.fn(() => Date.now()),
+  ipInfo: {
+    externalIp: '127.0.0.1',
+    externalPort: 8080,
+    internalIp: '127.0.0.1',
+    internalPort: 8080
+  }
+}))
+
+jest.mock('../../../../src/p2p/Self', () => ({
+  // Empty mock to break circular dependency
+}))
+
+jest.mock('../../../../src/utils/profiler', () => ({
+  profilerInstance: {
+    profileSectionStart: jest.fn(),
+    profileSectionEnd: jest.fn(),
+    scopedProfileSectionStart: jest.fn(),
+    scopedProfileSectionEnd: jest.fn()
+  }
+}))
+
+jest.mock('../../../../src/utils/nestedCounters', () => ({
+  nestedCountersInstance: {
+    countEvent: jest.fn(),
+    countRareEvent: jest.fn()
+  }
+}))
+
+jest.mock('../../../../src/debug', () => ({
+  // Empty mock to break circular dependency
+}))
+
 // Mock all dependencies before importing the module
 jest.mock('sqlite3', () => {
   const mockDatabase = jest.fn()

@@ -1,8 +1,10 @@
+// Mock the network module before any imports
+jest.mock('../../../../src/network', () => ({
+  shardusGetTime: jest.fn()
+}))
+
 import { readableDuration } from '../../../../src/utils/functions/readableDuration'
 import * as network from '../../../../src/network'
-
-// Mock the network module
-jest.mock('../../../../src/network')
 
 describe('readableDuration', () => {
   const mockShardusGetTime = network.shardusGetTime as jest.Mock

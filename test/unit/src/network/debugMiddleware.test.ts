@@ -28,7 +28,7 @@ import { NodeStatus } from '@shardeum-foundation/lib-types/build/src/p2p/P2PType
 import { getNewestCycle } from '../../../../src/p2p/Sync'
 
 // Define proper types for the mocks
-type MockFunction<T extends (...args: any) => any> = jest.Mock<ReturnType<T>, Parameters<T>>
+type MockFunction<T extends (...args: any) => any> = jest.Mock<ReturnType<T>>
 
 // Mock dependencies
 jest.mock('../../../../src/debug', () => ({
@@ -110,11 +110,11 @@ describe('debugMiddleware', () => {
 
   // Create typed references to mocked functions
   const mockIsDebugMode = debugModule.isDebugMode as MockFunction<typeof debugModule.isDebugMode>
-  const mockGetPublicKey = Context.crypto.getPublicKey as MockFunction<typeof Context.crypto.getPublicKey>
+  const mockGetPublicKey = Context.crypto.getPublicKey as jest.Mock
   const mockGetStatusHistoryCopy = getStatusHistoryCopy as MockFunction<typeof getStatusHistoryCopy>
   const mockContactArchiver = contactArchiver as MockFunction<typeof contactArchiver>
   const mockGetNewestCycle = getNewestCycle as MockFunction<typeof getNewestCycle>
-  const mockVerify = Context.crypto.verify as MockFunction<typeof Context.crypto.verify>
+  const mockVerify = Context.crypto.verify as jest.Mock
   const mockGetDevPublicKeys = debugModule.getDevPublicKeys as MockFunction<typeof debugModule.getDevPublicKeys>
   const mockEnsureKeySecurity = debugModule.ensureKeySecurity as MockFunction<typeof debugModule.ensureKeySecurity>
   const mockHash = crypto.hash as MockFunction<typeof crypto.hash>
@@ -386,7 +386,7 @@ describe('debugMiddleware', () => {
       mockSafeStringify.mockReturnValue('{"stringified":"payload"}')
 
       // Setup verify to check for the correct owner key
-      mockVerify.mockImplementation((obj, owner) => {
+      mockVerify.mockImplementation((_obj: any, owner: string): boolean => {
         return owner === ownerPublicKey
       })
 

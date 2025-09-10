@@ -58,7 +58,7 @@ describe('acceptance', () => {
     ;(getRandomAvailableArchiver as jest.Mock).mockReturnValue('mockArchiver')
     ;(crypto.getPublicKey as jest.Mock).mockReturnValue('ourMockPublicKey')
     ;(getRandom as jest.Mock).mockReturnValue([mockActiveNode])
-    ;(http.get as jest.Mock).mockResolvedValue(mockCycleRecord)
+    ;(http.get as jest.Mock).mockImplementation(() => Promise.resolve(mockCycleRecord))
   })
 
   describe('getEventEmitter', () => {
@@ -77,7 +77,9 @@ describe('acceptance', () => {
   describe('reset', () => {
     it('should reset hasConfirmedAcceptance to false', () => {
       // Set up a confirmed acceptance state first
-      ;(getActiveNodesFromArchiver as jest.Mock).mockResolvedValue(ok({ nodeList: [mockActiveNode] }))
+      ;(getActiveNodesFromArchiver as jest.Mock).mockImplementation(() =>
+        Promise.resolve({ nodeList: [mockActiveNode] })
+      )
       ;(crypto.verify as jest.Mock).mockReturnValue(true)
 
       // Reset should set hasConfirmedAcceptance to false
@@ -107,7 +109,9 @@ describe('acceptance', () => {
     })
 
     it('should return true after successful acceptance confirmation', async () => {
-      ;(getActiveNodesFromArchiver as jest.Mock).mockResolvedValue(ok({ nodeList: [mockActiveNode] }))
+      ;(getActiveNodesFromArchiver as jest.Mock).mockImplementation(() =>
+        Promise.resolve({ nodeList: [mockActiveNode] })
+      )
       ;(crypto.verify as jest.Mock).mockReturnValue(true)
 
       const result = await acceptance.confirmAcceptance(mockSignedOffer as any)
@@ -119,7 +123,7 @@ describe('acceptance', () => {
 
   describe('confirmAcceptance', () => {
     it('should return error when unable to get active nodes', async () => {
-      ;(getActiveNodesFromArchiver as jest.Mock).mockResolvedValue(err('Failed to get nodes'))
+      ;(getActiveNodesFromArchiver as jest.Mock).mockImplementation(() => Promise.resolve(err('Failed to get nodes')))
 
       const result = await acceptance.confirmAcceptance(mockSignedOffer as any)
 
@@ -128,7 +132,7 @@ describe('acceptance', () => {
     })
 
     it('should return error when no active nodes are provided', async () => {
-      ;(getActiveNodesFromArchiver as jest.Mock).mockResolvedValue(ok({ nodeList: [] }))
+      ;(getActiveNodesFromArchiver as jest.Mock).mockImplementation(() => Promise.resolve({ nodeList: [] }))
 
       const result = await acceptance.confirmAcceptance(mockSignedOffer as any)
 
@@ -137,7 +141,9 @@ describe('acceptance', () => {
     })
 
     it('should return error when acceptance offer signature is invalid', async () => {
-      ;(getActiveNodesFromArchiver as jest.Mock).mockResolvedValue(ok({ nodeList: [mockActiveNode] }))
+      ;(getActiveNodesFromArchiver as jest.Mock).mockImplementation(() =>
+        Promise.resolve({ nodeList: [mockActiveNode] })
+      )
       ;(crypto.verify as jest.Mock).mockReturnValue(false)
 
       const result = await acceptance.confirmAcceptance(mockSignedOffer as any)
@@ -147,7 +153,7 @@ describe('acceptance', () => {
     })
 
     it('should return error when exception occurs during initial checks', async () => {
-      ;(getActiveNodesFromArchiver as jest.Mock).mockRejectedValue(new Error('Network error'))
+      ;(getActiveNodesFromArchiver as jest.Mock).mockImplementation(() => Promise.reject(new Error('Network error')))
 
       const result = await acceptance.confirmAcceptance(mockSignedOffer as any)
 
@@ -156,9 +162,11 @@ describe('acceptance', () => {
     })
 
     it('should return error when unable to get cycle from node', async () => {
-      ;(getActiveNodesFromArchiver as jest.Mock).mockResolvedValue(ok({ nodeList: [mockActiveNode] }))
+      ;(getActiveNodesFromArchiver as jest.Mock).mockImplementation(() =>
+        Promise.resolve({ nodeList: [mockActiveNode] })
+      )
       ;(crypto.verify as jest.Mock).mockReturnValue(true)
-      ;(http.get as jest.Mock).mockRejectedValue(new Error('HTTP error'))
+      ;(http.get as jest.Mock).mockImplementation(() => Promise.reject(new Error('HTTP error')))
 
       const result = await acceptance.confirmAcceptance(mockSignedOffer as any)
 
@@ -171,9 +179,11 @@ describe('acceptance', () => {
         joinedConsensors: [{ publicKey: 'otherPublicKey1' }, { publicKey: 'otherPublicKey2' }],
       }
 
-      ;(getActiveNodesFromArchiver as jest.Mock).mockResolvedValue(ok({ nodeList: [mockActiveNode] }))
+      ;(getActiveNodesFromArchiver as jest.Mock).mockImplementation(() =>
+        Promise.resolve({ nodeList: [mockActiveNode] })
+      )
       ;(crypto.verify as jest.Mock).mockReturnValue(true)
-      ;(http.get as jest.Mock).mockResolvedValue(cycleWithoutOurNode)
+      ;(http.get as jest.Mock).mockImplementation(() => Promise.resolve(cycleWithoutOurNode))
 
       const result = await acceptance.confirmAcceptance(mockSignedOffer as any)
 
@@ -183,7 +193,9 @@ describe('acceptance', () => {
     })
 
     it('should return true when node is included in joinedConsensors', async () => {
-      ;(getActiveNodesFromArchiver as jest.Mock).mockResolvedValue(ok({ nodeList: [mockActiveNode] }))
+      ;(getActiveNodesFromArchiver as jest.Mock).mockImplementation(() =>
+        Promise.resolve({ nodeList: [mockActiveNode] })
+      )
       ;(crypto.verify as jest.Mock).mockReturnValue(true)
 
       const result = await acceptance.confirmAcceptance(mockSignedOffer as any)
@@ -194,7 +206,9 @@ describe('acceptance', () => {
     })
 
     it('should verify the acceptance offer with correct parameters', async () => {
-      ;(getActiveNodesFromArchiver as jest.Mock).mockResolvedValue(ok({ nodeList: [mockActiveNode] }))
+      ;(getActiveNodesFromArchiver as jest.Mock).mockImplementation(() =>
+        Promise.resolve({ nodeList: [mockActiveNode] })
+      )
       ;(crypto.verify as jest.Mock).mockReturnValue(true)
 
       await acceptance.confirmAcceptance(mockSignedOffer as any)
@@ -203,7 +217,9 @@ describe('acceptance', () => {
     })
 
     it('should call getRandom with correct parameters', async () => {
-      ;(getActiveNodesFromArchiver as jest.Mock).mockResolvedValue(ok({ nodeList: [mockActiveNode] }))
+      ;(getActiveNodesFromArchiver as jest.Mock).mockImplementation(() =>
+        Promise.resolve({ nodeList: [mockActiveNode] })
+      )
       ;(crypto.verify as jest.Mock).mockReturnValue(true)
 
       await acceptance.confirmAcceptance(mockSignedOffer as any)
@@ -212,7 +228,9 @@ describe('acceptance', () => {
     })
 
     it('should make HTTP request to correct URL', async () => {
-      ;(getActiveNodesFromArchiver as jest.Mock).mockResolvedValue(ok({ nodeList: [mockActiveNode] }))
+      ;(getActiveNodesFromArchiver as jest.Mock).mockImplementation(() =>
+        Promise.resolve({ nodeList: [mockActiveNode] })
+      )
       ;(crypto.verify as jest.Mock).mockReturnValue(true)
 
       await acceptance.confirmAcceptance(mockSignedOffer as any)
@@ -223,7 +241,9 @@ describe('acceptance', () => {
 
     it('should preserve hasConfirmedAcceptance if already true', async () => {
       // First, set hasConfirmedAcceptance to true
-      ;(getActiveNodesFromArchiver as jest.Mock).mockResolvedValue(ok({ nodeList: [mockActiveNode] }))
+      ;(getActiveNodesFromArchiver as jest.Mock).mockImplementation(() =>
+        Promise.resolve({ nodeList: [mockActiveNode] })
+      )
       ;(crypto.verify as jest.Mock).mockReturnValue(true)
       await acceptance.confirmAcceptance(mockSignedOffer as any)
       expect(acceptance.getHasConfirmedAcceptance()).toBe(true)
@@ -232,7 +252,7 @@ describe('acceptance', () => {
       const cycleWithoutOurNode = {
         joinedConsensors: [{ publicKey: 'otherPublicKey' }],
       }
-      ;(http.get as jest.Mock).mockResolvedValue(cycleWithoutOurNode)
+      ;(http.get as jest.Mock).mockImplementation(() => Promise.resolve(cycleWithoutOurNode))
 
       const result = await acceptance.confirmAcceptance(mockSignedOffer as any)
 

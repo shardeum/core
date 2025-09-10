@@ -126,7 +126,7 @@ describe('CachedAppData Serialization and Deserialization', () => {
       serializeCachedAppData(stream, expectedObj)
 
       stream.position = 0
-      expect(() => deserializeCachedAppData(stream)).toThrowError('AJV: CachedAppData validation failed')
+      expect(() => deserializeCachedAppData(stream)).toThrow('AJV: CachedAppData validation failed')
     })
   })
 })

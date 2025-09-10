@@ -906,7 +906,7 @@ class PartitionStats {
             dataStrings: Record<string, number>
             differentVotes: number
             voters: number
-            bestVote: unknown
+            bestVote: number
             tallyList: unknown[]
             partition?: unknown
           }

@@ -128,7 +128,7 @@ describe('SendCachedAppDataReq Serialization and Deserialization', () => {
       stream.writeString(obj.cachedAppData.dataID)
       stream.position = 0 // Reset position for reading
 
-      expect(() => deserializeSendCachedAppDataReq(stream)).toThrowError('SendCachedAppDataReq version mismatch')
+      expect(() => deserializeSendCachedAppDataReq(stream)).toThrow('SendCachedAppDataReq version mismatch')
     })
 
     test('should serialize and deserialize successfully', () => {

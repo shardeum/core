@@ -7,7 +7,6 @@ import { EventEmitter } from 'events'
 import express, { Application, Handler } from 'express'
 import Log4js from 'log4js'
 import * as net from 'net'
-import { promisify } from 'util'
 import { isDebugMode } from '../debug'
 import * as httpModule from '../http'
 import Logger, { logFlags } from '../logger'
@@ -21,6 +20,7 @@ import { profilerInstance } from '../utils/profiler'
 import { upnpNat, pmpNat } from '@achingbrain/nat-port-mapper'
 import { gateway4sync } from 'default-gateway'
 import { Utils } from '@shardeum-foundation/lib-types'
+import SocketIO from 'socket.io'
 
 /** TYPES */
 export interface IPInfo {
@@ -761,14 +761,13 @@ async function initNatClients() {
     try {
       // Try to initialize UPnP client first
       upnpClient = await upnpNat({
-        ttl: 7200, // 2 hours
+        ttl: 7200,
         description: 'Shardus Core P2P',
-        keepAlive: true
       })
     } catch (err) {
       if (logFlags.info) mainLogger.info('UPnP client initialization failed:', err.message)
     }
-    
+
     try {
       // Initialize PMP client as fallback
       const gateway = gateway4sync()
@@ -826,10 +825,10 @@ async function getNextExternalPort(ip: string) {
     if (upnpClient) {
       if (logFlags.info) mainLogger.info(`Forwarding ${port} via UPnP...`)
       try {
-        await upnpClient.map({ 
-          localPort: port, 
-          publicPort: port, 
-          protocol: 'TCP' 
+        await upnpClient.map({
+          localPort: port,
+          publicPort: port,
+          protocol: 'TCP',
         })
         if (logFlags.info) mainLogger.info('  Success!')
       } catch (err) {

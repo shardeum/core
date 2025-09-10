@@ -523,6 +523,15 @@ class Shardus extends EventEmitter {
           //   return false
           // }
 
+          if (typeof socket.handshake.query.data !== 'string') {
+            //query.data type is string or array of strings,
+            //archiver's Data.ts file at line 233, they use StringUtils.safeStringify() to create the query data
+            //should always be string or error
+            mainLogger.error(
+              `❌ Invalid query data format from archiver: expected string, got ${typeof socket.handshake.query.data}`
+            )
+            return false
+          }
           const archiverCreds = JSON.parse(socket.handshake.query.data) as {
             publicKey: string
             timestamp: number

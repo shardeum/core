@@ -1,3 +1,29 @@
+// Mock modules in the circular dependency chain BEFORE any imports
+// These are only breaking the circular dependency, not affecting test logic
+jest.mock('../../../../src/network', () => ({
+  shardusGetTime: jest.fn(() => Date.now())
+}))
+
+jest.mock('../../../../src/p2p/Self', () => ({
+  // Empty mock to break circular dependency
+}))
+
+jest.mock('../../../../src/utils/profiler', () => ({
+  profilerInstance: {
+    profileSectionStart: jest.fn(),
+    profileSectionEnd: jest.fn(),
+    scopedProfileSectionStart: jest.fn(),
+    scopedProfileSectionEnd: jest.fn()
+  }
+}))
+
+jest.mock('../../../../src/utils/nestedCounters', () => ({
+  nestedCountersInstance: {
+    countEvent: jest.fn(),
+    countRareEvent: jest.fn()
+  }
+}))
+
 import * as crypto from '@shardeum-foundation/lib-crypto-utils'
 import { ChildProcess } from 'child_process'
 import fs from 'fs'
