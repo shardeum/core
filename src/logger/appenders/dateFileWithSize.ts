@@ -84,14 +84,14 @@ export function configure(config: AppenderConfig = {}, layouts: Layouts): (evt: 
       if (stream || isInitialFile || !currentFilePath) return
 
       // Check if current file exists and has content
-  // eslint-disable-next-line security/detect-non-literal-fs-filename
-  if (fs.existsSync(currentFilePath) && bytesWritten > 0) {
+      // eslint-disable-next-line security/detect-non-literal-fs-filename
+      if (fs.existsSync(currentFilePath) && bytesWritten > 0) {
         // Generate timestamped name for the rollover file
         const timestampedPath = buildFilePath(baseFile, pattern, true)
 
         // Rename current file to timestamped name
-  // eslint-disable-next-line security/detect-non-literal-fs-filename
-  fs.renameSync(currentFilePath, timestampedPath)
+        // eslint-disable-next-line security/detect-non-literal-fs-filename
+        fs.renameSync(currentFilePath, timestampedPath)
         console.log(`[dateFileWithSize] Renamed ${currentFilePath} to ${timestampedPath}`)
       }
     } catch (e) {
@@ -120,7 +120,10 @@ export function configure(config: AppenderConfig = {}, layouts: Layouts): (evt: 
       const files = fs.readdirSync(dir).filter((f) => f.startsWith(base) && f.endsWith(ext))
       if (files.length <= backups) return
       if (debugZInProgress) {
-        nestedCountersInstance.countEvent('logRotation', 'logRotation: cleanup paused due to zip export in dateWithFileSize')
+        nestedCountersInstance.countEvent(
+          'logRotation',
+          'logRotation: cleanup paused due to zip export in dateWithFileSize'
+        )
         return
       }
       files.sort() // lexical sort sufficient for default pattern
@@ -132,14 +135,15 @@ export function configure(config: AppenderConfig = {}, layouts: Layouts): (evt: 
           fs.unlinkSync(path.join(dir, oldest))
         } catch (e) {
           // swallow to avoid crashing logging system
-          nestedCountersInstance.countEvent('logRotation', 'logRotation: unlink failed in dateWithFileSize: ' + e.message)
-
+          nestedCountersInstance.countEvent(
+            'logRotation',
+            'logRotation: unlink failed in dateWithFileSize: ' + e.message
+          )
         }
       }
     } catch (e) {
       // best-effort retention; ignore errors
       nestedCountersInstance.countEvent('logRotation', 'logRotation: prune failed in dateWithFileSize: ' + e.message)
-
     }
   }
 
@@ -167,8 +171,8 @@ export function configure(config: AppenderConfig = {}, layouts: Layouts): (evt: 
       }
 
       // Create new WriteStream instead of RollingFileStream
-  // eslint-disable-next-line security/detect-non-literal-fs-filename
-  stream = fs.createWriteStream(filePath, { flags: 'a' })
+      // eslint-disable-next-line security/detect-non-literal-fs-filename
+      stream = fs.createWriteStream(filePath, { flags: 'a' })
 
       // Store the actual file path being written to
       currentFilePath = filePath
@@ -207,7 +211,10 @@ export function configure(config: AppenderConfig = {}, layouts: Layouts): (evt: 
       // Check if adding this line would exceed maxLogSize
       if (bytesWritten + sz > maxSize) {
         if (debugZInProgress) {
-          nestedCountersInstance.countEvent('logRotation', 'logRotation: new file paused due to zip export in dateWithFileSize')
+          nestedCountersInstance.countEvent(
+            'logRotation',
+            'logRotation: new file paused due to zip export in dateWithFileSize'
+          )
         } else {
           try {
             // Close current stream

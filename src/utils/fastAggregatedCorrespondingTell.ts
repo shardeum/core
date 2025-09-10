@@ -29,10 +29,10 @@ export function getCorrespondingNodes(
     endTargetIndex = endTargetIndex + transactionGroupSize
   }
   //wrap our index to the send group size
-  ourIndex = ourIndex % (v2 ? Math.min(receiverGroupSize, sendGroupSize) : sendGroupSize )
+  ourIndex = ourIndex % (v2 ? Math.min(receiverGroupSize, sendGroupSize) : sendGroupSize)
 
   //find our initial staring index into the receiver group (wrappedIndex)
-  for (let i = startTargetIndex; i < (v2 ? endTargetIndex + 1 : endTargetIndex) ; i++) {
+  for (let i = startTargetIndex; i < (v2 ? endTargetIndex + 1 : endTargetIndex); i++) {
     wrappedIndex = i
     if (i >= transactionGroupSize) {
       wrappedIndex = i - transactionGroupSize
@@ -88,8 +88,8 @@ export function getCorrespondingNodes(
       if (unWrappedEndIndex != -1 && wrappedIndex >= unWrappedEndIndex) {
         const howFarPastUnWrapped = wrappedIndex - unWrappedEndIndex
         wrappedIndex = startTargetIndex + howFarPastUnWrapped
-      }      
-    }    
+      }
+    }
   }
   if (logFlags.verbose) {
     console.log(`note: ${note} destinationNodes ${destinationNodes}`)

@@ -123,7 +123,10 @@ class Debug {
         // Safety timer: if still true after 10 minutes, log & force clear
         let forceClearTimeout: NodeJS.Timeout | null = setTimeout(() => {
           if (debugZInProgress) {
-            nestedCountersInstance?.countEvent('logRotation', 'logRotation: force-clear: still true after 10m (timeout)')
+            nestedCountersInstance?.countEvent(
+              'logRotation',
+              'logRotation: force-clear: still true after 10m (timeout)'
+            )
             debugZInProgress = false
           }
         }, 10 * 60 * 1000)
@@ -137,48 +140,65 @@ class Debug {
         let completed = false
         const complete = (reason: string, err?: any) => {
           if (completed) return
-            completed = true
-            if (forceClearTimeout) { 
-              try { 
-                clearTimeout(forceClearTimeout) 
-              } catch (e) {
-                nestedCountersInstance?.countEvent('logRotation', `logRotation: error clearing timeout: ${e?.message || e}`)
-              } 
-              forceClearTimeout = null 
+          completed = true
+          if (forceClearTimeout) {
+            try {
+              clearTimeout(forceClearTimeout)
+            } catch (e) {
+              nestedCountersInstance?.countEvent(
+                'logRotation',
+                `logRotation: error clearing timeout: ${e?.message || e}`
+              )
             }
-            debugZInProgress = false
-            if (err) {
-              nestedCountersInstance?.countEvent('logRotation', `logRotation: end: ${reason}: ${err?.message || err}`)
-            } else {
-              nestedCountersInstance?.countEvent('logRotation', `logRotation: end: ${reason}`)
-            }
+            forceClearTimeout = null
+          }
+          debugZInProgress = false
+          if (err) {
+            nestedCountersInstance?.countEvent('logRotation', `logRotation: end: ${reason}: ${err?.message || err}`)
+          } else {
+            nestedCountersInstance?.countEvent('logRotation', `logRotation: end: ${reason}`)
+          }
         }
 
         // Attach lifecycle handlers BEFORE piping to avoid missed events
         archive.on('error', (e: any) => {
           // createArchiveStream already handles ENOENT gracefully; still mark completion if fatal
           if (e && String(e).includes('ENOENT')) return // allow resume logic inside createArchiveStream
-          try { fatalLogger.fatal('debug archive stream error', e) } catch {}
+          try {
+            fatalLogger.fatal('debug archive stream error', e)
+          } catch {}
           if (!res.headersSent) {
-            try { res.status(500).json({ success: false, error: 'archive stream error' }) } catch {}
+            try {
+              res.status(500).json({ success: false, error: 'archive stream error' })
+            } catch {}
           } else {
-            try { res.end() } catch {}
+            try {
+              res.end()
+            } catch {}
           }
           complete('archive_error', e)
         })
 
         gzip.on('error', (e: any) => {
-          try { fatalLogger?.fatal('debug gzip error', e) } catch {}
+          try {
+            fatalLogger?.fatal('debug gzip error', e)
+          } catch {}
           if (!res.headersSent) {
-            try { res.status(500).json({ success: false, error: 'compression error' }) } catch {}
+            try {
+              res.status(500).json({ success: false, error: 'compression error' })
+            } catch {}
           } else {
-            try { res.end() } catch {}
+            try {
+              res.end()
+            } catch {}
           }
           complete('gzip_error', e)
         })
 
         res.on('error', (e: any) => {
-          try { fatalLogger?.fatal('debug response error', e) } catch {}
+          try {
+            fatalLogger?.fatal('debug response error', e)
+          } catch {}
           complete('res_error', e)
         })
         res.on('finish', () => complete('res_finish'))
@@ -198,7 +218,9 @@ class Debug {
         if (!res.headersSent) {
           res.status(500).json({ success: false, error: 'debug archive failed' })
         } else {
-          try { res.end() } catch (e) {
+          try {
+            res.end()
+          } catch (e) {
             nestedCountersInstance?.countEvent('logRotation', 'logRotation: crash in debug route3: ' + e.message)
           }
         }

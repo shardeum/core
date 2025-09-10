@@ -3947,7 +3947,7 @@ class StateManager {
     if (this.feature_partitionHashes === true) {
       if (cycleShardValues && cycleShardValues.ourNode.status === 'active') {
         //do not patch in restore mode
-        if(cycle.mode != 'restore'){
+        if (cycle.mode != 'restore') {
           this.profiler.profileSectionStart('stateManager_processPreviousCycleSummaries_buildPartitionHashesForNode')
           this.accountCache.processCacheUpdates(cycleShardValues)
 
@@ -4006,7 +4006,7 @@ class StateManager {
     }
 
     await utils.sleep(10000) //wait 10 seconds
-    if(cycle.mode != 'restore'){
+    if (cycle.mode != 'restore') {
       try {
         await this.accountPatcher.testAndPatchAccounts(lastCycle.counter)
       } catch (e) {

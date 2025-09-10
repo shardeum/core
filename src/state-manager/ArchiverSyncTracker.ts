@@ -869,7 +869,7 @@ export default class ArchiverSyncTracker implements SyncTrackerInterface {
 
     if (failedHashes.length > 1000) {
       /* prettier-ignore */ if (logFlags.important_as_fatal) this.accountSync.mainLogger.error(`ARCHIVER_DATASYNC: processAccountData failed hashes over 1000:  ${failedHashes.length} restarting sync process`)
-      /* prettier-ignore */  nestedCountersInstance.countEvent('archiver_sync', `data hashes failed`, failedHashes.length)
+      /* prettier-ignore */ nestedCountersInstance.countEvent('archiver_sync', `data hashes failed`, failedHashes.length)
 
       // recordPotentialBadnode is not implemented yet but we have it as a placeholder
       this.accountSync.stateManager.recordPotentialBadnode()
@@ -877,7 +877,7 @@ export default class ArchiverSyncTracker implements SyncTrackerInterface {
     }
     if (failedHashes.length > 0) {
       /* prettier-ignore */ if (logFlags.important_as_fatal) this.accountSync.mainLogger.error(`ARCHIVER_DATASYNC: processAccountData failed hashes:  ${failedHashes.length} will have to download them again`)
-      /* prettier-ignore */  nestedCountersInstance.countEvent('archiver_sync', `data hashes failed`, failedHashes.length)
+      /* prettier-ignore */ nestedCountersInstance.countEvent('archiver_sync', `data hashes failed`, failedHashes.length)
 
       // recordPotentialBadnode is not implemented yet but we have it as a placeholder
       this.accountSync.stateManager.recordPotentialBadnode()
