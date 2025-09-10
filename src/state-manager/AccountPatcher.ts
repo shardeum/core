@@ -2911,7 +2911,7 @@ class AccountPatcher {
     if (logFlags.debug) {
       // Filter out any null/undefined entries and log them
       const originalLength = toFix.length
-      toFix = toFix.filter(item => {
+      toFix = toFix.filter((item) => {
         if (!item || !item.radix) {
           this.mainLogger.error(`Invalid toFix entry filtered out: ${utils.stringifyReduce(item)}`)
           return false
@@ -2921,7 +2921,7 @@ class AccountPatcher {
       if (originalLength !== toFix.length) {
         this.mainLogger.error(`Filtered ${originalLength - toFix.length} invalid entries from toFix array`)
       }
-      
+
       toFix.sort(this.sortByRadix)
       this.statemanager_fatal(
         'debug findBadAccounts',

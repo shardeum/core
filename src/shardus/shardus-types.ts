@@ -1462,7 +1462,7 @@ export interface LogsConfiguration {
     appenders?: {
       out?: {
         type?: string
-      //  layout?: { type: string; pattern?: string; tokens?: { [name: string]: any } }
+        //  layout?: { type: string; pattern?: string; tokens?: { [name: string]: any } }
         maxLogSize?: number
         backups?: number
       }

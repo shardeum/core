@@ -2666,7 +2666,8 @@ class TransactionQueue {
       )
     }
 
-    if (logFlags.fact) console.log(`FACT-ADD-DATA-1 nodeId:${Self.id} txId:${queueEntry.logID} accountId:${data.accountId}`)
+    if (logFlags.fact)
+      console.log(`FACT-ADD-DATA-1 nodeId:${Self.id} txId:${queueEntry.logID} accountId:${data.accountId}`)
 
     if (queueEntry.collectedData[data.accountId] != null) {
       if (configContext.stateManager.collectedDataFix) {
@@ -2723,7 +2724,12 @@ class TransactionQueue {
     queueEntry.collectedData[data.accountId] = data
     queueEntry.dataCollected = Object.keys(queueEntry.collectedData).length
 
-    if (logFlags.fact) console.log(`FACT-ADD-DATA-2 nodeId:${Self.id} txId:${queueEntry.logID} accountId:${data.accountId} collectedData.keys:${Object.keys(queueEntry.collectedData)}`)
+    if (logFlags.fact)
+      console.log(
+        `FACT-ADD-DATA-2 nodeId:${Self.id} txId:${queueEntry.logID} accountId:${
+          data.accountId
+        } collectedData.keys:${Object.keys(queueEntry.collectedData)}`
+      )
 
     //make a deep copy of the data
     queueEntry.originalData[data.accountId] = Utils.safeJsonParse(Utils.safeStringify(data))
@@ -4337,81 +4343,83 @@ class TransactionQueue {
    */
   calculateFactSenderGroup(queueEntry: QueueEntry): [string[], P2PTypes.NodeListTypes.Node[]] {
     if (!queueEntry.transactionGroup || !queueEntry.executionGroup) {
-      return [[],[]]
-    }    
-  
+      return [[], []]
+    }
+
     /* prettier-ignore */ if (logFlags.fact) console.log(`FACT-GROUP-1 txId:${queueEntry.logID} keys:${queueEntry.uniqueKeys.length}`)
-  
+
     // Track which nodes store which accounts
     const nodeToAccountsMap = new Map<string, Set<number>>()
-  
+
     // Build map of which nodes store which accounts
     const allkeys = queueEntry.uniqueKeys.length
-  
-    for (let i = 0; i < queueEntry.uniqueKeys.length; i++) 
-    {
+
+    for (let i = 0; i < queueEntry.uniqueKeys.length; i++) {
       const key = queueEntry.uniqueKeys[i]
       const homeNode = queueEntry.homeNodes[key]
-  
+
       if (!homeNode) continue
-  
+
       // Skip global accounts if not global modification
-      if (queueEntry.globalModification === false && 
-          this.stateManager.accountGlobals.isGlobalAccount(key)) {
+      if (queueEntry.globalModification === false && this.stateManager.accountGlobals.isGlobalAccount(key)) {
         continue
       }
-  
-      const consensusNodeIds = homeNode.consensusNodeForOurNodeFull.map(n => n.id)
+
+      const consensusNodeIds = homeNode.consensusNodeForOurNodeFull.map((n) => n.id)
       /* prettier-ignore */ if (logFlags.fact) console.log(`FACT-GROUP-2 txId:${queueEntry.logID} key[${i}]:${key.substring(0,8)} consensusNodes:[${consensusNodeIds.join(',')}]`)
-  
+
       // Track all nodes that store this account's partition
       for (const node of homeNode.consensusNodeForOurNodeFull) {
         if (!nodeToAccountsMap.has(node.id)) {
           nodeToAccountsMap.set(node.id, new Set())
         }
         nodeToAccountsMap.get(node.id).add(i)
-      }    
+      }
     }
     // Get first account's home node to access consensus and edge nodes separately
     const executionGroupHome = queueEntry.homeNodes[queueEntry.uniqueKeys[0]]
-    const executionEdgeNodeIds = new Set(executionGroupHome?.edgeNodes?.map(n => n.id) || [])
-  
+    const executionEdgeNodeIds = new Set(executionGroupHome?.edgeNodes?.map((n) => n.id) || [])
+
     /* prettier-ignore */ if (logFlags.fact) console.log(`FACT-GROUP-3 txId:${queueEntry.logID} executionEdgeNodeIds:[${Array.from(executionEdgeNodeIds).join(',')}]`)
-  
-    const senderGroup = queueEntry.transactionGroup.filter(node => {
+
+    const senderGroup = queueEntry.transactionGroup.filter((node) => {
       const accountsStored = nodeToAccountsMap.get(node.id)
       const accountsStoredArray = accountsStored ? Array.from(accountsStored) : []
       const isExecutionEdge = executionEdgeNodeIds.has(node.id)
-  
+
       /* prettier-ignore */ if (logFlags.fact) console.log(`FACT-GROUP-4 txId:${queueEntry.logID} node:${node.id} accountsStored:[${accountsStoredArray.join(',')}] isExecutionEdge:${isExecutionEdge}`)
-  
-      if (!accountsStored || accountsStored.size === 0) 
-        return false
-  
+
+      if (!accountsStored || accountsStored.size === 0) return false
+
       if (accountsStored && accountsStored.size == allkeys) {
         return false
       }
-  
+
       return true
     })
-  
-    const receiverGroup = queueEntry.executionNodeIdSorted.filter(nodeId => {
+
+    const receiverGroup = queueEntry.executionNodeIdSorted.filter((nodeId) => {
       const accountsStored = nodeToAccountsMap.get(nodeId)
-  
+
       if (accountsStored && accountsStored.size == allkeys) {
         return false
       }
-  
+
       return true
     })
-  
+
     // Sort the result by node.id for consistent ordering
     senderGroup.sort(this.stateManager._sortByIdAsc)
-  
-    if (logFlags.fact) console.log(`FACT-GROUP-5 txId:${queueEntry.logID} senderGroup:[${senderGroup.map(n => n.id.substring(0,4)).join(',')}] receiverGroup:[${receiverGroup.map(nodeId => nodeId.substring(0,4)).join(',')}]`)
-  
+
+    if (logFlags.fact)
+      console.log(
+        `FACT-GROUP-5 txId:${queueEntry.logID} senderGroup:[${senderGroup
+          .map((n) => n.id.substring(0, 4))
+          .join(',')}] receiverGroup:[${receiverGroup.map((nodeId) => nodeId.substring(0, 4)).join(',')}]`
+      )
+
     return [receiverGroup, senderGroup]
-  }  
+  }
 
   async factTellCorrespondingNodes(queueEntry: QueueEntry): Promise<unknown> {
     try {
@@ -4456,7 +4464,8 @@ class TransactionQueue {
           /* prettier-ignore */ if (logFlags.verbose) this.mainLogger.debug(`factTellCorrespondingNodes hasKey=false  key: ${utils.stringifyReduce(key)}`)
         }
 
-        if (logFlags.fact) console.log(`FACT-ADD-DATA-03 nodeId:${Self.id} txId:${queueEntry.logID} key:${key} hasKey:${hasKey}`)
+        if (logFlags.fact)
+          console.log(`FACT-ADD-DATA-03 nodeId:${Self.id} txId:${queueEntry.logID} key:${key} hasKey:${hasKey}`)
 
         if (hasKey) {
           // TODO PERF is it possible that this query could be used to update our in memory cache? (this would save us from some slow look ups) later on
@@ -4501,10 +4510,10 @@ class TransactionQueue {
       }
 
       const ourNodeId = cycleShardData.nodeShardData.node.id
-      const [receiverGroup, senderGroup] = this.calculateFactSenderGroup(queueEntry)        
-      const isInSenderGroup = senderGroup.some(node => node.id === ourNodeId)
+      const [receiverGroup, senderGroup] = this.calculateFactSenderGroup(queueEntry)
+      const isInSenderGroup = senderGroup.some((node) => node.id === ourNodeId)
 
-      if (configContext.p2p.factv2) {        
+      if (configContext.p2p.factv2) {
         if (!isInSenderGroup) {
           return
         }
@@ -4531,7 +4540,7 @@ class TransactionQueue {
       let targetGroupSize: number
       let targetIndices: { startIndex: number; endIndex: number }
 
-      const unwrappedIndex = queueEntry.isSenderWrappedTxGroup[Self.id]      
+      const unwrappedIndex = queueEntry.isSenderWrappedTxGroup[Self.id]
 
       if (configContext.p2p.factv2) {
         ourIndexInTxGroup = senderGroup.findIndex((node) => node.id === Self.id)
@@ -4580,7 +4589,7 @@ class TransactionQueue {
         `preApplyDataSender: ${queueEntry.logID}`,
         configContext.p2p.factv2
       )
-      
+
       if (configContext.p2p.factv2 && logFlags.fact) {
         const factSendJson1 = {
           txId: queueEntry.logID,
@@ -4591,14 +4600,14 @@ class TransactionQueue {
             globalOffset: queueEntry.correspondingGlobalOffset,
             targetGroupSize: targetGroupSize,
             senderGroupSize: senderGroupSize,
-            transactionGroupLength: senderGroupSize
+            transactionGroupLength: senderGroupSize,
           },
           result: {
             validCorrespondingIndices: correspondingIndices,
-            destinationCount: correspondingIndices.length
-          }
+            destinationCount: correspondingIndices.length,
+          },
         }
-        console.log(`[FACT-PRETX-SEND-JSON-1] ${Self.id} ${queueEntry.logID} ${JSON.stringify(factSendJson1)}`)      
+        console.log(`[FACT-PRETX-SEND-JSON-1] ${Self.id} ${queueEntry.logID} ${JSON.stringify(factSendJson1)}`)
       }
       let oldCorrespondingIndices: number[] = undefined
       if (this.config.stateManager.correspondingTellUseUnwrapped && !configContext.p2p.factv2) {
@@ -4630,7 +4639,11 @@ class TransactionQueue {
         }
       }
       // check if we should avoid our index in the corresponding nodes
-      if (Context.config.stateManager.avoidOurIndexInFactTell && correspondingIndices.includes(ourIndexInTxGroup) && !configContext.p2p.factv2) {
+      if (
+        Context.config.stateManager.avoidOurIndexInFactTell &&
+        correspondingIndices.includes(ourIndexInTxGroup) &&
+        !configContext.p2p.factv2
+      ) {
         if (logFlags.debug)
           this.mainLogger.debug(
             `factTellCorrespondingNodes: avoiding our index in tx group`,
@@ -4703,16 +4716,17 @@ class TransactionQueue {
           continue
         }
 
-        let targetNode: P2PTypes.NodeListTypes.Node 
-        if (configContext.p2p.factv2) { 
+        let targetNode: P2PTypes.NodeListTypes.Node
+        if (configContext.p2p.factv2) {
           targetNode = senderGroup[index]
-          if (!targetNode) {            
-            this.statemanager_fatal(`FACT-TELL`, `${Self.id} ${queueEntry.logID} ${index} ${targetNode} ${validCorrespondingIndices}`)
+          if (!targetNode) {
+            this.statemanager_fatal(
+              `FACT-TELL`,
+              `${Self.id} ${queueEntry.logID} ${index} ${targetNode} ${validCorrespondingIndices}`
+            )
             continue
           }
-        }
-        else
-          targetNode = queueEntry.transactionGroup[index]
+        } else targetNode = queueEntry.transactionGroup[index]
 
         let targetHasOurData = false
 
@@ -4792,10 +4806,10 @@ class TransactionQueue {
       if (logFlags.fact) {
         const factSendJson2 = {
           txId: queueEntry.logID,
-          filteredNodes: filteredNodes.map(n => ({ id: n.id, ip: n.externalIp, port: n.externalPort })),
+          filteredNodes: filteredNodes.map((n) => ({ id: n.id, ip: n.externalIp, port: n.externalPort })),
           payload: {
-            stateList: payload.stateList.map(s => s.accountId)
-          }
+            stateList: payload.stateList.map((s) => s.accountId),
+          },
         }
         console.log(`[FACT-PRETX-SEND-JSON-3] ${Self.id} ${queueEntry.logID} ${JSON.stringify(factSendJson2)}`)
       }
@@ -4884,9 +4898,9 @@ class TransactionQueue {
       )
       return false
     }
-    const senderHasAddress = ShardFunctions.testAddressInRange(dataKey, senderNodeShardData.storedPartitions)    
+    const senderHasAddress = ShardFunctions.testAddressInRange(dataKey, senderNodeShardData.storedPartitions)
 
-    let isValidFactSender: boolean 
+    let isValidFactSender: boolean
 
     if (configContext.p2p.factv2) {
       const [receiverGroup, senderGroup] = this.calculateFactSenderGroup(queueEntry)
@@ -4895,9 +4909,9 @@ class TransactionQueue {
       const receiverGroupSize = receiverGroup.length
       const senderGroupSize = senderGroup.length
       const targetIndices = this.getStartAndEndIndexOfTargetGroup(receiverGroup, senderGroup)
-  
+
       // Early validation: check if sender is in the reduced FACT sender group
-      const isInFactSenderGroup = senderGroup.some(node => node.id === senderNodeId)
+      const isInFactSenderGroup = senderGroup.some((node) => node.id === senderNodeId)
       if (!isInFactSenderGroup) {
         /* prettier-ignore */ if (logFlags.verbose) this.mainLogger.debug(`factValidateCorrespondingTellSender: Sender ${senderNodeId.slice(0, 4)} not in FACT sender group - invalid`)
         nestedCountersInstance.countEvent(
@@ -4930,18 +4944,17 @@ class TransactionQueue {
             startIndex: targetIndices.startIndex,
             endIndex: targetIndices.endIndex,
             transactionGroupLength: senderGroupSize,
-            dataKey: dataKey
+            dataKey: dataKey,
           },
-          result: isValidFactSender
+          result: isValidFactSender,
         }
         console.log(`[FACT-PRETX-VERIFY-JSON-1] ${Self.id} ${queueEntry.logID} ${JSON.stringify(factPreTxVerifyJson1)}`)
         // because we are not using validate function
         if (isValidFactSender === false)
           console.log(
             `note: tellSender ${queueEntry.logID} X verification failed correspondingIndices:${correspondingIndices} sender: ${senderNodeIndex} receiver: ${receivingNodeIndex}`
-          )      
+          )
       }
-
     } else {
       // check if it is a FACT sender
       const receivingNodeIndex = queueEntry.ourTXGroupIndex // we are the receiver
@@ -4957,7 +4970,7 @@ class TransactionQueue {
       const targetIndices = this.getStartAndEndIndexOfTargetGroup(targetGroup, queueEntry.transactionGroup)
 
       /* prettier-ignore */ if (logFlags.verbose) this.mainLogger.debug(`factValidateCorrespondingTellSender: txId: ${queueEntry.acceptedTx.txId} sender node id: ${senderNodeId}, receiver id: ${Self.id} senderHasAddress: ${senderHasAddress} receivingNodeIndex: ${receivingNodeIndex} senderNodeIndex: ${senderNodeIndex} receiverGroupSize: ${receiverGroupSize} senderGroupSize: ${senderGroupSize} targetIndices: ${utils.stringifyReduce(targetIndices)}`)
-      
+
       isValidFactSender = verifyCorrespondingSender(
         receivingNodeIndex,
         senderNodeIndex,
@@ -5000,7 +5013,7 @@ class TransactionQueue {
     }
 
     // it is neither a FACT corresponding node nor an exe neighbour node
-    if (isValidFactSender === false) {      
+    if (isValidFactSender === false) {
       this.mainLogger.error(
         `factValidateCorrespondingTellSender: logId: ${queueEntry.logID} sender is neither a valid sender nor a neighbour node isValidSender:  ${isValidFactSender}`
       )
@@ -5041,15 +5054,14 @@ class TransactionQueue {
       if (endIndex >= transactionGroup.length) {
         endIndex = endIndex - transactionGroup.length
       }
-    }
-    else {
+    } else {
       endIndex = startIndex + n
       if (endIndex > transactionGroup.length) {
         endIndex = endIndex - transactionGroup.length
       }
     }
     return { startIndex, endIndex }
-  }  
+  }
 
   factTellCorrespondingNodesFinalData(queueEntry: QueueEntry): void {
     profilerInstance.profileSectionStart('factTellCorrespondingNodesFinalData', true)
@@ -5104,9 +5116,8 @@ class TransactionQueue {
 
     // fixing obvious bug with rotation safety
     let targetEndIndex = queueEntry.transactionGroup.length
-    if (configContext.p2p.factv2) 
-      targetEndIndex = targetEndIndex - 1
-    
+    if (configContext.p2p.factv2) targetEndIndex = targetEndIndex - 1
+
     const targetGroupSize = queueEntry.transactionGroup.length
 
     const senderIndexInTxGroup = queueEntry.ourTXGroupIndex // Keep original variable for logging
@@ -5122,8 +5133,7 @@ class TransactionQueue {
       /* prettier-ignore */ if (logFlags.verbose) this.mainLogger.debug(`factTellCorrespondingNodesFinalData: Using wrapped index ${wrappedIndex} instead of regular ${senderIndexInTxGroup}`)
     }
 
-    if (configContext.p2p.factv2) 
-      senderIndex = queueEntry.transactionGroup.findIndex((node) => node.id === Self.id)    
+    if (configContext.p2p.factv2) senderIndex = queueEntry.transactionGroup.findIndex((node) => node.id === Self.id)
 
     // Calculate corresponding nodes using the correct index that receivers will validate
     const correspondingIndices = getCorrespondingNodes(
@@ -5149,12 +5159,12 @@ class TransactionQueue {
           targetGroupSize: targetGroupSize,
           senderGroupSize: senderGroupSize,
           transactionGroupLength: queueEntry.transactionGroup.length,
-          wrappedIndex: wrappedIndex
+          wrappedIndex: wrappedIndex,
         },
         result: {
           correspondingIndices: correspondingIndices,
-          destinationCount: correspondingIndices.length
-        }
+          destinationCount: correspondingIndices.length,
+        },
       }
       console.log(`[FACT-FINAL-SEND-JSON-1] ${Self.id} ${queueEntry.logID} ${JSON.stringify(factFinalJson1)}`)
     }
@@ -5216,11 +5226,15 @@ class TransactionQueue {
           if (logFlags.fact) {
             const factFinalJson2 = {
               txId: queueEntry.logID,
-              filteredNodes: filterdCorrespondingAccNodes.map(n => ({ id: n.id, ip: n.externalIp, port: n.externalPort })),
+              filteredNodes: filterdCorrespondingAccNodes.map((n) => ({
+                id: n.id,
+                ip: n.externalIp,
+                port: n.externalPort,
+              })),
               payload: {
-                stateList: message.stateList.map(s => s.accountId)
+                stateList: message.stateList.map((s) => s.accountId),
               },
-              accountKey: key
+              accountKey: key,
             }
             console.log(`[FACT-FINAL-SEND-JSON-2] ${Self.id} ${queueEntry.logID} ${JSON.stringify(factFinalJson2)}`)
           }
@@ -5308,11 +5322,11 @@ class TransactionQueue {
       }
       targetNodeIndex = queueEntry.ourTXGroupIndex // we are the receiver
     }
-    
+
     const senderGroupSize = queueEntry.executionGroup.length
 
     const targetGroupSize = queueEntry.transactionGroup.length
-    const targetStartIndex = 0 // start of tx group    
+    const targetStartIndex = 0 // start of tx group
 
     // check if it is a FACT sender
     let isValidFactSender: boolean
@@ -5341,9 +5355,9 @@ class TransactionQueue {
             targetStartIndex: targetStartIndex,
             targetEndIndex: targetEndIndex,
             transactionGroupLength: targetGroupSize,
-            wrapped: false
+            wrapped: false,
           },
-          result: isValidFactSender
+          result: isValidFactSender,
         }
         console.log(`[FACT-FINAL-VERIFY-JSON-1] ${Self.id} ${queueEntry.logID} ${JSON.stringify(factFinalVerifyJson1)}`)
         if (isValidFactSender === false)
@@ -5364,7 +5378,7 @@ class TransactionQueue {
         false,
         `finalDataSender: ${queueEntry.logID}`
       )
-    }    
+    }
 
     // it is not a FACT corresponding node
     if (isValidFactSender === false) {
@@ -6068,20 +6082,20 @@ class TransactionQueue {
 
             if (logFlags.fact) {
               // Enhanced FACT-STUCK logging for debugging
-              const txGroupIds = queueEntry.transactionGroup?.map(node => node.id.slice(0, 4)) || []
-              const execGroupIds = queueEntry.executionGroup?.map(node => node.id.slice(0, 4)) || []
-              const activeNodeIds = NodeList.activeByIdOrder.map(n => n.id.slice(0, 4))
+              const txGroupIds = queueEntry.transactionGroup?.map((node) => node.id.slice(0, 4)) || []
+              const execGroupIds = queueEntry.executionGroup?.map((node) => node.id.slice(0, 4)) || []
+              const activeNodeIds = NodeList.activeByIdOrder.map((n) => n.id.slice(0, 4))
               const [factReceiverGroup, factSenderGroup] = this.calculateFactSenderGroup(queueEntry)
-              const factSenderIds = factSenderGroup?.map(node => node.id.slice(0, 4)) || []
-              const factReceiverIds = factReceiverGroup?.map(nodeId => nodeId.slice(0, 4)) || []
+              const factSenderIds = factSenderGroup?.map((node) => node.id.slice(0, 4)) || []
+              const factReceiverIds = factReceiverGroup?.map((nodeId) => nodeId.slice(0, 4)) || []
 
               console.log(
                 `FACT-STUCK nodeId:${Self.id} shortId:${shortID} state:${queueEntry.state} ` +
-                `txGroup:[${txGroupIds.join(',')}] ` +
-                `execGroup:[${execGroupIds.join(',')}] ` +
-                `factSenders:[${factSenderIds.join(',')}] ` +
-                `factReceivers:[${factReceiverIds.join(',')}] ` +
-                `activeNodes:[${activeNodeIds.join(',')}]`
+                  `txGroup:[${txGroupIds.join(',')}] ` +
+                  `execGroup:[${execGroupIds.join(',')}] ` +
+                  `factSenders:[${factSenderIds.join(',')}] ` +
+                  `factReceivers:[${factReceiverIds.join(',')}] ` +
+                  `activeNodes:[${activeNodeIds.join(',')}]`
               )
             }
 
@@ -6131,20 +6145,20 @@ class TransactionQueue {
 
               if (logFlags.fact) {
                 // Enhanced logging for FACT-STUCK debugging
-                const txGroupIds = queueEntry.transactionGroup?.map(node => node.id.slice(0, 4)) || []
-                const execGroupIds = queueEntry.executionGroup?.map(node => node.id.slice(0, 4)) || []
-                const activeNodeIds = NodeList.activeByIdOrder.map(n => n.id.slice(0, 4))
+                const txGroupIds = queueEntry.transactionGroup?.map((node) => node.id.slice(0, 4)) || []
+                const execGroupIds = queueEntry.executionGroup?.map((node) => node.id.slice(0, 4)) || []
+                const activeNodeIds = NodeList.activeByIdOrder.map((n) => n.id.slice(0, 4))
                 const [factReceiverGroup, factSenderGroup] = this.calculateFactSenderGroup(queueEntry)
-                const factSenderIds = factSenderGroup?.map(node => node.id.slice(0, 4)) || []
-                const factReceiverIds = factReceiverGroup?.map(nodeId => nodeId.slice(0, 4)) || []
+                const factSenderIds = factSenderGroup?.map((node) => node.id.slice(0, 4)) || []
+                const factReceiverIds = factReceiverGroup?.map((nodeId) => nodeId.slice(0, 4)) || []
 
                 console.log(
                   `FACT-STUCK nodeId:${Self.id} shortId:${shortID} state:${queueEntry.state} ` +
-                  `txGroup:[${txGroupIds.join(',')}] ` +
-                  `execGroup:[${execGroupIds.join(',')}] ` +
-                  `factSenders:[${factSenderIds.join(',')}] ` +
-                  `factReceivers:[${factReceiverIds.join(',')}] ` +
-                  `activeNodes:[${activeNodeIds.join(',')}]`
+                    `txGroup:[${txGroupIds.join(',')}] ` +
+                    `execGroup:[${execGroupIds.join(',')}] ` +
+                    `factSenders:[${factSenderIds.join(',')}] ` +
+                    `factReceivers:[${factReceiverIds.join(',')}] ` +
+                    `activeNodes:[${activeNodeIds.join(',')}]`
                 )
               }
 
