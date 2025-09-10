@@ -1,6 +1,6 @@
 // Break circular dependency chain BEFORE any imports
 jest.mock('../../../../src/network', () => ({
-  shardusGetTime: jest.fn(() => Date.now())
+  shardusGetTime: jest.fn(() => Date.now()),
 }))
 
 jest.mock('../../../../src/p2p/Self', () => ({
@@ -12,19 +12,15 @@ jest.mock('../../../../src/utils/profiler', () => ({
     profileSectionStart: jest.fn(),
     profileSectionEnd: jest.fn(),
     scopedProfileSectionStart: jest.fn(),
-    scopedProfileSectionEnd: jest.fn()
-  }
+    scopedProfileSectionEnd: jest.fn(),
+  },
 }))
 
 jest.mock('../../../../src/utils/nestedCounters', () => ({
   nestedCountersInstance: {
     countEvent: jest.fn(),
-    countRareEvent: jest.fn()
-  }
-}))
-
-jest.mock('../../../../src/debug', () => ({
-  // Empty mock to break circular dependency
+    countRareEvent: jest.fn(),
+  },
 }))
 
 import { P2P } from '@shardeum-foundation/lib-types'

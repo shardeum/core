@@ -4,13 +4,9 @@ jest.mock('../../../../src/network', () => ({
   ipInfo: {
     externalIp: '127.0.0.1',
     externalPort: 8080,
-    internalIp: '127.0.0.1', 
-    internalPort: 8080
-  }
-}))
-
-jest.mock('../../../../src/p2p/Self', () => ({
-  // Empty mock to break circular dependency
+    internalIp: '127.0.0.1',
+    internalPort: 8080,
+  },
 }))
 
 jest.mock('../../../../src/utils/profiler', () => ({
@@ -18,15 +14,15 @@ jest.mock('../../../../src/utils/profiler', () => ({
     profileSectionStart: jest.fn(),
     profileSectionEnd: jest.fn(),
     scopedProfileSectionStart: jest.fn(),
-    scopedProfileSectionEnd: jest.fn()
-  }
+    scopedProfileSectionEnd: jest.fn(),
+  },
 }))
 
 jest.mock('../../../../src/utils/nestedCounters', () => ({
   nestedCountersInstance: {
     countEvent: jest.fn(),
-    countRareEvent: jest.fn()
-  }
+    countRareEvent: jest.fn(),
+  },
 }))
 
 jest.mock('../../../../src/debug', () => ({
