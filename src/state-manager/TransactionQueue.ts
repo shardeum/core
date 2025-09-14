@@ -7826,7 +7826,7 @@ class TransactionQueue {
     let signedReceipt = null as SignedReceipt | P2PTypes.GlobalAccountsTypes.GlobalTxReceipt
 
     if (globalModification) {
-      signedReceipt = getGlobalTxReceipt(queueEntry.acceptedTx.txId) as P2PTypes.GlobalAccountsTypes.GlobalTxReceipt
+      signedReceipt = await getGlobalTxReceipt(queueEntry.acceptedTx.txId)
     } else {
       signedReceipt = this.stateManager.getSignedReceipt(queueEntry) as SignedReceipt
     }

@@ -3,6 +3,16 @@ jest.mock('@shardeum-foundation/lib-net', () => ({
   // Mock the native module
 }))
 
+jest.mock('fs-extra', () => {
+  const fs = jest.requireActual('fs')
+  return {
+    copy: jest.fn(),
+    emptyDir: jest.fn(),
+    ensureDir: jest.fn(),
+    native: fs,
+  }
+})
+
 jest.mock('tar-fs', () => ({
   pack: jest.fn().mockReturnValue({
     pipe: jest.fn().mockReturnThis(),

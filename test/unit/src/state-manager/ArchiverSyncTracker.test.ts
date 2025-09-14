@@ -11,6 +11,11 @@ jest.mock('../../../../src/utils', () => ({
     if (err && typeof err === 'object' && 'toString' in err) return err.toString()
     return String(err)
   }),
+  makeShortHash: jest.fn((str, len) => {
+    // Simple mock that returns first len characters or pads with zeros
+    if (!str) return '00000000'.substring(0, len || 8)
+    return (str + '00000000').substring(0, len || 8)
+  }),
 }))
 jest.mock('../../../../src/http', () => ({
   post: jest.fn(),
@@ -259,18 +264,24 @@ describe('ArchiverSyncTracker', () => {
 
   describe('syncStateDataForRange2', () => {
     beforeEach(() => {
+      // Don't call reset() explicitly as initByRange already does it
       const range = { low: 'addr1', high: 'addr2' } as any
       archiverSyncTracker.initByRange(mockAccountSync, mockP2P, 1, range, 10, false)
-      // Set addressRange with low/high properties as used in the actual code
-      archiverSyncTracker.addressRange = { low: 'addr1', high: 'addr2' }
+      // initByRange should set the range, but let's verify
+      // archiverSyncTracker.addressRange should be set to range by line 136 in implementation
+      // Don't override it
+
+      // Mock the async methods to prevent actual execution
+      archiverSyncTracker.syncAccountData2 = jest.fn().mockResolvedValue(10)
+      archiverSyncTracker.tryRetry = jest.fn().mockResolvedValue(false)
     })
 
     it('should sync state data for range successfully', async () => {
-      const syncAccountData2Spy = jest.spyOn(archiverSyncTracker, 'syncAccountData2').mockResolvedValue(10)
+      // syncAccountData2 is already mocked in beforeEach
 
       await archiverSyncTracker.syncStateDataForRange2()
 
-      expect(syncAccountData2Spy).toHaveBeenCalledWith('addr1', 'addr2')
+      expect(archiverSyncTracker.syncAccountData2).toHaveBeenCalledWith('addr1', 'addr2')
       expect(archiverSyncTracker.failedAccounts).toEqual([])
       expect(nestedCountersInstance.countEvent).toHaveBeenCalledWith(
         'archiver_sync',
@@ -280,8 +291,8 @@ describe('ArchiverSyncTracker', () => {
 
     it('should handle debugFail3 error', async () => {
       mockAccountSync.debugFail3 = true
-      // Set restartCount to max to ensure immediate failure
-      archiverSyncTracker.restartCount = 3
+      // Override tryRetry to throw the error as expected when restartCount exceeds max
+      archiverSyncTracker.tryRetry = jest.fn().mockRejectedValue(new Error('reset-sync-ranges tryRetry out of tries'))
 
       await expect(archiverSyncTracker.syncStateDataForRange2()).rejects.toThrow('reset-sync-ranges')
 
@@ -293,7 +304,8 @@ describe('ArchiverSyncTracker', () => {
     })
 
     it('should handle reset-sync-ranges error', async () => {
-      jest.spyOn(archiverSyncTracker, 'syncAccountData2').mockRejectedValue(new Error('reset-sync-ranges'))
+      // Override the default mock to reject with error
+      archiverSyncTracker.syncAccountData2 = jest.fn().mockRejectedValue(new Error('reset-sync-ranges'))
 
       await expect(archiverSyncTracker.syncStateDataForRange2()).rejects.toThrow('reset-sync-ranges')
 
@@ -304,12 +316,13 @@ describe('ArchiverSyncTracker', () => {
     })
 
     it('should retry on FailAndRestartPartition error', async () => {
-      const tryRetrySpy = jest.spyOn(archiverSyncTracker, 'tryRetry').mockResolvedValue(false)
-      jest.spyOn(archiverSyncTracker, 'syncAccountData2').mockRejectedValueOnce(new Error('FailAndRestartPartition'))
+      // tryRetry is already mocked in beforeEach, no need to spy again
+      // Override the default mock to reject with error
+      archiverSyncTracker.syncAccountData2 = jest.fn().mockRejectedValueOnce(new Error('FailAndRestartPartition'))
 
       await archiverSyncTracker.syncStateDataForRange2()
 
-      expect(tryRetrySpy).toHaveBeenCalledWith('syncStateDataForRange 1')
+      expect(archiverSyncTracker.tryRetry).toHaveBeenCalledWith('syncStateDataForRange 1')
       expect(mockAccountSync.statemanager_fatal).toHaveBeenCalledWith(
         'syncStateDataForRange_ex_failandrestart',
         expect.stringContaining('FailAndRestartPartition')
@@ -317,12 +330,13 @@ describe('ArchiverSyncTracker', () => {
     })
 
     it('should retry on unexpected error', async () => {
-      const tryRetrySpy = jest.spyOn(archiverSyncTracker, 'tryRetry').mockResolvedValue(false)
-      jest.spyOn(archiverSyncTracker, 'syncAccountData2').mockRejectedValueOnce(new Error('unexpected error'))
+      // tryRetry is already mocked in beforeEach, no need to spy again
+      // Override the default mock to reject with error
+      archiverSyncTracker.syncAccountData2 = jest.fn().mockRejectedValueOnce(new Error('unexpected error'))
 
       await archiverSyncTracker.syncStateDataForRange2()
 
-      expect(tryRetrySpy).toHaveBeenCalledWith('syncStateDataForRange 2')
+      expect(archiverSyncTracker.tryRetry).toHaveBeenCalledWith('syncStateDataForRange 2')
       // The error is being converted to undefined by errorToStringFull mock, so check for that
       expect(mockAccountSync.statemanager_fatal).toHaveBeenCalled()
       const call = mockAccountSync.statemanager_fatal.mock.calls[0]

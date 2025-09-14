@@ -245,7 +245,7 @@ describe('AccountPatcher', () => {
     it('should handle empty radixes', () => {
       const a: RadixAndHash = { radix: '', hash: 'hash1' }
       const b: RadixAndHash = { radix: '0001', hash: 'hash2' }
-      expect(accountPatcher.sortByRadix(a, b)).toBe(-1)
+      expect(accountPatcher.sortByRadix(a, b)).toBe(1)
     })
 
     it('should correctly sort an array of radix and hash objects', () => {

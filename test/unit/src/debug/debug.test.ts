@@ -130,6 +130,9 @@ describe('Debug', () => {
       json: jest.fn(),
       set: jest.fn(),
       pipe: jest.fn(),
+      status: jest.fn().mockReturnThis(),
+      headersSent: false,
+      end: jest.fn(),
     }
 
     // Setup nestedCountersInstance mock
@@ -177,6 +180,7 @@ describe('Debug', () => {
     beforeEach(() => {
       mockPackStream = {
         pipe: jest.fn().mockReturnThis(),
+        on: jest.fn().mockReturnThis(),
       }
       tar.pack = jest.fn().mockReturnValue(mockPackStream)
     })
@@ -233,16 +237,24 @@ describe('Debug', () => {
 
     describe('debug endpoint', () => {
       it('should create and pipe archive stream', () => {
+        // Mock setTimeout and clearTimeout to prevent hanging
+        jest.useFakeTimers()
+
         const mockArchiveStream = {
           pipe: jest.fn(),
+          on: jest.fn(),
         }
         const mockGzipStream = {
           pipe: jest.fn(),
+          on: jest.fn(),
         }
 
         // Make pipe chain return the gzip stream
         mockArchiveStream.pipe.mockReturnValue(mockGzipStream)
         mockGzipStream.pipe.mockReturnValue(mockRes)
+
+        // Add on method to mockRes for event handlers
+        mockRes.on = jest.fn()
 
         jest.spyOn(debug, 'createArchiveStream').mockReturnValue(mockArchiveStream as any)
         const zlib = require('zlib')
@@ -257,6 +269,10 @@ describe('Debug', () => {
         expect(mockRes.set).toHaveBeenCalledWith('content-type', 'application/gzip')
         expect(mockArchiveStream.pipe).toHaveBeenCalledWith(mockGzipStream)
         expect(mockGzipStream.pipe).toHaveBeenCalledWith(mockRes)
+
+        // Clear all timers to prevent hanging
+        jest.clearAllTimers()
+        jest.useRealTimers()
       })
     })
 

@@ -9,6 +9,9 @@ import { logFlags } from '../logger'
 import * as ProblemNodeHandler from '../p2p/ProblemNodeHandler'
 import { Node } from '@shardeum-foundation/lib-types/build/src/p2p/NodeListTypes'
 import { nodes } from '../p2p/NodeList'
+import * as CycleChain from '../p2p/CycleChain'
+import * as NodeList from '../p2p/NodeList'
+import { config } from '../p2p/Context'
 import log4js from 'log4js'
 const tar = require('tar-fs')
 const fs = require('fs')
