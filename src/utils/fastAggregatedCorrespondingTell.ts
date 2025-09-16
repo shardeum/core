@@ -52,7 +52,9 @@ export function getCorrespondingNodes(
   //this loop is at most O(k) where k is  receiverGroupSize / sendGroupSize
   //effectively it is constant time it is required so that a smaller
   //group can send to a larger group
-  while (targetNumber < receiverGroupSize) {
+  let steps = 0
+  const maxSteps = v2 ? Math.ceil(receiverGroupSize / sendGroupSize) : Infinity  
+  while (v2 ? steps < maxSteps : targetNumber < receiverGroupSize) {
     //send all payload to this node
     const destinationNode = wrappedIndex
 
@@ -77,6 +79,7 @@ export function getCorrespondingNodes(
     if (wrappedIndex >= transactionGroupSize) {
       wrappedIndex = wrappedIndex - transactionGroupSize
     }
+    steps++
     if (!v2) {
       //wrap to front of receiver group
       if (wrappedIndex >= endTargetIndex) {

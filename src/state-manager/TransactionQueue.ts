@@ -5133,7 +5133,7 @@ class TransactionQueue {
       /* prettier-ignore */ if (logFlags.verbose) this.mainLogger.debug(`factTellCorrespondingNodesFinalData: Using wrapped index ${wrappedIndex} instead of regular ${senderIndexInTxGroup}`)
     }
 
-    if (configContext.p2p.factv2) senderIndex = queueEntry.transactionGroup.findIndex((node) => node.id === Self.id)
+    if (configContext.p2p.factv2) senderIndex = queueEntry.executionGroup.findIndex((node) => node.id === Self.id)
 
     // Calculate corresponding nodes using the correct index that receivers will validate
     const correspondingIndices = getCorrespondingNodes(
@@ -5314,6 +5314,7 @@ class TransactionQueue {
     let targetEndIndex = queueEntry.transactionGroup.length // end of tx group
 
     if (configContext.p2p.factv2) {
+      senderNodeIndex = queueEntry.executionGroup.findIndex((node) => node.id === senderNodeId)
       targetNodeIndex = queueEntry.transactionGroup.findIndex((node) => node.id === Self.id)
       targetEndIndex = targetEndIndex - 1
     } else {
