@@ -5,7 +5,8 @@ import {
   deserializeRepairOOSAccountsReq,
 } from '../../../../src/types/RepairOOSAccountsReq'
 import { serializeWrappedData } from '../../../../src/types/WrappedData'
-import { initAjvSchemas } from '../../../../src/types/ajv/Helpers'
+import { initAjvSchemas, verifyPayload } from '../../../../src/types/ajv/Helpers'
+import { AJVSchemaEnum } from '../../../../src/types/enum/AJVSchemaEnum'
 import { TypeIdentifierEnum } from '../../../../src/types/enum/TypeIdentifierEnum'
 import { VectorBufferStream } from '../../../../src/utils/serialization/VectorBufferStream'
 import { serializeSignedReceipt } from '../../../../src/types/SignedReceipt'
@@ -548,8 +549,78 @@ describe('RepairOOSAccountsReq', () => {
       serializeSignedReceipt(stream, data.repairInstructions[1].signedReceipt) // receipt2
       stream.position = 0
 
-      const obj = deserializeRepairOOSAccountsReq(stream)
-      expect(obj).toEqual(data)
+    const obj = deserializeRepairOOSAccountsReq(stream)
+    expect(obj).toEqual(data)
+  })
+  })
+
+  describe('AJV Validation', () => {
+    test('Should return errors on AJV fails', () => {
+      const invalidPayload: any = {
+        repairInstructions: [
+          {
+            accountID: 'id',
+          },
+        ],
+      }
+
+      const errors = verifyPayload(AJVSchemaEnum.RepairOOSAccountsReq, invalidPayload)
+      expect(errors).toBeInstanceOf(Array)
+      expect(errors && errors.length).toBeGreaterThan(0)
+
+      const stream = new VectorBufferStream(0)
+      expect(() => serializeRepairOOSAccountsReq(stream, invalidPayload, false)).toThrow('Data validation error')
+    })
+
+    test('Should not return errors on AJV passes', () => {
+      const validPayload: RepairOOSAccountsReq = {
+        repairInstructions: [
+          {
+            accountID: 'test',
+            hash: '1234',
+            txId: '1234',
+            accountData: {
+              accountId: 'acc123',
+              stateId: 'state456',
+              data: { detail: 'info' },
+              timestamp: 123456,
+            },
+            targetNodeId: 'node1',
+            signedReceipt: {
+              proposal: {
+                txid: 'test',
+                applied: true,
+                cant_preApply: false,
+                accountIDs: ['a', 'b', 'c'],
+                beforeStateHashes: ['b1', 'b2', 'b3'],
+                afterStateHashes: ['a1', 'a2', 'a3'],
+                appReceiptDataHash: 'hash',
+                executionShardKey: 'shardKey',
+              },
+              signaturePack: [
+                {
+                  sig: 'sign',
+                  owner: 'node1',
+                },
+              ],
+              voteOffsets: [5],
+              proposalHash: 'hash',
+              sign: {
+                sig: 'sign',
+                owner: 'aggregator',
+              },
+            },
+          },
+        ],
+      }
+
+      const errors = verifyPayload(AJVSchemaEnum.RepairOOSAccountsReq, validPayload)
+      expect(errors).toBeNull()
+
+      const stream = new VectorBufferStream(0)
+      serializeRepairOOSAccountsReq(stream, validPayload, false)
+      stream.position = 0
+      expect(deserializeRepairOOSAccountsReq(stream)).toEqual(validPayload)
     })
   })
 })
