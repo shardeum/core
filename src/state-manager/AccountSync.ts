@@ -1280,6 +1280,7 @@ class AccountSync {
               queueEntry.txGroupDebug = `${before} -> ${queueEntry.ourNodeInTransactionGroup}`
 
               //if(queueEntry.ourNodeInTransactionGroup === true){
+              /* prettier-ignore */ if (logFlags.dapp_verbose) console.log(`[my-log] TX moving to aging phase - txId:${queueEntry.acceptedTx.txId} timestamp:${queueEntry.txKeys.timestamp} accounts:${queueEntry.txKeys.allKeys.length}`)
               this.stateManager.transactionQueue.updateTxState(queueEntry, 'aging')
               queueEntry.didWakeup = true
               this.stateManager.transactionQueue.updateHomeInformation(queueEntry)

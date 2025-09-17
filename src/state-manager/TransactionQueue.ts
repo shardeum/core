@@ -6451,6 +6451,7 @@ class TransactionQueue {
             // We wait in the aging phase, and mark accounts as seen to prevent a TX that is after this from using or changing data
             // on the accounts in this TX
             // note that code much earlier in the loop rejects any queueEntries younger than time M
+            /* prettier-ignore */ if (logFlags.dapp_verbose) console.log(`[processTransactions] TX finishing aging phase, moving to processing - txId:${queueEntry.acceptedTx.txId} timestamp:${queueEntry.txKeys?.timestamp} ageTime:${shardusGetTime() - queueEntry.txKeys?.timestamp}ms`)
             this.updateTxState(queueEntry, 'processing')
             this.processQueue_markAccountsSeen(seenAccounts, queueEntry)
           }
