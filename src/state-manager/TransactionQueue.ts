@@ -1135,6 +1135,14 @@ class TransactionQueue {
       return null
     }
 
+    if (typeof this.app.validateTransaction === 'function') {
+      const txValid: any = this.app.validateTransaction(tx, appData)
+      if (txValid === false || (typeof txValid === 'object' && txValid.success === false)) {
+        profilerInstance.profileSectionEnd('handleSharedTX')
+        return null
+      }
+    }
+
     // Pack into AcceptedTx for routeAndQueueAcceptedTransaction
     const acceptedTx: AcceptedTx = {
       timestamp,

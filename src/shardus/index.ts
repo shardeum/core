@@ -1260,6 +1260,17 @@ class Shardus extends EventEmitter {
       appData,
       shardusMemoryPatterns: shardusMemoryPatterns,
     }
+
+    if (typeof this.app.validateTransaction === 'function') {
+      const txValid: any = this.app.validateTransaction(timestampedTx, appData)
+      if (txValid === false || (typeof txValid === 'object' && txValid.success === false)) {
+        return {
+          success: false,
+          reason: txValid?.reason || 'Transaction validation failed',
+          status: txValid?.status || 400,
+        }
+      }
+    }
     if (logFlags.verbose) this.mainLogger.debug('Transaction validated')
     if (global === false) {
       //temp way to make global modifying TXs not over count
