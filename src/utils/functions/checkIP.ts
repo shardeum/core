@@ -4,9 +4,9 @@ export function isIPv6(ip: string): boolean {
 
   //TODO potentially replace regex with something faster (needs testing)
   for (const str of slicedArr) {
-    // Check if string is a valid regex
+    // Check if segment is a valid hexadecimal string
     const hexRegex = /^[0-9A-Fa-f]+$/
-    if (str.length < 0 || str.length > 4) return false
+    if (str.length < 1 || str.length > 4) return false
     if (str.match(hexRegex) == null) return false
   }
 
