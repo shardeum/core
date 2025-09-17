@@ -184,6 +184,7 @@ class StateManager {
 
   debugNoTxVoting: boolean
   debugSkipPatcherRepair: boolean
+  debugFailToCommit: boolean
 
   ignoreRecieptChance: number
   ignoreVoteChance: number
@@ -341,6 +342,7 @@ class StateManager {
 
     this.processCycleSummaries = false //starts false and get enabled when startProcessingCycleSummaries() is called
     this.debugSkipPatcherRepair = config.debug.skipPatcherRepair
+    this.debugFailToCommit = false
 
     this.feature_receiptMapResults = true
     this.feature_partitionHashes = true
@@ -1297,6 +1299,16 @@ class StateManager {
     this.cachedAppDataManager.setupHandlers()
 
     this.partitionStats.setupHandlers()
+
+    // Debug endpoint to toggle fail-to-commit flag
+    Context.network.registerExternalGet('debugFailToCommit', isDebugModeMiddleware, (req, res) => {
+      const { enable } = req.query
+      if (enable !== undefined) {
+        const val = enable === 'true' || enable === '1'
+        this.debugFailToCommit = val
+      }
+      res.json({ debugFailToCommit: this.debugFailToCommit })
+    })
 
     // p2p ASK
     // this.p2p.registerInternal(

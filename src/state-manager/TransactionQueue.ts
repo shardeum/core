@@ -1448,6 +1448,12 @@ class TransactionQueue {
    * @param queueEntry
    */
   async commitConsensedTransaction(queueEntry: QueueEntry): Promise<CommitConsensedTransactionResult> {
+    // Debug flag to intentionally skip committing account data
+    if (this.stateManager.debugFailToCommit) {
+      /* prettier-ignore */ if (logFlags.debug) this.mainLogger.debug(`debugFailToCommit active. Skipping commit for tx: ${queueEntry.logID}`)
+      queueEntry.accountDataSet = true
+      return { success: true }
+    }
     let ourLockID = -1
     let accountDataList: string | unknown[]
     let uniqueKeys = []
