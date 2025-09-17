@@ -52,7 +52,7 @@ const cycleMarkerRoute: P2P.P2PTypes.Route<Handler> = {
   method: 'GET',
   name: 'cyclemarker',
   handler: (_req, res) => {
-    const marker = CycleChain.newest ? CycleChain.newest.previous : '0'.repeat(64)
+    const marker = CycleChain.getCurrentCycleMarker() ?? '0'.repeat(64)
     res.json({ marker })
   },
 }
