@@ -22,7 +22,7 @@
 
 `LostArchivers` map to save 'archiver down tx's and 'archiver up tx's by archiver and cycle
 
-`InvestiagtedArchivers` map to save archivers we have investigated for this cycle to not investigate them again
+`InvestigatedArchivers` map to save archivers we have investigated for this cycle to not investigate them again
 
 `LostArchivers` cycle record field to record archivers that have been lost and must be removed from the network
 
