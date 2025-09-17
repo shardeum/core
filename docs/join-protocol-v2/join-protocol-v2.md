@@ -62,8 +62,9 @@ The existing join code is in the repository "shardus-global-server", aka "Shardu
 - On each cycle the active nodes decide how many nodes to add (already implemented).
 - On each cycle the needed number of nodes N are selected from the standby node list based on a deterministic-but-unpredictable score that is a function of the node public key and the current cycle marker.
 - The N nodes with the best score are added as joining nodes to the next cycle record.
-- When a node is selected to join, some active nodes in the network send the cycle number to the selected node; letting it know that it has been selected.
-- The selected standby node queries one of the active nodes for this cycle record and verifies that it is included as a joining node in the cycle record.
+- When a node is selected to join it checks the `joined` route to verify
+  inclusion in the cycle record. The old notification via the `/accepted`
+  endpoint has been removed.
   - robustQuery to ask if this node is in the `pendingJoinRequestList`
 
 ## Unjoining

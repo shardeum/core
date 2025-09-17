@@ -9,7 +9,7 @@ import { config, crypto, shardus } from '../../Context'
 import * as CycleChain from '../../CycleChain'
 import * as Self from '../../Self'
 import rfdc from 'rfdc'
-import { executeNodeSelection, notifyNewestJoinedConsensors } from './select'
+import { executeNodeSelection } from './select'
 import { attempt } from '../../Utils'
 import { submitUnjoin } from './unjoin'
 import { ResultAsync } from 'neverthrow'
@@ -43,12 +43,9 @@ export function init(): void {
   // set up event listeners for cycle quarters
   Self.emitter.on('cycle_q1_start', () => {
     if (config.p2p.useJoinProtocolV2) {
-      //TODO clean out the accepted route or is it still useful?
-      //accepted endpoint does not return any more
-      // The accepted flow is deprecated
-      // notifyNewestJoinedConsensors().catch((e) => {
-      //   console.error('failed to notify selected nodes:', e)
-      // })
+      // The old "accepted" route has been removed. Nodes should query
+      // the joined routes to verify selection instead of waiting for an
+      // acceptance notification.
     }
   })
   Self.emitter.on('cycle_q2_start', () => {
