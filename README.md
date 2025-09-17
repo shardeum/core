@@ -67,3 +67,5 @@ This command will guide you through the steps necessary to release the package.
 ## Contributing
 
 Contributions are very welcome! Everyone interacting in our codebases, issue trackers, and any other form of communication, including chat rooms and mailing lists, is expected to follow our [code of conduct](./CODE_OF_CONDUCT.md) so we can all enjoy the effort we put into this project.
+
+Please see our [contribution guidelines](./CONTRIBUTING.md) for details on the development workflow and available npm scripts.
