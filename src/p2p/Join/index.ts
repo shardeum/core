@@ -236,15 +236,69 @@ export function validateRecordTypes(rec: P2P.JoinTypes.Record): string {
   return ''
 }
 
+function validateStartedSyncingRequest(
+  request: P2P.JoinTypes.StartedSyncingRequest
+): boolean {
+  let err = validateTypes(request, { nodeId: 's', cycleNumber: 'n', sign: 'o' })
+  if (err) return false
+  err = validateTypes(request.sign, { owner: 's', sig: 's' })
+  if (err) return false
+  return true
+}
+
+function validateFinishedSyncingRequest(
+  request: P2P.JoinTypes.FinishedSyncingRequest
+): boolean {
+  let err = validateTypes(request, { nodeId: 's', cycleNumber: 'n', sign: 'o' })
+  if (err) return false
+  err = validateTypes(request.sign, { owner: 's', sig: 's' })
+  if (err) return false
+  return true
+}
+
+function validateStandbyRefreshRequest(
+  request: P2P.JoinTypes.StandbyRefreshRequest
+): boolean {
+  let err = validateTypes(request, { publicKey: 's', cycleNumber: 'n', sign: 'o' })
+  if (err) return false
+  err = validateTypes(request.sign, { owner: 's', sig: 's' })
+  if (err) return false
+  return true
+}
+
+function validateUnjoinRequestSimple(
+  request: P2P.JoinTypes.SignedUnjoinRequest
+): boolean {
+  let err = validateTypes(request, { publicKey: 's', cycleNumber: 'n', sign: 'o' })
+  if (err) return false
+  err = validateTypes(request.sign, { owner: 's', sig: 's' })
+  if (err) return false
+  return true
+}
+
 export function dropInvalidTxs(txs: P2P.JoinTypes.Txs): P2P.JoinTypes.Txs {
-  // TODO drop any invalid join requests. NOTE: this has never been implemented
-  // yet, so this task is not a side effect of any work on join v2.
+  const standbyAdd = txs.standbyAdd.filter(
+    (req) => verifyJoinRequestTypes(req) === null
+  )
+  const startedSyncing = txs.startedSyncing.filter((req) =>
+    validateStartedSyncingRequest(req)
+  )
+  const finishedSyncing = txs.finishedSyncing.filter((req) =>
+    validateFinishedSyncingRequest(req)
+  )
+  const standbyRefresh = txs.standbyRefresh.filter((req) =>
+    validateStandbyRefreshRequest(req)
+  )
+  const standbyRemove = txs.standbyRemove.filter((req) =>
+    validateUnjoinRequestSimple(req)
+  )
+
   return {
-    standbyAdd: txs.standbyAdd,
-    startedSyncing: [],
-    finishedSyncing: [],
-    standbyRefresh: [],
-    standbyRemove: [],
+    standbyAdd,
+    startedSyncing,
+    finishedSyncing,
+    standbyRefresh,
+    standbyRemove,
   }
 }
 
