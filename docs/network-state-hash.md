@@ -1,4 +1,4 @@
-# Sharded-Hash-Trie System: Existing functionally
+# Sharded-Hash-Trie System: Existing functionality
 
 The sharded-hash-trie system use a custom distributed data structure that allows a dynamically sharded system to have consensus on data state.
 
@@ -139,7 +139,7 @@ The next pass will be to iterate through the bucket values above and and for eac
 
 ### calculating coverage ranges in shareNetworkStateHashes
 
-To figure out exactly which nodes can cover which data you need to look at the value of each sharable radix. We will look to the left and right of our node in the Index list listed earlier for the level we ae sharing (all the nodes participating in teh share at this level). Left and right mean walking through index list in the positive and negative directions remember to loop if you get to the either end of the array. Once you have a node for a given direction that does not cover any of your hashes, then you stop looking in that direction. Be careful how you setup these loops. Go for what is clear and readable. Don't
+To figure out exactly which nodes can cover which data you need to look at the value of each sharable radix. We will look to the left and right of our node in the Index list listed earlier for the level we ae sharing (all the nodes participating in the share at this level). Left and right mean walking through index list in the positive and negative directions remember to loop if you get to the either end of the array. Once you have a node for a given direction that does not cover any of your hashes, then you stop looking in that direction. Be careful how you setup these loops. Go for what is clear and readable. Don't
 use declarative loops in any of this project. The performance and readability are too low.
 
 ### build_network_state_hash endpoint handler
@@ -195,7 +195,7 @@ interface HashTrieSyncConsensus {
 }
 ```
 
-## Sequence diagram for building netowrk state hash
+## Sequence diagram for building network state hash
 
 AI generated, a bit of mess
 
