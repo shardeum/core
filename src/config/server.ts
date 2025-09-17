@@ -384,6 +384,7 @@ const SERVER_CONFIG: StrictServerConfiguration = {
     checkDestLimits: true,
     checkDestLimitCount: 5,
     globalAccountsReceiptInitiationTimeout: 5000, // 5 seconds default timeout
+    enableLocalStateConsistencyReportOnExit: false, // Enable printing consistency report to exit log
   },
   sharding: { nodesPerConsensusGroup: 5, nodesPerEdge: 2, executeInOneShard: false },
   mode: ServerMode.Release,

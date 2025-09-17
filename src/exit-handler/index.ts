@@ -28,6 +28,7 @@ interface ExitHandler {
   activeStartTime: number
   lastActiveTime: number
   lastRotationIndex: { idx: number; total: number }
+  stateManager?: any // Reference to StateManager for consistency report
 }
 
 class ExitHandler {
@@ -94,7 +95,7 @@ class ExitHandler {
     this.exited = true
     this._cleanupSync()
     try {
-      this.runExitLog(true, exitType, message)
+      await this.runExitLog(true, exitType, message)
       await this._cleanupAsync()
     } catch (e) {
       console.error(e)
@@ -109,7 +110,7 @@ class ExitHandler {
     this._cleanupSync()
 
     try {
-      this.runExitLog(false, exitType, message)
+      await this.runExitLog(false, exitType, message)
       await this._cleanupAsync()
     } catch (e) {
       console.error(e)
@@ -118,7 +119,7 @@ class ExitHandler {
     process.exit(1) // exiting with status 1 causes our modified PM2 to not restart the process
   }
 
-  runExitLog(isCleanExit: boolean, exitType: string, msg: string) {
+  async runExitLog(isCleanExit: boolean, exitType: string, msg: string) {
     this.exitLogger.fatal(`isCleanExit: ${isCleanExit}  exitType: ${exitType}  msg: ${msg}`)
     let log: string[] = []
     const fakeStream = {
@@ -147,6 +148,51 @@ class ExitHandler {
     this.counters.printArrayReport(arrayReport, fakeStream, 0)
     profilerInstance.scopedProfileSectionEnd('counts')
     this.exitLogger.fatal(log.join(''))
+
+    // Add consistency report to exit log if enabled
+    if (
+      this.stateManager &&
+      this.stateManager.config &&
+      this.stateManager.config.stateManager &&
+      this.stateManager.config.stateManager.enableLocalStateConsistencyReportOnExit
+    ) {
+      this.exitLogger.fatal('=== LOCAL STATE CONSISTENCY REPORT (EXIT) ===')
+
+      try {
+        // Generate the full consistency report synchronously for exit log
+        if (this.stateManager.accountPatcher) {
+          const report = await this.stateManager.accountPatcher.localStateConsistencyReport({
+            recordsPerSecond: 1000, // Higher speed for exit log
+            consensusRangeOnly: false,
+          })
+
+          // Write summary to exit log
+          this.exitLogger.fatal(`Total accounts processed: ${report.summary.totalAccounts}`)
+          this.exitLogger.fatal(`Fully matching accounts: ${report.summary.fullyMatching}`)
+
+          if (report.summary.totalAccounts > 0) {
+            const totalMismatches = report.summary.totalAccounts - report.summary.fullyMatching
+            if (totalMismatches > 0) {
+              this.exitLogger.fatal(`Total mismatches found: ${totalMismatches}`)
+              this.exitLogger.fatal(`Cache-Trie hash matches: ${report.summary.cth}/${report.summary.totalAccounts}`)
+              this.exitLogger.fatal(
+                `Cache-Storage timestamp matches: ${report.summary.cst}/${report.summary.totalAccounts}`
+              )
+              this.exitLogger.fatal(`Cache-Storage hash matches: ${report.summary.csh}/${report.summary.totalAccounts}`)
+              this.exitLogger.fatal(`Trie-Storage hash matches: ${report.summary.tsh}/${report.summary.totalAccounts}`)
+            } else {
+              this.exitLogger.fatal('All accounts are fully consistent across cache, trie, and storage!')
+            }
+          }
+        } else {
+          this.exitLogger.fatal('AccountPatcher not available for exit report')
+        }
+      } catch (error) {
+        this.exitLogger.fatal(`Error generating exit consistency report: ${error}`)
+      }
+
+      this.exitLogger.fatal('=== END STATE CONSISTENCY REPORT ===')
+    }
 
     this.writeExitSummary(isCleanExit, exitType, msg)
   }

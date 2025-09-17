@@ -1722,6 +1722,100 @@ class AccountPatcher {
       res.write(`1.0.1\n`)
       res.end()
     })
+
+    /**
+     * Local State Consistency Report endpoint
+     *
+     * Usage: http://<NODE_IP>:<NODE_EXT_PORT>/local-state-consistency?recordsPerSecond=50&summaryOnly=false&onlyMismatch=true
+     */
+    Context.network.registerExternalGet('local-state-consistency', isDebugModeMiddleware, async (req, res) => {
+      try {
+        const recordsPerSecond = parseInt(req.query.recordsPerSecond as string) || 50
+        const summaryOnly = (req.query.summaryOnly as string) === 'true'
+        const onlyMismatch = (req.query.onlyMismatch as string) !== 'false' // default true
+
+        res.write(`Starting local state consistency report...\n`)
+        res.write(`Records per second: ${recordsPerSecond}\n`)
+        res.write(`Summary only: ${summaryOnly}\n`)
+        res.write(`Only mismatches: ${onlyMismatch}\n\n`)
+
+        const startTime = shardusGetTime()
+        const report = await this.localStateConsistencyReport({
+          recordsPerSecond,
+          consensusRangeOnly: false, // Phase 1: not used
+        })
+        const endTime = shardusGetTime()
+        const totalTimeMs = endTime - startTime
+
+        // Always write summary
+        res.write('=== SUMMARY ===\n')
+        res.write(`Total execution time: ${totalTimeMs}ms\n`)
+        res.write(`Total accounts processed: ${report.summary.totalAccounts}\n`)
+        res.write(`Fully matching accounts: ${report.summary.fullyMatching}\n`)
+        res.write(`Cache-Trie hash matches: ${report.summary.cth}\n`)
+        res.write(`Cache-Storage timestamp matches: ${report.summary.cst}\n`)
+        res.write(`Cache-Storage hash matches: ${report.summary.csh}\n`)
+        res.write(`Trie-Storage hash matches: ${report.summary.tsh}\n\n`)
+
+        res.write('=== CHUNK PERFORMANCE ===\n')
+        for (const chunk of report.summary.chunks) {
+          if (chunk.recordsProcessed > 0) {
+            res.write(
+              `Chunk ${chunk.chunkIndex}: ${chunk.recordsProcessed} records in ${
+                chunk.timeSpentMs
+              }ms (${chunk.low.substring(0, 4)}...)\n`
+            )
+          }
+        }
+        res.write('\n')
+
+        if (!summaryOnly && report.accounts) {
+          res.write('=== ACCOUNT DETAILS ===\n')
+
+          let accountsToShow = report.accounts
+          if (onlyMismatch) {
+            accountsToShow = report.accounts.filter(
+              (account) => !account.cth || !account.cst || !account.csh || !account.tsh
+            )
+          }
+
+          if (accountsToShow.length === 0) {
+            res.write('No accounts to display (all match or no mismatches found)\n')
+          } else {
+            res.write(`Showing ${accountsToShow.length} accounts:\n\n`)
+            for (const account of accountsToShow) {
+              res.write(`Account: ${account.accountId}\n`)
+              if (account.cache) {
+                res.write(
+                  `  Cache: hash=${account.cache.hash.substring(0, 8)}... timestamp=${account.cache.timestamp}\n`
+                )
+              } else {
+                res.write(`  Cache: [missing]\n`)
+              }
+              if (account.trie) {
+                res.write(`  Trie:  hash=${account.trie.hash.substring(0, 8)}...\n`)
+              } else {
+                res.write(`  Trie:  [missing]\n`)
+              }
+              if (account.storage) {
+                res.write(
+                  `  Storage: hash=${account.storage.hash.substring(0, 8)}... timestamp=${account.storage.timestamp}\n`
+                )
+              } else {
+                res.write(`  Storage: [missing]\n`)
+              }
+              res.write(`  Matches: cth=${account.cth} cst=${account.cst} csh=${account.csh} tsh=${account.tsh}\n\n`)
+            }
+          }
+        }
+
+        res.write('=== REPORT COMPLETE ===\n')
+      } catch (error) {
+        res.write(`Error generating consistency report: ${error}\n`)
+        /* prettier-ignore */ if (logFlags.error) this.mainLogger.error(`local-state-consistency endpoint error: ${error}`)
+      }
+      res.end()
+    })
   }
 
   getAccountTreeInfo(accountID: string): TrieAccount {
@@ -4637,6 +4731,273 @@ class AccountPatcher {
     minVotes = Math.min(minVotes, majorityOfActiveNodes)
     minVotes = Math.max(1, minVotes)
     return minVotes
+  }
+
+  /**
+   * Generate 256 address range chunks for iteration
+   * Each chunk covers 1/256th of the address space using the first two hex digits
+   */
+  generateAddressChunks(): { low: string; high: string }[] {
+    const chunks: { low: string; high: string }[] = []
+
+    for (let i = 0; i < 256; i++) {
+      const prefix = i.toString(16).padStart(2, '0')
+      const low = prefix + '0'.repeat(62)
+      const high = prefix + 'f'.repeat(62)
+      chunks.push({ low, high })
+    }
+
+    return chunks
+  }
+
+  /**
+   * Perform exhaustive analysis of accountsCache, sharded hash trie state, and stored state
+   * Phase 1: Full address range, non-rotating nodes only
+   */
+  async localStateConsistencyReport(options: {
+    recordsPerSecond: number
+    consensusRangeOnly?: boolean // not used in phase 1
+  }): Promise<{
+    summary: {
+      totalAccounts: number
+      fullyMatching: number
+      cth: number // cache-trie hash matches
+      cst: number // cache-storage timestamp matches
+      csh: number // cache-storage hash matches
+      tsh: number // trie-storage hash matches
+      chunks: Array<{
+        chunkIndex: number
+        recordsProcessed: number
+        timeSpentMs: number
+        low: string
+        high: string
+      }>
+    }
+    accounts?: Array<{
+      accountId: string
+      cache?: { hash: string; timestamp: number }
+      trie?: { hash: string }
+      storage?: { hash: string; timestamp: number }
+      cth: boolean
+      cst: boolean
+      csh: boolean
+      tsh: boolean
+    }>
+  }> {
+    const chunks = this.generateAddressChunks()
+
+    // Initialize summary counters
+    const summary = {
+      totalAccounts: 0,
+      fullyMatching: 0,
+      cth: 0, // cache-trie hash matches
+      cst: 0, // cache-storage timestamp matches
+      csh: 0, // cache-storage hash matches
+      tsh: 0, // trie-storage hash matches
+      chunks: [] as Array<{
+        chunkIndex: number
+        recordsProcessed: number
+        timeSpentMs: number
+        low: string
+        high: string
+      }>,
+    }
+
+    const allAccountResults: Array<{
+      accountId: string
+      cache?: { hash: string; timestamp: number }
+      trie?: { hash: string }
+      storage?: { hash: string; timestamp: number }
+      cth: boolean
+      cst: boolean
+      csh: boolean
+      tsh: boolean
+    }> = []
+
+    const minWaitTime = 10 // minimum wait time in ms
+
+    // Process each chunk
+    for (let chunkIndex = 0; chunkIndex < chunks.length; chunkIndex++) {
+      const chunk = chunks[chunkIndex]
+      const chunkStartTime = shardusGetTime()
+
+      // Maps to store data from each structure for this chunk
+      const cacheData = new Map<string, { hash: string; timestamp: number }>()
+      const trieData = new Map<string, { hash: string }>()
+      const storageData = new Map<string, { hash: string; timestamp: number }>()
+      const allAccountIds = new Set<string>()
+
+      // 1. Collect data from cache for this chunk range
+      // Iterate through accountsCache
+      for (const [accountId, accountHistory] of this.stateManager.accountCache.accountsHashCache3.accountHashMap) {
+        if (accountId >= chunk.low && accountId <= chunk.high) {
+          if (accountHistory.accountHashList.length > 0) {
+            const latestEntry = accountHistory.accountHashList[0] // newest is at index 0
+            cacheData.set(accountId, { hash: latestEntry.h, timestamp: latestEntry.t })
+            allAccountIds.add(accountId)
+          }
+        }
+      }
+
+      // 2. Collect data from trie for this chunk range
+      // For each chunk (2 chars), we need to check all trie nodes that fall within that range
+      // Since treeMaxDepth=4, we need to check all combinations of the remaining 2 characters
+      const chunkPrefix2 = chunk.low.substring(0, 2) // First 2 chars of chunk (e.g., "00")
+
+      if (this.treeMaxDepth >= 2) {
+        // Generate all possible radix combinations for this chunk
+        const remainingDepth = this.treeMaxDepth - 2
+        const numCombinations = Math.pow(16, remainingDepth)
+
+        for (let i = 0; i < numCombinations; i++) {
+          // Convert i to hex with appropriate padding
+          const suffix = i.toString(16).padStart(remainingDepth, '0')
+          const fullRadix = chunkPrefix2 + suffix
+
+          const trieNode = this.shardTrie.layerMaps[this.treeMaxDepth].get(fullRadix)
+
+          if (trieNode) {
+            // Prefer accountTempMap for performance, fall back to accounts array
+            if (trieNode.accountTempMap && trieNode.accountTempMap.size > 0) {
+              for (const [accountId, trieAccount] of trieNode.accountTempMap) {
+                if (accountId >= chunk.low && accountId <= chunk.high) {
+                  trieData.set(accountId, { hash: trieAccount.hash })
+                  allAccountIds.add(accountId)
+                }
+              }
+            } else if (trieNode.accounts && trieNode.accounts.length > 0) {
+              for (const trieAccount of trieNode.accounts) {
+                if (trieAccount.accountID >= chunk.low && trieAccount.accountID <= chunk.high) {
+                  trieData.set(trieAccount.accountID, { hash: trieAccount.hash })
+                  allAccountIds.add(trieAccount.accountID)
+                }
+              }
+            }
+          }
+        }
+      } else {
+        // If treeMaxDepth < 2, just use the chunk prefix directly
+        const trieNode = this.shardTrie.layerMaps[this.treeMaxDepth].get(chunkPrefix2.substring(0, this.treeMaxDepth))
+
+        if (trieNode) {
+          // Prefer accountTempMap for performance, fall back to accounts array
+          if (trieNode.accountTempMap && trieNode.accountTempMap.size > 0) {
+            for (const [accountId, trieAccount] of trieNode.accountTempMap) {
+              if (accountId >= chunk.low && accountId <= chunk.high) {
+                trieData.set(accountId, { hash: trieAccount.hash })
+                allAccountIds.add(accountId)
+              }
+            }
+          } else if (trieNode.accounts && trieNode.accounts.length > 0) {
+            for (const trieAccount of trieNode.accounts) {
+              if (trieAccount.accountID >= chunk.low && trieAccount.accountID <= chunk.high) {
+                trieData.set(trieAccount.accountID, { hash: trieAccount.hash })
+                allAccountIds.add(trieAccount.accountID)
+              }
+            }
+          }
+        }
+      }
+
+      // 3. Collect data from storage for this chunk range
+      try {
+        const storedAccounts = await this.app.getAccountDataByRange(
+          chunk.low,
+          chunk.high,
+          0, // tsStart
+          shardusGetTime(), // tsEnd
+          10000, // maxRecords - large number for chunk
+          0, // offset
+          '' // accountOffset
+        )
+
+        for (const account of storedAccounts) {
+          storageData.set(account.accountId, {
+            hash: account.stateId,
+            timestamp: account.timestamp,
+          })
+          allAccountIds.add(account.accountId)
+        }
+      } catch (error) {
+        /* prettier-ignore */ if (logFlags.error) this.mainLogger.error(`localStateConsistencyReport: Error fetching storage data for chunk ${chunkIndex}: ${error}`)
+      }
+
+      // 4. Compare data across structures for each account
+      let chunkRecordsProcessed = 0
+      for (const accountId of allAccountIds) {
+        const cache = cacheData.get(accountId)
+        const trie = trieData.get(accountId)
+        const storage = storageData.get(accountId)
+
+        // Calculate comparison flags
+        const cth = cache && trie ? cache.hash === trie.hash : false
+        const cst = cache && storage ? cache.timestamp === storage.timestamp : false
+        const csh = cache && storage ? cache.hash === storage.hash : false
+        const tsh = trie && storage ? trie.hash === storage.hash : false
+
+        // Update summary counters
+        summary.totalAccounts++
+        if (cth) summary.cth++
+        if (cst) summary.cst++
+        if (csh) summary.csh++
+        if (tsh) summary.tsh++
+
+        // Check if fully matching (all present and all hash matches)
+        if (cache && trie && storage && cth && cst && csh && tsh) {
+          summary.fullyMatching++
+        }
+
+        // Store account result
+        allAccountResults.push({
+          accountId,
+          cache,
+          trie,
+          storage,
+          cth,
+          cst,
+          csh,
+          tsh,
+        })
+
+        chunkRecordsProcessed++
+      }
+
+      const chunkEndTime = shardusGetTime()
+      const chunkTimeSpent = chunkEndTime - chunkStartTime
+
+      // Record chunk stats
+      summary.chunks.push({
+        chunkIndex,
+        recordsProcessed: chunkRecordsProcessed,
+        timeSpentMs: chunkTimeSpent,
+        low: chunk.low,
+        high: chunk.high,
+      })
+
+      // Rate limiting logic
+      if (chunkRecordsProcessed > 0) {
+        const recordsPerMs = chunkRecordsProcessed / chunkTimeSpent
+        const targetRecordsPerMs = options.recordsPerSecond / 1000
+
+        if (recordsPerMs > targetRecordsPerMs) {
+          // We're going too fast, calculate additional wait time
+          const idealTimeMs = chunkRecordsProcessed / targetRecordsPerMs
+          const additionalWaitMs = Math.max(minWaitTime, idealTimeMs - chunkTimeSpent)
+          await new Promise((resolve) => setTimeout(resolve, additionalWaitMs))
+        } else {
+          // We're going slower than target, just wait the minimum
+          await new Promise((resolve) => setTimeout(resolve, minWaitTime))
+        }
+      } else {
+        // No records processed, wait minimum time
+        await new Promise((resolve) => setTimeout(resolve, minWaitTime))
+      }
+    }
+
+    return {
+      summary,
+      accounts: allAccountResults,
+    }
   }
 }
 

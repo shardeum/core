@@ -540,7 +540,7 @@ describe('AccountPatcher', () => {
       )
 
       // Verify it was called multiple times
-      expect(Context.network.registerExternalGet).toHaveBeenCalledTimes(14)
+      expect(Context.network.registerExternalGet).toHaveBeenCalledTimes(15)
     })
   })
 })

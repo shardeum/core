@@ -334,6 +334,71 @@ class StateManager {
     this.accountPatcher = new AccountPatcher(this, profiler, app, logger, p2p, crypto, config)
     this.cachedAppDataManager = new CachedAppDataManager(this, profiler, app, logger, crypto, p2p, config)
 
+    // Register exit handler for local state consistency report (only if enabled)
+    if (config.stateManager.enableLocalStateConsistencyReportOnExit) {
+      // Set reference to StateManager for exit handler access
+      this.shardus.exitHandler.stateManager = this
+
+      this.shardus.exitHandler.registerAsync('stateConsistencyReport', async () => {
+        try {
+          /* prettier-ignore */ if (logFlags.console) console.log('Generating local state consistency report for exit log...')
+          const startTime = shardusGetTime()
+          const report = await this.accountPatcher.localStateConsistencyReport({
+            recordsPerSecond: 1000, // Higher speed for exit log
+            consensusRangeOnly: false,
+          })
+          const endTime = shardusGetTime()
+
+          // Log summary to exit log - focus on differences only
+          this.logger.getLogger('main').info('=== LOCAL STATE CONSISTENCY REPORT (EXIT) ===')
+          this.logger.getLogger('main').info(`Total execution time: ${endTime - startTime}ms`)
+          this.logger.getLogger('main').info(`Total accounts processed: ${report.summary.totalAccounts}`)
+          this.logger.getLogger('main').info(`Fully matching accounts: ${report.summary.fullyMatching}`)
+
+          if (report.summary.totalAccounts > 0) {
+            const totalMismatches = report.summary.totalAccounts - report.summary.fullyMatching
+            if (totalMismatches > 0) {
+              this.logger.getLogger('main').info(`Total mismatches found: ${totalMismatches}`)
+              this.logger
+                .getLogger('main')
+                .info(`Cache-Trie hash matches: ${report.summary.cth}/${report.summary.totalAccounts}`)
+              this.logger
+                .getLogger('main')
+                .info(`Cache-Storage timestamp matches: ${report.summary.cst}/${report.summary.totalAccounts}`)
+              this.logger
+                .getLogger('main')
+                .info(`Cache-Storage hash matches: ${report.summary.csh}/${report.summary.totalAccounts}`)
+              this.logger
+                .getLogger('main')
+                .info(`Trie-Storage hash matches: ${report.summary.tsh}/${report.summary.totalAccounts}`)
+
+              // Log a few example mismatched accounts (first 5)
+              if (report.accounts) {
+                const mismatchedAccounts = report.accounts
+                  .filter((account) => !account.cth || !account.cst || !account.csh || !account.tsh)
+                  .slice(0, 5)
+
+                for (const account of mismatchedAccounts) {
+                  this.logger
+                    .getLogger('main')
+                    .info(
+                      `Mismatch example: ${account.accountId.substring(0, 16)}... - Matches: cth=${account.cth} cst=${
+                        account.cst
+                      } csh=${account.csh} tsh=${account.tsh}`
+                    )
+                }
+              }
+            } else {
+              this.logger.getLogger('main').info('All accounts are fully consistent across cache, trie, and storage!')
+            }
+          }
+          this.logger.getLogger('main').info('=== END STATE CONSISTENCY REPORT ===')
+        } catch (error) {
+          this.logger.getLogger('main').error(`Error generating exit consistency report: ${error}`)
+        }
+      })
+    }
+
     // feature controls.
     // this.oldFeature_TXHashsetTest = true
     // this.oldFeature_GeneratePartitionReport = false
