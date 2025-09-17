@@ -83,7 +83,7 @@ class TransactionRepair {
     //let requestObjectCount = 0
     //let requestsMade = 0
     //let responseFails = 0
-    //let dataRecieved = 0
+    //let dataReceived = 0
     //let dataApplied = 0
     //let failedHash = 0
     //let numUpToDateAccounts = 0
@@ -98,7 +98,7 @@ class TransactionRepair {
       requestObjectCount: 0,
       requestsMade: 0,
       responseFails: 0,
-      dataRecieved: 0,
+      dataReceived: 0,
       dataApplied: 0,
       failedHash: 0,
       numUpToDateAccounts: 0,
@@ -624,7 +624,7 @@ class TransactionRepair {
               const accountIdsReturned = []
               for (const data of result.stateList) {
                 try {
-                  stats.dataRecieved++
+                  stats.dataReceived++
                   this.profiler.profileSectionStart('repair_saving_account_data')
                   nestedCountersInstance.countEvent('repair1', 'saving')
                   // let shortKey = utils.stringifyReduce(data.accountId)
