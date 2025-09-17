@@ -16,6 +16,7 @@ import { isBogonIP, isInvalidIP, isIPv6 } from '../../utils/functions/checkIP'
 import { nestedCountersInstance } from '../../utils/nestedCounters'
 import { Logger } from 'log4js'
 import { calculateToAcceptV2 } from '../ModeSystemFuncs'
+import { getJoinLimit } from '../CycleAutoScale'
 import { routes } from './routes'
 import {
   debugDumpJoinRequestList,
@@ -120,7 +121,7 @@ export function getNodeRequestingJoin(): P2P.P2PTypes.P2PNode[] {
 export function calculateToAccept(): number {
   const desired = CycleChain.newest.desired
   const active = CycleChain.newest.active
-  let maxJoin = config.p2p.maxJoinedPerCycle // [TODO] allow autoscaling to change this
+  let maxJoin = getJoinLimit()
   const syncing = NodeList.byJoinOrder.length - active
   const expired = CycleChain.newest.expired
 
