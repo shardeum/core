@@ -1447,6 +1447,12 @@ class TransactionQueue {
    * @param queueEntry
    */
   async commitConsensedTransaction(queueEntry: QueueEntry): Promise<CommitConsensedTransactionResult> {
+    // Debug flag to intentionally skip committing account data
+    if (this.stateManager.debugFailToCommit) {
+      /* prettier-ignore */ if (logFlags.debug) this.mainLogger.debug(`debugFailToCommit active. Skipping commit for tx: ${queueEntry.logID}`)
+      queueEntry.accountDataSet = true
+      return { success: true }
+    }
     let ourLockID = -1
     let accountDataList: string | unknown[]
     let uniqueKeys = []
@@ -6684,7 +6690,7 @@ class TransactionQueue {
                 try {
                   //This is a just in time check to make sure our involved accounts
                   //have not changed after our TX timestamp
-                  const accountsValid = this.checkAccountTimestamps(queueEntry)
+                  const accountsValid = await this.checkAccountTimestamps(queueEntry)
                   if (accountsValid === false) {
                     this.updateTxState(queueEntry, 'consensing')
                     queueEntry.preApplyTXResult = {
@@ -8522,7 +8528,7 @@ class TransactionQueue {
    *
    * @param queueEntry
    */
-  txWillChangeLocalData(queueEntry: QueueEntry): boolean {
+  async txWillChangeLocalData(queueEntry: QueueEntry): Promise<boolean> {
     //if this TX modifies a global then return true since all nodes own all global accounts.
     if (queueEntry.globalModification) {
       return true
@@ -8548,7 +8554,7 @@ class TransactionQueue {
 
       //if(queueEntry.localKeys[key] === true){
       if (hasKey) {
-        const accountHash = this.stateManager.accountCache.getAccountHash(key)
+        const accountHash = await this.stateManager.accountCache.getAccountHash(key)
         if (accountHash != null) {
           // if the timestamp of the TX is newer than any local writeable keys then this tx will change local data
           if (timestamp > accountHash.t) {
@@ -8569,15 +8575,15 @@ class TransactionQueue {
    * timestamp newer than our transaction timestamp.
    * If they do have a newer timestamp we must fail the TX and vote for a TX fail receipt.
    */
-  checkAccountTimestamps(queueEntry: QueueEntry): boolean {
+  async checkAccountTimestamps(queueEntry: QueueEntry): Promise<boolean> {
     for (const accountID of Object.keys(queueEntry.involvedReads)) {
-      const cacheEntry = this.stateManager.accountCache.getAccountHash(accountID)
+      const cacheEntry = await this.stateManager.accountCache.getAccountHash(accountID)
       if (cacheEntry != null && cacheEntry.t >= queueEntry.acceptedTx.timestamp) {
         return false
       }
     }
     for (const accountID of Object.keys(queueEntry.involvedWrites)) {
-      const cacheEntry = this.stateManager.accountCache.getAccountHash(accountID)
+      const cacheEntry = await this.stateManager.accountCache.getAccountHash(accountID)
       if (cacheEntry != null && cacheEntry.t >= queueEntry.acceptedTx.timestamp) {
         return false
       }

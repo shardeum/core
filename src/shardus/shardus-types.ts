@@ -1414,6 +1414,8 @@ export interface ServerConfiguration {
     checkDestLimits: boolean
     // how many times can this destination address show up in the queue before we avoid sending to it
     checkDestLimitCount: number
+    // bypass account cache and load account data directly from storage
+    bypassAccountCache: boolean
   }
   /** Options for sharding calculations */
   sharding?: {

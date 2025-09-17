@@ -315,8 +315,8 @@ class PartitionStats {
   }
 
   //todo , I think this is redundant and removable now.
-  hasAccountBeenSeenByStats(accountId: string): boolean {
-    return this.accountCache.hasAccount(accountId)
+  async hasAccountBeenSeenByStats(accountId: string): Promise<boolean> {
+    return await this.accountCache.hasAccount(accountId)
   }
 
   /**
@@ -424,7 +424,7 @@ class PartitionStats {
    * @param accountDataRaw
    * @param debugMsg
    */
-  statsDataSummaryInit(cycle: number, accountId: string, accountDataRaw: unknown, debugMsg: string): void {
+  async statsDataSummaryInit(cycle: number, accountId: string, accountDataRaw: unknown, debugMsg: string): Promise<void> {
     const opCounter = this.statsProcessCounter++
     if (this.invasiveDebugInfo)
       this.mainLogger.debug(
@@ -436,7 +436,7 @@ class PartitionStats {
     const blob: StateManagerTypes.StateManagerTypes.SummaryBlob = this.getSummaryBlob(accountId)
     blob.counter++
 
-    if (this.accountCache.hasAccount(accountId)) {
+    if (await this.accountCache.hasAccount(accountId)) {
       return
     }
     const accountInfo = this.app.getTimestampAndHashFromAccount(accountDataRaw)
@@ -513,12 +513,12 @@ class PartitionStats {
    * @param accountDataAfter
    * @param debugMsg
    */
-  statsDataSummaryUpdate(
+  async statsDataSummaryUpdate(
     cycle: number,
     accountDataBefore: unknown,
     accountDataAfter: Shardus.WrappedData,
     debugMsg: string
-  ): void {
+  ): Promise<void> {
     const opCounter = this.statsProcessCounter++
     if (this.invasiveDebugInfo)
       this.mainLogger.debug(
@@ -547,8 +547,8 @@ class PartitionStats {
     const timestamp = accountDataAfter.timestamp //  this.app.getAccountTimestamp(accountId)
     const hash = accountDataAfter.stateId //this.app.getStateId(accountId)
 
-    if (this.accountCache.hasAccount(accountId)) {
-      const accountMemData: AccountHashCache = this.accountCache.getAccountHash(accountId)
+    if (await this.accountCache.hasAccount(accountId)) {
+      const accountMemData: AccountHashCache = await this.accountCache.getAccountHash(accountId)
       if (accountMemData.t > timestamp) {
         /* prettier-ignore */ if (logFlags.error) this.mainLogger.error(`statsDataSummaryUpdate: good error?: 2: dont update stats with older data skipping update ${utils.makeShortHash(accountId)}  ${debugMsg}  ${accountMemData.t} > ${timestamp}  afterHash:${utils.makeShortHash(accountDataAfter.stateId)}`)
         return

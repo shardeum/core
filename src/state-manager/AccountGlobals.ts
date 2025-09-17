@@ -316,13 +316,13 @@ class AccountGlobals {
     /* prettier-ignore */ nestedCountersInstance.countEvent('sync', `DATASYNC: getGlobalListEarly success:${this.hasknownGlobals}`)
   }
 
-  getGlobalDebugReport(): {
+  async getGlobalDebugReport(): Promise<{
     globalAccountSummary: { id: string; state: string; ts: number }[]
     globalStateHash: string
-  } {
+  }> {
     const globalAccountSummary = []
     for (const globalID in this.globalAccountSet.keys()) {
-      const accountHash = this.stateManager.accountCache.getAccountHash(globalID)
+      const accountHash = await this.stateManager.accountCache.getAccountHash(globalID)
       const summaryObj = { id: globalID, state: accountHash.h, ts: accountHash.t }
       globalAccountSummary.push(summaryObj)
     }
