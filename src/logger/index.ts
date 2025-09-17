@@ -393,12 +393,14 @@ class Logger {
     logFlags.fatal = true
     logFlags.important_as_fatal = true
     logFlags.playback = false
+    logFlags.seqdiagram = true
   }
 
   setDisableAllFlags() {
     for (const [key, value] of Object.entries(logFlags)) {
       logFlags[key] = false
     }
+    logFlags.seqdiagram = true
   }
 
   setErrorFlags() {
@@ -411,6 +413,7 @@ class Logger {
     logFlags.important_as_error = true
 
     logFlags.playback = false
+    logFlags.seqdiagram = true
 
     //temp debug
     // logFlags.aalg = true
@@ -432,6 +435,8 @@ class Logger {
 
     logFlags.important_as_fatal = true
     logFlags.important_as_error = true
+
+    logFlags.seqdiagram = true
 
     //logFlags.rotation = true
   }
