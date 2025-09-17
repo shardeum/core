@@ -1,5 +1,6 @@
 import { AppHeader } from '@shardeum-foundation/lib-net/build/src/types'
 import { logFlags } from '../logger'
+import * as Context from '../p2p/Context'
 import { nestedCountersInstance } from '../utils/nestedCounters'
 import { VectorBufferStream } from '../utils/serialization/VectorBufferStream'
 import { WrappedReq, serializeWrappedReq } from './WrappedReq'
@@ -67,7 +68,13 @@ export const getStreamWithTypeCheck = (
   const requestStream = VectorBufferStream.fromBuffer(payload)
   const requestType = requestStream.readUInt16()
   if (requestType !== typeId) {
-    /* prettier-ignore */ console.log(`Invalid request stream: expected: ${typeId} actual: ${requestType}. ${customErrorLog ? customErrorLog : ''}`)
+    /* prettier-ignore */
+    const logger = Context.logger?.getLogger('main')
+    if (logger) {
+      logger.error(
+        `Invalid request stream: expected: ${typeId} actual: ${requestType}. ${customErrorLog ? customErrorLog : ''}`
+      )
+    }
     return null
   }
   return requestStream
@@ -91,7 +98,13 @@ export const requestErrorHandler = (
   if (opts?.customErrorLog) {
     logMessage += `, custom_log: ${opts.customErrorLog}`
   }
-  /* prettier-ignore */ if (logFlags.error && logFlags.console) console.log(logMessage)
+  if (logFlags.error) {
+    /* prettier-ignore */
+    const logger = Context.logger?.getLogger('main')
+    if (logger) {
+      logger.error(logMessage)
+    }
+  }
 
   let counter = `${apiRoute}_${errorType}`
   if (opts?.customCounterSuffix) {

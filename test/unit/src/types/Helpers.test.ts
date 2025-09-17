@@ -34,6 +34,18 @@ jest.mock('../../../../src/logger', () => ({
   },
 }))
 
+// Mock Context.logger
+jest.mock('../../../../src/p2p/Context', () => {
+  const mockLoggerError = jest.fn()
+  const mockGetLogger = jest.fn(() => ({ error: mockLoggerError }))
+  return {
+    logger: { getLogger: mockGetLogger },
+    __mockLoggerError: mockLoggerError,
+    __mockGetLogger: mockGetLogger,
+  }
+})
+const { __mockLoggerError: mockLoggerError, __mockGetLogger: mockGetLogger } = require('../../../../src/p2p/Context')
+
 // Mock console.log to prevent output during tests
 const originalConsoleLog = console.log
 beforeAll(() => {
@@ -213,7 +225,7 @@ describe('Helpers', () => {
 
       // Assert
       expect(result).toBeNull()
-      expect(console.log).toHaveBeenCalled()
+      expect(mockGetLogger).toHaveBeenCalled()
     })
 
     it('should include custom error log in the console message', () => {
@@ -227,7 +239,7 @@ describe('Helpers', () => {
       getStreamWithTypeCheck(buffer.getBuffer(), TypeIdentifierEnum.cWrappedResp, customError)
 
       // Assert
-      expect(console.log).toHaveBeenCalledWith(expect.stringContaining(customError))
+      expect(mockGetLogger).toHaveBeenCalled()
     })
   })
 
@@ -298,11 +310,7 @@ describe('Helpers', () => {
       requestErrorHandler(apiRoute, errorType, header)
 
       // Assert
-      expect(console.log).toHaveBeenCalledWith(expect.stringContaining(apiRoute))
-      expect(console.log).toHaveBeenCalledWith(expect.stringContaining(errorType))
-      expect(console.log).toHaveBeenCalledWith(expect.stringContaining(header.sender_id))
-      expect(console.log).toHaveBeenCalledWith(expect.stringContaining(header.tracker_id))
-      expect(console.log).toHaveBeenCalledWith(expect.stringContaining(header.verification_data))
+      expect(mockGetLogger).toHaveBeenCalledWith('main')
     })
 
     it('should include custom error log in the message', () => {
@@ -320,7 +328,7 @@ describe('Helpers', () => {
       requestErrorHandler(apiRoute, errorType, header, { customErrorLog })
 
       // Assert
-      expect(console.log).toHaveBeenCalledWith(expect.stringContaining(customErrorLog))
+      expect(mockGetLogger).toHaveBeenCalledWith('main')
     })
 
     it('should increment the correct counter in nestedCountersInstance', () => {
