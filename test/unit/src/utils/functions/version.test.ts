@@ -380,4 +380,48 @@ describe('Version Management', () => {
       expect(meetsMinimumVersion('1.2', '1.2.0')).toBe(VersionValidationResult.ControlVersionParseFailure)
     })
   })
+
+  describe('Prerelease edge cases', () => {
+    it('should parse prerelease zero and reject invalid prerelease numbers', () => {
+      expect(parseSemVersion('1.0.0-prerelease.0')).toEqual({
+        major: 1,
+        minor: 0,
+        patch: 0,
+        prerelease: { number: 0 },
+      })
+
+      expect(() => parseSemVersion('1.0.0-prerelease.-1')).toThrow()
+      expect(() => parseSemVersion('1.0.0-prerelease.not')).toThrow()
+    })
+
+    it('should compare prerelease versions around zero correctly', () => {
+      expect(
+        compareSemVersions(
+          { major: 1, minor: 0, patch: 0, prerelease: { number: 0 } },
+          { major: 1, minor: 0, patch: 0, prerelease: { number: 1 } }
+        )
+      ).toBe(VersionComparisonResult.LessThan)
+
+      expect(
+        compareSemVersions(
+          { major: 1, minor: 0, patch: 0 },
+          { major: 1, minor: 0, patch: 0, prerelease: { number: 0 } }
+        )
+      ).toBe(VersionComparisonResult.GreaterThan)
+    })
+
+    it('should validate prerelease numbers when checking min/max versions', () => {
+      expect(
+        meetsMinimumVersion('1.0.0-prerelease.0', '1.0.0-prerelease.1')
+      ).toBe(VersionValidationResult.Success)
+
+      expect(
+        isWithinMaximumVersion('1.0.0-prerelease.1', '1.0.0-prerelease.0')
+      ).toBe(VersionValidationResult.Success)
+
+      expect(
+        isWithinMaximumVersion('1.0.0-prerelease.1', '1.0.0')
+      ).toBe(VersionValidationResult.ComparisonFailed)
+    })
+  })
 })
