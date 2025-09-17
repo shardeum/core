@@ -140,6 +140,8 @@ export interface NodeIpInfo {
   externalPort: number
   internalIp: string
   internalPort: number
+  externalBindIp?: string
+  internalBindIp?: string
 }
 ```
 

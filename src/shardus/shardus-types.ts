@@ -1043,6 +1043,10 @@ export interface ServerConfiguration {
     internalIp?: string | 'auto'
     /** The port the server will run the internal comunication API  */
     internalPort?: number | 'auto'
+    /** Optional IP/interface to bind the external API */
+    externalBindIp?: string
+    /** Optional IP/interface to bind the internal API */
+    internalBindIp?: string
   }
   /** Server Network module configuration */
   network?: {
