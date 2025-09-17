@@ -270,13 +270,13 @@ class Logger {
     this.setupLogControlValues()
 
     if (dynamicLogMode.toLowerCase() === 'fatal' || dynamicLogMode.toLowerCase() === 'fatals') {
-      console.log('startInFatalsLogMode=true!')
+      this._mainLogger.info('startInFatalsLogMode=true!')
       this.setFatalFlags()
     } else if (dynamicLogMode.toLowerCase() === 'error' || dynamicLogMode.toLowerCase() === 'errors') {
-      console.log('startInErrorLogMode=true!')
+      this._mainLogger.info('startInErrorLogMode=true!')
       this.setErrorFlags()
     }
-    console.log(`logFlags: ` + Utils.safeStringify(logFlags))
+    if (logFlags.debug) this._mainLogger.debug(`logFlags: ` + Utils.safeStringify(logFlags))
 
     this._seenAddresses = {}
     this._shortStrings = {}
@@ -504,7 +504,7 @@ class Logger {
         if (err) {
           console.error(`Failed to delete ${filePath1}: ${err.message}`)
         } else {
-          console.log(`${filePath1} was deleted successfully.`)
+          if (logFlags.debug) this._mainLogger.debug(`${filePath1} was deleted successfully.`)
         }
 
         // Attempt to delete the second file after the first completion
@@ -512,7 +512,7 @@ class Logger {
           if (err) {
             console.error(`Failed to delete ${filePath2}: ${err.message}`)
           } else {
-            console.log(`${filePath2} was deleted successfully.`)
+            if (logFlags.debug) this._mainLogger.debug(`${filePath2} was deleted successfully.`)
           }
           // End the response after attempting to delete both files
           res.end('Cycle recording data cleared.')
@@ -707,7 +707,7 @@ class Logger {
 
     this.backupLogFlags = utils.deepCopy(logFlags)
 
-    console.log(`base logFlags: ` + Utils.safeStringify(logFlags))
+    if (logFlags.debug) this._mainLogger.debug(`base logFlags: ` + Utils.safeStringify(logFlags))
   }
 
   mainLog(level, key: string, message: string): void {
