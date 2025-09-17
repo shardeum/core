@@ -43,18 +43,24 @@ interface StatisticsReport {
   txExpired: number
 }
 
+interface ReporterConfig {
+  recipient?: string
+  interval: number
+  console: boolean
+  logSocketReports: boolean
+}
+
 interface Reporter {
-  config: any
+  config: ReporterConfig
   mainLogger: Log4js.Logger
-  p2p: any
   statistics: Statistics
   stateManager: StateManager
   profiler: Profiler
   loadDetection: LoadDetection
   logger: Logger
-  reportTimer: NodeJS.Timeout
-  reportingInterval: NodeJS.Timeout
-  socketReportInterval: NodeJS.Timeout
+  reportTimer: NodeJS.Timeout | null
+  reportingInterval: NodeJS.Timeout | null
+  socketReportInterval: NodeJS.Timeout | null
   lastTime: number
   doConsoleReport: boolean
   hasRecipient: boolean
@@ -62,7 +68,14 @@ interface Reporter {
   stillNeedsInitialPatchPostActive: boolean
 }
 class Reporter {
-  constructor(config, logger, statistics, stateManager, profiler, loadDetection) {
+  constructor(
+    config: ReporterConfig,
+    logger: Logger,
+    statistics: Statistics,
+    stateManager: StateManager,
+    profiler: Profiler,
+    loadDetection: LoadDetection
+  ) {
     this.config = config
     this.mainLogger = logger.getLogger('main')
     this.statistics = statistics

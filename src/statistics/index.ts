@@ -8,21 +8,38 @@ import { CountedEvent, CountedEventMap } from './countedEvents'
 import { shardusGetTime } from '../network'
 import { Utils } from '@shardeum-foundation/lib-types'
 
+interface NetworkContext {
+  network?: {
+    registerExternalGet(
+      path: string,
+      handler: (req: unknown, res: { json(data: unknown): unknown }) => void
+    ): void
+  }
+}
+
+interface TxStats {
+  txInjected: number
+  txApplied: number
+  txRejected: number
+  txProcessed: number
+  txExpired: number
+}
+
 interface Statistics {
   intervalDuration: number
-  context: any
-  counterDefs: any[]
-  watcherDefs: any
-  timerDefs: { [name: string]: TimerRing }
-  manualStatDefs: any[]
-  fifoStatDefs: any[]
-  interval: NodeJS.Timeout
-  snapshotWriteFns: any[]
-  stream: Readable
+  context: NetworkContext
+  counterDefs: string[]
+  watcherDefs: Record<string, () => number>
+  timerDefs: string[]
+  manualStatDefs: string[]
+  fifoStatDefs: string[]
+  interval: NodeJS.Timeout | null
+  snapshotWriteFns: Array<() => string>
+  stream: Readable | null
   streamIsPushable: boolean
-  counters: any
-  watchers: any
-  timers: any
+  counters: Record<string, CounterRing>
+  watchers: Record<string, WatcherRing>
+  timers: Record<string, TimerRing>
   manualStats: { [name: string]: ManualRing }
   fifoStats: { [name: string]: FifoStats }
   ringOverrides: { [override: string]: number }
@@ -33,7 +50,7 @@ interface Statistics {
 class Statistics extends EventEmitter {
   constructor(
     baseDir: string,
-    config,
+    config: { interval?: number; save?: boolean },
     {
       counters = [],
       watchers = {},
@@ -44,14 +61,14 @@ class Statistics extends EventEmitter {
       fifoOverrides = {},
     }: {
       counters: string[]
-      watchers: any
-      timers: any
+      watchers: Record<string, () => number>
+      timers: string[]
       manualStats: string[]
       fifoStats: string[]
       ringOverrides: { [override: string]: number }
       fifoOverrides: { [override: string]: number }
     },
-    context
+    context: NetworkContext
   ) {
     super()
     this.intervalDuration = config.interval || 1
@@ -79,10 +96,10 @@ class Statistics extends EventEmitter {
       const statsReadStream = this.getStream()
       statsReadStream.pipe(fileWriteStream)
     }
-    this.context.network.registerExternalGet('tx-stats', (req, res) => {
+    this.context.network?.registerExternalGet('tx-stats', (req, res) => {
       try {
         // todo: reject if request is not coming from node operator dashboard
-        let stats: any = {
+        let stats: TxStats = {
           txInjected: 0,
           txApplied: 0,
           txRejected: 0,
@@ -292,16 +309,19 @@ class Statistics extends EventEmitter {
     return ringHolder.ring.previous()
   }
 
-  _initializeCounters(counterDefs = []) {
-    const counters = {}
+  _initializeCounters(counterDefs: string[] = []): Record<string, CounterRing> {
+    const counters: Record<string, CounterRing> = {}
     for (const name of counterDefs) {
       counters[name] = new CounterRing(60)
     }
     return counters
   }
 
-  _initializeWatchers(watcherDefs = {}, context) {
-    const watchers = {}
+  _initializeWatchers(
+    watcherDefs: Record<string, () => number> = {},
+    context: NetworkContext
+  ): Record<string, WatcherRing> {
+    const watchers: Record<string, WatcherRing> = {}
     for (const name in watcherDefs) {
       const watchFn = watcherDefs[name]
       watchers[name] = new WatcherRing(60, watchFn, context)
@@ -309,7 +329,7 @@ class Statistics extends EventEmitter {
     return watchers
   }
 
-  _initializeTimers(timerDefs: any = []): any {
+  _initializeTimers(timerDefs: string[] = []): Record<string, TimerRing> {
     const timers = {}
     for (const name of timerDefs) {
       timers[name] = new TimerRing(60)
@@ -317,8 +337,11 @@ class Statistics extends EventEmitter {
     return timers
   }
 
-  _initializeManualStats(counterDefs = [], ringOverrides = {}) {
-    const manualStats = {}
+  _initializeManualStats(
+    counterDefs: string[] = [],
+    ringOverrides: { [name: string]: number } = {}
+  ): Record<string, ManualRing> {
+    const manualStats: Record<string, ManualRing> = {}
     for (const name of counterDefs) {
       let count = 10
       if (ringOverrides[name] != null) {
@@ -329,8 +352,11 @@ class Statistics extends EventEmitter {
     return manualStats
   }
 
-  _initializeFifoStats(fifoStatsDefs = [], statsOverrides = {}) {
-    const fifoStats = {}
+  _initializeFifoStats(
+    fifoStatsDefs: string[] = [],
+    statsOverrides: { [name: string]: number } = {}
+  ): Record<string, FifoStats> {
+    const fifoStats: Record<string, FifoStats> = {}
     for (const name of fifoStatsDefs) {
       let count = 240
       if (statsOverrides[name] != null) {
@@ -375,19 +401,19 @@ class Statistics extends EventEmitter {
   }
 }
 
-interface Ring {
-  elements: any[]
+interface Ring<T extends number = number> {
+  elements: Array<T | undefined>
   index: number
   length: number
 }
 
-class Ring {
-  constructor(length) {
-    this.elements = new Array(length)
+class Ring<T extends number = number> {
+  constructor(length: number) {
+    this.elements = new Array<T | undefined>(length)
     this.index = 0
     this.length = length
   }
-  save(value) {
+  save(value: T) {
     this.elements[this.index] = value
     this.index = ++this.index % this.elements.length
   }
@@ -447,7 +473,7 @@ class Ring {
   }
 
   clear() {
-    this.elements = new Array(this.length)
+    this.elements = new Array<T | undefined>(this.length)
     this.index = 0
   }
 }
@@ -455,14 +481,14 @@ class Ring {
 interface CounterRing {
   count: number
   total: number
-  ring: Ring
+  ring: Ring<number>
 }
 
 class CounterRing {
   constructor(length) {
     this.count = 0
     this.total = 0
-    this.ring = new Ring(length)
+    this.ring = new Ring<number>(length)
   }
   increment() {
     ++this.count
@@ -475,14 +501,14 @@ class CounterRing {
 }
 
 interface WatcherRing {
-  watchFn: () => any
-  ring: Ring
+  watchFn: () => number
+  ring: Ring<number>
 }
 
 class WatcherRing {
-  constructor(length, watchFn, context) {
+  constructor(length: number, watchFn: () => number, context: unknown) {
     this.watchFn = watchFn.bind(context)
-    this.ring = new Ring(length)
+    this.ring = new Ring<number>(length)
   }
   snapshot() {
     const value = this.watchFn()
@@ -491,14 +517,17 @@ class WatcherRing {
 }
 
 interface TimerRing {
-  ids: any
-  ring: Ring
+  ids: Record<string, number>
+  ring: Ring<number>
 }
 
 class TimerRing {
-  constructor(length) {
+  ids: Record<string, number>
+  ring: Ring<number>
+
+  constructor(length: number) {
     this.ids = {}
-    this.ring = new Ring(length)
+    this.ring = new Ring<number>(length)
   }
   start(id: string) {
     if (!this.ids[id]) {
@@ -527,11 +556,11 @@ class TimerRing {
 }
 
 interface ManualRing {
-  ring: Ring
+  ring: Ring<number>
 }
 
 class FifoStats {
-  private items: any[]
+  private items: number[]
   private length: number
 
   constructor(limit: number = 240) {
@@ -540,7 +569,7 @@ class FifoStats {
   }
 
   // Add an item to the front of the queue
-  save(item: any): void {
+  save(item: number): void {
     this.items.unshift(item)
 
     // Check if length has been exceeded
@@ -616,7 +645,7 @@ class ManualRing {
  * Check for a variable that is not undefined or null
  * @param thing The parameter to check
  */
-function _exists(thing: any) {
+function _exists<T>(thing: T | undefined | null): thing is T {
   return typeof thing !== 'undefined' && thing !== null
 }
 
